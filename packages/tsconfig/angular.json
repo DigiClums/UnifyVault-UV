@@ -1,0 +1,16 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "lib": ["ES2022", "dom", "dom.iterable"]
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "extends": "@unifyvault/tsconfig/angular.json",
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc"
+  }
+}

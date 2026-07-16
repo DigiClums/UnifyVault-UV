@@ -1,0 +1,21 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["node_modules"]
+
+# Compiler Settings
+solc_version = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+
+# Testing configurations
+[profile.default.fuzz]
+runs = 256
+
+[profile.default.invariant]
+runs = 64
+depth = 15
+
+[profile.ci]
+fuzz = { runs = 1000 }
+invariant = { runs = 256, depth = 30 }

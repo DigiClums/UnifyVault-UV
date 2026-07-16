@@ -1,0 +1,8 @@
+{
+  "name": "@unifyvault/prettier-config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared Prettier configurations for UnifyVault",
+  "license": "MIT",
+  "main": "index.json"
+}

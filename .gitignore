@@ -1,0 +1,60 @@
+# Dependencies
+node_modules
+/node_modules
+*/node_modules
+**/node_modules
+.pnpm-store
+pnpm-lock.yaml
+
+# Build Outputs
+dist
+build
+out
+.next
+.angular
+.nestjs
+.turbo
+coverage
+.nyc_output
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+
+# IDE / System files
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.eslintcache
+.stylelintcache
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Hardhat/Foundry compilations
+artifacts/
+cache/
+typechain/
+typechain-types/
+out/
+write-tests/
+.openzeppelin/
+.env
+
+# Hardhat Ignition deployments
+ignition/deployments/

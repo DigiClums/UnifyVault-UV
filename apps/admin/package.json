@@ -1,0 +1,15 @@
+{
+  "name": "@unifyvault/admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'admin: build'",
+    "dev": "echo 'admin: dev'",
+    "lint": "eslint .",
+    "test": "echo 'admin: test'"
+  },
+  "devDependencies": {
+    "@unifyvault/tsconfig": "workspace:*",
+    "@unifyvault/eslint-config": "workspace:*"
+  }
+}

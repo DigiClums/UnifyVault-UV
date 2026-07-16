@@ -1,0 +1,16 @@
+{
+  "name": "@unifyvault/api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint .",
+    "test": "echo 'api: test'"
+  },
+  "devDependencies": {
+    "@unifyvault/tsconfig": "workspace:*",
+    "@unifyvault/eslint-config": "workspace:*"
+  }
+}

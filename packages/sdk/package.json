@@ -1,0 +1,17 @@
+{
+  "name": "@unifyvault/sdk",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint .",
+    "test": "echo 'sdk: test'"
+  },
+  "devDependencies": {
+    "@unifyvault/tsconfig": "workspace:*",
+    "@unifyvault/eslint-config": "workspace:*"
+  }
+}
