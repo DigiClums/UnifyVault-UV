@@ -4,8 +4,12 @@ pragma solidity 0.8.24;
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { Errors as ProtocolErrors } from '../errors/Errors.sol';
 import '../libraries/AccessRoles.sol';
+import '../interfaces/IOracle.sol';
+import '../interfaces/IOracleProvider.sol';
+import '../vault/CustodyVault.sol';
 
 /**
  * @title UnifyVaultController
@@ -16,6 +20,19 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   error NotImplemented();
   error NotAContract(address target);
 
+  struct DepositQuote {
+    bytes32 assetId;
+    address asset;
+    address receiver;
+    uint256 depositAmount;
+    uint256 rawPrice;
+    uint256 normalizedPrice;
+    uint256 sharesOut;
+    uint256 protocolFee;
+    uint256 netDeposit;
+    uint256 timestamp;
+  }
+
   bytes32 public constant GUARDIAN_ROLE = keccak256('GUARDIAN_ROLE');
   bytes32 public constant BOT_ROLE = keccak256('BOT_ROLE');
 
@@ -24,6 +41,8 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   address private immutable _vault;
   address private immutable _treasury;
   address private immutable _token;
+
+  uint256 private _maxDeposit = type(uint256).max;
 
   // Events
   event DepositRequested(
@@ -78,15 +97,36 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     _grantRole(BOT_ROLE, msg.sender);
   }
 
-  // --- Public API Skeleton ---
+  // --- Configurations ---
 
+  /**
+   * @notice Updates the maximum deposit limit
+   */
+  function setMaxDeposit(uint256 maxDeposit_) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    _maxDeposit = maxDeposit_;
+  }
+
+  /**
+   * @notice Returns the maximum deposit limit
+   */
+  function maxDeposit() external view returns (uint256) {
+    return _maxDeposit;
+  }
+
+  // --- Public API ---
+
+  /**
+   * @notice Validates the deposit parameters and returns the calculated shares.
+   * @dev Does not perform any state changes in this version.
+   */
   function deposit(
     address asset,
     uint256 amount,
     uint256 minSharesOut,
     address receiver
-  ) external returns (uint256) {
-    revert NotImplemented();
+  ) external view returns (uint256) {
+    DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
+    return quote.sharesOut;
   }
 
   function redeem(
@@ -97,16 +137,22 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     revert NotImplemented();
   }
 
+  /**
+   * @notice Read-only preview of shares minted for a deposit
+   */
   function previewDeposit(address asset, uint256 amount) external view returns (uint256) {
-    revert NotImplemented();
+    return _validateDeposit(asset, amount, 0, msg.sender).sharesOut;
   }
 
   function previewRedeem(uint256 shares) external view returns (uint256) {
     revert NotImplemented();
   }
 
+  /**
+   * @notice Read-only estimation of shares minted for a deposit
+   */
   function estimateMint(address asset, uint256 amount) external view returns (uint256) {
-    revert NotImplemented();
+    return _validateDeposit(asset, amount, 0, msg.sender).sharesOut;
   }
 
   function estimateRedemption(uint256 shares) external view returns (uint256) {
@@ -119,6 +165,18 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   function rebalance() external {
     revert NotImplemented();
+  }
+
+  /**
+   * @notice Generates a complete deposit quote including pricing, shares, and fee calculations.
+   */
+  function getDepositQuote(
+    address asset,
+    uint256 amount,
+    uint256 minSharesOut,
+    address receiver
+  ) external view returns (DepositQuote memory) {
+    return _validateDeposit(asset, amount, minSharesOut, receiver);
   }
 
   // --- Pausing Actions ---
@@ -155,33 +213,96 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     return _token;
   }
 
-  // --- Internal Helper Stubs ---
+  // --- Internal Validation Helpers ---
 
-  function _validateDeposit() private pure {
-    revert NotImplemented();
-  }
+  /**
+   * @notice Validates a deposit parameters, prices, and limits in exact order, returning the DepositQuote.
+   */
+  function _validateDeposit(
+    address asset,
+    uint256 amount,
+    uint256 minSharesOut,
+    address receiver
+  ) internal view returns (DepositQuote memory quote) {
+    // 1. Protocol paused check
+    if (paused()) {
+      revert EnforcedPause();
+    }
 
-  function _validateRedeem() private pure {
-    revert NotImplemented();
-  }
+    // 2. & 3. Asset supported & enabled check
+    CustodyVault.AssetConfig memory config;
+    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory _config) {
+      config = _config;
+      if (!config.enabled) {
+        revert ProtocolErrors.AssetNotSupported(bytes32(uint256(uint160(asset))));
+      }
+    } catch {
+      revert ProtocolErrors.AssetNotSupported(bytes32(uint256(uint160(asset))));
+    }
 
-  function _fetchOraclePrice() private pure {
-    revert NotImplemented();
-  }
+    // 4. amount > 0
+    if (amount == 0) {
+      revert ProtocolErrors.MathCalculationOverflow();
+    }
 
-  function _moveCollateral() private pure {
-    revert NotImplemented();
-  }
+    // 5. receiver != address(0)
+    if (receiver == address(0)) {
+      revert ProtocolErrors.ZeroAddressDetected();
+    }
 
-  function _mintShares() private pure {
-    revert NotImplemented();
-  }
+    // 6. oracle healthy check
+    bool healthy = IOracle(_oracle).isPriceFresh(asset);
+    if (!healthy) {
+      revert ProtocolErrors.OraclePriceStale(asset, 3600, 3600);
+    }
 
-  function _burnShares() private pure {
-    revert NotImplemented();
-  }
+    // 7. & 8. price available and price > 0 check
+    uint256 normalizedPrice = IOracle(_oracle).getAssetPrice(asset);
+    if (normalizedPrice == 0) {
+      revert ProtocolErrors.OraclePriceNegative(asset, 0);
+    }
 
-  function _routeFees() private pure {
-    revert NotImplemented();
+    bytes32 assetId = bytes32(uint256(uint160(asset)));
+    (address provider, ) = IOracle(_oracle).getFeedMetadata(asset);
+    uint256 rawPrice = IOracleProvider(provider).getLatestRound(assetId).price;
+
+    // 10. preview shares calculation
+    uint256 shares;
+    uint256 collateralValue = (amount * normalizedPrice) / (10 ** config.decimals);
+    uint256 supply = IERC20(_token).totalSupply();
+    if (supply == 0) {
+      shares = collateralValue;
+    } else {
+      uint256 totalVal =
+        (CustodyVault(_vault).balance(asset) * normalizedPrice) / (10 ** config.decimals);
+      if (totalVal == 0) {
+        shares = collateralValue;
+      } else {
+        shares = (collateralValue * supply) / totalVal;
+      }
+    }
+
+    // 11. minimum shares check
+    if (shares < minSharesOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
+    }
+
+    // 12. maximum deposit check
+    if (amount > _maxDeposit) {
+      revert ProtocolErrors.MathCalculationOverflow();
+    }
+
+    quote = DepositQuote({
+      assetId: assetId,
+      asset: asset,
+      receiver: receiver,
+      depositAmount: amount,
+      rawPrice: rawPrice,
+      normalizedPrice: normalizedPrice,
+      sharesOut: shares,
+      protocolFee: 0,
+      netDeposit: amount,
+      timestamp: block.timestamp
+    });
   }
 }
