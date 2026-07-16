@@ -26,7 +26,7 @@
   "devDependencies": {
     "@angular-devkit/build-angular": "^18.2.21",
     "@angular/cli": "^18.2.21",
-    "@angular/compiler-cli": "^18.2.0",
+    "@angular/compiler-cli": "^22.0.7",
     "@types/jasmine": "~5.1.0",
     "@unifyvault/eslint-config": "workspace:*",
     "@unifyvault/tsconfig": "workspace:*",
