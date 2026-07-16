@@ -11,39 +11,46 @@ import '../src/errors/Errors.sol';
  */
 contract OracleValidationLibTest is Test {
   address public constant TEST_ASSET = address(0x1234);
+  OracleValidationLibWrapper wrapper;
 
-  function testValidateOraclePriceBoundary() public pure {
+  function setUp() public {
+    wrapper = new OracleValidationLibWrapper();
+    // Warp block.timestamp away from 0/1 to avoid subtraction underflow in tests
+    vm.warp(1000);
+  }
+
+  function testValidateOraclePriceBoundary() public view {
     // Minimum positive price should succeed
-    OracleValidationLib.validateOraclePrice(1, TEST_ASSET);
+    wrapper.validateOraclePrice(1, TEST_ASSET);
   }
 
   function testValidateOraclePriceZeroRevert() public {
     vm.expectRevert(
       abi.encodeWithSelector(Errors.OraclePriceNegative.selector, TEST_ASSET, int256(0))
     );
-    OracleValidationLib.validateOraclePrice(0, TEST_ASSET);
+    wrapper.validateOraclePrice(0, TEST_ASSET);
   }
 
   function testValidateOraclePriceNegativeRevert() public {
     vm.expectRevert(
       abi.encodeWithSelector(Errors.OraclePriceNegative.selector, TEST_ASSET, int256(-1))
     );
-    OracleValidationLib.validateOraclePrice(-1, TEST_ASSET);
+    wrapper.validateOraclePrice(-1, TEST_ASSET);
   }
 
-  function testValidatePriceFreshnessBoundary() public {
+  function testValidatePriceFreshnessBoundary() public view {
     uint256 currentTimestamp = block.timestamp;
     // Equal boundary age = heartbeat should pass
-    OracleValidationLib.validatePriceFreshness(currentTimestamp - 60, 60, TEST_ASSET);
+    wrapper.validatePriceFreshness(currentTimestamp - 60, 60, TEST_ASSET);
     // Under boundary age < heartbeat should pass
-    OracleValidationLib.validatePriceFreshness(currentTimestamp - 59, 60, TEST_ASSET);
+    wrapper.validatePriceFreshness(currentTimestamp - 59, 60, TEST_ASSET);
   }
 
   function testValidatePriceFreshnessRevertBoundary() public {
     uint256 currentTimestamp = block.timestamp;
     // Over boundary age > heartbeat should revert (asset, age, limit)
     vm.expectRevert(abi.encodeWithSelector(Errors.OraclePriceStale.selector, TEST_ASSET, 61, 60));
-    OracleValidationLib.validatePriceFreshness(currentTimestamp - 61, 60, TEST_ASSET);
+    wrapper.validatePriceFreshness(currentTimestamp - 61, 60, TEST_ASSET);
   }
 
   function testFuzzValidateOraclePrice(int256 price) public {
@@ -51,9 +58,9 @@ contract OracleValidationLibTest is Test {
       vm.expectRevert(
         abi.encodeWithSelector(Errors.OraclePriceNegative.selector, TEST_ASSET, price)
       );
-      OracleValidationLib.validateOraclePrice(price, TEST_ASSET);
+      wrapper.validateOraclePrice(price, TEST_ASSET);
     } else {
-      OracleValidationLib.validateOraclePrice(price, TEST_ASSET);
+      wrapper.validateOraclePrice(price, TEST_ASSET);
     }
   }
 
@@ -73,9 +80,23 @@ contract OracleValidationLibTest is Test {
           uint256(heartbeat)
         )
       );
-      OracleValidationLib.validatePriceFreshness(updateTimestamp, uint256(heartbeat), TEST_ASSET);
+      wrapper.validatePriceFreshness(updateTimestamp, uint256(heartbeat), TEST_ASSET);
     } else {
-      OracleValidationLib.validatePriceFreshness(updateTimestamp, uint256(heartbeat), TEST_ASSET);
+      wrapper.validatePriceFreshness(updateTimestamp, uint256(heartbeat), TEST_ASSET);
     }
+  }
+}
+
+contract OracleValidationLibWrapper {
+  function validateOraclePrice(int256 price, address asset) external pure {
+    OracleValidationLib.validateOraclePrice(price, asset);
+  }
+
+  function validatePriceFreshness(
+    uint256 updateTimestamp,
+    uint256 heartbeat,
+    address asset
+  ) external view {
+    OracleValidationLib.validatePriceFreshness(updateTimestamp, heartbeat, asset);
   }
 }

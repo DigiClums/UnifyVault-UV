@@ -41,7 +41,10 @@ packages/protocol/
 
 - **Interfaces:** Contain exact method signatures and parameters for each smart contract component. Every core contract must inherit its corresponding interface (e.g., `UVBTCETHToken` must implement `IToken`).
 - **Errors / Events:** Custom errors are used exclusively instead of revert strings to optimize gas usage on Base. Shared events are defined globally to standardize telemetry tracking.
-- **Oracle:** Normalizes price feeds from external chainlink networks and validates price updates (staleness & negative feeds).
+- **Protocol Coordinator (`UnifyVaultController`):** Canonical workflow orchestrator that manages asset deposits, redemptions, rebalances, and fee collection sequences. Does not own or hold state, but coordinates vault operations, oracle managers, and index tokens.
+- **Protocol Directory (`ProtocolDirectory`):** Canonical registry that resolves target addresses using generic `bytes32` identifiers configured in [ModuleIds.sol](file:///Users/apple/Documents/UnifyVault-UV/packages/protocol/src/constants/ModuleIds.sol). Governed by `GOVERNANCE_ROLE`. Includes a one-way `freeze()` method to permanently lock registry entries.
+- **Oracle:** Decoupled architecture separating valuation logic (`OracleManager`) from source-specific data feeds (`IOracleProvider`). Normalized prices are scaled to 18 decimals and checked against heartbeats and non-positive value anomalies.
+- **Oracle Provider (`IOracleProvider`):** Standard interface for multi-source oracle providers (Chainlink, Redstone, Pyth). Uses generic `bytes32 assetId` keys to support arbitrary off-chain feeds and returns a unified `ProviderPrice` struct. Normalizes pricing output to 18 decimals. The codebase includes a production-grade [MockOracleProvider](file:///packages/protocol/src/oracle/MockOracleProvider.sol) for deterministic testing.
 - **Vault:** Custodianship of Wrapped BTC and native/staked ETH, managing reserves securely.
 - **Token:** Implements the `UVBTCETH` index token.
 - **Treasury:** Routes operational funds and protocol reserve allocations based on collected transaction fees.

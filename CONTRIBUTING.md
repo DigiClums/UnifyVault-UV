@@ -33,7 +33,7 @@ The CI pipeline runs these checks on every pull request. PRs with failing checks
 Our team uses the **GitFlow** branching workflow:
 
 - **Feature Branches:** Create branches off of `develop` using the prefix `feature/` (e.g., `feature/add-siwe-auth`).
-- **Pull Requests:** Direct all pull requests against the `develop` branch. Direct merges to `main` or `master` are blocked.
+- **Pull Requests:** Direct all pull requests against the `develop` branch. Direct merges to `main` are blocked.
 - **Releases:** Releases are staged on the `release/` branch before being merged to `main` and tagged.
 
 ---

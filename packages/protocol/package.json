@@ -6,11 +6,12 @@
     "build": "forge build",
     "test": "forge test",
     "clean": "forge clean",
-    "lint": "echo 'protocol: lint'"
+    "lint": "solhint 'src/**/*.sol'"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^5.0.2",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
-    "forge-std": "^1.1.2"
+    "forge-std": "^1.1.2",
+    "solhint": "^4.5.4"
   }
 }

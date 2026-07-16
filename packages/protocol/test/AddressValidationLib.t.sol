@@ -10,19 +10,31 @@ import '../src/errors/Errors.sol';
  * @notice Tests address verification boundaries and error custom revert selector matches
  */
 contract AddressValidationLibTest is Test {
-  function testValidateNonZeroAddress() public pure {
-    AddressValidationLib.validateNonZeroAddress(address(0x1));
+  AddressValidationLibWrapper wrapper;
+
+  function setUp() public {
+    wrapper = new AddressValidationLibWrapper();
+  }
+
+  function testValidateNonZeroAddress() public view {
+    wrapper.validateNonZeroAddress(address(0x1));
   }
 
   function testValidateNonZeroAddressRevert() public {
     vm.expectRevert(Errors.ZeroAddressDetected.selector);
-    AddressValidationLib.validateNonZeroAddress(address(0));
+    wrapper.validateNonZeroAddress(address(0));
   }
 
-  function testFuzzValidateNonZeroAddress(address input) public pure {
+  function testFuzzValidateNonZeroAddress(address input) public view {
     if (input == address(0)) {
       return; // zero address verified in custom revert test
     }
-    AddressValidationLib.validateNonZeroAddress(input);
+    wrapper.validateNonZeroAddress(input);
+  }
+}
+
+contract AddressValidationLibWrapper {
+  function validateNonZeroAddress(address addr) external pure {
+    AddressValidationLib.validateNonZeroAddress(addr);
   }
 }

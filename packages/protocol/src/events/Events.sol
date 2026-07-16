@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity >=0.8.20;
 
 /**
  * @title Events
@@ -24,4 +24,13 @@ library Events {
   event ProtocolUnpaused(address indexed actor);
   event GovernanceConfigUpdated(bytes32 indexed configKey, address indexed newTarget);
   event OraclePriceSynchronized(address indexed asset, uint256 price, uint256 timestamp);
+  event AddressRegistered(bytes32 indexed id, address indexed target, address indexed caller);
+  event AddressUpdated(
+    bytes32 indexed id,
+    address indexed oldTarget,
+    address newTarget,
+    address indexed caller
+  );
+  event AddressRemoved(bytes32 indexed id, address indexed oldTarget, address indexed caller);
+  event RegistryFrozen(address indexed caller);
 }

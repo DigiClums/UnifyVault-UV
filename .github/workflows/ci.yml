@@ -2,9 +2,9 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [main, develop, master]
+    branches: [main, develop]
   pull_request:
-    branches: [main, develop, master]
+    branches: [main, develop]
 
 jobs:
   ci:
@@ -42,3 +42,20 @@ jobs:
 
       - name: Build Workspace
         run: pnpm run build
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Check Solidity Formatting
+        run: cd packages/protocol && forge fmt --check
+
+      - name: Build Smart Contracts
+        run: cd packages/protocol && forge build
+
+      - name: Run Foundry Tests
+        run: cd packages/protocol && forge test -vvv
+
+      - name: Run Foundry Coverage
+        run: cd packages/protocol && forge coverage

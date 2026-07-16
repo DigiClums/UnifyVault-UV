@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity >=0.8.20;
 
 /**
  * @title Errors
@@ -18,4 +18,13 @@ library Errors {
   error HeartbeatIntervalOutofBounds();
   error IndexTokenNotSupported(address index);
   error ZeroAddressDetected();
+  error EntryAlreadyExists(bytes32 id);
+  error EntryDoesNotExist(bytes32 id);
+  error RegistryIsFrozen();
+  error IdenticalAddressSubmitted();
+
+  // Oracle Provider Errors
+  error AssetNotSupported(bytes32 assetId);
+  error OracleProviderPriceStale(bytes32 assetId, uint256 priceAge, uint256 limit);
+  error OracleProviderPriceNegative(bytes32 assetId, int256 price);
 }
