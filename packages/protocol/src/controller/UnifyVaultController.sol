@@ -57,6 +57,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 amount,
     uint256 sharesMinted
   );
+  event DepositCollateralReceived(
+    address indexed asset,
+    address indexed user,
+    address indexed receiver,
+    uint256 requestedAmount,
+    uint256 receivedAmount,
+    uint256 timestamp
+  );
   event RedeemRequested(address indexed receiver, uint256 shares, uint256 minCollateralOut);
   event RedeemCompleted(address indexed receiver, uint256 shares, uint256 collateralReturned);
   event FeeCollected(address indexed asset, uint256 amount);
@@ -116,17 +124,38 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Public API ---
 
   /**
-   * @notice Validates the deposit parameters and returns the calculated shares.
-   * @dev Does not perform any state changes in this version.
+   * @notice Validates a deposit, transfers user collateral into CustodyVault, and returns the quote.
    */
   function deposit(
     address asset,
     uint256 amount,
     uint256 minSharesOut,
     address receiver
-  ) external view returns (uint256) {
+  ) external nonReentrant whenNotPaused returns (DepositQuote memory) {
     DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
-    return quote.sharesOut;
+
+    uint256 balanceBefore = IERC20(asset).balanceOf(_vault);
+
+    // Coordinates with CustodyVault to transfer collateral
+    CustodyVault(_vault).deposit(asset, msg.sender, amount);
+
+    uint256 balanceAfter = IERC20(asset).balanceOf(_vault);
+    uint256 receivedAmount = balanceAfter - balanceBefore;
+
+    if (receivedAmount != amount) {
+      revert ProtocolErrors.InsufficientReserves(asset, amount, receivedAmount);
+    }
+
+    emit DepositCollateralReceived(
+      asset,
+      msg.sender,
+      receiver,
+      amount,
+      receivedAmount,
+      block.timestamp
+    );
+
+    return quote;
   }
 
   function redeem(

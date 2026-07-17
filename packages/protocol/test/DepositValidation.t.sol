@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import 'forge-std/Test.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/ProtocolDirectory.sol';
 import '../src/oracle/OracleManager.sol';
@@ -10,9 +11,26 @@ import '../src/vault/CustodyVault.sol';
 import '../src/token/UVBTCETHToken.sol';
 import { Errors as ProtocolErrors } from '../src/errors/Errors.sol';
 import '../src/libraries/AccessRoles.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 // Simple mock for Treasury to avoid Address.sol global naming collision
 contract MockTreasury {}
+
+contract MockERC20 is ERC20 {
+  uint8 private _decimals;
+
+  constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) {
+    _decimals = decimals_;
+  }
+
+  function decimals() public view override returns (uint8) {
+    return _decimals;
+  }
+
+  function mint(address to, uint256 amount) external {
+    _mint(to, amount);
+  }
+}
 
 contract DepositValidationTest is Test {
   UnifyVaultController public controller;
@@ -24,12 +42,12 @@ contract DepositValidationTest is Test {
   MockTreasury public treasury;
   UVBTCETHToken public token;
 
+  address public tokenA;
+  address public tokenB;
+
   address public gov = address(0xABC);
   address public guardian = address(0x111);
   address public user = address(0x222);
-
-  address public tokenA = address(0x333); // Mock collateral token A (18 decimals)
-  address public tokenB = address(0x444); // Mock collateral token B (8 decimals)
 
   bytes32 public assetIdA;
   bytes32 public assetIdB;
@@ -42,6 +60,9 @@ contract DepositValidationTest is Test {
     vault = new CustodyVault();
     treasury = new MockTreasury();
     token = new UVBTCETHToken();
+
+    tokenA = address(new MockERC20('TokenA', 'TKA', 18));
+    tokenB = address(new MockERC20('TokenB', 'TKB', 8));
 
     // 1. Grant governance access to this test contract for config
     oracleManager.grantRole(AccessRoles.GOVERNANCE_ROLE, address(this));
@@ -75,6 +96,9 @@ contract DepositValidationTest is Test {
     controller.grantRole(AccessRoles.GOVERNANCE_ROLE, gov);
     controller.grantRole(controller.GUARDIAN_ROLE(), guardian);
 
+    // Grant CONTROLLER_ROLE of CustodyVault to controller
+    vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
+
     // Renounce setup rights
     controller.renounceRole(AccessRoles.GOVERNANCE_ROLE, address(this));
     controller.renounceRole(controller.GUARDIAN_ROLE(), address(this));
@@ -84,8 +108,20 @@ contract DepositValidationTest is Test {
 
   function testDepositValidationSuccess() public {
     uint256 expectedShares = 10 * 1000 * 10 ** 18;
-    uint256 shares = controller.deposit(tokenA, 10 * 10 ** 18, 0, user);
-    assertEq(shares, expectedShares);
+
+    deal(tokenA, user, 10 * 10 ** 18);
+    vm.startPrank(user);
+    IERC20(tokenA).approve(address(vault), 10 * 10 ** 18);
+
+    UnifyVaultController.DepositQuote memory quote = controller.deposit(
+      tokenA,
+      10 * 10 ** 18,
+      0,
+      user
+    );
+    vm.stopPrank();
+
+    assertEq(quote.sharesOut, expectedShares);
   }
 
   function testPreviewDepositReturnsExpectedShares() public {
