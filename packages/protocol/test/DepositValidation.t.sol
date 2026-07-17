@@ -11,10 +11,15 @@ import '../src/vault/CustodyVault.sol';
 import '../src/token/UVBTCETHToken.sol';
 import { Errors as ProtocolErrors } from '../src/errors/Errors.sol';
 import '../src/libraries/AccessRoles.sol';
+import '../src/libraries/FeeLib.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 // Simple mock for Treasury to avoid Address.sol global naming collision
-contract MockTreasury {}
+contract MockTreasury {
+  function collectFee(address asset, uint256 amount) external {
+    IERC20(asset).transferFrom(msg.sender, address(this), amount);
+  }
+}
 
 contract MockERC20 is ERC20 {
   uint8 private _decimals;
@@ -107,35 +112,40 @@ contract DepositValidationTest is Test {
   // --- Unit Tests ---
 
   function testDepositValidationSuccess() public {
-    uint256 expectedShares = 10 * 1000 * 10 ** 18;
+    uint256 amount = 10 * 10 ** 18;
+    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
+    uint256 expectedNet = amount - expectedFee;
+    uint256 expectedShares = expectedNet * 1000;
 
-    deal(tokenA, user, 10 * 10 ** 18);
+    deal(tokenA, user, amount);
     vm.startPrank(user);
-    IERC20(tokenA).approve(address(vault), 10 * 10 ** 18);
+    IERC20(tokenA).approve(address(vault), expectedNet);
+    IERC20(tokenA).approve(address(controller), expectedFee);
 
-    UnifyVaultController.DepositQuote memory quote = controller.deposit(
-      tokenA,
-      10 * 10 ** 18,
-      0,
-      user
-    );
+    UnifyVaultController.DepositQuote memory quote = controller.deposit(tokenA, amount, 0, user);
     vm.stopPrank();
 
-    assertEq(quote.sharesOut, expectedShares);
+    assertEq(quote.sharesPreview, expectedShares);
   }
 
   function testPreviewDepositReturnsExpectedShares() public {
-    // Since supply is 0, shares should equal collateral value = 10 * 1000 = 10,000 USD
-    uint256 expectedShares = 10 * 1000 * 10 ** 18;
-    uint256 shares = controller.previewDeposit(tokenA, 10 * 10 ** 18);
+    uint256 amount = 10 * 10 ** 18;
+    uint256 expectedNet = amount - (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
+    uint256 expectedShares = expectedNet * 1000;
+
+    uint256 shares = controller.previewDeposit(tokenA, amount);
     assertEq(shares, expectedShares);
 
-    uint256 estimate = controller.estimateMint(tokenA, 10 * 10 ** 18);
+    uint256 estimate = controller.estimateMint(tokenA, amount);
     assertEq(estimate, expectedShares);
   }
 
   function testQuoteDeterministicAndMatching() public {
     uint256 amount = 10 * 10 ** 18;
+    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
+    uint256 expectedNet = amount - expectedFee;
+    uint256 expectedShares = expectedNet * 1000;
+
     UnifyVaultController.DepositQuote memory quote1 = controller.getDepositQuote(
       tokenA,
       amount,
@@ -156,19 +166,19 @@ contract DepositValidationTest is Test {
     assertEq(quote1.depositAmount, amount);
     assertEq(quote1.rawPrice, 1000 * 10 ** 18);
     assertEq(quote1.normalizedPrice, 1000 * 10 ** 18);
-    assertEq(quote1.sharesOut, amount * 1000);
-    assertEq(quote1.protocolFee, 0);
-    assertEq(quote1.netDeposit, amount);
+    assertEq(quote1.sharesPreview, expectedShares);
+    assertEq(quote1.protocolFee, expectedFee);
+    assertEq(quote1.netDeposit, expectedNet);
     assertEq(quote1.timestamp, block.timestamp);
 
     // Assert equality between runs
     assertEq(quote1.assetId, quote2.assetId);
-    assertEq(quote1.sharesOut, quote2.sharesOut);
+    assertEq(quote1.sharesPreview, quote2.sharesPreview);
     assertEq(quote1.rawPrice, quote2.rawPrice);
 
     // Assert that preview and estimate match quote
-    assertEq(controller.previewDeposit(tokenA, amount), quote1.sharesOut);
-    assertEq(controller.estimateMint(tokenA, amount), quote1.sharesOut);
+    assertEq(controller.previewDeposit(tokenA, amount), quote1.sharesPreview);
+    assertEq(controller.estimateMint(tokenA, amount), quote1.sharesPreview);
   }
 
   function testUnsupportedAssetRevert() public {
@@ -221,12 +231,12 @@ contract DepositValidationTest is Test {
   }
 
   function testSlippageLimitExceededRevert() public {
-    // Shares is 10,000, user requests 11,000 minSharesOut
+    // expectedShares is 9975 * 10 ** 18. Slippage requests 11000 * 10 ** 18 minSharesOut
     vm.expectRevert(
       abi.encodeWithSelector(
         ProtocolErrors.SlippageLimitExceeded.selector,
         11000 * 10 ** 18,
-        10000 * 10 ** 18
+        9975 * 10 ** 18
       )
     );
     controller.deposit(tokenA, 10 * 10 ** 18, 11000 * 10 ** 18, user);
@@ -243,7 +253,7 @@ contract DepositValidationTest is Test {
   // --- Fuzz Tests ---
 
   function testFuzzDepositValidation(uint256 amount, uint256 price) public {
-    vm.assume(amount > 0 && amount < 10000000 * 10 ** 18);
+    vm.assume(amount > 10000 && amount < 10000000 * 10 ** 18);
     vm.assume(price > 0 && price < 10000000 * 10 ** 18);
 
     oracleProvider.setPrice(assetIdA, price);
@@ -251,7 +261,8 @@ contract DepositValidationTest is Test {
 
     // Previews do not revert, they calculate
     uint256 shares = controller.previewDeposit(tokenA, amount);
-    uint256 expectedShares = (amount * price) / 10 ** 18;
+    uint256 expectedNet = amount - (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
+    uint256 expectedShares = (expectedNet * price) / 10 ** 18;
     assertEq(shares, expectedShares);
   }
 }

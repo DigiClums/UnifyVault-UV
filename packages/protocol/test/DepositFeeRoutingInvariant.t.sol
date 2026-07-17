@@ -11,23 +11,9 @@ import '../src/vault/CustodyVault.sol';
 import '../src/token/UVBTCETHToken.sol';
 import '../src/libraries/AccessRoles.sol';
 import '../src/libraries/FeeLib.sol';
+import './DepositFeeRouting.t.sol'; // imports MockERC20
 
-// Extended interface for Treasury to avoid compiling Treasury.sol directly
-interface ITestTreasury {
-  function registerAsset(address asset, uint8 decimals) external;
-  function grantRole(bytes32 role, address account) external;
-  function CONTROLLER_ROLE() external view returns (bytes32);
-}
-
-contract MockERC20 is ERC20 {
-  constructor() ERC20('MOCK', 'MOCK') {}
-
-  function mint(address to, uint256 amount) external {
-    _mint(to, amount);
-  }
-}
-
-contract DepositCollateralHandler {
+contract DepositFeeRoutingHandler {
   Vm constant vm = Vm(address(uint160(uint256(keccak256('hevm')))));
 
   UnifyVaultController public controller;
@@ -75,12 +61,12 @@ contract DepositCollateralHandler {
   }
 }
 
-contract DepositCollateralInvariantTest is Test {
+contract DepositFeeRoutingInvariantTest is Test {
   UnifyVaultController public controller;
   CustodyVault public vault;
   ITestTreasury public treasury;
   UVBTCETHToken public token;
-  DepositCollateralHandler public handler;
+  DepositFeeRoutingHandler public handler;
 
   ProtocolDirectory public directory;
   OracleManager public oracleManager;
@@ -128,7 +114,7 @@ contract DepositCollateralInvariantTest is Test {
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
 
-    handler = new DepositCollateralHandler(controller, vault, treasury, token, tokenA);
+    handler = new DepositFeeRoutingHandler(controller, vault, treasury, token, tokenA);
 
     // Revoke controller role on token from test contract to prevent fuzzer calling mint
     token.revokeRole(token.CONTROLLER_ROLE(), address(this));

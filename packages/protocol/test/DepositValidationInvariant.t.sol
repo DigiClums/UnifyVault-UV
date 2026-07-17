@@ -97,6 +97,9 @@ contract DepositValidationInvariantTest is Test {
     initialSupply = token.totalSupply();
     initialVaultBalance = token.balanceOf(address(vault));
 
+    // Revoke controller role on token from test contract to prevent fuzzer calling mint
+    token.revokeRole(token.CONTROLLER_ROLE(), address(this));
+
     targetContracts.push(address(handler));
   }
 

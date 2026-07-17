@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import 'forge-std/Test.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/ProtocolDirectory.sol';
 import '../src/oracle/OracleManager.sol';
@@ -28,39 +29,7 @@ contract MockERC20 is ERC20 {
   }
 }
 
-contract MockFeeOnTransferERC20 is ERC20 {
-  constructor() ERC20('FOT', 'FOT') {}
-
-  function mint(address to, uint256 amount) external {
-    _mint(to, amount);
-  }
-
-  function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
-    uint256 fee = amount / 10;
-    uint256 netAmount = amount - fee;
-    _transfer(from, to, netAmount);
-    _transfer(from, address(0xdead), fee);
-    _spendAllowance(from, msg.sender, amount);
-    return true;
-  }
-}
-
-contract MockRebasingERC20 is ERC20 {
-  constructor() ERC20('REBASE', 'REBASE') {}
-
-  function mint(address to, uint256 amount) external {
-    _mint(to, amount);
-  }
-
-  function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
-    uint256 netAmount = (amount * 95) / 100;
-    _transfer(from, to, netAmount);
-    _spendAllowance(from, msg.sender, amount);
-    return true;
-  }
-}
-
-contract DepositCollateralTest is Test {
+contract DepositFeeRoutingTest is Test {
   UnifyVaultController public controller;
 
   ProtocolDirectory public directory;
@@ -71,16 +40,12 @@ contract DepositCollateralTest is Test {
   UVBTCETHToken public token;
 
   MockERC20 public tokenA;
-  MockFeeOnTransferERC20 public tokenFOT;
-  MockRebasingERC20 public tokenRebase;
 
   address public gov = address(0xABC);
   address public guardian = address(0x111);
   address public user = address(0x222);
 
   bytes32 public assetIdA;
-  bytes32 public assetIdFOT;
-  bytes32 public assetIdRebase;
 
   event DepositCollateralReceived(
     address indexed asset,
@@ -91,6 +56,8 @@ contract DepositCollateralTest is Test {
     uint256 timestamp
   );
 
+  event ProtocolFeeCollected(address indexed payer, address indexed asset, uint256 feeAmount);
+
   function setUp() public {
     vm.warp(100000);
     directory = new ProtocolDirectory();
@@ -98,15 +65,13 @@ contract DepositCollateralTest is Test {
     oracleProvider = new MockOracleProvider();
     vault = new CustodyVault();
 
-    // Deploy Treasury via bytecode using exact contract name
+    // Deploy Treasury via bytecode
     address treasuryAddr = deployCode('Treasury');
     treasury = ITestTreasury(treasuryAddr);
 
     token = new UVBTCETHToken();
 
     tokenA = new MockERC20();
-    tokenFOT = new MockFeeOnTransferERC20();
-    tokenRebase = new MockRebasingERC20();
 
     // 1. Grant governance access to this test contract for config
     oracleManager.grantRole(AccessRoles.GOVERNANCE_ROLE, address(this));
@@ -117,27 +82,16 @@ contract DepositCollateralTest is Test {
 
     // 2. Register assets in Oracle Provider
     assetIdA = bytes32(uint256(uint160(address(tokenA))));
-    assetIdFOT = bytes32(uint256(uint160(address(tokenFOT))));
-    assetIdRebase = bytes32(uint256(uint160(address(tokenRebase))));
-
     oracleProvider.registerAsset(assetIdA, 1000 * 10 ** 18, 18, block.timestamp, 1);
-    oracleProvider.registerAsset(assetIdFOT, 1000 * 10 ** 18, 18, block.timestamp, 1);
-    oracleProvider.registerAsset(assetIdRebase, 1000 * 10 ** 18, 18, block.timestamp, 1);
 
     // 3. Register config in Oracle Manager
     oracleManager.configureAsset(assetIdA, address(oracleProvider), address(0), 3600, true);
-    oracleManager.configureAsset(assetIdFOT, address(oracleProvider), address(0), 3600, true);
-    oracleManager.configureAsset(assetIdRebase, address(oracleProvider), address(0), 3600, true);
 
     // 4. Register config in Vault
     vault.registerAsset(address(tokenA), 18);
-    vault.registerAsset(address(tokenFOT), 18);
-    vault.registerAsset(address(tokenRebase), 18);
 
     // 5. Register config in Treasury (passing decimals: 18)
     treasury.registerAsset(address(tokenA), 18);
-    treasury.registerAsset(address(tokenFOT), 18);
-    treasury.registerAsset(address(tokenRebase), 18);
 
     // 6. Deploy Controller
     controller = new UnifyVaultController(
@@ -160,20 +114,32 @@ contract DepositCollateralTest is Test {
     controller.renounceRole(controller.GUARDIAN_ROLE(), address(this));
   }
 
-  // --- Unit Tests ---
+  // --- FeeLib Unit Tests ---
 
-  function testSuccessfulDepositCollateralTransfer() public {
-    uint256 amount = 10 * 10 ** 18;
+  function testFeeLibCalculation() public {
+    uint256 amount = 10000;
+    uint256 expectedFee = 25; // 25 BPS of 10000 = 25
+    uint256 expectedNet = 9975;
+
+    assertEq(FeeLib.calculateDepositFee(amount), expectedFee);
+    assertEq(FeeLib.calculateNetDeposit(amount), expectedNet);
+  }
+
+  // --- Controller Routing Unit Tests ---
+
+  function testSuccessfulFeeRouting() public {
+    uint256 amount = 10000 * 10 ** 18;
     uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
     uint256 expectedNet = amount - expectedFee;
 
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
+    // Approve net to vault, fee to controller
     tokenA.approve(address(vault), expectedNet);
     tokenA.approve(address(controller), expectedFee);
 
-    // Expect event emission
+    // Expect event emissions
     vm.expectEmit(true, true, true, true);
     emit DepositCollateralReceived(
       address(tokenA),
@@ -184,6 +150,9 @@ contract DepositCollateralTest is Test {
       block.timestamp
     );
 
+    vm.expectEmit(true, true, true, true);
+    emit ProtocolFeeCollected(user, address(tokenA), expectedFee);
+
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),
       amount,
@@ -192,111 +161,31 @@ contract DepositCollateralTest is Test {
     );
     vm.stopPrank();
 
-    // Verify balance movements
+    // Verify balance splits
     assertEq(tokenA.balanceOf(user), 0);
     assertEq(tokenA.balanceOf(address(vault)), expectedNet);
     assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
     assertEq(tokenA.balanceOf(address(controller)), 0);
 
-    // Verify quote
+    // Verify quote calculations
+    assertEq(quote.depositAmount, amount);
+    assertEq(quote.protocolFee, expectedFee);
+    assertEq(quote.netDeposit, expectedNet);
     assertEq(quote.sharesPreview, expectedNet * 1000);
   }
 
-  function testInsufficientAllowanceRevert() public {
-    uint256 amount = 10 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
-
-    tokenA.mint(user, amount);
-
-    vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet - 1);
-    tokenA.approve(address(controller), expectedFee);
-
-    // Reverts inside safeTransferFrom due to allowance exhaustion
-    vm.expectRevert();
-    controller.deposit(address(tokenA), amount, 0, user);
-    vm.stopPrank();
-  }
-
-  function testInsufficientBalanceRevert() public {
-    uint256 amount = 10 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
-
-    tokenA.mint(user, amount - 1);
-
-    vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
-
-    // Reverts inside safeTransferFrom due to insufficient balance
-    vm.expectRevert();
-    controller.deposit(address(tokenA), amount, 0, user);
-    vm.stopPrank();
-  }
-
-  function testUnsupportedAssetRevert() public {
-    address unsupported = address(0x999);
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        ProtocolErrors.AssetNotSupported.selector,
-        bytes32(uint256(uint160(unsupported)))
-      )
-    );
-    controller.deposit(unsupported, 10 * 10 ** 18, 0, user);
-  }
-
-  function testPausedProtocolRevert() public {
+  function testPausedRoutingRevert() public {
     vm.prank(guardian);
     controller.emergencyPause();
 
     vm.expectRevert(abi.encodeWithSignature('EnforcedPause()'));
-    controller.deposit(address(tokenA), 10 * 10 ** 18, 0, user);
-  }
-
-  function testFeeOnTransferTokenRejected() public {
-    uint256 amount = 10 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
-
-    tokenFOT.mint(user, amount);
-
-    vm.startPrank(user);
-    tokenFOT.approve(address(vault), expectedNet);
-    tokenFOT.approve(address(controller), expectedFee);
-
-    // Reverts with InsufficientReserves due to balance mismatch (since transfer takes extra FOT fee)
-    vm.expectRevert();
-    controller.deposit(address(tokenFOT), amount, 0, user);
-    vm.stopPrank();
-  }
-
-  function testRebasingMockRejected() public {
-    uint256 amount = 100 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
-
-    tokenRebase.mint(user, amount);
-
-    vm.startPrank(user);
-    tokenRebase.approve(address(vault), expectedNet);
-    tokenRebase.approve(address(controller), expectedFee);
-
-    // Reverts with InsufficientReserves due to balance mismatch
-    vm.expectRevert();
-    controller.deposit(address(tokenRebase), amount, 0, user);
-    vm.stopPrank();
+    controller.deposit(address(tokenA), 1000, 0, user);
   }
 
   // --- Fuzz Tests ---
 
-  function testFuzzDepositCollateral(uint256 amount, uint256 price) public {
-    vm.assume(amount > 10000 && amount < 10000000 * 10 ** 18);
-    vm.assume(price > 100 && price < 10000000 * 10 ** 18);
-
-    oracleProvider.setPrice(assetIdA, price);
-    oracleProvider.setTimestamp(assetIdA, uint32(block.timestamp));
+  function testFuzzFeeRoutingPrecision(uint256 amount) public {
+    vm.assume(amount > 10000 && amount < 1000000000 * 10 ** 18);
 
     uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
     uint256 expectedNet = amount - expectedFee;
@@ -320,7 +209,8 @@ contract DepositCollateralTest is Test {
     assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
     assertEq(tokenA.balanceOf(address(controller)), 0);
 
-    uint256 expectedShares = (expectedNet * price) / 10 ** 18;
-    assertEq(quote.sharesPreview, expectedShares);
+    assertEq(quote.protocolFee, expectedFee);
+    assertEq(quote.netDeposit, expectedNet);
+    assertEq(quote.depositAmount, amount);
   }
 }

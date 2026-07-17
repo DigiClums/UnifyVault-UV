@@ -5,10 +5,13 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { Errors as ProtocolErrors } from '../errors/Errors.sol';
 import '../libraries/AccessRoles.sol';
+import '../libraries/FeeLib.sol';
 import '../interfaces/IOracle.sol';
 import '../interfaces/IOracleProvider.sol';
+import '../interfaces/ITreasury.sol';
 import '../vault/CustodyVault.sol';
 
 /**
@@ -17,6 +20,8 @@ import '../vault/CustodyVault.sol';
  * @dev Coordinates OracleManager, CustodyVault, UVBTCETHToken, and Treasury without storing state or balances.
  */
 contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
+  using SafeERC20 for IERC20;
+
   error NotImplemented();
   error NotAContract(address target);
 
@@ -27,7 +32,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 depositAmount;
     uint256 rawPrice;
     uint256 normalizedPrice;
-    uint256 sharesOut;
+    uint256 sharesPreview;
     uint256 protocolFee;
     uint256 netDeposit;
     uint256 timestamp;
@@ -65,6 +70,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 receivedAmount,
     uint256 timestamp
   );
+  event ProtocolFeeCollected(address indexed payer, address indexed asset, uint256 feeAmount);
   event RedeemRequested(address indexed receiver, uint256 shares, uint256 minCollateralOut);
   event RedeemCompleted(address indexed receiver, uint256 shares, uint256 collateralReturned);
   event FeeCollected(address indexed asset, uint256 amount);
@@ -124,7 +130,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Public API ---
 
   /**
-   * @notice Validates a deposit, transfers user collateral into CustodyVault, and returns the quote.
+   * @notice Validates a deposit, transfers user collateral to CustodyVault/Treasury, and returns the quote.
    */
   function deposit(
     address asset,
@@ -134,16 +140,35 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) external nonReentrant whenNotPaused returns (DepositQuote memory) {
     DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
 
-    uint256 balanceBefore = IERC20(asset).balanceOf(_vault);
+    uint256 vaultBalanceBefore = IERC20(asset).balanceOf(_vault);
+    uint256 treasuryBalanceBefore = IERC20(asset).balanceOf(_treasury);
 
-    // Coordinates with CustodyVault to transfer collateral
-    CustodyVault(_vault).deposit(asset, msg.sender, amount);
+    // Coordinates with CustodyVault to transfer net collateral
+    CustodyVault(_vault).deposit(asset, msg.sender, quote.netDeposit);
 
-    uint256 balanceAfter = IERC20(asset).balanceOf(_vault);
-    uint256 receivedAmount = balanceAfter - balanceBefore;
+    // Pull protocol fee transiently to the Controller
+    IERC20(asset).safeTransferFrom(msg.sender, address(this), quote.protocolFee);
 
-    if (receivedAmount != amount) {
-      revert ProtocolErrors.InsufficientReserves(asset, amount, receivedAmount);
+    // Approve Treasury to spend the fee
+    IERC20(asset).approve(_treasury, quote.protocolFee);
+
+    // Routing the fee to Treasury
+    ITreasury(_treasury).collectFee(asset, quote.protocolFee);
+
+    // Clear approval
+    IERC20(asset).approve(_treasury, 0);
+
+    uint256 vaultBalanceAfter = IERC20(asset).balanceOf(_vault);
+    uint256 treasuryBalanceAfter = IERC20(asset).balanceOf(_treasury);
+
+    uint256 vaultReceived = vaultBalanceAfter - vaultBalanceBefore;
+    uint256 treasuryReceived = treasuryBalanceAfter - treasuryBalanceBefore;
+
+    if (vaultReceived != quote.netDeposit) {
+      revert ProtocolErrors.InsufficientReserves(asset, quote.netDeposit, vaultReceived);
+    }
+    if (treasuryReceived != quote.protocolFee) {
+      revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
     }
 
     emit DepositCollateralReceived(
@@ -151,9 +176,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       msg.sender,
       receiver,
       amount,
-      receivedAmount,
+      vaultReceived,
       block.timestamp
     );
+
+    emit ProtocolFeeCollected(msg.sender, asset, treasuryReceived);
 
     return quote;
   }
@@ -170,7 +197,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
    * @notice Read-only preview of shares minted for a deposit
    */
   function previewDeposit(address asset, uint256 amount) external view returns (uint256) {
-    return _validateDeposit(asset, amount, 0, msg.sender).sharesOut;
+    return _validateDeposit(asset, amount, 0, msg.sender).sharesPreview;
   }
 
   function previewRedeem(uint256 shares) external view returns (uint256) {
@@ -181,7 +208,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
    * @notice Read-only estimation of shares minted for a deposit
    */
   function estimateMint(address asset, uint256 amount) external view returns (uint256) {
-    return _validateDeposit(asset, amount, 0, msg.sender).sharesOut;
+    return _validateDeposit(asset, amount, 0, msg.sender).sharesPreview;
   }
 
   function estimateRedemption(uint256 shares) external view returns (uint256) {
@@ -295,9 +322,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     (address provider, ) = IOracle(_oracle).getFeedMetadata(asset);
     uint256 rawPrice = IOracleProvider(provider).getLatestRound(assetId).price;
 
-    // 10. preview shares calculation
+    uint256 protocolFee = FeeLib.calculateDepositFee(amount);
+    uint256 netDeposit = FeeLib.calculateNetDeposit(amount);
+
+    // 10. preview shares calculation using netDeposit
     uint256 shares;
-    uint256 collateralValue = (amount * normalizedPrice) / (10 ** config.decimals);
+    uint256 collateralValue = (netDeposit * normalizedPrice) / (10 ** config.decimals);
     uint256 supply = IERC20(_token).totalSupply();
     if (supply == 0) {
       shares = collateralValue;
@@ -328,9 +358,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       depositAmount: amount,
       rawPrice: rawPrice,
       normalizedPrice: normalizedPrice,
-      sharesOut: shares,
-      protocolFee: 0,
-      netDeposit: amount,
+      sharesPreview: shares,
+      protocolFee: protocolFee,
+      netDeposit: netDeposit,
       timestamp: block.timestamp
     });
   }
