@@ -9,10 +9,12 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import { Errors as ProtocolErrors } from '../errors/Errors.sol';
 import '../libraries/AccessRoles.sol';
 import '../libraries/FeeLib.sol';
+import '../libraries/ShareLib.sol';
 import '../interfaces/IOracle.sol';
 import '../interfaces/IOracleProvider.sol';
 import '../interfaces/ITreasury.sol';
 import '../vault/CustodyVault.sol';
+import '../token/UVBTCETHToken.sol';
 
 /**
  * @title UnifyVaultController
@@ -57,9 +59,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 minSharesOut
   );
   event DepositCompleted(
-    address indexed asset,
     address indexed receiver,
-    uint256 amount,
+    address indexed asset,
+    uint256 grossDeposit,
+    uint256 protocolFee,
+    uint256 netDeposit,
     uint256 sharesMinted
   );
   event DepositCollateralReceived(
@@ -130,7 +134,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Public API ---
 
   /**
-   * @notice Validates a deposit, transfers user collateral to CustodyVault/Treasury, and returns the quote.
+   * @notice Validates a deposit, transfers user collateral to CustodyVault/Treasury, mints shares, and returns the quote.
    */
   function deposit(
     address asset,
@@ -139,6 +143,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address receiver
   ) external nonReentrant whenNotPaused returns (DepositQuote memory) {
     DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
+
+    uint256 totalAssets = CustodyVault(_vault).balance(asset);
+    uint256 totalSupply = IERC20(_token).totalSupply();
+    uint256 shares = ShareLib.calculateShares(quote.netDeposit, totalSupply, totalAssets);
+
+    // Perform minimum shares verification (redundancy check matching validation)
+    if (shares < minSharesOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
+    }
 
     uint256 vaultBalanceBefore = IERC20(asset).balanceOf(_vault);
     uint256 treasuryBalanceBefore = IERC20(asset).balanceOf(_treasury);
@@ -171,6 +184,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
     }
 
+    // Mint shares to receiver
+    UVBTCETHToken(_token).mint(receiver, shares);
+
     emit DepositCollateralReceived(
       asset,
       msg.sender,
@@ -181,6 +197,8 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     );
 
     emit ProtocolFeeCollected(msg.sender, asset, treasuryReceived);
+
+    emit DepositCompleted(receiver, asset, amount, quote.protocolFee, quote.netDeposit, shares);
 
     return quote;
   }
@@ -325,21 +343,10 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 protocolFee = FeeLib.calculateDepositFee(amount);
     uint256 netDeposit = FeeLib.calculateNetDeposit(amount);
 
-    // 10. preview shares calculation using netDeposit
-    uint256 shares;
-    uint256 collateralValue = (netDeposit * normalizedPrice) / (10 ** config.decimals);
+    // 10. preview shares calculation using ShareLib
+    uint256 totalAssets = CustodyVault(_vault).balance(asset);
     uint256 supply = IERC20(_token).totalSupply();
-    if (supply == 0) {
-      shares = collateralValue;
-    } else {
-      uint256 totalVal =
-        (CustodyVault(_vault).balance(asset) * normalizedPrice) / (10 ** config.decimals);
-      if (totalVal == 0) {
-        shares = collateralValue;
-      } else {
-        shares = (collateralValue * supply) / totalVal;
-      }
-    }
+    uint256 shares = ShareLib.calculateShares(netDeposit, supply, totalAssets);
 
     // 11. minimum shares check
     if (shares < minSharesOut) {

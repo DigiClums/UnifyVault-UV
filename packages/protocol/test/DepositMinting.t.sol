@@ -13,6 +13,7 @@ import '../src/token/UVBTCETHToken.sol';
 import { Errors as ProtocolErrors } from '../src/errors/Errors.sol';
 import '../src/libraries/AccessRoles.sol';
 import '../src/libraries/FeeLib.sol';
+import '../src/libraries/ShareLib.sol';
 
 // Extended interface for Treasury to avoid compiling Treasury.sol directly
 interface ITestTreasury {
@@ -29,7 +30,7 @@ contract MockERC20 is ERC20 {
   }
 }
 
-contract DepositFeeRoutingTest is Test {
+contract DepositMintingTest is Test {
   UnifyVaultController public controller;
 
   ProtocolDirectory public directory;
@@ -44,19 +45,18 @@ contract DepositFeeRoutingTest is Test {
   address public gov = address(0xABC);
   address public guardian = address(0x111);
   address public user = address(0x222);
+  address public user2 = address(0x333);
 
   bytes32 public assetIdA;
 
-  event DepositCollateralReceived(
-    address indexed asset,
-    address indexed user,
+  event DepositCompleted(
     address indexed receiver,
-    uint256 requestedAmount,
-    uint256 receivedAmount,
-    uint256 timestamp
+    address indexed asset,
+    uint256 grossDeposit,
+    uint256 protocolFee,
+    uint256 netDeposit,
+    uint256 sharesMinted
   );
-
-  event ProtocolFeeCollected(address indexed payer, address indexed asset, uint256 feeAmount);
 
   function setUp() public {
     vm.warp(100000);
@@ -90,7 +90,7 @@ contract DepositFeeRoutingTest is Test {
     // 4. Register config in Vault
     vault.registerAsset(address(tokenA), 18);
 
-    // 5. Register config in Treasury (passing decimals: 18)
+    // 5. Register config in Treasury
     treasury.registerAsset(address(tokenA), 18);
 
     // 6. Deploy Controller
@@ -113,89 +113,125 @@ contract DepositFeeRoutingTest is Test {
     // Renounce setup rights
     controller.renounceRole(AccessRoles.GOVERNANCE_ROLE, address(this));
     controller.renounceRole(controller.GUARDIAN_ROLE(), address(this));
+    token.revokeRole(token.CONTROLLER_ROLE(), address(this));
   }
 
-  // --- FeeLib Unit Tests ---
+  // --- ShareLib Unit Tests ---
 
-  function testFeeLibCalculation() public {
-    uint256 amount = 10000;
-    uint256 expectedFee = 25; // 25 BPS of 10000 = 25
-    uint256 expectedNet = 9975;
+  function testShareLibCalculation() public {
+    // Bootstrap: supply == 0
+    assertEq(ShareLib.calculateShares(100, 0, 0), 100);
+    assertEq(ShareLib.calculateShares(100, 0, 5000), 100);
 
-    assertEq(FeeLib.calculateDepositFee(amount), expectedFee);
-    assertEq(FeeLib.calculateNetDeposit(amount), expectedNet);
+    // Proportional: supply > 0
+    // shares = (netDeposit * supply) / assets = (100 * 1000) / 200 = 500
+    assertEq(ShareLib.calculateShares(100, 1000, 200), 500);
   }
 
-  // --- Controller Routing Unit Tests ---
+  // --- Minting Engine Unit Tests ---
 
-  function testSuccessfulFeeRouting() public {
-    uint256 amount = 10000 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
+  function testFirstDepositBootstrap() public {
+    uint256 amount = 10 * 10 ** 18;
+    uint256 expectedFee = FeeLib.calculateDepositFee(amount);
+    uint256 expectedNet = FeeLib.calculateNetDeposit(amount);
 
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    // Approve net to vault, fee to controller
     tokenA.approve(address(vault), expectedNet);
     tokenA.approve(address(controller), expectedFee);
 
-    // Expect event emissions
     vm.expectEmit(true, true, true, true);
-    emit DepositCollateralReceived(
-      address(tokenA),
-      user,
-      user,
-      amount,
-      expectedNet,
-      block.timestamp
-    );
+    emit DepositCompleted(user, address(tokenA), amount, expectedFee, expectedNet, expectedNet);
 
-    vm.expectEmit(true, true, true, true);
-    emit ProtocolFeeCollected(user, address(tokenA), expectedFee);
-
-    UnifyVaultController.DepositQuote memory quote = controller.deposit(
-      address(tokenA),
-      amount,
-      0,
-      user
-    );
+    controller.deposit(address(tokenA), amount, 0, user);
     vm.stopPrank();
 
-    // Verify balance splits
-    assertEq(tokenA.balanceOf(user), 0);
+    // Check shares minted
+    assertEq(token.balanceOf(user), expectedNet);
+    assertEq(token.totalSupply(), expectedNet);
     assertEq(tokenA.balanceOf(address(vault)), expectedNet);
     assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
-    assertEq(tokenA.balanceOf(address(controller)), 0);
-
-    // Verify quote calculations
-    assertEq(quote.depositAmount, amount);
-    assertEq(quote.protocolFee, expectedFee);
-    assertEq(quote.netDeposit, expectedNet);
-    assertEq(quote.sharesPreview, expectedNet);
   }
 
-  function testPausedRoutingRevert() public {
+  function testSecondDepositProportional() public {
+    uint256 amount1 = 10 * 10 ** 18;
+    uint256 fee1 = FeeLib.calculateDepositFee(amount1);
+    uint256 net1 = amount1 - fee1;
+
+    tokenA.mint(user, amount1);
+    vm.startPrank(user);
+    tokenA.approve(address(vault), net1);
+    tokenA.approve(address(controller), fee1);
+    controller.deposit(address(tokenA), amount1, 0, user);
+    vm.stopPrank();
+
+    // Second deposit: 5 tokens
+    uint256 amount2 = 5 * 10 ** 18;
+    uint256 fee2 = FeeLib.calculateDepositFee(amount2);
+    uint256 net2 = amount2 - fee2;
+    // Expected shares = (net2 * supply) / assets = (net2 * net1) / net1 = net2
+    uint256 expectedShares = net2;
+
+    tokenA.mint(user2, amount2);
+    vm.startPrank(user2);
+    tokenA.approve(address(vault), net2);
+    tokenA.approve(address(controller), fee2);
+
+    controller.deposit(address(tokenA), amount2, 0, user2);
+    vm.stopPrank();
+
+    assertEq(token.balanceOf(user2), expectedShares);
+    assertEq(token.totalSupply(), net1 + expectedShares);
+  }
+
+  function testUnauthorizedMintRevert() public {
+    // Rando tries to mint UVBTCETHToken
+    vm.prank(user);
+    vm.expectRevert();
+    token.mint(user, 100);
+  }
+
+  function testZeroDepositRevert() public {
+    vm.expectRevert(abi.encodeWithSelector(ProtocolErrors.MathCalculationOverflow.selector));
+    controller.deposit(address(tokenA), 0, 0, user);
+  }
+
+  function testPausedMintRevert() public {
     vm.prank(guardian);
     controller.emergencyPause();
 
     vm.expectRevert(abi.encodeWithSignature('EnforcedPause()'));
-    controller.deposit(address(tokenA), 1000, 0, user);
+    controller.deposit(address(tokenA), 10 * 10 ** 18, 0, user);
+  }
+
+  function testControllerZeroBalance() public {
+    uint256 amount = 10 * 10 ** 18;
+    uint256 fee = FeeLib.calculateDepositFee(amount);
+    uint256 net = amount - fee;
+
+    tokenA.mint(user, amount);
+    vm.startPrank(user);
+    tokenA.approve(address(vault), net);
+    tokenA.approve(address(controller), fee);
+    controller.deposit(address(tokenA), amount, 0, user);
+    vm.stopPrank();
+
+    assertEq(tokenA.balanceOf(address(controller)), 0);
   }
 
   // --- Fuzz Tests ---
 
-  function testFuzzFeeRoutingPrecision(uint256 amount) public {
+  function testFuzzDepositMinting(uint256 amount) public {
     vm.assume(amount > 10000 && amount < 1000000000 * 10 ** 18);
 
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
+    uint256 fee = FeeLib.calculateDepositFee(amount);
+    uint256 net = amount - fee;
 
     tokenA.mint(user, amount);
-
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(vault), net);
+    tokenA.approve(address(controller), fee);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),
@@ -205,13 +241,8 @@ contract DepositFeeRoutingTest is Test {
     );
     vm.stopPrank();
 
-    assertEq(tokenA.balanceOf(user), 0);
-    assertEq(tokenA.balanceOf(address(vault)), expectedNet);
-    assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
+    assertEq(token.balanceOf(user), quote.sharesPreview);
+    assertEq(token.totalSupply(), quote.sharesPreview);
     assertEq(tokenA.balanceOf(address(controller)), 0);
-
-    assertEq(quote.protocolFee, expectedFee);
-    assertEq(quote.netDeposit, expectedNet);
-    assertEq(quote.depositAmount, amount);
   }
 }

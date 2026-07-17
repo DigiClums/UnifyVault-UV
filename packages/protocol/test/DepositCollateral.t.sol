@@ -151,9 +151,10 @@ contract DepositCollateralTest is Test {
     controller.grantRole(AccessRoles.GOVERNANCE_ROLE, gov);
     controller.grantRole(controller.GUARDIAN_ROLE(), guardian);
 
-    // Grant CONTROLLER_ROLE of CustodyVault and Treasury to controller
+    // Grant CONTROLLER_ROLE of CustodyVault, Treasury, and UVBTCETHToken to controller
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
+    token.grantRole(token.CONTROLLER_ROLE(), address(controller));
 
     // Renounce setup rights
     controller.renounceRole(AccessRoles.GOVERNANCE_ROLE, address(this));
@@ -199,7 +200,7 @@ contract DepositCollateralTest is Test {
     assertEq(tokenA.balanceOf(address(controller)), 0);
 
     // Verify quote
-    assertEq(quote.sharesPreview, expectedNet * 1000);
+    assertEq(quote.sharesPreview, expectedNet);
   }
 
   function testInsufficientAllowanceRevert() public {
@@ -320,7 +321,7 @@ contract DepositCollateralTest is Test {
     assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
     assertEq(tokenA.balanceOf(address(controller)), 0);
 
-    uint256 expectedShares = (expectedNet * price) / 10 ** 18;
+    uint256 expectedShares = expectedNet;
     assertEq(quote.sharesPreview, expectedShares);
   }
 }

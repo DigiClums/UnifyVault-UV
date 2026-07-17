@@ -101,8 +101,9 @@ contract DepositValidationTest is Test {
     controller.grantRole(AccessRoles.GOVERNANCE_ROLE, gov);
     controller.grantRole(controller.GUARDIAN_ROLE(), guardian);
 
-    // Grant CONTROLLER_ROLE of CustodyVault to controller
+    // Grant CONTROLLER_ROLE of CustodyVault and UVBTCETHToken to controller
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
+    token.grantRole(token.CONTROLLER_ROLE(), address(controller));
 
     // Renounce setup rights
     controller.renounceRole(AccessRoles.GOVERNANCE_ROLE, address(this));
@@ -115,7 +116,7 @@ contract DepositValidationTest is Test {
     uint256 amount = 10 * 10 ** 18;
     uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
     uint256 expectedNet = amount - expectedFee;
-    uint256 expectedShares = expectedNet * 1000;
+    uint256 expectedShares = expectedNet;
 
     deal(tokenA, user, amount);
     vm.startPrank(user);
@@ -131,7 +132,7 @@ contract DepositValidationTest is Test {
   function testPreviewDepositReturnsExpectedShares() public {
     uint256 amount = 10 * 10 ** 18;
     uint256 expectedNet = amount - (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedShares = expectedNet * 1000;
+    uint256 expectedShares = expectedNet;
 
     uint256 shares = controller.previewDeposit(tokenA, amount);
     assertEq(shares, expectedShares);
@@ -144,7 +145,7 @@ contract DepositValidationTest is Test {
     uint256 amount = 10 * 10 ** 18;
     uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
     uint256 expectedNet = amount - expectedFee;
-    uint256 expectedShares = expectedNet * 1000;
+    uint256 expectedShares = expectedNet;
 
     UnifyVaultController.DepositQuote memory quote1 = controller.getDepositQuote(
       tokenA,
@@ -231,12 +232,12 @@ contract DepositValidationTest is Test {
   }
 
   function testSlippageLimitExceededRevert() public {
-    // expectedShares is 9975 * 10 ** 18. Slippage requests 11000 * 10 ** 18 minSharesOut
+    // expectedShares is 9.975 * 10 ** 18. Slippage requests 11000 * 10 ** 18 minSharesOut
     vm.expectRevert(
       abi.encodeWithSelector(
         ProtocolErrors.SlippageLimitExceeded.selector,
         11000 * 10 ** 18,
-        9975 * 10 ** 18
+        9975000000000000000
       )
     );
     controller.deposit(tokenA, 10 * 10 ** 18, 11000 * 10 ** 18, user);
@@ -262,7 +263,7 @@ contract DepositValidationTest is Test {
     // Previews do not revert, they calculate
     uint256 shares = controller.previewDeposit(tokenA, amount);
     uint256 expectedNet = amount - (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedShares = (expectedNet * price) / 10 ** 18;
+    uint256 expectedShares = expectedNet;
     assertEq(shares, expectedShares);
   }
 }
