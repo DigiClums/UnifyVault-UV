@@ -18,3 +18,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Dependabot:** Added `.github/dependabot.yml` for dependency monitoring.
 - **Local Services:** Configured `docker-compose.yml` for local PostgreSQL and Redis DB testing.
 - **Documentation Suite:** Completed 15 core architectural specifications inside the `/docs` folder.
+
+-# v0.6.0
+
+## Added
+
+- Implemented UnifyVaultController architecture skeleton.
+- Added immutable protocol module references.
+- Added constructor validation for deployed contracts.
+- Added protocol workflow skeleton methods.
+- Added controller invariant tests.
+- Added controller architecture documentation.
+
+## Security
+
+- Constructor verifies deployed contracts.
+- No business logic implemented.
+- No asset movement.
+- No token minting.
+- No oracle interaction.

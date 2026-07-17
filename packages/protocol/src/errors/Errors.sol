@@ -22,6 +22,7 @@ library Errors {
   error EntryDoesNotExist(bytes32 id);
   error RegistryIsFrozen();
   error IdenticalAddressSubmitted();
+  error DeadlineExpired(uint256 deadline, uint256 timestamp);
 
   // Oracle Provider Errors
   error AssetNotSupported(bytes32 assetId);

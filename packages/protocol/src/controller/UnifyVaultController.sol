@@ -26,6 +26,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   error NotImplemented();
   error NotAContract(address target);
+  error DeadlineExpired(uint256 deadline, uint256 timestamp);
 
   struct DepositQuote {
     bytes32 assetId;
@@ -76,7 +77,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   );
   event ProtocolFeeCollected(address indexed payer, address indexed asset, uint256 feeAmount);
   event RedeemRequested(address indexed receiver, uint256 shares, uint256 minCollateralOut);
-  event RedeemCompleted(address indexed receiver, uint256 shares, uint256 collateralReturned);
+  event RedeemCompleted(
+    address indexed owner,
+    address indexed receiver,
+    address indexed asset,
+    uint256 sharesBurned,
+    uint256 grossAssets,
+    uint256 protocolFee,
+    uint256 netAssets
+  );
   event FeeCollected(address indexed asset, uint256 amount);
   event EmergencyPaused(address indexed caller);
   event EmergencyResumed(address indexed caller);
@@ -203,12 +212,90 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     return quote;
   }
 
+  /**
+   * @notice Redeems UVBTCETH shares for underlying collateral, routing fees to Treasury
+   * @dev Burns shares from msg.sender, withdraws collateral from CustodyVault, and routes protocol fee to Treasury
+   * @param asset The collateral asset to redeem
+   * @param shares The number of UVBTCETH shares to burn
+   * @param minAssetsOut The minimum net collateral the user expects to receive
+   * @param receiver The address that receives the net collateral
+   * @param deadline The timestamp after which the transaction will revert
+   * @return netAssets The net collateral amount sent to the receiver
+   */
   function redeem(
+    address asset,
     uint256 shares,
-    uint256 minCollateralOut,
-    address receiver
-  ) external returns (uint256) {
-    revert NotImplemented();
+    uint256 minAssetsOut,
+    address receiver,
+    uint256 deadline
+  ) external nonReentrant whenNotPaused returns (uint256 netAssets) {
+    // --- Checks ---
+
+    // 1. Deadline
+    if (block.timestamp > deadline) {
+      revert DeadlineExpired(deadline, block.timestamp);
+    }
+
+    // 2. shares > 0
+    if (shares == 0) {
+      revert ProtocolErrors.MathCalculationOverflow();
+    }
+
+    // 3. receiver != address(0)
+    if (receiver == address(0)) {
+      revert ProtocolErrors.ZeroAddressDetected();
+    }
+
+    // 4. Asset supported & enabled
+    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory config) {
+      if (!config.enabled) {
+        revert ProtocolErrors.AssetNotSupported(bytes32(uint256(uint160(asset))));
+      }
+    } catch {
+      revert ProtocolErrors.AssetNotSupported(bytes32(uint256(uint160(asset))));
+    }
+
+    // --- Read pre-burn state ---
+    uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
+    uint256 totalSupply = IERC20(_token).totalSupply();
+
+    // --- Calculate redemption amounts (pre-burn values) ---
+    uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets);
+
+    (uint256 grossOut, uint256 protocolFee, uint256 netOut) = FeeLib.calculateRedemptionFee(
+      grossAssets
+    );
+
+    // 5. minAssetsOut slippage check
+    if (netOut < minAssetsOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netOut);
+    }
+
+    // --- Effects: Burn shares ---
+    UVBTCETHToken(_token).burn(msg.sender, shares);
+
+    // --- Interactions ---
+
+    // 1. Withdraw gross collateral from CustodyVault to Controller
+    CustodyVault(_vault).withdraw(asset, address(this), grossOut);
+
+    // 2. Route protocol fee to Treasury
+    IERC20(asset).approve(_treasury, protocolFee);
+    ITreasury(_treasury).collectFee(asset, protocolFee);
+    IERC20(asset).approve(_treasury, 0);
+
+    // 3. Transfer net assets to receiver
+    IERC20(asset).safeTransfer(receiver, netOut);
+
+    // --- Assert controller balance is zero ---
+    uint256 controllerBal = IERC20(asset).balanceOf(address(this));
+    if (controllerBal != 0) {
+      revert ProtocolErrors.InsufficientReserves(asset, 0, controllerBal);
+    }
+
+    emit RedeemCompleted(msg.sender, receiver, asset, shares, grossOut, protocolFee, netOut);
+
+    return netOut;
   }
 
   /**
@@ -218,8 +305,24 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     return _validateDeposit(asset, amount, 0, msg.sender).sharesPreview;
   }
 
-  function previewRedeem(uint256 shares) external view returns (uint256) {
-    revert NotImplemented();
+  /**
+   * @notice Read-only preview of net assets returned for a redemption
+   */
+  function previewRedeem(address asset, uint256 shares) public view returns (uint256) {
+    // Verify asset is supported
+    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory config) {
+      if (!config.enabled) {
+        return 0;
+      }
+    } catch {
+      return 0;
+    }
+
+    uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
+    uint256 totalSupply = IERC20(_token).totalSupply();
+    uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets);
+    (, , uint256 netOut) = FeeLib.calculateRedemptionFee(grossAssets);
+    return netOut;
   }
 
   /**
@@ -229,8 +332,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     return _validateDeposit(asset, amount, 0, msg.sender).sharesPreview;
   }
 
-  function estimateRedemption(uint256 shares) external view returns (uint256) {
-    revert NotImplemented();
+  /**
+   * @notice Read-only estimation of net collateral returned for a redemption
+   */
+  function estimateRedemption(address asset, uint256 shares) external view returns (uint256) {
+    return previewRedeem(asset, shares);
   }
 
   function collectProtocolFee(address asset, uint256 amount) external {

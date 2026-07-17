@@ -138,15 +138,6 @@ contract UnifyVaultControllerTest is Test {
 
   function testSkeletonMethodsRevert() public {
     vm.expectRevert(UnifyVaultController.NotImplemented.selector);
-    controller.redeem(100, 0, address(0x999));
-
-    vm.expectRevert(UnifyVaultController.NotImplemented.selector);
-    controller.previewRedeem(100);
-
-    vm.expectRevert(UnifyVaultController.NotImplemented.selector);
-    controller.estimateRedemption(100);
-
-    vm.expectRevert(UnifyVaultController.NotImplemented.selector);
     controller.collectProtocolFee(address(0x888), 100);
 
     vm.expectRevert(UnifyVaultController.NotImplemented.selector);

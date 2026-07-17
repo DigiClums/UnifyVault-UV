@@ -31,4 +31,19 @@ library FeeLib {
     uint256 fee = calculateDepositFee(amount);
     return amount - fee;
   }
+
+  /**
+   * @notice Calculates the full redemption fee breakdown from gross asset output
+   * @param grossAssets The gross collateral amount before fee deduction
+   * @return grossOut The gross collateral amount (same as input)
+   * @return protocolFee The protocol fee deducted
+   * @return netAssets The net collateral amount returned to the redeemer
+   */
+  function calculateRedemptionFee(
+    uint256 grossAssets
+  ) internal pure returns (uint256 grossOut, uint256 protocolFee, uint256 netAssets) {
+    protocolFee = calculateRedeemFee(grossAssets);
+    netAssets = grossAssets - protocolFee;
+    return (grossAssets, protocolFee, netAssets);
+  }
 }

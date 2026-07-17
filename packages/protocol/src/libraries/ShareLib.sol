@@ -25,4 +25,25 @@ library ShareLib {
     }
     return (netDeposit * totalSupply) / totalAssets;
   }
+
+  /**
+   * @notice Computes collateral asset amount to return for a given number of shares burned
+   * @dev Uses pre-burn totalSupply and accountedAssets. Rounds down (vault-favored).
+   * @param shares The number of shares to redeem/burn
+   * @param totalSupply The total supply of UVBTCETHToken shares (pre-burn)
+   * @param accountedAssets The accounted collateral assets in CustodyVault (pre-withdrawal)
+   */
+  function sharesToAssets(
+    uint256 shares,
+    uint256 totalSupply,
+    uint256 accountedAssets
+  ) internal pure returns (uint256) {
+    if (totalSupply == 0) {
+      return 0;
+    }
+    if (accountedAssets == 0) {
+      return 0;
+    }
+    return (shares * accountedAssets) / totalSupply;
+  }
 }
