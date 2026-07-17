@@ -144,7 +144,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) external nonReentrant whenNotPaused returns (DepositQuote memory) {
     DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
 
-    uint256 totalAssets = CustodyVault(_vault).balance(asset);
+    uint256 totalAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 totalSupply = IERC20(_token).totalSupply();
     uint256 shares = ShareLib.calculateShares(quote.netDeposit, totalSupply, totalAssets);
 
@@ -344,7 +344,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 netDeposit = FeeLib.calculateNetDeposit(amount);
 
     // 10. preview shares calculation using ShareLib
-    uint256 totalAssets = CustodyVault(_vault).balance(asset);
+    uint256 totalAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 supply = IERC20(_token).totalSupply();
     uint256 shares = ShareLib.calculateShares(netDeposit, supply, totalAssets);
 

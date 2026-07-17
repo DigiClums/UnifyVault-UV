@@ -26,6 +26,8 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
 
   mapping(address => AssetConfig) private _assets;
 
+  mapping(address => uint256) private _accountedAssets;
+
   // Events
   event AssetRegistered(address indexed asset, uint8 decimals, address indexed caller);
   event AssetEnabled(address indexed asset, address indexed caller);
@@ -74,6 +76,8 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
 
     IERC20(asset).safeTransferFrom(from, address(this), amount);
 
+    _accountedAssets[asset] += amount;
+
     emit DepositExecuted(asset, from, amount, msg.sender);
   }
 
@@ -95,10 +99,17 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
       revert Errors.MathCalculationOverflow();
     }
 
+    uint256 accounted = _accountedAssets[asset];
+    if (accounted < amount) {
+      revert Errors.InsufficientReserves(asset, amount, accounted);
+    }
+
     uint256 vaultBal = IERC20(asset).balanceOf(address(this));
     if (vaultBal < amount) {
       revert Errors.InsufficientReserves(asset, amount, vaultBal);
     }
+
+    _accountedAssets[asset] -= amount;
 
     IERC20(asset).safeTransfer(to, amount);
 
@@ -172,6 +183,7 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
     }
 
     delete _assets[asset];
+    delete _accountedAssets[asset];
 
     emit AssetRemoved(asset, msg.sender);
   }
@@ -193,6 +205,31 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
   }
 
   // --- View Functions ---
+
+  /**
+   * @notice Returns the accounted assets tracked internally
+   */
+  function totalAssets(address asset) external view returns (uint256) {
+    if (!_assets[asset].enabled) {
+      revert Errors.AssetNotSupported(bytes32(uint256(uint160(asset))));
+    }
+    return _accountedAssets[asset];
+  }
+
+  /**
+   * @notice Returns the difference between actual ERC20 balance and accounted assets
+   */
+  function surplusAssets(address asset) external view returns (uint256) {
+    if (!_assets[asset].enabled) {
+      revert Errors.AssetNotSupported(bytes32(uint256(uint160(asset))));
+    }
+    uint256 actualBalance = IERC20(asset).balanceOf(address(this));
+    uint256 accounted = _accountedAssets[asset];
+    if (actualBalance >= accounted) {
+      return actualBalance - accounted;
+    }
+    return 0;
+  }
 
   /**
    * @notice Returns the actual ERC20 token balance custody balance (O(1))
