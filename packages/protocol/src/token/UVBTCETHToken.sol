@@ -7,13 +7,14 @@ import '@openzeppelin/contracts/utils/Pausable.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '../errors/Errors.sol';
 import '../libraries/AccessRoles.sol';
+import '../interfaces/IToken.sol';
 
 /**
  * @title UVBTCETHToken
  * @notice Index ownership token representing shares of UnifyVault's BTC-ETH vault
  * @dev Inherits ERC20, ERC20Permit, AccessControl, Pausable. Managed by Controller, Governance, and Guardian roles.
  */
-contract UVBTCETHToken is ERC20, ERC20Permit, AccessControl, Pausable {
+contract UVBTCETHToken is ERC20, ERC20Permit, AccessControl, Pausable, IToken {
   bytes32 public constant GOVERNANCE_ROLE = AccessRoles.GOVERNANCE_ROLE;
   bytes32 public constant CONTROLLER_ROLE = keccak256('CONTROLLER_ROLE');
   bytes32 public constant GUARDIAN_ROLE = keccak256('GUARDIAN_ROLE');

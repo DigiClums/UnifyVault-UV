@@ -172,13 +172,13 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     IERC20(asset).safeTransferFrom(msg.sender, address(this), quote.protocolFee);
 
     // Approve Treasury to spend the fee
-    IERC20(asset).approve(_treasury, quote.protocolFee);
+    IERC20(asset).forceApprove(_treasury, quote.protocolFee);
 
     // Routing the fee to Treasury
     ITreasury(_treasury).collectFee(asset, quote.protocolFee);
 
     // Clear approval
-    IERC20(asset).approve(_treasury, 0);
+    IERC20(asset).forceApprove(_treasury, 0);
 
     uint256 vaultBalanceAfter = IERC20(asset).balanceOf(_vault);
     uint256 treasuryBalanceAfter = IERC20(asset).balanceOf(_treasury);
@@ -280,9 +280,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     CustodyVault(_vault).withdraw(asset, address(this), grossOut);
 
     // 2. Route protocol fee to Treasury
-    IERC20(asset).approve(_treasury, protocolFee);
+    IERC20(asset).forceApprove(_treasury, protocolFee);
     ITreasury(_treasury).collectFee(asset, protocolFee);
-    IERC20(asset).approve(_treasury, 0);
+    IERC20(asset).forceApprove(_treasury, 0);
 
     // 3. Transfer net assets to receiver
     IERC20(asset).safeTransfer(receiver, netOut);
@@ -321,8 +321,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 totalSupply = IERC20(_token).totalSupply();
     uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets);
-    (, , uint256 netOut) = FeeLib.calculateRedemptionFee(grossAssets);
-    return netOut;
+    return grossAssets - FeeLib.calculateRedeemFee(grossAssets);
   }
 
   /**
