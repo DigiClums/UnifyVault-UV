@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "build": "echo 'admin: build'",
-    "dev": "echo 'admin: dev'",
     "lint": "eslint .",
     "test": "echo 'admin: test'"
   },

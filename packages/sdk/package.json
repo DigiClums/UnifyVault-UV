@@ -6,7 +6,6 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc -w",
     "lint": "eslint .",
     "test": "echo 'sdk: test'"
   },
