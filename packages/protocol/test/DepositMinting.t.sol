@@ -120,12 +120,12 @@ contract DepositMintingTest is Test {
 
   function testShareLibCalculation() public {
     // Bootstrap: supply == 0
-    assertEq(ShareLib.calculateShares(100, 0, 0), 100);
-    assertEq(ShareLib.calculateShares(100, 0, 5000), 100);
+    assertEq(ShareLib.calculateShares(100, 0, 0, 18), 100);
+    assertEq(ShareLib.calculateShares(100, 0, 5000, 18), 100);
 
     // Proportional: supply > 0
     // shares = (netDeposit * supply) / assets = (100 * 1000) / 200 = 500
-    assertEq(ShareLib.calculateShares(100, 1000, 200), 500);
+    assertEq(ShareLib.calculateShares(100, 1000, 200, 18), 500);
   }
 
   // --- Minting Engine Unit Tests ---

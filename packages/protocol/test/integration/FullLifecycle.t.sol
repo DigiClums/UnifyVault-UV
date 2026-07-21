@@ -146,7 +146,8 @@ contract FullLifecycleTest is Test {
     uint256 grossRedeem1 = ShareLib.sharesToAssets(
       redeemShares1,
       token.totalSupply(),
-      vault.totalAssets(address(mockCollateral))
+      vault.totalAssets(address(mockCollateral)),
+      18
     );
     (, , uint256 netRedeem1) = FeeLib.calculateRedemptionFee(grossRedeem1);
 
@@ -181,7 +182,8 @@ contract FullLifecycleTest is Test {
     uint256 grossRedeem2 = ShareLib.sharesToAssets(
       remainingUser1Shares,
       token.totalSupply(),
-      vault.totalAssets(address(mockCollateral))
+      vault.totalAssets(address(mockCollateral)),
+      18
     );
     (, , uint256 netRedeem2) = FeeLib.calculateRedemptionFee(grossRedeem2);
 

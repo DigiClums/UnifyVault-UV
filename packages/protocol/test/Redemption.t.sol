@@ -151,7 +151,8 @@ contract RedemptionTest is Test {
     uint256 grossAssets = ShareLib.sharesToAssets(
       shares,
       token.totalSupply(),
-      vault.totalAssets(address(tokenA))
+      vault.totalAssets(address(tokenA)),
+      18
     );
     (uint256 grossOut, uint256 protocolFee, uint256 netAssets) = FeeLib.calculateRedemptionFee(
       grossAssets
@@ -191,7 +192,8 @@ contract RedemptionTest is Test {
     uint256 grossAssets = ShareLib.sharesToAssets(
       redeemShares,
       token.totalSupply(),
-      vault.totalAssets(address(tokenA))
+      vault.totalAssets(address(tokenA)),
+      18
     );
     (, , uint256 netAssets) = FeeLib.calculateRedemptionFee(grossAssets);
 
@@ -236,7 +238,8 @@ contract RedemptionTest is Test {
     uint256 grossAssets = ShareLib.sharesToAssets(
       sharesMinted,
       token.totalSupply(),
-      vault.totalAssets(address(tokenA))
+      vault.totalAssets(address(tokenA)),
+      18
     );
     (, , uint256 netAssets) = FeeLib.calculateRedemptionFee(grossAssets);
 
@@ -333,7 +336,8 @@ contract RedemptionTest is Test {
     uint256 grossAssets = ShareLib.sharesToAssets(
       sharesMinted,
       token.totalSupply(),
-      vault.totalAssets(address(tokenA))
+      vault.totalAssets(address(tokenA)),
+      18
     );
 
     uint256 expectedFee = FeeLib.calculateRedeemFee(grossAssets);
@@ -404,7 +408,7 @@ contract RedemptionTest is Test {
     // Pre-compute expected redemption amounts
     uint256 accountedBefore = vault.totalAssets(address(tokenA));
     uint256 supplyBefore = token.totalSupply();
-    uint256 grossAssets = ShareLib.sharesToAssets(sharesMinted, supplyBefore, accountedBefore);
+    uint256 grossAssets = ShareLib.sharesToAssets(sharesMinted, supplyBefore, accountedBefore, 18);
     (, , uint256 expectedNet) = FeeLib.calculateRedemptionFee(grossAssets);
 
     // Someone sends tokens directly to CustodyVault (donation / surplus)

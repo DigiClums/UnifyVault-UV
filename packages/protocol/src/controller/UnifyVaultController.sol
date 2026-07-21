@@ -153,9 +153,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) external nonReentrant whenNotPaused returns (DepositQuote memory) {
     DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
 
+    CustodyVault.AssetConfig memory config = CustodyVault(_vault).assetConfig(asset);
     uint256 totalAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 totalSupply = IERC20(_token).totalSupply();
-    uint256 shares = ShareLib.calculateShares(quote.netDeposit, totalSupply, totalAssets);
+    uint256 shares = ShareLib.calculateShares(
+      quote.netDeposit,
+      totalSupply,
+      totalAssets,
+      config.decimals
+    );
 
     // Perform minimum shares verification (redundancy check matching validation)
     if (shares < minSharesOut) {
@@ -247,10 +253,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     }
 
     // 4. Asset supported & enabled
-    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory config) {
-      if (!config.enabled) {
+    CustodyVault.AssetConfig memory config;
+    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory _config) {
+      if (!_config.enabled) {
         revert ProtocolErrors.AssetNotSupported(bytes32(uint256(uint160(asset))));
       }
+      config = _config;
     } catch {
       revert ProtocolErrors.AssetNotSupported(bytes32(uint256(uint160(asset))));
     }
@@ -260,7 +268,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 totalSupply = IERC20(_token).totalSupply();
 
     // --- Calculate redemption amounts (pre-burn values) ---
-    uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets);
+    uint256 grossAssets = ShareLib.sharesToAssets(
+      shares,
+      totalSupply,
+      accountedAssets,
+      config.decimals
+    );
 
     (uint256 grossOut, uint256 protocolFee, uint256 netOut) = FeeLib.calculateRedemptionFee(
       grossAssets
@@ -310,17 +323,24 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
    */
   function previewRedeem(address asset, uint256 shares) public view returns (uint256) {
     // Verify asset is supported
-    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory config) {
-      if (!config.enabled) {
+    CustodyVault.AssetConfig memory config;
+    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory _config) {
+      if (!_config.enabled) {
         return 0;
       }
+      config = _config;
     } catch {
       return 0;
     }
 
     uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 totalSupply = IERC20(_token).totalSupply();
-    uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets);
+    uint256 grossAssets = ShareLib.sharesToAssets(
+      shares,
+      totalSupply,
+      accountedAssets,
+      config.decimals
+    );
     return grossAssets - FeeLib.calculateRedeemFee(grossAssets);
   }
 
@@ -451,7 +471,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     // 10. preview shares calculation using ShareLib
     uint256 totalAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 supply = IERC20(_token).totalSupply();
-    uint256 shares = ShareLib.calculateShares(netDeposit, supply, totalAssets);
+    uint256 shares = ShareLib.calculateShares(netDeposit, supply, totalAssets, config.decimals);
 
     // 11. minimum shares check
     if (shares < minSharesOut) {

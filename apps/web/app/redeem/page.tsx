@@ -11,6 +11,7 @@ import { useControllerAddress } from '../../hooks/useControllerAddress';
 import { useRedeemPreview } from '../../hooks/useRedeemPreview';
 import { useRedeem } from '../../hooks/useRedeem';
 import { SUPPORTED_ASSETS, Asset } from '../../lib/config/assets';
+import { formatUnits } from 'viem';
 import { formatBigInt, parseAmount } from '../../lib/utils/formatters';
 import { ACTIVE_CHAIN } from '../../lib/config/chains';
 import {
@@ -109,7 +110,7 @@ export default function Redeem() {
   // Handle Max click
   const handleMaxClick = () => {
     if (shareBalance !== undefined) {
-      setSharesInput(formatBigInt(shareBalance, 18, 18));
+      setSharesInput(formatUnits(shareBalance, 18));
     }
   };
 
@@ -146,8 +147,9 @@ export default function Redeem() {
 
   const exchangeRate = React.useMemo(() => {
     if (!netAssetsOut || parsedShares === 0n) return 0;
-    const netAssetsScaled = netAssetsOut * 10n ** BigInt(18 - selectedAsset.decimals);
-    return Number(netAssetsScaled) / Number(parsedShares);
+    const netAssetsFormatted = Number(formatUnits(netAssetsOut, selectedAsset.decimals));
+    const sharesFormatted = Number(formatUnits(parsedShares, 18));
+    return sharesFormatted > 0 ? netAssetsFormatted / sharesFormatted : 0;
   }, [netAssetsOut, parsedShares, selectedAsset]);
 
   return (

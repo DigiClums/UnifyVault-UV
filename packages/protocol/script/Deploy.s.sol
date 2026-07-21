@@ -6,6 +6,7 @@ import 'forge-std/Test.sol';
 import '../src/ProtocolDirectory.sol';
 import '../src/oracle/OracleManager.sol';
 import '../src/oracle/MockOracleProvider.sol';
+import '../src/oracle/ChainlinkOracleProvider.sol';
 import '../src/vault/CustodyVault.sol';
 import '../src/token/UVBTCETHToken.sol';
 import '../src/controller/UnifyVaultController.sol';
@@ -13,6 +14,7 @@ import '../src/libraries/AccessRoles.sol';
 import '../src/libraries/FeeLib.sol';
 import '../src/libraries/ShareLib.sol';
 import '../src/constants/ModuleIds.sol';
+import '../src/interfaces/AggregatorV3Interface.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 // Interface for Treasury to avoid compiling Treasury.sol directly (namespace clash)
@@ -31,10 +33,55 @@ contract MockERC20 is ERC20 {
   }
 }
 
+contract MockChainlinkAggregator is AggregatorV3Interface {
+  uint8 private _decimals;
+  int256 private _answer;
+
+  constructor(uint8 decimals_, int256 price_) {
+    _decimals = decimals_;
+    _answer = price_;
+  }
+
+  function decimals() external view override returns (uint8) {
+    return _decimals;
+  }
+
+  function description() external view override returns (string memory) {
+    return 'USDC / USD';
+  }
+
+  function version() external view override returns (uint256) {
+    return 1;
+  }
+
+  function getRoundData(
+    uint80 _round
+  ) external view override returns (uint80, int256, uint256, uint256, uint80) {
+    return (_round, _answer, block.timestamp, block.timestamp, _round);
+  }
+
+  function latestRoundData()
+    external
+    view
+    override
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    )
+  {
+    return (1, _answer, block.timestamp, block.timestamp, 1);
+  }
+}
+
 contract DeployScript is Script, Test {
   ProtocolDirectory public directory;
   OracleManager public oracleManager;
   MockOracleProvider public oracleProvider;
+  ChainlinkOracleProvider public chainlinkProvider;
+  MockChainlinkAggregator public usdcAggregator;
   ITestTreasury public treasury;
   CustodyVault public vault;
   UVBTCETHToken public token;
@@ -56,6 +103,7 @@ contract DeployScript is Script, Test {
     directory = new ProtocolDirectory();
     oracleManager = new OracleManager();
     oracleProvider = new MockOracleProvider();
+    chainlinkProvider = new ChainlinkOracleProvider();
 
     // Deploy Treasury via bytecode to avoid namespace collision
     address treasuryAddr = deployCode('Treasury');
@@ -83,16 +131,27 @@ contract DeployScript is Script, Test {
     directory.registerAddress(ModuleIds.ORACLE, address(oracleManager));
     directory.registerAddress(ModuleIds.TOKEN, address(token));
 
-    // Setup Asset ID and Oracle Config
+    // Setup Mock Collateral for local testing
     bytes32 assetId = bytes32(uint256(uint160(address(mockCollateral))));
     oracleProvider.registerAsset(assetId, 1000 * 10 ** 18, 18, block.timestamp, 1);
     oracleManager.configureAsset(assetId, address(oracleProvider), address(0), 3600, true);
 
+    // Setup Official Base Sepolia USDC using ChainlinkOracleProvider (6 decimals)
+    address usdc = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+    bytes32 usdcAssetId = bytes32(uint256(uint160(usdc)));
+
+    // Deploy Chainlink Aggregator for USDC ($1.00 USD = 1 * 10^6, 6 decimals)
+    usdcAggregator = new MockChainlinkAggregator(6, 1 * 10 ** 6);
+    chainlinkProvider.registerFeed(usdcAssetId, address(usdcAggregator), 86400);
+    oracleManager.configureAsset(usdcAssetId, address(chainlinkProvider), address(0), 86400, true);
+
     // Setup Vault Configurations
     vault.registerAsset(address(mockCollateral), 18);
+    vault.registerAsset(usdc, 6);
 
     // Setup Treasury Configurations
     treasury.registerAsset(address(mockCollateral), 18);
+    treasury.registerAsset(usdc, 6);
 
     // Grant Roles to Controller
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
@@ -149,7 +208,8 @@ contract DeployScript is Script, Test {
     uint256 grossRedeemAssets = ShareLib.sharesToAssets(
       redeemShares,
       token.totalSupply(),
-      vault.totalAssets(address(mockCollateral))
+      vault.totalAssets(address(mockCollateral)),
+      18
     );
     (, uint256 redeemFee, uint256 netRedeemOut) = FeeLib.calculateRedemptionFee(grossRedeemAssets);
 

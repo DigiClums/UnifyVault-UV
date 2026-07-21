@@ -8,10 +8,12 @@ import { useNetwork } from '../../hooks/useNetwork';
 import { useTokenBalance } from '../../hooks/useTokenBalance';
 import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
 import { useControllerAddress } from '../../hooks/useControllerAddress';
+import { useVaultAddress } from '../../hooks/useVaultAddress';
 import { useAllowance } from '../../hooks/useAllowance';
 import { useDepositPreview } from '../../hooks/useDepositPreview';
 import { useDeposit } from '../../hooks/useDeposit';
 import { SUPPORTED_ASSETS, Asset } from '../../lib/config/assets';
+import { formatUnits } from 'viem';
 import { formatBigInt, formatUSD, parseAmount } from '../../lib/utils/formatters';
 import { ACTIVE_CHAIN } from '../../lib/config/chains';
 import {
@@ -57,6 +59,7 @@ export default function Deposit() {
 
   // Contract Addresses & Balances Hooks
   const { controllerAddress, isLoading: isLoadingController } = useControllerAddress();
+  const { vaultAddress } = useVaultAddress();
   const { indexTokenAddress, isLoading: isLoadingTokenAddress } = useIndexTokenAddress();
 
   // Balances
@@ -81,7 +84,7 @@ export default function Deposit() {
     errorMessage: approveErrorMessage,
     refetch: refetchAllowance,
     reset: resetApprove,
-  } = useAllowance(selectedAsset.address, controllerAddress);
+  } = useAllowance(selectedAsset.address, controllerAddress, vaultAddress);
 
   // Preview yield quote
   const {
@@ -130,7 +133,7 @@ export default function Deposit() {
   // Handle Max click
   const handleMaxClick = () => {
     if (assetBalance !== undefined && assetDecimals !== undefined) {
-      setAmountInput(formatBigInt(assetBalance, assetDecimals, assetDecimals));
+      setAmountInput(formatUnits(assetBalance, assetDecimals));
     }
   };
 
@@ -180,10 +183,9 @@ export default function Deposit() {
 
   const exchangeRate = React.useMemo(() => {
     if (!quote || quote.depositAmount === 0n) return 0;
-    return (
-      Number(quote.sharesPreview) /
-      Number(quote.depositAmount / 10n ** BigInt(selectedAsset.decimals - 18))
-    );
+    const depositAmountFormatted = Number(formatUnits(quote.depositAmount, selectedAsset.decimals));
+    const sharesPreviewFormatted = Number(formatUnits(quote.sharesPreview, 18));
+    return depositAmountFormatted > 0 ? sharesPreviewFormatted / depositAmountFormatted : 0;
   }, [quote, selectedAsset]);
 
   return (
@@ -496,7 +498,7 @@ export default function Deposit() {
                         Estimated Price Valuation
                       </span>
                       <span className="text-muted-foreground">
-                        {formatUSD(depositUsdValue, true, 18)} USD
+                        {formatUSD(depositUsdValue)} USD
                       </span>
                     </div>
 
@@ -569,7 +571,7 @@ export default function Deposit() {
                       {isLoadingPreview ? (
                         <span className="inline-block w-12 h-3 rounded bg-secondary animate-pulse" />
                       ) : quote ? (
-                        `${formatUSD(quote.normalizedPrice, true, 18)} USD`
+                        `${formatUSD(quote.normalizedPrice)} USD`
                       ) : (
                         '—'
                       )}

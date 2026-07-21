@@ -11,7 +11,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA: z
     .string()
     .regex(/^0x[a-fA-F0-9]{38,40}$/, 'Invalid Base Sepolia Directory Address')
-    .default('0xa2f7a652d9ccaddebb7ede91105dde84c8d4a427'),
+    .default('0xf283FD65Ed82398c76aFC073eDad7FceEC2495Cb'),
   NEXT_PUBLIC_ACTIVE_CHAIN: z
     .enum(['base', 'base-sepolia', '8453', '84532'])
     .default('base-sepolia'),

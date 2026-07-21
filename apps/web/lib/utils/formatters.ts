@@ -47,13 +47,9 @@ export const parseAmount = (amount?: string, decimals = 18): bigint => {
 /**
  * Formats a value (bigint, number, or string) to USD currency representation
  */
-export const formatUSD = (
-  value: number | string | bigint,
-  isBigInt = false,
-  decimals = 18,
-): string => {
+export const formatUSD = (value: number | string | bigint, decimals = 18): string => {
   let numVal: number;
-  if (isBigInt && typeof value === 'bigint') {
+  if (typeof value === 'bigint') {
     numVal = Number(formatUnits(value, decimals));
   } else {
     numVal = Number(value);

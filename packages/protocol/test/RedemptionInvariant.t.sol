@@ -66,7 +66,7 @@ contract RedemptionHandler {
 
     uint256 totalAssets = vault.totalAssets(address(tokenA));
     uint256 totalSupply = token.totalSupply();
-    uint256 expectedShares = ShareLib.calculateShares(expectedNet, totalSupply, totalAssets);
+    uint256 expectedShares = ShareLib.calculateShares(expectedNet, totalSupply, totalAssets, 18);
 
     tokenA.mint(user, amount);
 

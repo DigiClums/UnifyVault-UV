@@ -31,13 +31,14 @@ export function usePortfolio() {
     ],
     query: {
       enabled: !!indexTokenAddress && !!userAddress,
+      refetchInterval: 10000,
     },
   });
 
   const sharesBalance =
     userShareData?.[0]?.status === 'success' ? (userShareData[0].result as bigint) : 0n;
 
-  // 2. Fetch user asset balances and redemption previews
+  // 2. Fetch user asset balances, redemption previews, and oracle price quotes
   const portfolioContracts = React.useMemo(() => {
     if (!userAddress || !controllerAddress) return [];
 
@@ -48,36 +49,30 @@ export function usePortfolio() {
       args?: readonly unknown[];
     }[] = [];
 
-    // User ERC20 balance for each collateral asset
     assets.forEach((asset) => {
+      // 1. User ERC20 collateral balance
       queries.push({
         address: asset.address,
         abi: IERC20_ABI,
         functionName: 'balanceOf',
         args: [userAddress],
       });
-    });
 
-    // Redemption preview for user's full share balance for each asset
-    if (sharesBalance > 0n) {
-      assets.forEach((asset) => {
-        queries.push({
-          address: controllerAddress,
-          abi: UNIFY_VAULT_CONTROLLER_ABI,
-          functionName: 'previewRedeem',
-          args: [asset.address, sharesBalance],
-        });
+      // 2. Redemption preview for user's share balance
+      queries.push({
+        address: controllerAddress,
+        abi: UNIFY_VAULT_CONTROLLER_ABI,
+        functionName: 'previewRedeem',
+        args: [asset.address, sharesBalance],
       });
-    }
 
-    // Dynamic oracle prices (normalizedPrice via getDepositQuote)
-    assets.forEach((asset) => {
+      // 3. Dynamic oracle prices (normalizedPrice via getDepositQuote)
       const amountUnit = 10n ** BigInt(asset.decimals);
       queries.push({
         address: controllerAddress,
         abi: UNIFY_VAULT_CONTROLLER_ABI,
         functionName: 'getDepositQuote',
-        args: [asset.address, amountUnit, 0n, '0x0000000000000000000000000000000000000000'],
+        args: [asset.address, amountUnit, 0n, userAddress],
       });
     });
 
@@ -92,6 +87,7 @@ export function usePortfolio() {
     contracts: portfolioContracts,
     query: {
       enabled: portfolioContracts.length > 0 && !!userAddress,
+      refetchInterval: 10000,
     },
   });
 
@@ -114,25 +110,26 @@ export function usePortfolio() {
       };
     }
 
-    const assetCount = assets.length;
     const hasShares = sharesBalance > 0n;
 
-    // Extract balance results
+    // Extract static 3-query results per asset
     const assetsBalances = assets.map((asset, index) => {
-      const balanceResult = portfolioData?.[index];
+      const baseIdx = index * 3;
+
+      // 1. ERC20 Balance
+      const balanceResult = portfolioData?.[baseIdx];
       const balance = balanceResult?.status === 'success' ? (balanceResult.result as bigint) : 0n;
 
-      // Extract preview redeem results (if sharesBalance > 0, otherwise 0n)
+      // 2. Preview Redeem
       let redeemableAmount = 0n;
       if (hasShares) {
-        const previewResult = portfolioData?.[assetCount + index];
+        const previewResult = portfolioData?.[baseIdx + 1];
         redeemableAmount =
           previewResult?.status === 'success' ? (previewResult.result as bigint) : 0n;
       }
 
-      // Extract price results
-      const priceIndex = hasShares ? assetCount * 2 + index : assetCount + index;
-      const quoteResult = portfolioData?.[priceIndex];
+      // 3. Deposit Quote Price
+      const quoteResult = portfolioData?.[baseIdx + 2];
       const quote =
         quoteResult?.status === 'success'
           ? (quoteResult.result as unknown as { normalizedPrice: bigint })
@@ -156,8 +153,6 @@ export function usePortfolio() {
       };
     });
 
-    // Total portfolio value in USD represents the sum of the USD value of their direct collateral wallet balances + their redeemable index holdings USD value
-    // We average their redeemable USD values across supported assets (since redeemable value is functionally equivalent in terms of USD value)
     const redeemableUSD = assetsBalances.reduce((maxVal, asset) => {
       return asset.redeemableValueUSD > maxVal ? asset.redeemableValueUSD : maxVal;
     }, 0n);

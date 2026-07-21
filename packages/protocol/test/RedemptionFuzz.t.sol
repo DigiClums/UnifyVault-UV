@@ -124,7 +124,7 @@ contract RedemptionFuzzTest is Test {
 
     uint256 accountedAssets = vault.totalAssets(address(tokenA));
     uint256 totalSupply = token.totalSupply();
-    uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets);
+    uint256 grossAssets = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets, 18);
     (, uint256 protocolFee, uint256 netAssets) = FeeLib.calculateRedemptionFee(grossAssets);
 
     uint256 treasuryBalBefore = tokenA.balanceOf(address(treasury));
@@ -219,7 +219,7 @@ contract RedemptionFuzzTest is Test {
 
     uint256 accountedBefore = vault.totalAssets(address(tokenA));
     uint256 supplyBefore = token.totalSupply();
-    uint256 grossAssets = ShareLib.sharesToAssets(sharesMinted, supplyBefore, accountedBefore);
+    uint256 grossAssets = ShareLib.sharesToAssets(sharesMinted, supplyBefore, accountedBefore, 18);
     (, , uint256 expectedNet) = FeeLib.calculateRedemptionFee(grossAssets);
 
     // Donate tokens directly to vault (creates surplus, not accounted)
@@ -261,7 +261,12 @@ contract RedemptionFuzzTest is Test {
     uint256 remainingShares = token.balanceOf(user);
     uint256 accountedBefore = vault.totalAssets(address(tokenA));
     uint256 supplyBefore = token.totalSupply();
-    uint256 grossAssets = ShareLib.sharesToAssets(remainingShares, supplyBefore, accountedBefore);
+    uint256 grossAssets = ShareLib.sharesToAssets(
+      remainingShares,
+      supplyBefore,
+      accountedBefore,
+      18
+    );
     (, , uint256 expectedNet) = FeeLib.calculateRedemptionFee(grossAssets);
 
     // Donate after partial redemption
@@ -292,7 +297,8 @@ contract RedemptionFuzzTest is Test {
     uint256 grossAssets = ShareLib.sharesToAssets(
       sharesMinted,
       token.totalSupply(),
-      vault.totalAssets(address(tokenA))
+      vault.totalAssets(address(tokenA)),
+      18
     );
     (, , uint256 netAssets) = FeeLib.calculateRedemptionFee(grossAssets);
 

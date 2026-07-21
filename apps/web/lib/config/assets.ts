@@ -31,22 +31,10 @@ export const SUPPORTED_ASSETS: Record<number, Asset[]> = {
   84532: [
     // Base Sepolia
     {
-      symbol: 'cbBTC',
-      name: 'Coinbase Wrapped BTC (Mock)',
-      decimals: 18, // Mock collateral uses 18 decimals in the deployed contracts
-      address: '0x253f78c6938e87469c3ff86db367f4f81270c635' as const,
-    },
-    {
-      symbol: 'WETH',
-      name: 'Wrapped Ether (Mock)',
-      decimals: 18,
-      address: '0x253f78c6938e87469c3ff86db367f4f81270c635' as const,
-    },
-    {
       symbol: 'USDC',
-      name: 'USD Coin (Mock)',
-      decimals: 18,
-      address: '0x253f78c6938e87469c3ff86db367f4f81270c635' as const,
+      name: 'USD Coin',
+      decimals: 6,
+      address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const,
     },
   ],
 };
