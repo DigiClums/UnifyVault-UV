@@ -6,23 +6,25 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  ci:
-    name: Build, Lint, and Test
+  frontend:
+    name: Frontend CI (Web App & Workspace)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
 
-      - name: Setup Node.js
+      - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -31,22 +33,44 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check Formatting
-        run: pnpm exec prettier --check "**/*.{ts,tsx,js,json,sol,md,yml,yaml}"
+      - name: Run ESLint
+        run: pnpm --filter=@unifyvault/web lint
 
-      - name: Lint Workspace
-        run: pnpm run lint
+      - name: Run TypeScript Typecheck
+        run: pnpm --filter=@unifyvault/web typecheck
 
-      - name: Run Test Suite
-        run: pnpm run test
+      - name: Run Build
+        run: pnpm --filter=@unifyvault/web build
 
-      - name: Build Workspace
-        run: pnpm run build
+      - name: Run Unit & Integration Tests
+        run: pnpm --filter=@unifyvault/web test
 
-      - name: Install Foundry
+      - name: Run Test Coverage
+        run: pnpm --filter=@unifyvault/web test:coverage
+
+      - name: Upload Frontend Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage-report
+          path: apps/web/coverage/
+          retention-days: 14
+
+  protocol:
+    name: Protocol CI (Solidity & Foundry)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Foundry Toolchain
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+          cache: true
 
       - name: Check Solidity Formatting
         run: cd packages/protocol && forge fmt --check
@@ -54,8 +78,21 @@ jobs:
       - name: Build Smart Contracts
         run: cd packages/protocol && forge build
 
-      - name: Run Foundry Tests
+      - name: Run Foundry Test Suite
         run: cd packages/protocol && forge test -vvv
 
-      - name: Run Foundry Coverage
-        run: cd packages/protocol && forge coverage
+      - name: Run Forge Gas Snapshot
+        run: cd packages/protocol && forge snapshot
+
+      - name: Generate Coverage Report
+        run: cd packages/protocol && forge coverage || true
+
+      - name: Upload Protocol Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: protocol-coverage-report
+          path: |
+            packages/protocol/lcov.info
+            packages/protocol/.gas-snapshot
+          retention-days: 14

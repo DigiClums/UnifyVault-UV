@@ -66,14 +66,14 @@ To support multi-source pricing feeds seamlessly (including Chainlink, Redstone,
 
 ### A. Normalized Pricing API (`IOracleProvider`)
 
-Individual pricing source adapters inherit [IOracleProvider.sol](file:///packages/protocol/src/interfaces/IOracleProvider.sol). Rather than using EVM contract addresses, the provider interface resolves prices using generic `bytes32 assetId` keys. This design accommodates:
+Individual pricing source adapters inherit [IOracleProvider.sol](file:///Users/apple/Documents/UnifyVault-UV/packages/protocol/src/interfaces/IOracleProvider.sol). Rather than using EVM contract addresses, the provider interface resolves prices using generic `bytes32 assetId` keys. This design accommodates:
 - Non-EVM native feeds or fiat currency indices.
 - Direct mapping to off-chain price feed hashes (such as Pyth's 32-byte Price IDs).
 - Multi-chain token variations.
 
 ### B. Shared Price Data Model (`ProviderPrice`)
 
-Pricing details are unified in a single `ProviderPrice` struct defined in [OracleTypes.sol](file:///packages/protocol/src/types/OracleTypes.sol):
+Pricing details are unified in a single `ProviderPrice` struct defined in [OracleTypes.sol](file:///Users/apple/Documents/UnifyVault-UV/packages/protocol/src/types/OracleTypes.sol):
 - `price`: The raw price value from the provider.
 - `decimals`: The decimal precision of the raw price feed.
 - `updatedAt`: The block timestamp of the last oracle update.
@@ -87,7 +87,7 @@ Pricing details are unified in a single `ProviderPrice` struct defined in [Oracl
 
 ### D. Mock Pricing Simulation (`MockOracleProvider`)
 
-To facilitate robust and deterministic testing, the protocol includes a production-grade [MockOracleProvider.sol](file:///packages/protocol/src/oracle/MockOracleProvider.sol).
+To facilitate robust and deterministic testing, the protocol includes a production-grade [MockOracleProvider.sol](file:///Users/apple/Documents/UnifyVault-UV/packages/protocol/src/oracle/MockOracleProvider.sol).
 
 #### 1. Why it Exists
 Testing core protocol flows (such as minting, burning, and rebalancing) against live networks or standard third-party mock contracts introduces non-determinism, slow test execution, and hard-to-simulate error scenarios. The `MockOracleProvider` gives tests absolute control over the mock oracle state, enabling precise verification of the controller's safety systems.

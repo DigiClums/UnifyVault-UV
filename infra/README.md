@@ -21,4 +21,4 @@ infra/
   ```bash
   docker compose up -d
   ```
-- **Production Deployment:** Refer to deployment instructions in the core roadmap spec [10-roadmap.md](file:///Users/apple/Documents/UnifyVault-UV/docs/10-roadmap.md).
+- **Production Deployment:** Refer to deployment instructions in the core roadmap spec [10-roadmap.md](file:///Users/apple/Documents/UnifyVault-UV/docs/development/10-roadmap.md).

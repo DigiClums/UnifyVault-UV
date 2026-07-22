@@ -143,7 +143,8 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Public API ---
 
   /**
-   * @notice Validates a deposit, transfers user collateral to CustodyVault/Treasury, mints shares, and returns the quote.
+   * @notice Validates a deposit, transfers user collateral to CustodyVault/Treasury, mints shares,
+   * and returns the quote.
    */
   function deposit(
     address asset,

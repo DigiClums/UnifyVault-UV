@@ -17,4 +17,4 @@ tests/
 
 ## 2. Test Execution
 
-System tests run automatically during GitHub CI pipelines on every pull request. To execute integration tests locally, refer to the testing checklists in the core roadmap spec [10-roadmap.md](file:///Users/apple/Documents/UnifyVault-UV/docs/10-roadmap.md).
+System tests run automatically during GitHub CI pipelines on every pull request. To execute integration tests locally, refer to the testing checklists in the core roadmap spec [10-roadmap.md](file:///Users/apple/Documents/UnifyVault-UV/docs/development/10-roadmap.md).

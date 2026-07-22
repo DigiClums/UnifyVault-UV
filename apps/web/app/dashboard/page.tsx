@@ -32,6 +32,8 @@ import {
   RefreshCw,
   Zap,
   Lock,
+  Plus,
+  Minus,
 } from 'lucide-react';
 
 const WalletButton = dynamic(
@@ -243,7 +245,7 @@ export default function Dashboard() {
                     className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background group shadow-md"
                   >
                     <span className="flex items-center gap-2">
-                      <PlusIcon className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5" />
                       <span>Deposit Collateral</span>
                     </span>
                     <ArrowUpRight className="w-4 h-4 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -254,7 +256,7 @@ export default function Dashboard() {
                     className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-secondary hover:bg-accent border border-border text-foreground text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background group"
                   >
                     <span className="flex items-center gap-2">
-                      <MinusIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Minus className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>Redeem Shares</span>
                     </span>
                     <ArrowDownRight className="w-4 h-4 opacity-70 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
@@ -521,36 +523,5 @@ export default function Dashboard() {
         )}
       </PageWrapper>
     </Container>
-  );
-}
-
-// Compact helper components for clean icons
-function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2.5}
-      stroke="currentColor"
-      className={props.className}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-    </svg>
-  );
-}
-
-function MinusIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2.5}
-      stroke="currentColor"
-      className={props.className}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-    </svg>
   );
 }

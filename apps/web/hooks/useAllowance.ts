@@ -1,4 +1,10 @@
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import {
+  useAccount,
+  useReadContracts,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from 'wagmi';
+import { type Abi } from 'viem';
 import { IERC20_ABI } from '../lib/config/abis';
 import { parseWalletError } from '../lib/utils/formatters';
 import * as React from 'react';
@@ -10,40 +16,62 @@ export function useAllowance(
 ) {
   const { address: userAddress } = useAccount();
 
-  // Read allowance for primary spender (e.g. Controller)
+  // Combine primary and secondary allowance reads into a single multicall
+  const allowanceContracts = React.useMemo(() => {
+    if (!tokenAddress || !userAddress) return [];
+    const queries: {
+      address: `0x${string}`;
+      abi: Abi;
+      functionName: string;
+      args: readonly unknown[];
+    }[] = [];
+
+    if (spenderAddress) {
+      queries.push({
+        address: tokenAddress,
+        abi: IERC20_ABI,
+        functionName: 'allowance',
+        args: [userAddress, spenderAddress],
+      });
+    }
+
+    if (secondarySpenderAddress) {
+      queries.push({
+        address: tokenAddress,
+        abi: IERC20_ABI,
+        functionName: 'allowance',
+        args: [userAddress, secondarySpenderAddress],
+      });
+    }
+
+    return queries;
+  }, [tokenAddress, userAddress, spenderAddress, secondarySpenderAddress]);
+
   const {
-    data: allowancePrimary,
-    isLoading: isLoadingPrimary,
-    refetch: refetchPrimary,
-  } = useReadContract({
-    address: tokenAddress,
-    abi: IERC20_ABI,
-    functionName: 'allowance',
-    args: userAddress && spenderAddress ? [userAddress, spenderAddress] : undefined,
+    data: allowanceData,
+    isLoading,
+    refetch,
+  } = useReadContracts({
+    contracts: allowanceContracts,
     query: {
-      enabled: !!tokenAddress && !!spenderAddress && !!userAddress,
+      enabled: allowanceContracts.length > 0,
+      staleTime: 5000,
     },
   });
 
-  // Read allowance for secondary spender (e.g. CustodyVault)
-  const {
-    data: allowanceSecondary,
-    isLoading: isLoadingSecondary,
-    refetch: refetchSecondary,
-  } = useReadContract({
-    address: tokenAddress,
-    abi: IERC20_ABI,
-    functionName: 'allowance',
-    args:
-      userAddress && secondarySpenderAddress ? [userAddress, secondarySpenderAddress] : undefined,
-    query: {
-      enabled: !!tokenAddress && !!secondarySpenderAddress && !!userAddress,
-    },
-  });
+  const allowancePrimary = React.useMemo(() => {
+    if (!spenderAddress || !allowanceData || allowanceData.length === 0) return undefined;
+    return allowanceData[0]?.status === 'success' ? (allowanceData[0].result as bigint) : undefined;
+  }, [spenderAddress, allowanceData]);
 
-  const refetch = React.useCallback(async () => {
-    await Promise.all([refetchPrimary(), refetchSecondary()]);
-  }, [refetchPrimary, refetchSecondary]);
+  const allowanceSecondary = React.useMemo(() => {
+    if (!secondarySpenderAddress || !allowanceData) return undefined;
+    const idx = spenderAddress ? 1 : 0;
+    if (allowanceData.length <= idx) return undefined;
+    return allowanceData[idx]?.status === 'success'
+      ? (allowanceData[idx].result as bigint)
+      : undefined;
+  }, [spenderAddress, secondarySpenderAddress, allowanceData]);
 
   // Minimum allowance available between spenders
   const effectiveAllowance = React.useMemo(() => {
@@ -131,7 +159,7 @@ export function useAllowance(
 
   return {
     allowance: effectiveAllowance,
-    isLoading: isLoadingPrimary || isLoadingSecondary,
+    isLoading,
     refetch,
     approve,
     reset,

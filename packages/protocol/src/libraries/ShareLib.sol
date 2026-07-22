@@ -3,8 +3,10 @@ pragma solidity >=0.8.20;
 
 /**
  * @title ShareLib
- * @notice Pure library containing vault share calculation formulas for bootstrapping and proportional minting/redemption.
- * @dev Normalizes collateral assets with arbitrary decimal precision (e.g. USDC=6, WBTC=8, WETH=18) to 18-decimal share precision.
+ * @notice Pure library containing vault share calculation formulas for bootstrapping
+ * and proportional minting/redemption.
+ * @dev Normalizes collateral assets with arbitrary decimal precision (e.g. USDC=6, WBTC=8, WETH=18)
+ * to 18-decimal share precision.
  */
 library ShareLib {
   uint8 public constant SHARE_DECIMALS = 18;

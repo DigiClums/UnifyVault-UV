@@ -82,18 +82,6 @@ export const formatBps = (value: number | bigint | string): string => {
 };
 
 /**
- * Formats token display with symbol: e.g. "0.005432 BTC"
- */
-export const formatToken = (
-  value: bigint,
-  symbol: string,
-  decimals = 18,
-  precision = 6,
-): string => {
-  return `${formatBigInt(value, decimals, precision)} ${symbol}`;
-};
-
-/**
  * Formats max deposit limit with handling for Unlimited (MAX_UINT256)
  */
 export const formatLimit = (limit?: bigint, decimals = 18, precision = 2): string => {
@@ -115,32 +103,6 @@ export const getExplorerLink = (
   const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId);
   const baseUrl = chain?.blockExplorers?.default?.url || 'https://sepolia.basescan.org';
   return `${baseUrl}/${type}/${hashOrAddress}`;
-};
-
-interface CustomWeb3Error {
-  code?: number;
-  message?: string;
-  shortMessage?: string;
-  reason?: string;
-}
-
-export const parseError = (error: unknown): string => {
-  if (!error) return 'Unknown error occurred';
-
-  const err = error as CustomWeb3Error;
-
-  // 1. User rejection
-  if (
-    err.code === 4001 ||
-    err.message?.includes('User denied') ||
-    err.message?.includes('rejected')
-  ) {
-    return 'Transaction signature request was rejected by the user.';
-  }
-
-  // 2. Fallback message parsing
-  const reason = err.shortMessage || err.reason || err.message;
-  return reason || 'Transaction execution failed. Please verify your balance and gas settings.';
 };
 
 export const parseWalletError = (error: unknown): string => {

@@ -25,6 +25,7 @@ export function useTokenBalance(tokenAddress?: `0x${string}`) {
     ],
     query: {
       enabled: !!tokenAddress && !!userAddress,
+      staleTime: 10000,
     },
   });
 

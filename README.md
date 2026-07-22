@@ -25,6 +25,7 @@
 - [Deployment](#deployment)
 - [Supported Networks](#supported-networks)
 - [Screenshots](#screenshots)
+- [Documentation](#documentation)
 - [Security](#security)
 - [Testing](#testing)
 - [Roadmap](#roadmap)
@@ -33,17 +34,17 @@
 
 ## Key Features
 
-| Area | Implemented in repository |
-| :-- | :-- |
-| 🧱 Protocol registry | `ProtocolDirectory` stores module addresses behind `bytes32` identifiers and supports a one-way `freeze()` action. |
-| 🪙 Index share token | `UVBTCETHToken` is an ERC-20 + Permit token named `UnifyVault BTC ETH Index` with symbol `UVBTCETH`. Minting and burning are restricted by role. |
-| 🏦 Collateral custody | `CustodyVault` accounts for enabled ERC-20 collateral assets and restricts deposits/withdrawals to controller-role callers. |
-| 💸 Fee routing | `Treasury` receives protocol fees and supports governance-controlled withdrawals. |
-| 📈 Oracle abstraction | `OracleManager` coordinates primary/fallback `IOracleProvider` implementations and normalizes prices to 18 decimals. |
-| 🔗 Chainlink adapter | `ChainlinkOracleProvider` reads AggregatorV3 feeds, validates positive prices, complete rounds, and heartbeat freshness. |
-| 🔐 Safety controls | Role-based access control, pausability, reentrancy guards, custom errors, slippage checks, and deadline checks are present in the Solidity code. |
-| 🌐 Web app | Next.js App Router frontend with RainbowKit, Wagmi, Viem, React Query, deposit/redeem pages, wallet state, network checks, and dashboard views. |
-| 🧪 Contract test suite | Foundry unit, integration, fuzz, and invariant tests cover core protocol paths. |
+| Area                   | Implemented in repository                                                                                                                        |
+| :--------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🧱 Protocol registry   | `ProtocolDirectory` stores module addresses behind `bytes32` identifiers and supports a one-way `freeze()` action.                               |
+| 🪙 Index share token   | `UVBTCETHToken` is an ERC-20 + Permit token named `UnifyVault BTC ETH Index` with symbol `UVBTCETH`. Minting and burning are restricted by role. |
+| 🏦 Collateral custody  | `CustodyVault` accounts for enabled ERC-20 collateral assets and restricts deposits/withdrawals to controller-role callers.                      |
+| 💸 Fee routing         | `Treasury` receives protocol fees and supports governance-controlled withdrawals.                                                                |
+| 📈 Oracle abstraction  | `OracleManager` coordinates primary/fallback `IOracleProvider` implementations and normalizes prices to 18 decimals.                             |
+| 🔗 Chainlink adapter   | `ChainlinkOracleProvider` reads AggregatorV3 feeds, validates positive prices, complete rounds, and heartbeat freshness.                         |
+| 🔐 Safety controls     | Role-based access control, pausability, reentrancy guards, custom errors, slippage checks, and deadline checks are present in the Solidity code. |
+| 🌐 Web app             | Next.js App Router frontend with RainbowKit, Wagmi, Viem, React Query, deposit/redeem pages, wallet state, network checks, and dashboard views.  |
+| 🧪 Contract test suite | Foundry unit, integration, fuzz, and invariant tests cover core protocol paths.                                                                  |
 
 ## Architecture Overview
 
@@ -70,16 +71,16 @@ The repository is organized as a `pnpm` + Turborepo workspace:
 
 ## Smart Contract Architecture
 
-| Contract | Purpose |
-| :-- | :-- |
-| `ProtocolDirectory` | Canonical registry for core module addresses. Governance can register, update, remove, and permanently freeze entries. |
-| `UnifyVaultController` | Main workflow coordinator for deposits, redemptions, fee routing, share minting/burning, quote generation, and emergency pause/resume. |
-| `UVBTCETHToken` | ERC-20 share token with EIP-2612 permit support. Controller-role accounts mint and burn; guardian/governance roles pause and resume. |
-| `CustodyVault` | Passive collateral vault with asset registration, enable/disable controls, accounted asset tracking, and controller-only movement. |
-| `Treasury` | Passive fee and protocol-owned asset vault with registered assets, fee collection, ERC-20 withdrawals, native ETH receipt/withdrawal, and pause controls. |
-| `OracleManager` | Price coordinator that stores asset provider configuration and falls back to a secondary provider when available. |
-| `ChainlinkOracleProvider` | Chainlink AggregatorV3 adapter with stale-price, non-positive price, incomplete-round, and heartbeat validation. |
-| `MockOracleProvider` | Deterministic oracle provider for tests and local deployment flows. |
+| Contract                  | Purpose                                                                                                                                                   |
+| :------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ProtocolDirectory`       | Canonical registry for core module addresses. Governance can register, update, remove, and permanently freeze entries.                                    |
+| `UnifyVaultController`    | Main workflow coordinator for deposits, redemptions, fee routing, share minting/burning, quote generation, and emergency pause/resume.                    |
+| `UVBTCETHToken`           | ERC-20 share token with EIP-2612 permit support. Controller-role accounts mint and burn; guardian/governance roles pause and resume.                      |
+| `CustodyVault`            | Passive collateral vault with asset registration, enable/disable controls, accounted asset tracking, and controller-only movement.                        |
+| `Treasury`                | Passive fee and protocol-owned asset vault with registered assets, fee collection, ERC-20 withdrawals, native ETH receipt/withdrawal, and pause controls. |
+| `OracleManager`           | Price coordinator that stores asset provider configuration and falls back to a secondary provider when available.                                         |
+| `ChainlinkOracleProvider` | Chainlink AggregatorV3 adapter with stale-price, non-positive price, incomplete-round, and heartbeat validation.                                          |
+| `MockOracleProvider`      | Deterministic oracle provider for tests and local deployment flows.                                                                                       |
 
 Key protocol constants and behavior:
 
@@ -94,14 +95,14 @@ Key protocol constants and behavior:
 
 The active frontend lives in `apps/web` and is built with Next.js App Router.
 
-| Layer | Files |
-| :-- | :-- |
-| Routes | `apps/web/app/page.tsx`, `dashboard`, `deposit`, `redeem`, `portfolio`, `settings` |
-| Layout | `components/layout`, `providers/AppProvider.tsx`, `ThemeProvider.tsx`, `Web3Provider.tsx` |
-| Web3 UI | `components/web3` wallet button, wallet menu, network badge, wrong-network banner, address display |
+| Layer          | Files                                                                                                                         |
+| :------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| Routes         | `apps/web/app/page.tsx`, `dashboard`, `deposit`, `redeem`, `portfolio`, `settings`                                            |
+| Layout         | `components/layout`, `providers/AppProvider.tsx`, `ThemeProvider.tsx`, `Web3Provider.tsx`                                     |
+| Web3 UI        | `components/web3` wallet button, wallet menu, network badge, wrong-network banner, address display                            |
 | Contract hooks | `hooks/useDeposit.ts`, `useRedeem.ts`, `useDepositPreview.ts`, `useRedeemPreview.ts`, `useVaultMetrics.ts`, `usePortfolio.ts` |
-| Configuration | `lib/config/chains.ts`, `contracts.ts`, `assets.ts`, `abis.ts`, `env.ts` |
-| Styling | Tailwind CSS, CSS variables, `next-themes`, `lucide-react`, `framer-motion` |
+| Configuration  | `lib/config/chains.ts`, `contracts.ts`, `assets.ts`, `abis.ts`, `env.ts`                                                      |
+| Styling        | Tailwind CSS, CSS variables, `next-themes`, `lucide-react`, `framer-motion`                                                   |
 
 The frontend reads supported chain and directory configuration from public Next.js environment variables and resolves protocol modules through the on-chain directory.
 
@@ -134,17 +135,17 @@ The frontend reads supported chain and directory configuration from public Next.
 
 ## Tech Stack
 
-| Category | Stack |
-| :-- | :-- |
-| Monorepo | pnpm workspaces, Turborepo |
-| Smart contracts | Solidity `0.8.24`, Foundry, OpenZeppelin Contracts |
-| Contract testing | Forge unit, integration, fuzz, and invariant tests |
-| Frontend | Next.js `15`, React `19`, TypeScript, Tailwind CSS |
-| Web3 frontend | Wagmi v2, Viem, RainbowKit, WalletConnect |
-| State/data | TanStack Query, React hooks, Zod environment validation |
-| UI | Radix primitives, lucide-react, framer-motion, next-themes |
-| Local services | Docker Compose, PostgreSQL 15, Redis 7 |
-| Tooling | ESLint, Prettier, commitlint, Husky, lint-staged |
+| Category         | Stack                                                      |
+| :--------------- | :--------------------------------------------------------- |
+| Monorepo         | pnpm workspaces, Turborepo                                 |
+| Smart contracts  | Solidity `0.8.24`, Foundry, OpenZeppelin Contracts         |
+| Contract testing | Forge unit, integration, fuzz, and invariant tests         |
+| Frontend         | Next.js `15`, React `19`, TypeScript, Tailwind CSS         |
+| Web3 frontend    | Wagmi v2, Viem, RainbowKit, WalletConnect                  |
+| State/data       | TanStack Query, React hooks, Zod environment validation    |
+| UI               | Radix primitives, lucide-react, framer-motion, next-themes |
+| Local services   | Docker Compose, PostgreSQL 15, Redis 7                     |
+| Tooling          | ESLint, Prettier, commitlint, Husky, lint-staged           |
 
 ## Installation
 
@@ -180,10 +181,10 @@ docker compose up -d
 
 This starts:
 
-| Service | Port | Purpose |
-| :-- | :-- | :-- |
+| Service    | Port   | Purpose                                  |
+| :--------- | :----- | :--------------------------------------- |
 | PostgreSQL | `5432` | Development state store for backend work |
-| Redis | `6379` | Cache / queue broker for backend work |
+| Redis      | `6379` | Cache / queue broker for backend work    |
 
 ### Build workspaces
 
@@ -201,29 +202,29 @@ pnpm --filter @unifyvault/protocol clean
 
 ### Root commands
 
-| Command | Description |
-| :-- | :-- |
-| `pnpm run dev` | Runs the web app through Turborepo with `--filter=@unifyvault/web`. |
-| `pnpm run build` | Runs workspace builds. |
-| `pnpm run lint` | Runs workspace lint tasks. |
-| `pnpm run test` | Runs workspace test tasks. |
-| `pnpm run format` | Formats TypeScript, JavaScript, JSON, Markdown, Solidity, YAML. |
+| Command           | Description                                                         |
+| :---------------- | :------------------------------------------------------------------ |
+| `pnpm run dev`    | Runs the web app through Turborepo with `--filter=@unifyvault/web`. |
+| `pnpm run build`  | Runs workspace builds.                                              |
+| `pnpm run lint`   | Runs workspace lint tasks.                                          |
+| `pnpm run test`   | Runs workspace test tasks.                                          |
+| `pnpm run format` | Formats TypeScript, JavaScript, JSON, Markdown, Solidity, YAML.     |
 
 ## Environment Variables
 
 Create `apps/web/.env.local` from `apps/web/.env.example`.
 
-| Variable | Required | Used by | Description |
-| :-- | :--: | :-- | :-- |
-| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | Yes | Web | WalletConnect Cloud project ID used by RainbowKit. |
-| `NEXT_PUBLIC_RPC_URL_BASE_MAINNET` | Yes | Web | Base mainnet RPC URL. |
-| `NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA` | Yes | Web | Base Sepolia RPC URL. |
-| `NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET` | Yes | Web | `ProtocolDirectory` address for Base mainnet. |
-| `NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA` | Yes | Web | `ProtocolDirectory` address for Base Sepolia. |
-| `NEXT_PUBLIC_ACTIVE_CHAIN` | Yes | Web | One of `base`, `base-sepolia`, `8453`, or `84532`. |
-| `BASE_SEPOLIA_RPC_URL` | Deployment only | Foundry | RPC URL for Base Sepolia deployments. |
-| `PRIVATE_KEY` | Deployment only | Foundry | Deployer private key. Never commit this value. |
-| `BASESCAN_API_KEY` | Optional deployment verification | Foundry / explorer tooling | Basescan API key for contract verification workflows. |
+| Variable                                |             Required             | Used by                    | Description                                           |
+| :-------------------------------------- | :------------------------------: | :------------------------- | :---------------------------------------------------- |
+| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` |               Yes                | Web                        | WalletConnect Cloud project ID used by RainbowKit.    |
+| `NEXT_PUBLIC_RPC_URL_BASE_MAINNET`      |               Yes                | Web                        | Base mainnet RPC URL.                                 |
+| `NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA`      |               Yes                | Web                        | Base Sepolia RPC URL.                                 |
+| `NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET` |               Yes                | Web                        | `ProtocolDirectory` address for Base mainnet.         |
+| `NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA` |               Yes                | Web                        | `ProtocolDirectory` address for Base Sepolia.         |
+| `NEXT_PUBLIC_ACTIVE_CHAIN`              |               Yes                | Web                        | One of `base`, `base-sepolia`, `8453`, or `84532`.    |
+| `BASE_SEPOLIA_RPC_URL`                  |         Deployment only          | Foundry                    | RPC URL for Base Sepolia deployments.                 |
+| `PRIVATE_KEY`                           |         Deployment only          | Foundry                    | Deployer private key. Never commit this value.        |
+| `BASESCAN_API_KEY`                      | Optional deployment verification | Foundry / explorer tooling | Basescan API key for contract verification workflows. |
 
 > 🔒 Do not commit `.env`, `.env.local`, or private keys. The root `.gitignore` excludes environment files.
 
@@ -261,17 +262,17 @@ NEXT_PUBLIC_ACTIVE_CHAIN=base-sepolia
 
 Deployment notes and address records are kept in:
 
-- `packages/protocol/DEPLOYMENT_REPORT.md`
-- `packages/protocol/DEPLOYMENT_ADDRESSES.md`
-- `packages/protocol/SEPOLIA_TRANSACTION_LOG.md`
-- `packages/protocol/SEPOLIA_TEST_RESULTS.md`
+- `docs/deployment/DEPLOYMENT_REPORT.md`
+- `docs/deployment/DEPLOYMENT_ADDRESSES.md`
+- `docs/deployment/SEPOLIA_TRANSACTION_LOG.md`
+- `docs/testing/SEPOLIA_TEST_RESULTS.md`
 
 ## Supported Networks
 
-| Network | Chain ID | Frontend support | Assets listed in `apps/web/lib/config/assets.ts` |
-| :-- | :--: | :--: | :-- |
-| Base Mainnet | `8453` | ✅ | `cbBTC`, `WETH`, `USDC` |
-| Base Sepolia | `84532` | ✅ | `USDC` |
+| Network      | Chain ID | Frontend support | Assets listed in `apps/web/lib/config/assets.ts` |
+| :----------- | :------: | :--------------: | :----------------------------------------------- |
+| Base Mainnet |  `8453`  |        ✅        | `cbBTC`, `WETH`, `USDC`                          |
+| Base Sepolia | `84532`  |        ✅        | `USDC`                                           |
 
 The frontend defaults to Base Sepolia unless `NEXT_PUBLIC_ACTIVE_CHAIN` is configured otherwise.
 
@@ -279,13 +280,27 @@ The frontend defaults to Base Sepolia unless `NEXT_PUBLIC_ACTIVE_CHAIN` is confi
 
 Add production screenshots here when the UI is ready for public release.
 
-| Home | Dashboard |
-| :-- | :-- |
+| Home                        | Dashboard                        |
+| :-------------------------- | :------------------------------- |
 | `docs/screenshots/home.png` | `docs/screenshots/dashboard.png` |
 
-| Deposit | Redeem |
-| :-- | :-- |
+| Deposit                        | Redeem                        |
+| :----------------------------- | :---------------------------- |
 | `docs/screenshots/deposit.png` | `docs/screenshots/redeem.png` |
+
+## Documentation
+
+The repository documentation is centralized in the [`docs/`](docs/) directory and indexed in [docs/INDEX.md](docs/INDEX.md).
+
+- 🏛️ [**Architecture & Specifications**](docs/architecture/) — Protocol whitepaper, tokenomics, smart contract specs, and backend/frontend manuals
+- 🛡️ [**Audits & Security**](docs/audits/) — Internal security audits, Slither zero-warning report, and security policy
+- 🧪 [**Testing & QA**](docs/testing/) — Testing strategies, continuous security pipeline, and Sepolia test results
+- 🚀 [**Deployment & Operations**](docs/deployment/) — Deployed contract addresses, deployment report, and transaction logs
+- 💻 [**Development & Specs**](docs/development/) — Contributing guidelines, roadmap, product decisions, and Solidity standards
+- 📦 [**Releases & Production**](docs/releases/) — Changelogs and production release approvals
+- 🗄️ [**Archive**](docs/archive/) — Historical cleanup reports and milestone retrospectives
+
+For a complete file-by-file directory, see the [Documentation Index](docs/INDEX.md).
 
 ## Security
 
@@ -301,7 +316,7 @@ Security-relevant controls present in the repository include:
 - Separation between user collateral custody (`CustodyVault`) and protocol-owned fees (`Treasury`).
 - Foundry invariant and integration tests for protocol behavior.
 
-Please report vulnerabilities privately. See [SECURITY.md](SECURITY.md).
+Please report vulnerabilities privately. See [SECURITY.md](docs/audits/SECURITY.md).
 
 > ⚠️ The repository contains local environment examples and may contain developer-local untracked `.env` files. Rotate any exposed keys immediately if they were ever shared or committed.
 
@@ -355,7 +370,7 @@ Based on the current repository state:
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+Contributions are welcome. Please read [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) before opening a pull request.
 
 Expected local checks:
 
