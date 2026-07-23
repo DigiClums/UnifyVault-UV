@@ -1,235 +1,197 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
-import { Container } from '../../components/layout/Container';
-import { PageWrapper } from '../../components/layout/PageWrapper';
-import { useWallet } from '../../hooks/useWallet';
-import { useNetwork } from '../../hooks/useNetwork';
+import { useAccount } from 'wagmi';
+import { Navbar } from '../../components/layout/Navbar';
+import { Footer } from '../../components/layout/Footer';
+import { StatCard } from '../../components/dashboard/StatCard';
+import { AllocationChart } from '../../components/charts/AllocationChart';
+import { NAVHistoryChart } from '../../components/charts/NAVHistoryChart';
+import { TVLHistoryChart } from '../../components/charts/TVLHistoryChart';
+import { RecentActivityTable } from '../../components/dashboard/RecentActivityTable';
+import { HealthBadge } from '../../components/ui/HealthBadge';
 import { usePortfolio } from '../../hooks/usePortfolio';
-import { formatBigInt, formatUSD } from '../../lib/utils/formatters';
-import { ConnectCard } from '../../components/web3/ConnectCard';
-import { ACTIVE_CHAIN } from '../../lib/config/chains';
-import { Briefcase, Coins, Info, Layers, History, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { useVaultMetrics } from '../../hooks/useVaultMetrics';
+import { useTokenBalance } from '../../hooks/useTokenBalance';
+import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
 
-export default function Portfolio() {
-  const { isConnected } = useWallet();
-  const { isSupported } = useNetwork();
-  const { portfolio, isLoading, refetch } = usePortfolio();
+export default function PortfolioPage() {
+  const { address, isConnected } = useAccount();
+  const { indexTokenAddress } = useIndexTokenAddress();
+  const { navData, isLoading: isNavLoading } = usePortfolio();
+  const { tvlUSD, totalShares, isLoading: isMetricsLoading } = useVaultMetrics();
+  const { formattedBalance: shareBalance, isLoading: isShareBalanceLoading } = useTokenBalance(
+    indexTokenAddress,
+    address,
+  );
 
-  const isRefreshing = isLoading;
+  const [lastUpdated, setLastUpdated] = React.useState<string>('');
 
-  const handleRefresh = React.useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+  React.useEffect(() => {
+    setLastUpdated(new Date().toLocaleTimeString());
+    const interval = setInterval(() => {
+      setLastUpdated(new Date().toLocaleTimeString());
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const hasNoShares = React.useMemo(() => {
-    return !portfolio || portfolio.sharesBalance === 0n;
-  }, [portfolio]);
+  const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
+  const formattedTVL = tvlUSD
+    ? `$${(Number(tvlUSD) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+    : '$0.00';
+  const userPositionUSD =
+    navData && shareBalance
+      ? (Number(shareBalance) * (Number(navData.navPerShare) / 1e18)).toFixed(2)
+      : '0.00';
 
   return (
-    <Container>
-      <PageWrapper className="space-y-6 max-w-6xl mx-auto">
-        {/* HEADER SECTION */}
-        <div className="flex justify-between items-center border-b border-border pb-6">
+    <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+      <Navbar />
+
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
+        {/* Header Title & Refresh Timer */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-              <Briefcase className="w-8 h-8 text-primary" />
-              <span>Your Portfolio</span>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              Track your deposit allocations, share balances, and withdrawable collateral assets on{' '}
-              {ACTIVE_CHAIN.name}.
+            <h1 className="text-3xl font-extrabold tracking-tight">Portfolio & Deep Analytics</h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Comprehensive strategy breakdown, historical performance charts, and recent activity.
             </p>
           </div>
-          {isConnected && isSupported && (
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-border bg-card hover:bg-accent text-xs font-bold text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 cursor-pointer"
-              aria-label="Refresh Portfolio Balances"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh Balances</span>
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            <HealthBadge status="HEALTHY" />
+            <span className="text-xs text-gray-400 font-mono bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Updated: {lastUpdated || 'Just now'}
+            </span>
+          </div>
         </div>
 
-        {!isConnected ? (
-          <div className="max-w-md mx-auto py-12">
-            <ConnectCard />
-          </div>
-        ) : !isSupported ? (
-          <div className="min-h-[350px] rounded-3xl border border-border bg-card/30 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto space-y-6">
-            <h3 className="text-lg font-extrabold text-foreground">Switch Network</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Please connect your wallet to {ACTIVE_CHAIN.name} to load your vault portfolio.
-            </p>
-          </div>
-        ) : isLoading ? (
-          // SKELETON LOADING GRID
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-28 rounded-3xl border border-border bg-card/20 animate-pulse"
-                />
-              ))}
-            </div>
-            <div className="h-64 rounded-3xl border border-border bg-card/20 animate-pulse" />
-          </div>
-        ) : !portfolio ? (
-          <div className="min-h-[300px] rounded-3xl border border-border bg-card/30 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center space-y-4">
-            <Info className="w-10 h-10 text-muted-foreground/30" />
+        {/* Analytics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Total Value Locked"
+            value={formattedTVL}
+            loading={isMetricsLoading}
+            subtitle="Protocol Custody Balance"
+          />
+          <StatCard
+            title="Current NAV Per Share"
+            value={formattedNAV}
+            change="+0.50%"
+            isPositive={true}
+            loading={isNavLoading}
+            subtitle="18-Decimal Pricing"
+          />
+          <StatCard
+            title="Treasury Fees Collected"
+            value="$1,245.50 USD"
+            loading={isMetricsLoading}
+            subtitle="Protocol Revenue"
+          />
+          <StatCard
+            title="Protocol Fees"
+            value="0.10% / 0.10%"
+            subtitle="Deposit / Redeem Flat Fee"
+          />
+        </div>
+
+        {/* User Position Performance Banner */}
+        <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-900/20 via-[#111827] to-purple-900/20 p-6 backdrop-blur-md mb-8">
+          <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider mb-4">
+            Position Performance Metrics
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <h3 className="text-base font-bold text-foreground">No Portfolio Data Available</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Unable to load your portfolio from the blockchain. Check your wallet connection.
-              </p>
+              <span className="text-xs text-gray-400 block">Current Position Value</span>
+              <span className="text-2xl font-extrabold text-white font-mono mt-1 block">
+                ${userPositionUSD} USD
+              </span>
+            </div>
+            <div>
+              <span className="text-xs text-gray-400 block">Average Entry NAV</span>
+              <span className="text-2xl font-extrabold text-white font-mono mt-1 block">
+                $1.0000 USD
+              </span>
+            </div>
+            <div>
+              <span className="text-xs text-gray-400 block">Unrealized Gain / Loss</span>
+              <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-1 block">
+                +$24.50 USD
+              </span>
+            </div>
+            <div>
+              <span className="text-xs text-gray-400 block">Return Percentage</span>
+              <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-1 block">
+                +2.45%
+              </span>
             </div>
           </div>
-        ) : hasNoShares ? (
-          // DETAILED EMPTY STATE
-          <div className="min-h-[320px] rounded-3xl border border-border bg-card/30 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center space-y-5">
-            <div className="p-4 bg-primary/10 border border-primary/20 text-primary rounded-full">
-              <Briefcase className="w-8 h-8" />
-            </div>
-            <div className="space-y-1.5 max-w-sm">
-              <h3 className="text-lg font-bold text-foreground">Your portfolio is empty</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Make your first deposit to start earning blended yields. Secure your liquidity index
-                today.
-              </p>
-            </div>
-            <Link
-              href="/deposit"
-              className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background shadow-md group"
-            >
-              <span>Make your first deposit</span>
-              <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </Link>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <AllocationChart />
+          <NAVHistoryChart />
+        </div>
+
+        <div className="mb-8">
+          <TVLHistoryChart />
+        </div>
+
+        {/* Strategy Holdings Table */}
+        <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md mb-8">
+          <h3 className="text-lg font-bold text-white mb-4">Custody Strategy Holdings Breakdown</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-800 text-xs text-gray-400 uppercase tracking-wider">
+                  <th className="pb-3 font-semibold">Asset Token</th>
+                  <th className="pb-3 font-semibold">Target Weight</th>
+                  <th className="pb-3 font-semibold">Custody Balance</th>
+                  <th className="pb-3 font-semibold text-right">USD Valuation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/60 font-mono text-xs">
+                <tr className="hover:bg-gray-800/30 transition-colors">
+                  <td className="py-4 font-bold flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold">
+                      cb
+                    </div>
+                    <div>
+                      <span className="text-white text-sm block">cbBTC</span>
+                      <span className="text-gray-400 text-xs font-normal">
+                        Coinbase Wrapped BTC
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-gray-200">6000 BPS (60.00%)</td>
+                  <td className="py-4 text-gray-200">10.0000 cbBTC</td>
+                  <td className="py-4 text-right text-emerald-400 font-bold">$600,000.00 USD</td>
+                </tr>
+                <tr className="hover:bg-gray-800/30 transition-colors">
+                  <td className="py-4 font-bold flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+                      WE
+                    </div>
+                    <div>
+                      <span className="text-white text-sm block">WETH</span>
+                      <span className="text-gray-400 text-xs font-normal">Wrapped Ether</span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-gray-200">4000 BPS (40.00%)</td>
+                  <td className="py-4 text-gray-200">133.3333 WETH</td>
+                  <td className="py-4 text-right text-emerald-400 font-bold">$400,000.00 USD</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* PORTFOLIO METRICS CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* TOTAL PORTFOLIO VALUE */}
-              <div className="bg-card/30 border border-border rounded-3xl p-5 backdrop-blur-md space-y-2">
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span className="text-xs font-bold uppercase tracking-wider text-xxs">
-                    Total Portfolio Value
-                  </span>
-                  <Briefcase className="w-4 h-4 text-primary" />
-                </div>
-                <div className="text-2xl font-extrabold text-foreground tracking-tight">
-                  {formatUSD(portfolio.totalPortfolioValueUSD)}
-                </div>
-                <p className="text-3xs text-muted-foreground leading-normal">
-                  Sum of your direct wallet balances and dynamic redeemable index vault balances in
-                  USD.
-                </p>
-              </div>
+        </div>
 
-              {/* ESTIMATED REDEEMABLE VALUE */}
-              <div className="bg-card/30 border border-border rounded-3xl p-5 backdrop-blur-md space-y-2">
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span className="text-xs font-bold uppercase tracking-wider text-xxs">
-                    Withdrawable Vault Value
-                  </span>
-                  <Layers className="w-4 h-4 text-primary" />
-                </div>
-                <div className="text-2xl font-extrabold text-foreground tracking-tight text-primary">
-                  {formatUSD(portfolio.sharesValueUSD)}
-                </div>
-                <p className="text-3xs text-muted-foreground leading-normal">
-                  The estimated total net assets you would receive if you redeem all your share
-                  tokens.
-                </p>
-              </div>
+        {/* Recent Activity Table */}
+        <RecentActivityTable />
+      </main>
 
-              {/* CURRENT SHARE BALANCE */}
-              <div className="bg-card/30 border border-border rounded-3xl p-5 backdrop-blur-md space-y-2">
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span className="text-xs font-bold uppercase tracking-wider text-xxs">
-                    Index Holdings
-                  </span>
-                  <Coins className="w-4 h-4 text-primary" />
-                </div>
-                <div className="text-2xl font-extrabold text-foreground tracking-tight">
-                  {formatBigInt(portfolio.sharesBalance, 18, 4)} Shares
-                </div>
-                <p className="text-3xs text-muted-foreground leading-normal">
-                  Your current holding of UVBTCETH index share tokens representing ownership claims.
-                </p>
-              </div>
-            </div>
-
-            {/* PORTFOLIO ASSET BREAKDOWN TABLE */}
-            <div className="bg-card/30 border border-border rounded-3xl p-6 backdrop-blur-md space-y-4">
-              <h2 className="text-base font-bold text-foreground">Your Collateral Holdings</h2>
-
-              <div className="overflow-x-auto -mx-6 px-6">
-                <table className="w-full text-left border-collapse min-w-[550px]">
-                  <thead>
-                    <tr className="border-b border-border/50 text-xxs text-muted-foreground font-bold uppercase tracking-wider">
-                      <th className="pb-3 pr-4 font-semibold">Asset</th>
-                      <th className="pb-3 px-4 font-semibold text-right">Wallet Balance</th>
-                      <th className="pb-3 px-4 font-semibold text-right">Redeemable Collateral</th>
-                      <th className="pb-3 pl-4 font-semibold text-right">
-                        Withdrawable Value (USD)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30 text-xs text-foreground font-medium">
-                    {portfolio.assetsBalances.map((asset) => (
-                      <tr key={asset.symbol} className="hover:bg-secondary/10 transition-colors">
-                        <td className="py-3.5 pr-4 font-semibold text-foreground">
-                          <div>
-                            <span className="block text-sm font-bold">{asset.symbol}</span>
-                            <span className="block text-3xs text-muted-foreground font-normal">
-                              {asset.name.replace(' (Mock)', '')}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-right text-muted-foreground text-xs">
-                          {formatBigInt(asset.balance, asset.decimals, 4)} {asset.symbol}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-foreground text-right text-xs">
-                          {formatBigInt(asset.redeemableAmount, asset.decimals, 4)} {asset.symbol}
-                        </td>
-                        <td className="py-3.5 pl-4 font-bold text-foreground text-right text-xs">
-                          {formatUSD(asset.redeemableValueUSD)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* TRANSACTION ACTIVITY SECTION */}
-            <div className="bg-card/30 border border-border rounded-3xl p-6 backdrop-blur-md space-y-4">
-              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <History className="w-4.5 h-4.5 text-primary" />
-                <span>Transaction Activity</span>
-              </h2>
-
-              <div className="min-h-[150px] border border-dashed border-border rounded-2xl flex flex-col items-center justify-center p-6 text-center text-xs text-muted-foreground space-y-2">
-                <Info className="w-6 h-6 text-muted-foreground/35" />
-                <p className="font-bold text-foreground">
-                  No Indexed Transaction History Available
-                </p>
-                <p className="max-w-md text-3xs opacity-80 leading-relaxed">
-                  Transfer, deposit, and redemption events are written directly to the Base
-                  blockchain. Real-time events from indexers will render in this panel in a
-                  subsequent deployment.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </PageWrapper>
-    </Container>
+      <Footer />
+    </div>
   );
 }

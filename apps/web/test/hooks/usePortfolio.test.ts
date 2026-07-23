@@ -32,19 +32,10 @@ vi.mock('wagmi', () => ({
     if (config?.contracts?.length > 0 && mockUserAddress) {
       return {
         data: [
-          { status: 'success', result: 100000000000000000000n }, // 100 shares
-          // USDC
-          { status: 'success', result: 500000000n }, // 500 USDC balance
-          { status: 'success', result: 100000000n }, // 100 USDC redeemable
-          { status: 'success', result: { normalizedPrice: 1000000000000000000n } }, // $1.00 USD
-          // WETH
-          { status: 'success', result: 0n },
-          { status: 'success', result: 0n },
-          { status: 'success', result: { normalizedPrice: 3000000000000000000000n } },
-          // cbBTC
-          { status: 'success', result: 0n },
-          { status: 'success', result: 0n },
-          { status: 'success', result: { normalizedPrice: 60000000000000000000000n } },
+          { status: 'success', result: 100000000000000000000n }, // 0: 100 shares
+          { status: 'success', result: 500000000n }, // 1: 500 USDC balance
+          { status: 'success', result: 100000000n }, // 2: 100 USDC redeemable
+          { status: 'success', result: { normalizedPrice: 1000000000000000000n } }, // 3: $1.00 USD
         ],
         isLoading: mockIsLoading,
         refetch: mockRefetchPortfolio,

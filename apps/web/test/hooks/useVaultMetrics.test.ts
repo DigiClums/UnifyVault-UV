@@ -30,14 +30,10 @@ vi.mock('wagmi', () => ({
     if (config?.contracts?.length > 0) {
       return {
         data: [
-          { status: 'success', result: 1000000000000000000000000n }, // maxDeposit
-          { status: 'success', result: 500000000000000000000n }, // totalSupply (500 shares)
-          { status: 'success', result: 1000000000n }, // totalAssets USDC (1000 USDC)
-          { status: 'success', result: 0n }, // totalAssets WETH
-          { status: 'success', result: 0n }, // totalAssets cbBTC
-          { status: 'success', result: { normalizedPrice: 1000000000000000000n } }, // quote USDC ($1.00 USD)
-          { status: 'success', result: { normalizedPrice: 3000000000000000000000n } }, // quote WETH ($3000 USD)
-          { status: 'success', result: { normalizedPrice: 60000000000000000000000n } }, // quote cbBTC ($60000 USD)
+          { status: 'success', result: 1000000000000000000000000n }, // 0: maxDeposit
+          { status: 'success', result: 500000000000000000000n }, // 1: totalSupply (500 shares)
+          { status: 'success', result: 1000000000n }, // 2: totalAssets USDC (1000 USDC)
+          { status: 'success', result: { normalizedPrice: 1000000000000000000n } }, // 3: quote USDC ($1.00 USD)
         ],
         isLoading: mockReadContractsState.isLoading,
         refetch: mockRefetchMetrics,

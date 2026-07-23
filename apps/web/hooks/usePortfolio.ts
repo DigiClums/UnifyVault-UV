@@ -41,7 +41,6 @@ export function usePortfolio() {
 
     // Per-asset queries: collateral balance, redemption preview, deposit quote price
     assets.forEach((asset) => {
-      // 1. User ERC20 collateral balance
       queries.push({
         address: asset.address,
         abi: IERC20_ABI,
@@ -49,15 +48,13 @@ export function usePortfolio() {
         args: [userAddress],
       });
 
-      // 2. Redemption preview (uses 0n fallback when initial shares balance pending)
       queries.push({
         address: controllerAddress,
         abi: UNIFY_VAULT_CONTROLLER_ABI,
         functionName: 'previewRedeem',
-        args: [asset.address, 0n], // Updated dynamically in second pass or via multicall
+        args: [asset.address, 0n],
       });
 
-      // 3. Oracle deposit quote (normalizedPrice)
       const amountUnit = 10n ** BigInt(asset.decimals);
       queries.push({
         address: controllerAddress,
@@ -184,11 +181,15 @@ export function usePortfolio() {
 
       // 3. Deposit Quote Price
       const quoteResult = currentData[baseIdx + 2];
-      const quote =
-        quoteResult?.status === 'success'
-          ? (quoteResult.result as unknown as { normalizedPrice: bigint })
-          : null;
-      const normalizedPrice = quote ? quote.normalizedPrice : 0n;
+      let normalizedPrice = 0n;
+      if (quoteResult?.status === 'success' && quoteResult.result) {
+        const rawRes = quoteResult.result as any;
+        if (typeof rawRes === 'object' && rawRes !== null && 'normalizedPrice' in rawRes) {
+          normalizedPrice = BigInt(rawRes.normalizedPrice);
+        } else if (Array.isArray(rawRes) && rawRes.length >= 6) {
+          normalizedPrice = BigInt(rawRes[5]);
+        }
+      }
 
       // redeemableValueUSD = (redeemableAmount * normalizedPrice) / 10^decimals
       const redeemableValueUSD =

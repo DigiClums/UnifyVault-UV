@@ -115,11 +115,16 @@ export function useVaultMetrics() {
 
       const totalAssets =
         balanceResult?.status === 'success' ? (balanceResult.result as bigint) : 0n;
-      const quote =
-        quoteResult?.status === 'success'
-          ? (quoteResult.result as unknown as { normalizedPrice: bigint })
-          : null;
-      const normalizedPrice = quote ? quote.normalizedPrice : 0n;
+
+      let normalizedPrice = 0n;
+      if (quoteResult?.status === 'success' && quoteResult.result) {
+        const rawRes = quoteResult.result as any;
+        if (typeof rawRes === 'object' && rawRes !== null && 'normalizedPrice' in rawRes) {
+          normalizedPrice = BigInt(rawRes.normalizedPrice);
+        } else if (Array.isArray(rawRes) && rawRes.length >= 6) {
+          normalizedPrice = BigInt(rawRes[5]);
+        }
+      }
 
       // tvlUsd = (totalAssets * normalizedPrice) / 10^decimals
       const assetTvlUSD = (totalAssets * normalizedPrice) / 10n ** BigInt(asset.decimals);

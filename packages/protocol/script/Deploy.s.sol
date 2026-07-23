@@ -8,8 +8,12 @@ import '../src/oracle/OracleManager.sol';
 import '../src/oracle/MockOracleProvider.sol';
 import '../src/oracle/ChainlinkOracleProvider.sol';
 import '../src/vault/CustodyVault.sol';
+import '../src/vault/LiquidityManager.sol';
 import '../src/token/UVBTCETHToken.sol';
 import '../src/controller/UnifyVaultController.sol';
+import '../src/strategy/StrategyManager.sol';
+import '../src/strategy/PortfolioManager.sol';
+import '../src/swap/SwapAdapter.sol';
 import '../src/libraries/AccessRoles.sol';
 import '../src/libraries/FeeLib.sol';
 import '../src/libraries/ShareLib.sol';
@@ -84,8 +88,12 @@ contract DeployScript is Script, Test {
   MockChainlinkAggregator public usdcAggregator;
   ITestTreasury public treasury;
   CustodyVault public vault;
+  LiquidityManager public liquidityManager;
   UVBTCETHToken public token;
   UnifyVaultController public controller;
+  StrategyManager public strategyManager;
+  PortfolioManager public portfolioManager;
+  SwapAdapter public swapAdapter;
   MockERC20 public mockCollateral;
 
   address public deployerAddress;
@@ -110,8 +118,29 @@ contract DeployScript is Script, Test {
     treasury = ITestTreasury(treasuryAddr);
 
     vault = new CustodyVault();
+    liquidityManager = new LiquidityManager(deployerAddress, address(directory));
     token = new UVBTCETHToken();
     mockCollateral = new MockERC20();
+
+    // Dummy router for local testing environment
+    address dummyRouter = address(0x261F2B357410c707010b07590d05C00f5C345719);
+    swapAdapter = new SwapAdapter(deployerAddress, dummyRouter);
+
+    address[] memory initAssets = new address[](1);
+    initAssets[0] = address(mockCollateral);
+    uint256[] memory initWeights = new uint256[](1);
+    initWeights[0] = 10000;
+
+    strategyManager = new StrategyManager(deployerAddress, initAssets, initWeights);
+
+    portfolioManager = new PortfolioManager(
+      deployerAddress,
+      address(directory),
+      address(strategyManager),
+      address(oracleManager),
+      address(vault),
+      address(token)
+    );
 
     controller = new UnifyVaultController(
       address(directory),
@@ -127,9 +156,15 @@ contract DeployScript is Script, Test {
     // Protocol Directory registrations
     directory.registerAddress(ModuleIds.TREASURY, address(treasury));
     directory.registerAddress(ModuleIds.VAULT, address(vault));
+    directory.registerAddress(ModuleIds.LIQUIDITY_MANAGER, address(liquidityManager));
     directory.registerAddress(ModuleIds.DEPOSIT_MANAGER, address(controller));
     directory.registerAddress(ModuleIds.ORACLE, address(oracleManager));
     directory.registerAddress(ModuleIds.TOKEN, address(token));
+    directory.registerAddress(ModuleIds.STRATEGY_MANAGER, address(strategyManager));
+    directory.registerAddress(ModuleIds.PORTFOLIO_MANAGER, address(portfolioManager));
+    directory.registerAddress(ModuleIds.SWAP_ADAPTER, address(swapAdapter));
+
+    liquidityManager.syncModules();
 
     // Setup Mock Collateral for local testing
     bytes32 assetId = bytes32(uint256(uint160(address(mockCollateral))));
