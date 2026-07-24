@@ -1,6 +1,6 @@
 import { readContract, writeContract, waitForTransactionReceipt } from 'wagmi/actions';
 import { ERC20_ABI } from './ABIs';
-import { config } from '../lib/config/wagmi';
+import { config } from '../lib/config/config';
 
 export const TokenContract = {
   async balanceOf(tokenAddress: `0x${string}`, account: `0x${string}`): Promise<bigint> {

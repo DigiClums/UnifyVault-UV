@@ -1,6 +1,6 @@
 import { readContract } from 'wagmi/actions';
 import { PORTFOLIO_MANAGER_ABI, STRATEGY_MANAGER_ABI } from './ABIs';
-import { config } from '../lib/config/wagmi';
+import { config } from '../lib/config/config';
 
 export interface NAVData {
   totalPortfolioValueUSD: bigint;

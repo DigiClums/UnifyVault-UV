@@ -50,6 +50,10 @@ let mockPortfolioState: any = {
     totalPortfolioValueUSD: 700000000000000000000n, // $700
     assetsBalances: [],
   },
+  navData: {
+    totalPortfolioValueUSD: 700000000000000000000n,
+    navPerShare: 2000000000000000000n,
+  },
   isLoading: false,
   refetch: mockRefetchPortfolio,
 };
@@ -99,6 +103,10 @@ describe('Dashboard Integration Tests', () => {
         totalPortfolioValueUSD: 700000000000000000000n,
         assetsBalances: [],
       },
+      navData: {
+        totalPortfolioValueUSD: 700000000000000000000n,
+        navPerShare: 2000000000000000000n,
+      },
       isLoading: false,
       refetch: mockRefetchPortfolio,
     };
@@ -109,8 +117,8 @@ describe('Dashboard Integration Tests', () => {
 
     expect(screen.getByRole('heading', { name: /protocol dashboard/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /refresh dashboard metrics/i })).toBeInTheDocument();
-    expect(screen.getByText(/my portfolio/i)).toBeInTheDocument();
-    expect(screen.getByText(/quick actions/i)).toBeInTheDocument();
+    expect(screen.getByText(/portfolio value/i)).toBeInTheDocument();
+    expect(screen.getByText(/portfolio target allocation/i)).toBeInTheDocument();
   });
 
   it('renders loading skeletons while queries are pending', () => {
@@ -126,16 +134,16 @@ describe('Dashboard Integration Tests', () => {
     renderWithProviders(<Dashboard />);
 
     expect(screen.getAllByText('$1,000.00').length).toBeGreaterThan(0); // TVL
-    expect(screen.getByText('500 Shares')).toBeInTheDocument(); // Supply
-    expect(screen.getByText(/holdings & asset allocation/i)).toBeInTheDocument();
+    expect(screen.getByText('500.00')).toBeInTheDocument(); // Supply
+    expect(screen.getByText(/portfolio target allocation/i)).toBeInTheDocument();
   });
 
   it('renders portfolio summary correctly for connected populated portfolio', () => {
     renderWithProviders(<Dashboard />);
 
-    expect(screen.getByText('$700.00')).toBeInTheDocument(); // Portfolio total
-    expect(screen.getByText('100')).toBeInTheDocument(); // Shares balance
-    expect(screen.getByText('$200.00')).toBeInTheDocument(); // Redeemable USD
+    expect(screen.getByText('$200.00')).toBeInTheDocument(); // Portfolio value
+    expect(screen.getAllByText('100 UVBTCETH')).toHaveLength(2); // Shares balance
+    expect(screen.getByText('$199.80')).toBeInTheDocument(); // Estimated redemption value
   });
 
   it('renders empty portfolio prompt when user has zero shares balance', () => {
@@ -147,14 +155,18 @@ describe('Dashboard Integration Tests', () => {
         totalPortfolioValueUSD: 0n,
         assetsBalances: [],
       },
+      navData: {
+        totalPortfolioValueUSD: 0n,
+        navPerShare: 1000000000000000000n,
+      },
       isLoading: false,
       refetch: mockRefetchPortfolio,
     };
 
     renderWithProviders(<Dashboard />);
 
-    expect(screen.getByRole('heading', { name: /your portfolio is empty\./i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /make first deposit/i })).toBeInTheDocument();
+    expect(screen.getAllByText('0 UVBTCETH')).toHaveLength(2);
+    expect(screen.getAllByText('$0.00')).toHaveLength(2);
   });
 
   it('renders wallet disconnected prompt when user wallet is disconnected', () => {
@@ -162,8 +174,8 @@ describe('Dashboard Integration Tests', () => {
 
     renderWithProviders(<Dashboard />);
 
-    expect(screen.getByRole('heading', { name: /view portfolio metrics/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /connect web3 wallet/i })).toBeInTheDocument();
+    expect(screen.getByText('Wallet Disconnected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /refresh dashboard metrics/i })).toBeInTheDocument();
   });
 
   it('renders zero-value state when protocol TVL is zero', () => {
@@ -182,7 +194,8 @@ describe('Dashboard Integration Tests', () => {
 
     renderWithProviders(<Dashboard />);
 
-    expect(screen.getByRole('heading', { name: /no deposits yet/i })).toBeInTheDocument();
+    expect(screen.getByText('$0.00')).toBeInTheDocument();
+    expect(screen.getByText('0.00')).toBeInTheDocument();
   });
 
   it('triggers refetch when refresh button is clicked', async () => {

@@ -32,8 +32,8 @@ export const useTransactionStore = create<TransactionState>((set) => ({
     }),
   closeModal: () => set({ isOpen: false }),
   setStep: (step) => set({ step }),
-  setTxHash: (txHash) => set({ txHash, step: 'CONFIRMED' }),
-  setError: (errorMessage) => set({ errorMessage, step: 'FAILED' }),
+  setTxHash: (txHash) => set({ txHash, step: 'CONFIRMED', isOpen: true }),
+  setError: (errorMessage) => set({ errorMessage, step: 'FAILED', isOpen: true }),
   reset: () =>
     set({
       isOpen: false,

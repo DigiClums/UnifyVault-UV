@@ -1,6 +1,6 @@
 import { readContract, writeContract, waitForTransactionReceipt } from 'wagmi/actions';
 import { CONTROLLER_ABI } from './ABIs';
-import { config } from '../lib/config/wagmi';
+import { config } from '../lib/config/config';
 
 export interface DepositQuote {
   grossDeposit: bigint;

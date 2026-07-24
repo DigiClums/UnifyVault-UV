@@ -8,9 +8,13 @@ const mockSwitchChain = vi.fn();
 const mockRefetchAssetBalance = vi.fn();
 const mockRefetchShareBalance = vi.fn();
 const mockRefetchPreview = vi.fn();
-const mockRedeem = vi.fn();
+const mockRedeem = vi.fn().mockResolvedValue(undefined);
 
-let mockWalletState = { isConnected: true, connect: mockConnect };
+let mockWalletState = {
+  isConnected: true,
+  address: '0x1234567890123456789012345678901234567890',
+  connect: mockConnect,
+};
 let mockNetworkState = { isSupported: true, switchChain: mockSwitchChain, chainId: 84532 };
 let mockAssetBalanceState: any = {
   balance: 1000000000n, // 1000 USDC
@@ -24,6 +28,7 @@ let mockShareBalanceState: any = {
   refetch: mockRefetchShareBalance,
 };
 let mockRedeemPreviewState: any = {
+  previewAssets: 100000000n,
   netAssetsOut: 100000000n, // 100 USDC net out
   isLoading: false,
   isError: false,
@@ -74,10 +79,23 @@ vi.mock('../../hooks/useRedeem', () => ({
   useRedeem: () => mockRedeemState,
 }));
 
+vi.mock('../../hooks/usePortfolio', () => ({
+  usePortfolio: () => ({
+    portfolio: null,
+    navData: { totalPortfolioValueUSD: 1000000000000000000n, navPerShare: 1000000000000000000n },
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 describe('Redeem Page Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWalletState = { isConnected: true, connect: mockConnect };
+    mockWalletState = {
+      isConnected: true,
+      address: '0x1234567890123456789012345678901234567890',
+      connect: mockConnect,
+    };
     mockNetworkState = { isSupported: true, switchChain: mockSwitchChain, chainId: 84532 };
     mockAssetBalanceState = {
       balance: 1000000000n,
@@ -91,6 +109,7 @@ describe('Redeem Page Integration Tests', () => {
       refetch: mockRefetchShareBalance,
     };
     mockRedeemPreviewState = {
+      previewAssets: 100000000n,
       netAssetsOut: 100000000n,
       isLoading: false,
       isError: false,
@@ -147,20 +166,22 @@ describe('Redeem Page Integration Tests', () => {
   });
 
   it('validates amount input and enables redeem button when valid shares amount is entered', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Redeem />);
 
     const sharesInput = screen.getByLabelText(/redeem shares amount input/i);
-    await userEvent.type(sharesInput, '10');
+    await user.type(sharesInput, '10');
 
     const redeemButton = screen.getByRole('button', { name: /redeem for usdc/i });
     expect(redeemButton).not.toBeDisabled();
   });
 
   it('shows error warning when redeem amount exceeds available share balance', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Redeem />);
 
     const sharesInput = screen.getByLabelText(/redeem shares amount input/i);
-    await userEvent.type(sharesInput, '100'); // User has 50 shares
+    await user.type(sharesInput, '100'); // User has 50 shares
 
     expect(screen.getByText(/insufficient uvbtceth share balance\./i)).toBeInTheDocument();
 
@@ -169,23 +190,25 @@ describe('Redeem Page Integration Tests', () => {
   });
 
   it('populates available share balance when Max button is clicked', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Redeem />);
 
     const maxButton = screen.getByRole('button', { name: /^max$/i });
-    await userEvent.click(maxButton);
+    await user.click(maxButton);
 
     const sharesInput = screen.getByLabelText(/redeem shares amount input/i) as HTMLInputElement;
     expect(sharesInput.value).toBe('50');
   });
 
   it('executes redeem flow when redeem button is clicked', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Redeem />);
 
     const sharesInput = screen.getByLabelText(/redeem shares amount input/i);
-    await userEvent.type(sharesInput, '10');
+    await user.type(sharesInput, '10');
 
     const redeemButton = screen.getByRole('button', { name: /redeem for usdc/i });
-    await userEvent.click(redeemButton);
+    await user.click(redeemButton);
 
     expect(mockRedeem).toHaveBeenCalledWith(
       10000000000000000000n, // 10 shares
@@ -201,18 +224,18 @@ describe('Redeem Page Integration Tests', () => {
     expect(screen.getByText(/burning shares\.\.\./i)).toBeInTheDocument();
   });
 
-  it('renders success confirmation and refetches balances after successful redemption', () => {
+  it('renders success confirmation and refetches balances after successful redemption', async () => {
     mockRedeemState = { ...mockRedeemState, status: 'confirmed' };
 
     renderWithProviders(<Redeem />);
 
-    expect(screen.getByText(/redemption completed successfully!/i)).toBeInTheDocument();
+    expect(await screen.findByText(/redemption completed successfully!/i)).toBeInTheDocument();
     expect(mockRefetchShareBalance).toHaveBeenCalled();
     expect(mockRefetchAssetBalance).toHaveBeenCalled();
     expect(mockRefetchPreview).toHaveBeenCalled();
   });
 
-  it('displays contract error message when redemption fails', () => {
+  it('displays contract error message when redemption fails', async () => {
     mockRedeemState = {
       ...mockRedeemState,
       status: 'submitting',
@@ -221,7 +244,9 @@ describe('Redeem Page Integration Tests', () => {
 
     renderWithProviders(<Redeem />);
 
-    expect(screen.getByText(/redemption failed/i)).toBeInTheDocument();
-    expect(screen.getByText(/redemption reverted: slippage limit exceeded/i)).toBeInTheDocument();
+    expect(await screen.findByText(/redemption failed/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/redemption reverted: slippage limit exceeded/i),
+    ).toBeInTheDocument();
   });
 });

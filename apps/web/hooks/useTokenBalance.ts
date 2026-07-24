@@ -1,4 +1,5 @@
 import { useAccount, useReadContracts } from 'wagmi';
+import { formatUnits } from 'viem';
 import { IERC20_ABI } from '../lib/config/abis';
 
 export function useTokenBalance(tokenAddress?: `0x${string}`) {
@@ -30,11 +31,18 @@ export function useTokenBalance(tokenAddress?: `0x${string}`) {
   });
 
   const [balanceResult, decimalsResult, symbolResult] = data || [];
+  const balance =
+    balanceResult?.status === 'success' ? (balanceResult.result as bigint) : undefined;
+  const decimals =
+    decimalsResult?.status === 'success' ? (decimalsResult.result as number) : undefined;
+  const symbol = symbolResult?.status === 'success' ? (symbolResult.result as string) : undefined;
+  const formattedBalance = balance !== undefined ? formatUnits(balance, decimals ?? 18) : undefined;
 
   return {
-    balance: balanceResult?.status === 'success' ? (balanceResult.result as bigint) : undefined,
-    decimals: decimalsResult?.status === 'success' ? (decimalsResult.result as number) : undefined,
-    symbol: symbolResult?.status === 'success' ? (symbolResult.result as string) : undefined,
+    balance,
+    decimals,
+    symbol,
+    formattedBalance,
     isLoading,
     isError,
     refetch,

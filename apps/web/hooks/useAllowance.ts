@@ -3,6 +3,7 @@ import {
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
+  usePublicClient,
 } from 'wagmi';
 import { type Abi } from 'viem';
 import { IERC20_ABI } from '../lib/config/abis';
@@ -95,6 +96,8 @@ export function useAllowance(
     hash: txHash,
   });
 
+  const publicClient = usePublicClient();
+
   const approve = React.useCallback(
     async (amount: bigint) => {
       if (!tokenAddress) return;
@@ -113,6 +116,9 @@ export function useAllowance(
               args: [secondarySpenderAddress, amount],
             });
             setTxHash(hashSec);
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({ hash: hashSec });
+            }
           }
         }
         // Approve primary spender (Controller) if insufficient allowance
@@ -126,10 +132,15 @@ export function useAllowance(
               args: [spenderAddress, amount],
             });
             setTxHash(hashPrim);
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({ hash: hashPrim });
+            }
           }
         }
+        await refetch();
       } catch (err) {
         setErrorMessage(parseWalletError(err));
+        throw err;
       } finally {
         setIsSigning(false);
       }
@@ -141,6 +152,8 @@ export function useAllowance(
       allowancePrimary,
       allowanceSecondary,
       writeContractAsync,
+      publicClient,
+      refetch,
     ],
   );
 
@@ -157,6 +170,16 @@ export function useAllowance(
     return 'idle';
   }, [isTxSuccess, isTxPending, isSigning, isApproveSubmitPending]);
 
+  const isApproving = React.useMemo(() => {
+    return (
+      isSigning ||
+      isApproveSubmitPending ||
+      isTxPending ||
+      status === 'submitting' ||
+      status === 'pending'
+    );
+  }, [isSigning, isApproveSubmitPending, isTxPending, status]);
+
   return {
     allowance: effectiveAllowance,
     isLoading,
@@ -164,6 +187,7 @@ export function useAllowance(
     approve,
     reset,
     status,
+    isApproving,
     errorMessage: errorMessage || (approveError ? parseWalletError(approveError) : undefined),
     txHash,
   };

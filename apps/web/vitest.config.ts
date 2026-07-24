@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.ts'],
+    teardownTimeout: 1000,
+    pool: 'forks',
     alias: {
       '@': path.resolve(__dirname, './'),
     },

@@ -168,7 +168,7 @@ contract DeployScript is Script, Test {
 
     // Setup Mock Collateral for local testing
     bytes32 assetId = bytes32(uint256(uint160(address(mockCollateral))));
-    oracleProvider.registerAsset(assetId, 1000 * 10 ** 18, 18, block.timestamp, 1);
+    oracleProvider.registerAsset(assetId, 1 * 10 ** 18, 18, block.timestamp, 1);
     oracleManager.configureAsset(assetId, address(oracleProvider), address(0), 3600, true);
 
     // Setup Official Base Sepolia USDC using ChainlinkOracleProvider (6 decimals)
@@ -210,8 +210,7 @@ contract DeployScript is Script, Test {
 
     // 1. Initial Deposit
     vm.startPrank(tester);
-    mockCollateral.approve(address(vault), net);
-    mockCollateral.approve(address(controller), fee);
+    mockCollateral.approve(address(controller), depositAmt);
     UnifyVaultController.DepositQuote memory quote1 = controller.deposit(
       address(mockCollateral),
       depositAmt,
@@ -226,8 +225,7 @@ contract DeployScript is Script, Test {
 
     // 2. Second Deposit (Proportional check)
     vm.startPrank(tester);
-    mockCollateral.approve(address(vault), net);
-    mockCollateral.approve(address(controller), fee);
+    mockCollateral.approve(address(controller), depositAmt);
     UnifyVaultController.DepositQuote memory quote2 = controller.deposit(
       address(mockCollateral),
       depositAmt,

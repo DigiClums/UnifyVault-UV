@@ -16,7 +16,7 @@ export function usePortfolio() {
   } = useProtocolDirectoryAddresses();
 
   const currentChainId = chainId || 84532;
-  const assets = SUPPORTED_ASSETS[currentChainId] || [];
+  const assets = React.useMemo(() => SUPPORTED_ASSETS[currentChainId] || [], [currentChainId]);
 
   // 1. Single consolidated portfolio contract query array
   const portfolioContracts = React.useMemo(() => {
@@ -183,11 +183,13 @@ export function usePortfolio() {
       const quoteResult = currentData[baseIdx + 2];
       let normalizedPrice = 0n;
       if (quoteResult?.status === 'success' && quoteResult.result) {
-        const rawRes = quoteResult.result as any;
-        if (typeof rawRes === 'object' && rawRes !== null && 'normalizedPrice' in rawRes) {
-          normalizedPrice = BigInt(rawRes.normalizedPrice);
-        } else if (Array.isArray(rawRes) && rawRes.length >= 6) {
-          normalizedPrice = BigInt(rawRes[5]);
+        const rawResult = quoteResult.result as unknown;
+        if (typeof rawResult === 'object' && rawResult !== null && 'normalizedPrice' in rawResult) {
+          const { normalizedPrice: quotePrice } = rawResult;
+          if (typeof quotePrice === 'bigint') normalizedPrice = quotePrice;
+        } else if (Array.isArray(rawResult) && rawResult.length >= 6) {
+          const quotePrice = rawResult[5];
+          if (typeof quotePrice === 'bigint') normalizedPrice = quotePrice;
         }
       }
 
@@ -229,6 +231,12 @@ export function usePortfolio() {
 
   return {
     portfolio: results,
+    navData: results
+      ? {
+          totalPortfolioValueUSD: results.totalPortfolioValueUSD,
+          navPerShare: 1000000000000000000n, // $1.00 base NAV
+        }
+      : undefined,
     isLoading: isLoadingDirectory || isLoadingInitial || isLoadingPortfolio,
     refetch: refetchPortfolio,
   };

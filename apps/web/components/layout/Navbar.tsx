@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ConnectButton } from '@rainbowme/rainbowkit';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export function Navbar() {
   const pathname = usePathname();

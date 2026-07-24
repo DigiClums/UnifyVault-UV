@@ -9,12 +9,16 @@ const mockRefetchAssetBalance = vi.fn();
 const mockRefetchShareBalance = vi.fn();
 const mockRefetchAllowance = vi.fn();
 const mockRefetchPreview = vi.fn();
-const mockApprove = vi.fn();
-const mockDeposit = vi.fn();
+const mockApprove = vi.fn().mockResolvedValue(undefined);
+const mockDeposit = vi.fn().mockResolvedValue(undefined);
 const mockResetApprove = vi.fn();
 const mockResetDeposit = vi.fn();
 
-let mockWalletState = { isConnected: true, connect: mockConnect };
+let mockWalletState = {
+  isConnected: true,
+  address: '0x1234567890123456789012345678901234567890',
+  connect: mockConnect,
+};
 let mockNetworkState = { isSupported: true, switchChain: mockSwitchChain, chainId: 84532 };
 let mockAssetBalanceState: any = {
   balance: 1000000000n, // 1000 USDC
@@ -104,10 +108,23 @@ vi.mock('../../hooks/useDeposit', () => ({
   useDeposit: () => mockDepositState,
 }));
 
+vi.mock('../../hooks/usePortfolio', () => ({
+  usePortfolio: () => ({
+    portfolio: null,
+    navData: { totalPortfolioValueUSD: 1000000000000000000n, navPerShare: 1000000000000000000n },
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 describe('Deposit Page Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWalletState = { isConnected: true, connect: mockConnect };
+    mockWalletState = {
+      isConnected: true,
+      address: '0x1234567890123456789012345678901234567890',
+      connect: mockConnect,
+    };
     mockNetworkState = { isSupported: true, switchChain: mockSwitchChain, chainId: 84532 };
     mockAssetBalanceState = {
       balance: 1000000000n,
@@ -185,49 +202,53 @@ describe('Deposit Page Integration Tests', () => {
   });
 
   it('validates amount input and enables deposit action when valid amount is entered', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Deposit />);
 
     const amountInput = screen.getByLabelText(/deposit amount input/i);
-    await userEvent.type(amountInput, '100');
+    await user.type(amountInput, '100');
 
     const depositButton = screen.getByRole('button', { name: /deposit usdc/i });
     expect(depositButton).not.toBeDisabled();
   });
 
   it('renders approve button state when allowance is lower than deposit amount', async () => {
+    const user = userEvent.setup({ delay: null });
     mockAllowanceState = { ...mockAllowanceState, allowance: 0n }; // Zero allowance
 
     renderWithProviders(<Deposit />);
 
     const amountInput = screen.getByLabelText(/deposit amount input/i);
-    await userEvent.type(amountInput, '100');
+    await user.type(amountInput, '100');
 
     const approveButton = screen.getByRole('button', { name: /approve spend limit for usdc/i });
     expect(approveButton).toBeInTheDocument();
   });
 
   it('executes approve flow when approve button is clicked', async () => {
+    const user = userEvent.setup({ delay: null });
     mockAllowanceState = { ...mockAllowanceState, allowance: 0n };
 
     renderWithProviders(<Deposit />);
 
     const amountInput = screen.getByLabelText(/deposit amount input/i);
-    await userEvent.type(amountInput, '100');
+    await user.type(amountInput, '100');
 
     const approveButton = screen.getByRole('button', { name: /approve spend limit for usdc/i });
-    await userEvent.click(approveButton);
+    await user.click(approveButton);
 
     expect(mockApprove).toHaveBeenCalledWith(100000000n); // 100 USDC (6 decimals)
   });
 
   it('executes deposit flow when deposit button is clicked', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Deposit />);
 
     const amountInput = screen.getByLabelText(/deposit amount input/i);
-    await userEvent.type(amountInput, '100');
+    await user.type(amountInput, '100');
 
     const depositButton = screen.getByRole('button', { name: /deposit usdc/i });
-    await userEvent.click(depositButton);
+    await user.click(depositButton);
 
     expect(mockDeposit).toHaveBeenCalledWith(
       100000000n, // 100 USDC
@@ -236,7 +257,7 @@ describe('Deposit Page Integration Tests', () => {
     );
   });
 
-  it('renders pending transaction state during deposit mining', async () => {
+  it('renders pending transaction state during deposit mining', () => {
     mockDepositState = { ...mockDepositState, status: 'pending' };
 
     renderWithProviders(<Deposit />);
@@ -249,14 +270,14 @@ describe('Deposit Page Integration Tests', () => {
 
     renderWithProviders(<Deposit />);
 
-    expect(screen.getByText(/collateral deployed successfully!/i)).toBeInTheDocument();
+    expect(await screen.findByText(/collateral deployed successfully!/i)).toBeInTheDocument();
     expect(mockRefetchAssetBalance).toHaveBeenCalled();
     expect(mockRefetchShareBalance).toHaveBeenCalled();
     expect(mockRefetchAllowance).toHaveBeenCalled();
     expect(mockRefetchPreview).toHaveBeenCalled();
   });
 
-  it('displays contract error message when deposit fails', () => {
+  it('displays contract error message when deposit fails', async () => {
     mockDepositState = {
       ...mockDepositState,
       status: 'submitting',
@@ -265,15 +286,18 @@ describe('Deposit Page Integration Tests', () => {
 
     renderWithProviders(<Deposit />);
 
-    expect(screen.getByText(/deposit failed/i)).toBeInTheDocument();
-    expect(screen.getByText(/deposit transaction reverted due to slippage/i)).toBeInTheDocument();
+    expect(await screen.findByText(/deposit failed/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/deposit transaction reverted due to slippage/i),
+    ).toBeInTheDocument();
   });
 
   it('sets max balance into amount input when Max button is clicked', async () => {
+    const user = userEvent.setup({ delay: null });
     renderWithProviders(<Deposit />);
 
     const maxButton = screen.getByRole('button', { name: /^max$/i });
-    await userEvent.click(maxButton);
+    await user.click(maxButton);
 
     const amountInput = screen.getByLabelText(/deposit amount input/i) as HTMLInputElement;
     expect(amountInput.value).toBe('1000');

@@ -24,7 +24,8 @@ import '../token/UVBTCETHToken.sol';
 /**
  * @title UnifyVaultController
  * @notice Central orchestrator and live execution engine for UnifyVault V2
- * @dev Coordinates StrategyManager, PortfolioManager, SwapAdapter, CustodyVault, Treasury, OracleManager, and UVBTCETHToken.
+ * @dev Coordinates StrategyManager, PortfolioManager, SwapAdapter, CustodyVault, Treasury,
+ * OracleManager, and UVBTCETHToken.
  * Handles atomic live asset swaps, fee collection, share minting, and redemption workflows without retained balances.
  */
 contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
@@ -104,7 +105,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address[] targetAssets,
     uint256[] assetsBought,
     uint256 sharesMinted,
-    uint256 NAVAfter
+    uint256 navAfter
   );
 
   event RedeemExecuted(
@@ -114,7 +115,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256[] assetsSold,
     uint256 fee,
     uint256 usdcReturned,
-    uint256 NAVAfter
+    uint256 navAfter
   );
 
   constructor(
@@ -336,9 +337,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   }
 
   /**
-   * @notice Executes live redemption flow: validates shares, releases proportional multi-asset holdings from CustodyVault,
-   * executes atomic DEX swaps via SwapAdapter back to payout USDC collateral, routes fee to Treasury,
-   * burns UVBTCETH shares, recalculates NAV, and transfers USDC to receiver.
+   * @notice Executes live redemption flow: validates shares, releases proportional multi-asset holdings
+   * from CustodyVault, executes atomic DEX swaps via SwapAdapter back to payout USDC collateral,
+   * routes fee to Treasury, burns UVBTCETH shares, recalculates NAV, and transfers USDC to receiver.
    */
   function redeem(
     address asset,
@@ -590,7 +591,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     if (pm != address(0)) {
       IPortfolioManager.DepositPreview memory preview = IPortfolioManager(pm).previewDeposit(
         asset,
-        amount
+        netDeposit
       );
       shares = preview.sharesToMint;
     } else {

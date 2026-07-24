@@ -287,8 +287,11 @@ contract V2ProtocolHandler is Test {
   }
 
   function attemptUnauthorizedAction(address actor) public {
-    if (actor == gov || actor == guardian || actor == address(controller) || actor == address(this))
+    if (
+      actor == gov || actor == guardian || actor == address(controller) || actor == address(this)
+    ) {
       return;
+    }
 
     vm.startPrank(actor);
     try strategyManager.addAsset(address(unsupportedToken), 100) {

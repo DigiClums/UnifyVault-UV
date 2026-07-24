@@ -2,25 +2,32 @@
 
 import * as React from 'react';
 import { useAccount } from 'wagmi';
-import { Navbar } from '../../components/layout/Navbar';
-import { Footer } from '../../components/layout/Footer';
 import { TransactionModal } from '../../components/modals/TransactionModal';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { useGovernance } from '../../hooks/useGovernance';
 import { useTransactionStore } from '../../store/useTransactionStore';
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const { message } = error;
+    if (typeof message === 'string') return message;
+  }
+
+  return fallback;
+}
+
 export default function GovernancePage() {
   const { address, isConnected } = useAccount();
-  const { roles, governanceData } = useGovernance();
+  const { roles } = useGovernance();
   const { openModal, setStep, setTxHash, setError } = useTransactionStore();
 
   const [btcWeight, setBtcWeight] = React.useState<number>(6000);
-  const [ethWeight, setEthWeight] = React.setEthWeight || React.useState<number>(4000);
+  const [ethWeight, setEthWeight] = React.useState<number>(4000);
 
   const totalWeight = btcWeight + ethWeight;
   const isValidStrategy = totalWeight === 10000;
 
-  const handlePause = async (pauseState: boolean) => {
+  const handlePause = async (_pauseState: boolean) => {
     openModal('APPROVE');
     setStep('EXECUTING');
     try {
@@ -29,8 +36,8 @@ export default function GovernancePage() {
       setTxHash(
         '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
       );
-    } catch (err: any) {
-      setError(err?.message || 'Governance execution failed');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Governance execution failed'));
     }
   };
 
@@ -42,8 +49,8 @@ export default function GovernancePage() {
       setTxHash(
         '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as `0x${string}`,
       );
-    } catch (err: any) {
-      setError(err?.message || 'Liquidity refill failed');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Liquidity refill failed'));
     }
   };
 
@@ -55,8 +62,8 @@ export default function GovernancePage() {
       setTxHash(
         '0x9999999999abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
       );
-    } catch (err: any) {
-      setError(err?.message || 'Liquidity sweep failed');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Liquidity sweep failed'));
     }
   };
 
@@ -69,8 +76,8 @@ export default function GovernancePage() {
       setTxHash(
         '0x8888888888abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
       );
-    } catch (err: any) {
-      setError(err?.message || 'Strategy update failed');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Strategy update failed'));
     }
   };
 
@@ -103,8 +110,6 @@ export default function GovernancePage() {
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <Navbar />
-
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
         {/* Header Title & Role Verification */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -338,7 +343,6 @@ export default function GovernancePage() {
       </main>
 
       <TransactionModal />
-      <Footer />
     </div>
   );
 }

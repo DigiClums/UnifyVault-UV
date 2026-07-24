@@ -1,15 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Navbar } from '../components/layout/Navbar';
-import { Footer } from '../components/layout/Footer';
-import { ConnectButton } from '@rainbowme/rainbowkit';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <Navbar />
-
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-24 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-blue-600/20 blur-3xl pointer-events-none" />
@@ -135,8 +131,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

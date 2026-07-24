@@ -1,5 +1,5 @@
 import { useAccount, useSwitchChain } from 'wagmi';
-import { SUPPORTED_CHAINS } from '../lib/config/chains';
+import { SUPPORTED_CHAINS, DEFAULT_CHAIN } from '../lib/config/chains';
 import { type Chain } from 'viem';
 import { parseWalletError } from '../lib/utils/formatters';
 
@@ -8,7 +8,7 @@ export interface UseNetworkResult {
   chainId: number | undefined;
   isSupported: boolean;
   supportedChains: readonly Chain[];
-  switchChain: (targetChainId: number) => void;
+  switchChain: (targetChainId?: number) => void;
   switchChainPending: boolean;
   switchChainError: Error | null;
   errorMessage: string | null;
@@ -26,7 +26,8 @@ export function useNetwork(): UseNetworkResult {
     chainId,
     isSupported,
     supportedChains: SUPPORTED_CHAINS,
-    switchChain: (targetChainId: number) => switchChain({ chainId: targetChainId }),
+    switchChain: (targetChainId?: number) =>
+      switchChain({ chainId: targetChainId ?? DEFAULT_CHAIN.id }),
     switchChainPending: isPending,
     switchChainError: error,
     errorMessage,

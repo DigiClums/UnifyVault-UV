@@ -108,7 +108,8 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
 
   /**
    * @notice Executes an exact input token swap through the configured DEX router
-   * @param params ExactInputParams struct defining tokenIn, tokenOut, fee, recipient, deadline, amountIn, minAmountOut, and path
+   * @param params ExactInputParams struct defining tokenIn, tokenOut, fee, recipient, deadline,
+   * amountIn, minAmountOut, and path
    * @return amountOut Actual output amount received from DEX router
    */
   function swapExactInput(
@@ -119,7 +120,8 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
 
   /**
    * @notice Executes an exact output token swap through the configured DEX router
-   * @param params ExactOutputParams struct defining tokenIn, tokenOut, fee, recipient, deadline, amountOut, maxAmountIn, and path
+   * @param params ExactOutputParams struct defining tokenIn, tokenOut, fee, recipient, deadline,
+   * amountOut, maxAmountIn, and path
    * @return amountIn Actual input amount spent from caller
    */
   function swapExactOutput(

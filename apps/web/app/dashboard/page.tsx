@@ -1,8 +1,6 @@
 'use client';
 
-import { useAccount } from 'wagmi';
-import { Navbar } from '../../components/layout/Navbar';
-import { Footer } from '../../components/layout/Footer';
+import { useWallet } from '../../hooks/useWallet';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { BalanceCard } from '../../components/dashboard/BalanceCard';
 import { TokenCard } from '../../components/dashboard/TokenCard';
@@ -14,45 +12,65 @@ import { useTokenBalance } from '../../hooks/useTokenBalance';
 import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
 
 export default function DashboardPage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useWallet();
   const { indexTokenAddress } = useIndexTokenAddress();
-  const { navData, isLoading: isNavLoading } = usePortfolio();
-  const { tvlUSD, totalShares, isLoading: isMetricsLoading } = useVaultMetrics();
-  const { formattedBalance: shareBalance, isLoading: isShareBalanceLoading } = useTokenBalance(
-    indexTokenAddress,
-    address,
-  );
+  const {
+    navData,
+    portfolio,
+    isLoading: isPortfolioLoading,
+    refetch: refetchPortfolio,
+  } = usePortfolio();
+  const { metrics, isLoading: isMetricsLoading, refetch: refetchMetrics } = useVaultMetrics();
+  const { formattedBalance: shareBalance, isLoading: isShareBalanceLoading } =
+    useTokenBalance(indexTokenAddress);
+  const isNavLoading = isPortfolioLoading;
+
+  const tvlUSD = metrics?.totalTvlUSD;
+  const totalShares = metrics?.totalSupply;
 
   const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
-  const formattedTVL = tvlUSD
-    ? `$${(Number(tvlUSD) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+  const formattedTVL =
+    tvlUSD !== undefined
+      ? `$${(Number(tvlUSD) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '$0.00';
+  const userShares =
+    portfolio?.sharesBalance !== undefined
+      ? portfolio.sharesBalance
+      : shareBalance
+        ? BigInt(Math.floor(Number(shareBalance) * 1e18))
+        : 0n;
+  const formattedShares = (Number(userShares) / 1e18).toString();
+  const userPositionUSD = navData
+    ? `$${((Number(userShares) / 1e18) * (Number(navData.navPerShare) / 1e18)).toFixed(2)}`
     : '$0.00';
-  const formattedShares = shareBalance ? Number(shareBalance).toFixed(4) : '0.0000';
-  const userPositionUSD =
-    navData && shareBalance
-      ? (Number(shareBalance) * (Number(navData.navPerShare) / 1e18)).toFixed(2)
-      : '0.00';
-  const estRedeemUSD =
-    navData && shareBalance
-      ? (Number(shareBalance) * (Number(navData.navPerShare) / 1e18) * 0.999).toFixed(2)
-      : '0.00';
+  const estRedeemUSD = navData
+    ? `$${((Number(userShares) / 1e18) * (Number(navData.navPerShare) / 1e18) * 0.999).toFixed(2)}`
+    : '$0.00';
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <Navbar />
-
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
         {/* Header Title & Status */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">
-              Dashboard & Position Analytics
+              Protocol Dashboard & Position Analytics
             </h1>
             <p className="text-sm text-gray-400 mt-1">
               Real-time NAV, Unrealized PnL, TVL, and asset breakdown on Base Mainnet.
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                void refetchPortfolio();
+                void refetchMetrics();
+              }}
+              aria-label="Refresh dashboard metrics"
+              className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg"
+            >
+              Refresh
+            </button>
             <HealthBadge status="HEALTHY" />
             <span className="text-xs text-gray-400 font-mono bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-lg">
               {isConnected && address
@@ -66,7 +84,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Portfolio Value (USD)"
-            value={`$${userPositionUSD}`}
+            value={userPositionUSD}
             change="+2.45%"
             isPositive={true}
             loading={isShareBalanceLoading}
@@ -90,7 +108,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Est. Redeem Value"
-            value={`$${estRedeemUSD}`}
+            value={estRedeemUSD}
             loading={isShareBalanceLoading}
             subtitle="Net of 0.10% Fee"
           />
@@ -167,8 +185,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

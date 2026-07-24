@@ -1,10 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useAccount } from 'wagmi';
-import { parseUnits } from 'viem';
-import { Navbar } from '../../components/layout/Navbar';
-import { Footer } from '../../components/layout/Footer';
+import { useWallet } from '../../hooks/useWallet';
+import { useNetwork } from '../../hooks/useNetwork';
+import { parseUnits, formatUnits } from 'viem';
 import { TransactionModal } from '../../components/modals/TransactionModal';
 import { useDeposit } from '../../hooks/useDeposit';
 import { useAllowance } from '../../hooks/useAllowance';
@@ -12,23 +11,36 @@ import { useControllerAddress } from '../../hooks/useControllerAddress';
 import { useDepositPreview } from '../../hooks/useDepositPreview';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { useTokenBalance } from '../../hooks/useTokenBalance';
+import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
 import { useTransactionStore } from '../../store/useTransactionStore';
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const { message } = error;
+    if (typeof message === 'string') return message;
+  }
+
+  return fallback;
+}
+
 export default function DepositPage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connect } = useWallet();
+  const { chainId, isSupported, switchChain } = useNetwork();
   const { controllerAddress } = useControllerAddress();
+  const { indexTokenAddress } = useIndexTokenAddress();
   const { navData } = usePortfolio();
 
-  const [usdcAddress, setUsdcAddress] = React.useState<`0x${string}`>(
-    '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-  );
-  const [amountInput, setAmountInput] = React.useState<string>('1000');
-  const [slippageBps, setSlippageBps] = React.useState<number>(50); // 0.5% default
+  const usdcAddress = React.useMemo<`0x${string}`>(() => {
+    if (chainId === 8453) return '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    return '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+  }, [chainId]);
+  const [amountInput, setAmountInput] = React.useState<string>('');
+  const slippageBps = 50; // 0.5% default
 
-  const { balance: usdcBalanceRaw, formattedBalance: usdcBalanceFormatted } = useTokenBalance(
-    usdcAddress,
-    address,
-  );
+  const { balance: usdcBalanceRaw, refetch: refetchUsdc } = useTokenBalance(usdcAddress);
+  const { refetch: refetchShareBalance } = useTokenBalance(indexTokenAddress);
+  const usdcBalanceFormatted =
+    usdcBalanceRaw !== undefined ? (Number(usdcBalanceRaw) / 1e6).toFixed(2) : '0.00';
 
   const parsedAmount = React.useMemo(() => {
     try {
@@ -38,8 +50,17 @@ export default function DepositPage() {
     }
   }, [amountInput]);
 
-  const { allowance, approve, isApproving } = useAllowance(usdcAddress, controllerAddress);
-  const { depositQuote, isLoading: isQuoteLoading } = useDepositPreview(usdcAddress, parsedAmount);
+  const {
+    allowance,
+    approve,
+    isApproving,
+    refetch: refetchAllowance,
+  } = useAllowance(usdcAddress, controllerAddress);
+  const { quote: depositQuote, refetch: refetchPreview } = useDepositPreview(
+    usdcAddress,
+    amountInput,
+    6,
+  );
   const { deposit, status, errorMessage, txHash } = useDeposit(usdcAddress);
   const { openModal, setStep, setTxHash, setError } = useTransactionStore();
 
@@ -56,8 +77,8 @@ export default function DepositPage() {
       try {
         await approve(parsedAmount);
         setStep('CONFIRMED');
-      } catch (err: any) {
-        setError(err?.message || 'Approval failed');
+      } catch (error) {
+        setError(getErrorMessage(error, 'Approval failed'));
       }
     } else {
       openModal('DEPOSIT');
@@ -68,21 +89,41 @@ export default function DepositPage() {
 
       try {
         await deposit(parsedAmount, minShares, address);
-      } catch (err: any) {
-        setError(err?.message || 'Deposit execution failed');
+      } catch (error) {
+        setError(getErrorMessage(error, 'Deposit execution failed'));
       }
     }
   };
 
   React.useEffect(() => {
-    if (status === 'confirmed' && txHash) {
-      setTxHash(txHash);
-    } else if (status === 'submitting') {
-      setStep('EXECUTING');
-    } else if (errorMessage) {
+    if (errorMessage) {
+      openModal('DEPOSIT');
       setError(errorMessage);
+    } else if (status === 'confirmed') {
+      openModal('DEPOSIT');
+      if (txHash) setTxHash(txHash);
+      else setStep('CONFIRMED');
+      refetchUsdc?.();
+      refetchAllowance?.();
+      refetchPreview?.();
+      refetchShareBalance?.();
+    } else if (status === 'pending' || status === 'submitting') {
+      openModal('DEPOSIT');
+      setStep('EXECUTING');
     }
-  }, [status, txHash, errorMessage, setTxHash, setStep, setError]);
+  }, [
+    status,
+    txHash,
+    errorMessage,
+    openModal,
+    setStep,
+    setTxHash,
+    setError,
+    refetchUsdc,
+    refetchAllowance,
+    refetchPreview,
+    refetchShareBalance,
+  ]);
 
   const formattedFee = depositQuote ? (Number(depositQuote.protocolFee) / 1e6).toFixed(2) : '0.00';
   const formattedNet = depositQuote ? (Number(depositQuote.netDeposit) / 1e6).toFixed(2) : '0.00';
@@ -93,15 +134,13 @@ export default function DepositPage() {
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <Navbar />
-
       <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-8 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">Deposit Collateral</h1>
               <p className="text-xs text-gray-400 mt-1">
-                Mint UVBTCETH index shares using USDC collateral
+                Interactive deposit form: Mint UVBTCETH index shares using USDC collateral
               </p>
             </div>
             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -123,13 +162,19 @@ export default function DepositPage() {
             <div className="flex items-center gap-3">
               <input
                 type="number"
+                aria-label="deposit amount input"
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
                 placeholder="0.0"
                 className="w-full bg-transparent font-mono text-3xl font-extrabold text-white focus:outline-none"
               />
               <button
-                onClick={() => usdcBalanceFormatted && setAmountInput(usdcBalanceFormatted)}
+                onClick={() =>
+                  setAmountInput(
+                    usdcBalanceRaw ? formatUnits(usdcBalanceRaw, 6) : usdcBalanceFormatted || '0',
+                  )
+                }
+                aria-label="Max"
                 className="rounded-lg bg-blue-600/10 border border-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
               >
                 MAX
@@ -137,28 +182,9 @@ export default function DepositPage() {
             </div>
           </div>
 
-          {/* Slippage Settings */}
-          <div className="mb-6 flex items-center justify-between rounded-xl bg-gray-900/40 p-3 border border-gray-800/80">
-            <span className="text-xs text-gray-400 font-medium">Slippage Tolerance</span>
-            <div className="flex items-center gap-2">
-              {[10, 50, 100].map((bps) => (
-                <button
-                  key={bps}
-                  onClick={() => setSlippageBps(bps)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    slippageBps === bps
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {bps / 100}%
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Quote Breakdown */}
           <div className="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-4 space-y-3 mb-8">
+            <div className="text-xs text-gray-400 font-semibold mb-2">Live Yield Preview</div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Current NAV Per Share</span>
               <span className="font-mono font-semibold text-gray-200">{formattedNAV}</span>
@@ -179,12 +205,27 @@ export default function DepositPage() {
 
           {/* Action Trigger Button */}
           {!isConnected ? (
-            <button
-              disabled
-              className="w-full rounded-2xl bg-gray-800 py-4 font-bold text-gray-400 cursor-not-allowed"
-            >
-              Please Connect Wallet
-            </button>
+            <div className="text-center py-4">
+              <h2 className="text-lg font-bold mb-2">Wallet Connection Required</h2>
+              <button
+                onClick={() => connect?.()}
+                className="w-full rounded-2xl bg-blue-600 py-4 font-bold text-white shadow-xl hover:bg-blue-500 transition-all"
+                aria-label="Connect Wallet"
+              >
+                Connect Wallet
+              </button>
+            </div>
+          ) : !isSupported ? (
+            <div className="text-center py-4">
+              <h2 className="text-lg font-bold mb-2">Unsupported Network</h2>
+              <button
+                onClick={() => switchChain?.()}
+                className="w-full rounded-2xl bg-amber-600 py-4 font-bold text-white shadow-xl hover:bg-amber-500 transition-all"
+                aria-label="Switch to Base Sepolia"
+              >
+                Switch to Base Sepolia
+              </button>
+            </div>
           ) : (
             <button
               onClick={handleAction}
@@ -195,15 +236,15 @@ export default function DepositPage() {
                 status === 'pending'
               }
               className="w-full rounded-2xl bg-blue-600 py-4 font-bold text-white shadow-xl shadow-blue-500/25 hover:bg-blue-500 transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+              aria-label={needsApproval ? 'Approve Spend Limit for USDC' : 'Deposit USDC'}
             >
-              {needsApproval ? '1. Approve USDC Collateral' : 'Deposit & Mint Shares'}
+              {needsApproval ? 'Approve Spend Limit for USDC' : 'Deposit USDC'}
             </button>
           )}
         </div>
       </main>
 
       <TransactionModal />
-      <Footer />
     </div>
   );
 }

@@ -58,3 +58,5 @@ write-tests/
 
 # Hardhat Ignition deployments
 ignition/deployments/
+
+packages/protocol/.gas-snapshot

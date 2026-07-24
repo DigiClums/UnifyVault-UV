@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConnectCard } from '../../components/web3/ConnectCard';
-import { WalletButton } from '../../components/web3/WalletButton';
 import { renderWithProviders, screen } from '../utils';
 
 // Mock next/dynamic to render WalletButton synchronously in test environment

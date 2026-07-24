@@ -1,19 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { useAccount } from 'wagmi';
-import { Navbar } from '../../components/layout/Navbar';
-import { Footer } from '../../components/layout/Footer';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { useProtocolHealth } from '../../hooks/useProtocolHealth';
-import { usePortfolio } from '../../hooks/usePortfolio';
-import { useVaultMetrics } from '../../hooks/useVaultMetrics';
 
 export default function ProtocolHealthPage() {
-  const { isConnected } = useAccount();
-  const { healthData, isLoading, lastUpdated, refetch } = useProtocolHealth();
-  const { navData } = usePortfolio();
-  const { tvlUSD } = useVaultMetrics();
+  const { healthData, lastUpdated, refetch } = useProtocolHealth();
 
   const contracts = [
     {
@@ -59,15 +51,8 @@ export default function ProtocolHealthPage() {
     },
   ];
 
-  const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
-  const formattedTVL = tvlUSD
-    ? `$${(Number(tvlUSD) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-    : '$1,000,000.00';
-
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <Navbar />
-
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
         {/* Header Title & Refresh */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -274,8 +259,6 @@ export default function ProtocolHealthPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

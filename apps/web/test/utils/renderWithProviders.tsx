@@ -7,8 +7,13 @@ export function createTestQueryClient() {
     defaultOptions: {
       queries: {
         retry: false,
-        gcTime: Infinity,
-        staleTime: Infinity,
+        gcTime: 0,
+        staleTime: 0,
+        refetchInterval: false,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
       },
       mutations: {
         retry: false,
@@ -40,8 +45,10 @@ export function renderWithProviders(ui: ReactElement, options: ExtendedRenderOpt
     return <TestProviders queryClient={queryClient}>{children}</TestProviders>;
   }
 
+  const result = render(ui, { wrapper: Wrapper, ...renderOptions });
+
   return {
     queryClient,
-    ...render(ui, { wrapper: Wrapper, ...renderOptions }),
+    ...result,
   };
 }

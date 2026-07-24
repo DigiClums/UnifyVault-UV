@@ -31,3 +31,5 @@ export const wagmiConfig = createConfig({
     [SUPPORTED_CHAINS[1].id]: http(env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA),
   },
 });
+
+export const config = wagmiConfig;

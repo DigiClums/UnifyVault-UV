@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useBlockNumber } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
-import { LiquidityContract } from '../contracts/Liquidity';
 
 export interface SystemHealthData {
   overallStatus: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'PAUSED';

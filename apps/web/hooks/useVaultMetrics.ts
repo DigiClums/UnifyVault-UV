@@ -28,7 +28,7 @@ export function useVaultMetrics() {
   } = useProtocolDirectoryAddresses();
 
   const currentChainId = chainId || 84532;
-  const assets = SUPPORTED_ASSETS[currentChainId] || [];
+  const assets = React.useMemo(() => SUPPORTED_ASSETS[currentChainId] || [], [currentChainId]);
 
   // Build single consolidated multicall array for all vault metrics
   const combinedContracts = React.useMemo(() => {
@@ -118,11 +118,13 @@ export function useVaultMetrics() {
 
       let normalizedPrice = 0n;
       if (quoteResult?.status === 'success' && quoteResult.result) {
-        const rawRes = quoteResult.result as any;
-        if (typeof rawRes === 'object' && rawRes !== null && 'normalizedPrice' in rawRes) {
-          normalizedPrice = BigInt(rawRes.normalizedPrice);
-        } else if (Array.isArray(rawRes) && rawRes.length >= 6) {
-          normalizedPrice = BigInt(rawRes[5]);
+        const rawResult = quoteResult.result as unknown;
+        if (typeof rawResult === 'object' && rawResult !== null && 'normalizedPrice' in rawResult) {
+          const { normalizedPrice: quotePrice } = rawResult;
+          if (typeof quotePrice === 'bigint') normalizedPrice = quotePrice;
+        } else if (Array.isArray(rawResult) && rawResult.length >= 6) {
+          const quotePrice = rawResult[5];
+          if (typeof quotePrice === 'bigint') normalizedPrice = quotePrice;
         }
       }
 

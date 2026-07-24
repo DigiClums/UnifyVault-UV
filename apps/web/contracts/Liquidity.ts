@@ -1,6 +1,6 @@
 import { readContract } from 'wagmi/actions';
 import { LIQUIDITY_MANAGER_ABI } from './ABIs';
-import { config } from '../lib/config/wagmi';
+import { config } from '../lib/config/config';
 
 export interface LiquidityCheckResult {
   needsRefill: boolean;

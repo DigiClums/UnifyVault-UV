@@ -35,7 +35,9 @@ export function TransactionModal() {
         {step === 'EXECUTING' && (
           <div className="flex flex-col items-center py-6 text-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mb-4" />
-            <p className="text-gray-300 font-medium">Submitting Transaction...</p>
+            <p className="text-gray-300 font-medium">
+              {actionType === 'DEPOSIT' ? 'Confirming Deposit Transaction...' : 'Burning shares...'}
+            </p>
           </div>
         )}
 
@@ -44,7 +46,11 @@ export function TransactionModal() {
             <div className="h-12 w-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl font-bold mb-4">
               ✓
             </div>
-            <p className="text-emerald-400 font-bold text-lg mb-1">Transaction Confirmed!</p>
+            <p className="text-emerald-400 font-bold text-lg mb-1">
+              {actionType === 'DEPOSIT'
+                ? 'Collateral deployed successfully!'
+                : 'Redemption completed successfully!'}
+            </p>
             {txHash && (
               <a
                 href={`https://basescan.org/tx/${txHash}`}
@@ -69,7 +75,9 @@ export function TransactionModal() {
             <div className="h-12 w-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl font-bold mb-4">
               ✕
             </div>
-            <p className="text-rose-400 font-bold text-lg mb-1">Transaction Failed</p>
+            <p className="text-rose-400 font-bold text-lg mb-1">
+              {actionType === 'DEPOSIT' ? 'Deposit Failed' : 'Redemption Failed'}
+            </p>
             <p className="text-xs text-gray-400 mt-2 bg-gray-900 p-3 rounded-lg w-full text-left font-mono">
               {errorMessage || 'Transaction was rejected or reverted.'}
             </p>

@@ -1,130 +1,198 @@
 'use client';
 
 import * as React from 'react';
-import { useAccount } from 'wagmi';
-import { Navbar } from '../../components/layout/Navbar';
-import { Footer } from '../../components/layout/Footer';
+import Link from 'next/link';
+import { useWallet } from '../../hooks/useWallet';
+import { useNetwork } from '../../hooks/useNetwork';
+import { usePortfolio } from '../../hooks/usePortfolio';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { AllocationChart } from '../../components/charts/AllocationChart';
 import { NAVHistoryChart } from '../../components/charts/NAVHistoryChart';
 import { TVLHistoryChart } from '../../components/charts/TVLHistoryChart';
 import { RecentActivityTable } from '../../components/dashboard/RecentActivityTable';
 import { HealthBadge } from '../../components/ui/HealthBadge';
-import { usePortfolio } from '../../hooks/usePortfolio';
-import { useVaultMetrics } from '../../hooks/useVaultMetrics';
-import { useTokenBalance } from '../../hooks/useTokenBalance';
-import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
+
+type PortfolioAsset = NonNullable<
+  ReturnType<typeof usePortfolio>['portfolio']
+>['assetsBalances'][number];
 
 export default function PortfolioPage() {
-  const { address, isConnected } = useAccount();
-  const { indexTokenAddress } = useIndexTokenAddress();
-  const { navData, isLoading: isNavLoading } = usePortfolio();
-  const { tvlUSD, totalShares, isLoading: isMetricsLoading } = useVaultMetrics();
-  const { formattedBalance: shareBalance, isLoading: isShareBalanceLoading } = useTokenBalance(
-    indexTokenAddress,
-    address,
-  );
+  const { isConnected, address } = useWallet();
+  const { isSupported } = useNetwork();
+  const { portfolio, isLoading, refetch } = usePortfolio();
 
-  const [lastUpdated, setLastUpdated] = React.useState<string>('');
+  const sharesBalance = portfolio?.sharesBalance ?? 0n;
+  const sharesCountFormatted = (Number(sharesBalance) / 1e18).toLocaleString(undefined, {
+    maximumFractionDigits: 4,
+  });
 
-  React.useEffect(() => {
-    setLastUpdated(new Date().toLocaleTimeString());
-    const interval = setInterval(() => {
-      setLastUpdated(new Date().toLocaleTimeString());
-    }, 12000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
-  const formattedTVL = tvlUSD
-    ? `$${(Number(tvlUSD) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+  const sharesValueUSDFormatted = portfolio?.sharesValueUSD
+    ? `$${(Number(portfolio.sharesValueUSD) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : '$0.00';
-  const userPositionUSD =
-    navData && shareBalance
-      ? (Number(shareBalance) * (Number(navData.navPerShare) / 1e18)).toFixed(2)
-      : '0.00';
+
+  const totalPortfolioValueUSDFormatted = portfolio?.totalPortfolioValueUSD
+    ? `$${(Number(portfolio.totalPortfolioValueUSD) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : '$0.00';
+
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+        <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
+          <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
+          <p className="text-gray-400 max-w-md mb-6">
+            Please connect your wallet to view your active index shares, yield metrics, and
+            collateral breakdown.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isSupported) {
+    return (
+      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+        <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
+          <h2 className="text-2xl font-bold mb-4 text-amber-400">Switch Network</h2>
+          <p className="text-gray-400 max-w-md mb-6">
+            Please connect your wallet to Base Sepolia to load your vault portfolio.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+        <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+          <div className="h-8 w-64 bg-gray-800 rounded animate-pulse" />
+          <div className="grid grid-cols-4 gap-6">
+            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
+            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
+            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
+            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (portfolio === null) {
+    return (
+      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+        <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
+          <h2 className="text-2xl font-bold mb-4 text-rose-400">No portfolio data available</h2>
+          <p className="text-gray-400 max-w-md mb-6">
+            Unable to query vault portfolio metrics from contract state.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (sharesBalance === 0n && (portfolio?.assetsBalances?.length ?? 0) === 0) {
+    return (
+      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+        <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
+          <h2 className="text-2xl font-bold mb-4">Your portfolio is empty</h2>
+          <p className="text-gray-400 max-w-md mb-6">
+            You do not own any UVBTCETH index shares yet. Deposit USDC collateral to mint index
+            shares.
+          </p>
+          <Link
+            href="/deposit"
+            className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500 transition-all"
+          >
+            Make your first deposit
+          </Link>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <Navbar />
-
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
-        {/* Header Title & Refresh Timer */}
+        {/* Header Title */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Portfolio & Deep Analytics</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight">Your Portfolio</h1>
             <p className="text-sm text-gray-400 mt-1">
               Comprehensive strategy breakdown, historical performance charts, and recent activity.
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => refetch()}
+              aria-label="Refresh portfolio balances"
+              className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Refresh Balances
+            </button>
             <HealthBadge status="HEALTHY" />
-            <span className="text-xs text-gray-400 font-mono bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Updated: {lastUpdated || 'Just now'}
-            </span>
           </div>
         </div>
 
         {/* Analytics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
-            title="Total Value Locked"
-            value={formattedTVL}
-            loading={isMetricsLoading}
-            subtitle="Protocol Custody Balance"
+            title="Total Portfolio Value"
+            value={totalPortfolioValueUSDFormatted}
+            subtitle="Combined Shares + Collateral"
           />
           <StatCard
-            title="Current NAV Per Share"
-            value={formattedNAV}
-            change="+0.50%"
-            isPositive={true}
-            loading={isNavLoading}
-            subtitle="18-Decimal Pricing"
+            title="Withdrawable Vault Value"
+            value={sharesValueUSDFormatted}
+            subtitle="Index Redemption Value"
           />
           <StatCard
-            title="Treasury Fees Collected"
-            value="$1,245.50 USD"
-            loading={isMetricsLoading}
-            subtitle="Protocol Revenue"
+            title="Index Holdings"
+            value={`${sharesCountFormatted} Shares`}
+            subtitle="UVBTCETH Vault Tokens"
           />
           <StatCard
-            title="Protocol Fees"
-            value="0.10% / 0.10%"
-            subtitle="Deposit / Redeem Flat Fee"
+            title="Connected Address"
+            value={address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Disconnected'}
+            subtitle="Base Network"
           />
         </div>
 
-        {/* User Position Performance Banner */}
-        <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-900/20 via-[#111827] to-purple-900/20 p-6 backdrop-blur-md mb-8">
-          <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider mb-4">
-            Position Performance Metrics
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <span className="text-xs text-gray-400 block">Current Position Value</span>
-              <span className="text-2xl font-extrabold text-white font-mono mt-1 block">
-                ${userPositionUSD} USD
-              </span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-400 block">Average Entry NAV</span>
-              <span className="text-2xl font-extrabold text-white font-mono mt-1 block">
-                $1.0000 USD
-              </span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-400 block">Unrealized Gain / Loss</span>
-              <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-1 block">
-                +$24.50 USD
-              </span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-400 block">Return Percentage</span>
-              <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-1 block">
-                +2.45%
-              </span>
-            </div>
+        {/* Assets Collateral Holdings */}
+        <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md mb-8">
+          <h3 className="text-lg font-bold text-white mb-4">Your Collateral Holdings</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-800 text-xs text-gray-400 uppercase tracking-wider">
+                  <th className="pb-3 font-semibold">Asset</th>
+                  <th className="pb-3 font-semibold">Wallet Balance</th>
+                  <th className="pb-3 font-semibold">Redeemable Collateral</th>
+                  <th className="pb-3 font-semibold text-right">Redeemable USD</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/60 font-mono text-xs">
+                {(portfolio.assetsBalances || []).map((asset: PortfolioAsset) => {
+                  const balanceNum = Number(asset.balance) / 10 ** asset.decimals;
+                  const redeemNum = Number(asset.redeemableAmount) / 10 ** asset.decimals;
+                  const redeemUSD = (Number(asset.redeemableValueUSD) / 1e18).toLocaleString(
+                    undefined,
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                  );
+                  return (
+                    <tr key={asset.symbol} className="hover:bg-gray-800/30 transition-colors">
+                      <td className="py-4 font-bold text-white">{asset.name || asset.symbol}</td>
+                      <td className="py-4 text-gray-200">
+                        {balanceNum.toLocaleString()} {asset.symbol}
+                      </td>
+                      <td className="py-4 text-gray-200">
+                        {redeemNum.toLocaleString()} {asset.symbol}
+                      </td>
+                      <td className="py-4 text-right text-emerald-400 font-bold">${redeemUSD}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -138,60 +206,12 @@ export default function PortfolioPage() {
           <TVLHistoryChart />
         </div>
 
-        {/* Strategy Holdings Table */}
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md mb-8">
-          <h3 className="text-lg font-bold text-white mb-4">Custody Strategy Holdings Breakdown</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-800 text-xs text-gray-400 uppercase tracking-wider">
-                  <th className="pb-3 font-semibold">Asset Token</th>
-                  <th className="pb-3 font-semibold">Target Weight</th>
-                  <th className="pb-3 font-semibold">Custody Balance</th>
-                  <th className="pb-3 font-semibold text-right">USD Valuation</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/60 font-mono text-xs">
-                <tr className="hover:bg-gray-800/30 transition-colors">
-                  <td className="py-4 font-bold flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold">
-                      cb
-                    </div>
-                    <div>
-                      <span className="text-white text-sm block">cbBTC</span>
-                      <span className="text-gray-400 text-xs font-normal">
-                        Coinbase Wrapped BTC
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-4 text-gray-200">6000 BPS (60.00%)</td>
-                  <td className="py-4 text-gray-200">10.0000 cbBTC</td>
-                  <td className="py-4 text-right text-emerald-400 font-bold">$600,000.00 USD</td>
-                </tr>
-                <tr className="hover:bg-gray-800/30 transition-colors">
-                  <td className="py-4 font-bold flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-                      WE
-                    </div>
-                    <div>
-                      <span className="text-white text-sm block">WETH</span>
-                      <span className="text-gray-400 text-xs font-normal">Wrapped Ether</span>
-                    </div>
-                  </td>
-                  <td className="py-4 text-gray-200">4000 BPS (40.00%)</td>
-                  <td className="py-4 text-gray-200">133.3333 WETH</td>
-                  <td className="py-4 text-right text-emerald-400 font-bold">$400,000.00 USD</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        {/* Transaction Activity */}
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-white mb-4">Transaction Activity</h3>
+          <RecentActivityTable />
         </div>
-
-        {/* Recent Activity Table */}
-        <RecentActivityTable />
       </main>
-
-      <Footer />
     </div>
   );
 }

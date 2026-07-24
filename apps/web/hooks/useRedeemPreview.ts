@@ -21,13 +21,15 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function useRedeemPreview(tokenAddress?: `0x${string}`, sharesString?: string) {
+export function useRedeemPreview(tokenAddress?: `0x${string}`, sharesInput?: string | bigint) {
   const { controllerAddress } = useControllerAddress();
 
+  const stringValue = typeof sharesInput === 'string' ? sharesInput : undefined;
   // Debounce input to reduce duplicate RPC hits
-  const debouncedSharesString = useDebounce(sharesString, 450);
+  const debouncedSharesString = useDebounce(stringValue, 450);
 
   const parsedShares = React.useMemo(() => {
+    if (typeof sharesInput === 'bigint') return sharesInput;
     if (
       !debouncedSharesString ||
       debouncedSharesString === '0' ||
@@ -35,7 +37,7 @@ export function useRedeemPreview(tokenAddress?: `0x${string}`, sharesString?: st
     )
       return 0n;
     return parseAmount(debouncedSharesString, 18); // Shares have 18 decimals
-  }, [debouncedSharesString]);
+  }, [sharesInput, debouncedSharesString]);
 
   const {
     data: netAssetsOut,
@@ -57,8 +59,11 @@ export function useRedeemPreview(tokenAddress?: `0x${string}`, sharesString?: st
     },
   });
 
+  const assets = netAssetsOut as bigint | undefined;
+
   return {
-    netAssetsOut: netAssetsOut as bigint | undefined,
+    previewAssets: assets,
+    netAssetsOut: assets,
     isLoading: isLoading && parsedShares > 0n,
     isError,
     error,
