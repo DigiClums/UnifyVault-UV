@@ -75,11 +75,13 @@ vi.mock('@rainbow-me/rainbowkit', () => ({
     openConnectModal: vi.fn(),
     connectModalOpen: false,
   }),
+  getDefaultConfig: vi.fn().mockReturnValue({}),
   ConnectButton: MockConnectButton,
 }));
 
 // Mock wagmi hooks
 vi.mock('wagmi', () => ({
+  http: vi.fn(),
   useAccount: () => ({
     address: '0x1234567890123456789012345678901234567890',
     isConnected: true,

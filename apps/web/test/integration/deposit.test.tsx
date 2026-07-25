@@ -3,6 +3,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Deposit from '../../app/deposit/page';
 import { renderWithProviders, screen, userEvent } from '../utils';
 
+// Mock rainbowkit and next/dynamic
+vi.mock('@rainbow-me/rainbowkit', () => ({
+  getDefaultConfig: vi.fn().mockReturnValue({}),
+  ConnectButton: function MockConnectButton() {
+    return <button>Connect Wallet</button>;
+  },
+}));
+
+vi.mock('next/dynamic', () => ({
+  default: () => {
+    return function MockWalletButton() {
+      return <button aria-label="Connect Web3 Wallet">Connect Wallet</button>;
+    };
+  },
+}));
+
 const mockConnect = vi.fn();
 const mockSwitchChain = vi.fn();
 const mockRefetchAssetBalance = vi.fn();
@@ -65,6 +81,18 @@ vi.mock('../../hooks/useWallet', () => ({
 
 vi.mock('../../hooks/useNetwork', () => ({
   useNetwork: () => mockNetworkState,
+}));
+
+vi.mock('../../hooks/useDashboardService', () => ({
+  useDashboardService: () => ({
+    data: {
+      NAV: { navUsdNumber: 1.0, formattedNavPerShare: '$1.0000' },
+      HealthStatus: { isPaused: false },
+    },
+    isLoading: false,
+    error: undefined,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock('../../hooks/useControllerAddress', () => ({
@@ -170,12 +198,12 @@ describe('Deposit Page Integration Tests', () => {
     renderWithProviders(<Deposit />);
 
     expect(screen.getByRole('heading', { name: /deposit collateral/i })).toBeInTheDocument();
-    expect(screen.getByText(/interactive deposit form/i)).toBeInTheDocument();
-    expect(screen.getByText(/live yield preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/mint uvbtceth index shares/i)).toBeInTheDocument();
+    expect(screen.getByText(/live yield & execution quote/i)).toBeInTheDocument();
   });
 
   it('renders wallet connection prompt when disconnected', () => {
-    mockWalletState = { isConnected: false, connect: mockConnect };
+    mockWalletState = { isConnected: false, address: undefined, connect: mockConnect };
 
     renderWithProviders(<Deposit />);
 
