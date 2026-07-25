@@ -2,24 +2,39 @@ import { readContract, writeContract, waitForTransactionReceipt } from 'wagmi/ac
 import { ERC20_ABI } from './ABIs';
 import { config } from '../lib/config/config';
 
+export interface TokenMetadata {
+  symbol: string;
+  decimals: number;
+}
+
 export const TokenContract = {
   async balanceOf(tokenAddress: `0x${string}`, account: `0x${string}`): Promise<bigint> {
-    const result = await readContract(config, {
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [account],
-    });
-    return result as bigint;
+    try {
+      const result = await readContract(config, {
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [account],
+      });
+      return result as bigint;
+    } catch (error) {
+      console.warn(`⚠️ Token.balanceOf error for ${account}:`, error);
+      return 0n;
+    }
   },
 
   async totalSupply(tokenAddress: `0x${string}`): Promise<bigint> {
-    const result = await readContract(config, {
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'totalSupply',
-    });
-    return result as bigint;
+    try {
+      const result = await readContract(config, {
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'totalSupply',
+      });
+      return result as bigint;
+    } catch (error) {
+      console.warn('⚠️ Token.totalSupply error:', error);
+      return 0n;
+    }
   },
 
   async allowance(
@@ -27,13 +42,18 @@ export const TokenContract = {
     owner: `0x${string}`,
     spender: `0x${string}`,
   ): Promise<bigint> {
-    const result = await readContract(config, {
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'allowance',
-      args: [owner, spender],
-    });
-    return result as bigint;
+    try {
+      const result = await readContract(config, {
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [owner, spender],
+      });
+      return result as bigint;
+    } catch (error) {
+      console.warn('⚠️ Token.allowance error:', error);
+      return 0n;
+    }
   },
 
   async approve(
@@ -49,5 +69,21 @@ export const TokenContract = {
     });
     await waitForTransactionReceipt(config, { hash });
     return hash;
+  },
+
+  async getMetadata(tokenAddress: `0x${string}`): Promise<TokenMetadata> {
+    try {
+      const [symbolRes, decimalsRes] = await Promise.all([
+        readContract(config, { address: tokenAddress, abi: ERC20_ABI, functionName: 'symbol' }),
+        readContract(config, { address: tokenAddress, abi: ERC20_ABI, functionName: 'decimals' }),
+      ]);
+      return {
+        symbol: (symbolRes as string) || 'TOKEN',
+        decimals: Number(decimalsRes) || 18,
+      };
+    } catch (error) {
+      console.warn(`⚠️ Token.getMetadata error for ${tokenAddress}:`, error);
+      return { symbol: 'TOKEN', decimals: 18 };
+    }
   },
 };

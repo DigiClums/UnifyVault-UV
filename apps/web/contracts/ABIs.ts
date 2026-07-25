@@ -8,6 +8,20 @@ export const PROTOCOL_DIRECTORY_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [{ name: 'name', type: 'bytes32' }],
+    name: 'exists',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'isFrozen',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 export const CONTROLLER_ABI = [
@@ -22,10 +36,16 @@ export const CONTROLLER_ABI = [
     outputs: [
       {
         components: [
-          { name: 'grossDeposit', type: 'uint256' },
+          { name: 'assetId', type: 'bytes32' },
+          { name: 'asset', type: 'address' },
+          { name: 'receiver', type: 'address' },
+          { name: 'depositAmount', type: 'uint256' },
+          { name: 'rawPrice', type: 'uint256' },
+          { name: 'normalizedPrice', type: 'uint256' },
+          { name: 'sharesPreview', type: 'uint256' },
           { name: 'protocolFee', type: 'uint256' },
           { name: 'netDeposit', type: 'uint256' },
-          { name: 'sharesPreview', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
         ],
         name: '',
         type: 'tuple',
@@ -58,10 +78,16 @@ export const CONTROLLER_ABI = [
     outputs: [
       {
         components: [
-          { name: 'grossDeposit', type: 'uint256' },
+          { name: 'assetId', type: 'bytes32' },
+          { name: 'asset', type: 'address' },
+          { name: 'receiver', type: 'address' },
+          { name: 'depositAmount', type: 'uint256' },
+          { name: 'rawPrice', type: 'uint256' },
+          { name: 'normalizedPrice', type: 'uint256' },
+          { name: 'sharesPreview', type: 'uint256' },
           { name: 'protocolFee', type: 'uint256' },
           { name: 'netDeposit', type: 'uint256' },
-          { name: 'sharesPreview', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
         ],
         name: '',
         type: 'tuple',
@@ -77,6 +103,79 @@ export const CONTROLLER_ABI = [
     ],
     name: 'previewRedeem',
     outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'previewDeposit',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'maxDeposit',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'swapSlippageBps',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'portfolioManager',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'strategyManager',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'swapAdapter',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'vault',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'treasury',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'token',
+    outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -113,6 +212,13 @@ export const STRATEGY_MANAGER_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'getSupportedAssets',
+    outputs: [{ name: '', type: 'address[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 export const CUSTODY_VAULT_ABI = [
@@ -120,6 +226,98 @@ export const CUSTODY_VAULT_ABI = [
     inputs: [{ name: 'asset', type: 'address' }],
     name: 'totalAssets',
     outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'surplusAssets',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'balance',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'isSupported',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'assetConfig',
+    outputs: [
+      {
+        components: [
+          { name: 'decimals', type: 'uint8' },
+          { name: 'enabled', type: 'bool' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
+export const TREASURY_ABI = [
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'balance',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'totalAssetBalance',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'nativeBalance',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'isSupported',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
+export const ORACLE_MANAGER_ABI = [
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'getAssetPrice',
+    outputs: [{ name: 'price', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'isPriceFresh',
+    outputs: [{ name: 'isFresh', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'assetId', type: 'bytes32' }],
+    name: 'isHealthy',
+    outputs: [{ name: 'healthy', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -144,6 +342,18 @@ export const LIQUIDITY_MANAGER_ABI = [
       { name: 'operationalBalance', type: 'uint256' },
       { name: 'reserveBalance', type: 'uint256' },
       { name: 'totalBalance', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'assessLiquidity',
+    outputs: [
+      { name: 'needsRefill', type: 'bool' },
+      { name: 'needsSweep', type: 'bool' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'targetOperationalBalance', type: 'uint256' },
     ],
     stateMutability: 'view',
     type: 'function',
@@ -195,6 +405,13 @@ export const ERC20_ABI = [
   {
     inputs: [],
     name: 'symbol',
+    outputs: [{ name: '', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'name',
     outputs: [{ name: '', type: 'string' }],
     stateMutability: 'view',
     type: 'function',
