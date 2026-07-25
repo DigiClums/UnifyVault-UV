@@ -287,8 +287,6 @@ describe('Redeem Page Integration Tests', () => {
     expect(mockRedeem).toHaveBeenCalledWith(
       10000000000000000000n, // 10 shares
       99500000n, // minAssetsOut with 0.5% slippage
-      '0x1234567890123456789012345678901234567890',
-      '0x1234567890123456789012345678901234567890',
     );
   });
 

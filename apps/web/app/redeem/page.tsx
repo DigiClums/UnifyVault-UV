@@ -141,7 +141,7 @@ export default function RedeemPage() {
       setStep('EXECUTING');
 
       try {
-        await redeem(parsedShares, minAssets, address, address);
+        await redeem(parsedShares, minAssets);
       } catch (error) {
         setError(getErrorMessage(error, 'Redemption execution failed'));
       }
