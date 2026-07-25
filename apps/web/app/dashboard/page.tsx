@@ -1,183 +1,251 @@
 'use client';
 
+import * as React from 'react';
+import { useDashboardService } from '../../hooks/useDashboardService';
 import { useWallet } from '../../hooks/useWallet';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { BalanceCard } from '../../components/dashboard/BalanceCard';
-import { TokenCard } from '../../components/dashboard/TokenCard';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { NAVHistoryChart } from '../../components/charts/NAVHistoryChart';
-import { usePortfolio } from '../../hooks/usePortfolio';
-import { useVaultMetrics } from '../../hooks/useVaultMetrics';
-import { useTokenBalance } from '../../hooks/useTokenBalance';
-import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
+import { TVLHistoryChart } from '../../components/charts/TVLHistoryChart';
+import { HealthHeroCard } from '../../components/dashboard/HealthHeroCard';
+import { OracleCard } from '../../components/dashboard/OracleCard';
+import { TreasuryCard } from '../../components/dashboard/TreasuryCard';
+import { LiquidityCard } from '../../components/dashboard/LiquidityCard';
+import { SecurityCard } from '../../components/dashboard/SecurityCard';
+import { ContractAddressesTable } from '../../components/dashboard/ContractAddressesTable';
+import { GovernanceActivityCard } from '../../components/dashboard/GovernanceActivityCard';
+import { ConnectWalletCard } from '../../components/dashboard/ConnectWalletCard';
+import { DashboardErrorCard } from '../../components/dashboard/DashboardErrorCard';
 
 export default function DashboardPage() {
-  const { address, isConnected } = useWallet();
-  const { indexTokenAddress } = useIndexTokenAddress();
-  const {
-    navData,
-    portfolio,
-    isLoading: isPortfolioLoading,
-    refetch: refetchPortfolio,
-  } = usePortfolio();
-  const { metrics, isLoading: isMetricsLoading, refetch: refetchMetrics } = useVaultMetrics();
-  const { formattedBalance: shareBalance, isLoading: isShareBalanceLoading } =
-    useTokenBalance(indexTokenAddress);
-  const isNavLoading = isPortfolioLoading;
+  const { isConnected } = useWallet();
+  const { data, isLoading, error, refetch } = useDashboardService(15000);
 
-  const tvlUSD = metrics?.totalTvlUSD;
-  const totalShares = metrics?.totalSupply;
+  const [lastUpdatedText, setLastUpdatedText] = React.useState<string>('Updating...');
 
-  const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
-  const formattedTVL =
-    tvlUSD !== undefined
-      ? `$${(Number(tvlUSD) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : '$0.00';
-  const userShares =
-    portfolio?.sharesBalance !== undefined
-      ? portfolio.sharesBalance
-      : shareBalance
-        ? BigInt(Math.floor(Number(shareBalance) * 1e18))
-        : 0n;
-  const formattedShares = (Number(userShares) / 1e18).toString();
-  const userPositionUSD = navData
-    ? `$${((Number(userShares) / 1e18) * (Number(navData.navPerShare) / 1e18)).toFixed(2)}`
-    : '$0.00';
-  const estRedeemUSD = navData
-    ? `$${((Number(userShares) / 1e18) * (Number(navData.navPerShare) / 1e18) * 0.999).toFixed(2)}`
-    : '$0.00';
+  React.useEffect(() => {
+    if (data?.HealthStatus?.timestamp) {
+      const date = new Date(data.HealthStatus.timestamp);
+      const hours = date.getUTCHours().toString().padStart(2, '0');
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+      const seconds = date.getUTCSeconds().toString().padStart(2, '0');
+      setLastUpdatedText(`${hours}:${minutes}:${seconds} UTC`);
+    } else {
+      setLastUpdatedText('Updating...');
+    }
+  }, [data?.HealthStatus?.timestamp]);
+
+  if (error && !data) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
+        <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
+          <DashboardErrorCard error={error} onRetry={refetch} />
+        </main>
+      </div>
+    );
+  }
+
+  const healthStatusString: 'HEALTHY' | 'REFILL_REQUIRED' | 'RESERVE_SWEEP_REQUIRED' | 'PAUSED' =
+    data?.HealthStatus?.isPaused
+      ? 'PAUSED'
+      : data?.LiquidityStatus?.needsRefill
+        ? 'REFILL_REQUIRED'
+        : data?.LiquidityStatus?.needsSweep
+          ? 'RESERVE_SWEEP_REQUIRED'
+          : 'HEALTHY';
+
+  const custodyAssetsUsdTotal = data?.CustodyAssets
+    ? data.CustodyAssets.reduce((sum, asset) => sum + asset.custodyUsdValueNumber, 0)
+    : 0;
+
+  const custodyAssetsFormatted = `$${custodyAssetsUsdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        {/* Header Title & Status */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
+        {/* Dashboard Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Protocol Dashboard & Position Analytics
+              UnifyVault V2 Live Protocol Dashboard
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Real-time NAV, Unrealized PnL, TVL, and asset breakdown on Base Mainnet.
+              Real-time on-chain NAV, aggregate TVL, custody balances, and dynamic module health.
             </p>
           </div>
+
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 max-w-full">
-            <button
-              onClick={() => {
-                void refetchPortfolio();
-                void refetchMetrics();
-              }}
-              aria-label="Refresh dashboard metrics"
-              className="text-xs bg-secondary hover:bg-accent border border-border text-foreground px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl font-medium transition-colors"
-            >
-              Refresh
-            </button>
-            <HealthBadge status="HEALTHY" />
-            <span className="text-xs text-muted-foreground font-mono bg-secondary/70 border border-border px-3 py-2.5 min-h-[44px] inline-flex items-center rounded-xl max-w-full shrink truncate">
-              {isConnected && address
-                ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                : 'Wallet Disconnected'}
+            <span className="text-xs font-mono text-muted-foreground bg-secondary/80 border border-border/60 px-3 py-2 rounded-xl">
+              Last Updated: {lastUpdatedText}
             </span>
+
+            <button
+              onClick={() => void refetch()}
+              disabled={isLoading}
+              aria-label="Refresh dashboard metrics"
+              className="text-xs bg-secondary hover:bg-accent border border-border text-foreground px-3.5 py-2.5 min-h-[40px] inline-flex items-center rounded-xl font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+
+            <HealthBadge status={healthStatusString} />
           </div>
         </div>
 
-        {/* Enhanced Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Portfolio Value (USD)"
-            value={userPositionUSD}
-            loading={isShareBalanceLoading}
-            subtitle="Current Position Value"
-          />
-          <StatCard
-            title="Unrealized PnL"
-            value="--"
-            loading={isShareBalanceLoading}
-            subtitle="Unindexed (Requires Indexer)"
-          />
-          <StatCard
-            title="Current NAV / Share"
-            value={formattedNAV}
-            loading={isNavLoading}
-            subtitle="Live Target Valuation"
-          />
-          <StatCard
-            title="Est. Redeem Value"
-            value={estRedeemUSD}
-            loading={isShareBalanceLoading}
-            subtitle="Net of 0.10% Fee"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Row 1 — Key Financial Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Value Locked"
-            value={formattedTVL}
-            loading={isMetricsLoading}
+            value={data?.TVL?.formattedUsd || '$0.00'}
+            loading={isLoading}
             subtitle="Protocol Custody Assets"
           />
           <StatCard
-            title="Shares Owned"
-            value={`${formattedShares} UVBTCETH`}
-            loading={isShareBalanceLoading}
-            subtitle="Index Share Supply"
+            title="NAV / Share"
+            value={data?.NAV?.formattedNavPerShare || '$1.0000'}
+            loading={isLoading}
+            subtitle="Live Target Valuation"
           />
           <StatCard
             title="Total Supply"
-            value={totalShares ? (Number(totalShares) / 1e18).toFixed(2) : '0.00'}
-            loading={isMetricsLoading}
-            subtitle="Circulating Shares"
+            value={data?.TotalSupply ? `${data.TotalSupply.formatted} UVBTCETH` : '0.00 UVBTCETH'}
+            loading={isLoading}
+            subtitle="Circulating Share Supply"
           />
           <StatCard
             title="Treasury Fees"
-            value="$0.00 USD"
-            loading={isMetricsLoading}
-            subtitle="Protocol Fee Storage"
+            value={data?.TreasuryFees?.totalUsdFormatted || '$0.00'}
+            loading={isLoading}
+            subtitle="Protocol Revenue Stored"
           />
         </div>
 
-        {/* Charts & Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Balance Card */}
+        {/* Row 2 — Custody & Operational Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="Custody Value"
+            value={custodyAssetsFormatted}
+            loading={isLoading}
+            subtitle="Underlying Custody Assets"
+          />
+          <StatCard
+            title="Operational Liquidity"
+            value={
+              data?.LiquidityStatus ? data.LiquidityStatus.operationalBalanceRaw.toString() : '0'
+            }
+            loading={isLoading}
+            subtitle="Operational Buffer (10% Target)"
+          />
+          <StatCard
+            title="Reserve Liquidity"
+            value={data?.LiquidityStatus ? data.LiquidityStatus.reserveBalanceRaw.toString() : '0'}
+            loading={isLoading}
+            subtitle="Reserve Accounting Buffer"
+          />
+          <StatCard
+            title="Oracle Status"
+            value={data?.OracleStatus?.isHealthy ? 'HEALTHY' : 'DEGRADED'}
+            loading={isLoading}
+            subtitle="Chainlink Pricing Feeds"
+          />
+        </div>
+
+        {/* Row 3 — Health Hero Card */}
+        {data?.HealthStatus && <HealthHeroCard health={data.HealthStatus} loading={isLoading} />}
+
+        {/* User Position & Balance Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
-            <BalanceCard
-              sharesBalance={formattedShares}
-              usdValue={userPositionUSD}
-              loading={isShareBalanceLoading}
-            />
+            {isConnected ? (
+              <BalanceCard
+                sharesBalance={data?.UserShareBalance?.formattedShares || '0.00'}
+                usdValue={`$${(data?.UserShareBalance?.usdValueNumber || 0).toFixed(2)}`}
+                loading={isLoading}
+              />
+            ) : (
+              <ConnectWalletCard />
+            )}
           </div>
 
-          {/* NAV Area Chart */}
-          <div className="lg:col-span-2">
-            <NAVHistoryChart currentNAV={formattedNAV} />
+          <div className="lg:col-span-2 rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/40 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
+            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center justify-between">
+              <span>Custody Portfolio Breakdown</span>
+              <span className="text-xs text-muted-foreground font-mono">
+                Strategy Target Allocation (10,000 BPS)
+              </span>
+            </h3>
+
+            {isLoading ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-12 rounded-xl bg-muted w-full" />
+                <div className="h-12 rounded-xl bg-muted w-full" />
+              </div>
+            ) : data?.CustodyAssets && data.CustodyAssets.length > 0 ? (
+              <div className="space-y-3 font-mono text-xs">
+                {data.CustodyAssets.map((asset) => (
+                  <div
+                    key={asset.address}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/60 gap-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-foreground text-sm">{asset.symbol}</span>
+                      <span className="text-muted-foreground">({asset.weightPercent}% target)</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {asset.custodyBalanceFormatted} {asset.symbol}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          ${asset.custodyUsdValueNumber.toFixed(2)} USD
+                        </p>
+                      </div>
+                      <div className="w-16 bg-muted rounded-full h-2 overflow-hidden hidden sm:block">
+                        <div
+                          className="bg-primary h-full rounded-full"
+                          style={{ width: `${Math.min(100, asset.weightPercent)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs font-mono text-muted-foreground py-4">
+                No portfolio custody assets returned
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Asset Allocation Breakdown */}
-        <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/40 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
-          <h3 className="text-lg font-bold text-foreground mb-4 flex items-center justify-between">
-            <span>Portfolio Target Allocation</span>
-            <span className="text-xs text-muted-foreground">Total BPS: 10,000 (100.00%)</span>
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TokenCard
-              symbol="cbBTC"
-              name="Coinbase Wrapped BTC"
-              weightBps={6000}
-              balance="60.00%"
-              valueUSD="Target Ratio"
-              iconBg="bg-amber-600"
-            />
-            <TokenCard
-              symbol="WETH"
-              name="Wrapped Ether"
-              weightBps={4000}
-              balance="40.00%"
-              valueUSD="Target Ratio"
-              iconBg="bg-indigo-600"
-            />
-          </div>
+        {/* Row 4 — Status Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {data?.OracleStatus && (
+            <OracleCard oracleStatus={data.OracleStatus} loading={isLoading} />
+          )}
+          {data?.TreasuryFees && <TreasuryCard treasury={data.TreasuryFees} loading={isLoading} />}
+          {data?.LiquidityStatus && (
+            <LiquidityCard liquidity={data.LiquidityStatus} loading={isLoading} />
+          )}
+          {data?.HealthStatus && (
+            <SecurityCard isPaused={data.HealthStatus.isPaused} loading={isLoading} />
+          )}
         </div>
+
+        {/* Row 5 — Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <NAVHistoryChart currentNAV={data?.NAV?.formattedNavPerShare || '$1.0000'} />
+          <TVLHistoryChart tvlFormatted={data?.TVL?.formattedUsd || '$0.00'} />
+        </div>
+
+        {/* Row 6 — Contract Addresses Table */}
+        {data?.addresses && (
+          <ContractAddressesTable addresses={data.addresses} loading={isLoading} />
+        )}
+
+        {/* Row 7 — Governance Activity */}
+        <GovernanceActivityCard />
       </main>
     </div>
   );

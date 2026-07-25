@@ -1,4 +1,5 @@
 import { formatUnits } from 'viem';
+import { ResolvedProtocolAddresses } from '../../contracts/ProtocolDirectory';
 import {
   ProtocolService,
   StrategyAssetDetail,
@@ -63,6 +64,7 @@ export interface HealthStatusData {
 }
 
 export interface DashboardData {
+  addresses: ResolvedProtocolAddresses;
   TVL: TVLData;
   NAV: NAVData;
   TotalSupply: TotalSupplyData;
@@ -147,6 +149,7 @@ export const DashboardService = {
         isDirectoryResolved && !metrics.isControllerPaused && metrics.isOracleHealthy;
 
       return {
+        addresses: metrics.addresses,
         TVL: {
           rawUsd: metrics.totalPortfolioValueUsdRaw,
           formattedUsd: tvlFormatted,
@@ -195,6 +198,18 @@ export const DashboardService = {
  */
 function getFallbackDashboardData(): DashboardData {
   return {
+    addresses: {
+      directory: '0xDd29e54f91b86f3e4609AA2e279e04E98dcAb722',
+      controller: '0xa8c6Baf298122d700269C0B331406522450ba967',
+      vault: '0x11202B3Da20bB5432E3Be4A56743Ef879683b09F',
+      treasury: '0x90723e17B8936f587078929869a2b5D4e434F8DD',
+      token: '0x56CF4750EC2E1d66E76e51B2cF3405CbA9487d83',
+      oracleManager: '0x11396dB2272a71841cfBe855c6e330CEE657CFe0',
+      strategyManager: '0x882421d092e593165744F0D15c9F7F37318B5601',
+      portfolioManager: '0xFb30D207164a32c1d963243362D7600cd1FBC609',
+      swapAdapter: '0x3d85434A0D92d09B2eC098aa0822F57Fd81beb6D',
+      liquidityManager: '0xad3c7a8d05333a4cA9eBF6f131E4C12Af9C05EA0',
+    },
     TVL: { rawUsd: 0n, formattedUsd: '$0.00', usdValueNumber: 0 },
     NAV: {
       rawNavPerShare: 1000000000000000000n,
