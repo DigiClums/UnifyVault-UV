@@ -147,30 +147,30 @@ export default function RedeemPage() {
   const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
       <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="rounded-3xl border border-border bg-card/90 dark:bg-[#111827]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
                 Redeem Vault Shares
               </h1>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Interactive withdrawal form: Burn UVBTCETH shares and receive USDC payout
               </p>
             </div>
-            <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               0.1% Fee
             </span>
           </div>
 
           {/* Share Amount Input */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-4 mb-4">
+          <div className="rounded-2xl border border-border bg-muted/40 dark:bg-gray-900/60 p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400 font-medium">You Redeem (Shares)</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground font-medium">You Redeem (Shares)</span>
+              <span className="text-xs text-muted-foreground">
                 Available:{' '}
-                <span className="font-mono text-gray-200">
+                <span className="font-mono text-foreground font-semibold">
                   {shareBalanceFormatted || '0.0000'} UVBTCETH
                 </span>
               </span>
@@ -182,7 +182,7 @@ export default function RedeemPage() {
                 value={sharesInput}
                 onChange={(e) => setSharesInput(e.target.value)}
                 placeholder="0.0"
-                className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-white focus:outline-none min-h-[44px]"
+                className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-foreground focus:outline-none min-h-[44px]"
               />
               <button
                 onClick={() =>
@@ -193,7 +193,7 @@ export default function RedeemPage() {
                   )
                 }
                 aria-label="Max"
-                className="rounded-lg bg-purple-600/10 border border-purple-500/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-purple-400 hover:bg-purple-600/20 transition-colors font-mono"
+                className="rounded-lg bg-purple-500/10 border border-purple-500/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors font-mono"
               >
                 MAX
               </button>
@@ -201,7 +201,7 @@ export default function RedeemPage() {
           </div>
 
           {parsedShares > (effectiveShareBalance || 0n) && (
-            <p className="text-xs text-rose-400 mb-4 font-semibold">
+            <p className="text-xs text-rose-500 dark:text-rose-400 mb-4 font-semibold">
               Insufficient UVBTCETH share balance.
             </p>
           )}
@@ -212,7 +212,7 @@ export default function RedeemPage() {
               <button
                 key={pct}
                 onClick={() => handlePercentagePreset(pct)}
-                className="rounded-xl border border-gray-800 bg-gray-900/40 py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-gray-300 hover:border-blue-500/30 hover:bg-blue-600/10 hover:text-blue-400 transition-all"
+                className="rounded-xl border border-border bg-secondary/80 hover:bg-accent py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-foreground hover:border-primary/30 transition-all"
               >
                 {pct}%
               </button>
@@ -220,34 +220,36 @@ export default function RedeemPage() {
           </div>
 
           {/* Output Preview */}
-          <div className="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-4 space-y-3 mb-8">
+          <div className="rounded-2xl border border-border bg-muted/30 dark:bg-gray-900/40 p-4 space-y-3 mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400 font-semibold">Redemption Preview</span>
+              <span className="text-xs text-muted-foreground font-semibold">
+                Redemption Preview
+              </span>
               {isLoadingPreview && (
-                <span className="text-[10px] font-mono text-purple-400 animate-pulse">
+                <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400 animate-pulse">
                   Calculating payout...
                 </span>
               )}
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Current NAV Per Share</span>
-              <span className="font-mono font-semibold text-gray-200">{formattedNAV}</span>
+              <span className="text-muted-foreground">Current NAV Per Share</span>
+              <span className="font-mono font-semibold text-foreground">{formattedNAV}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Gross Asset Valuation</span>
-              <span className="font-mono text-gray-300">
+              <span className="text-muted-foreground">Gross Asset Valuation</span>
+              <span className="font-mono text-foreground">
                 {isLoadingPreview ? '...' : `$${grossUSD} USDC`}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Protocol Redeem Fee (0.10%)</span>
-              <span className="font-mono text-gray-300">
+              <span className="text-muted-foreground">Protocol Redeem Fee (0.10%)</span>
+              <span className="font-mono text-foreground">
                 {isLoadingPreview ? '...' : `$${feeUSD} USDC`}
               </span>
             </div>
-            <div className="pt-2 border-t border-gray-800 flex items-center justify-between text-sm font-bold">
-              <span className="text-gray-200">Expected USDC Return</span>
-              <span className="font-mono text-emerald-400">
+            <div className="pt-2 border-t border-border flex items-center justify-between text-sm font-bold">
+              <span className="text-foreground">Expected USDC Return</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400">
                 {isLoadingPreview ? '...' : `$${formattedOutputUSDC} USDC`}
               </span>
             </div>
@@ -256,7 +258,7 @@ export default function RedeemPage() {
           {/* Action Button */}
           {!isConnected ? (
             <div className="text-center py-4">
-              <h2 className="text-lg font-bold mb-2">Wallet Connection Required</h2>
+              <h2 className="text-lg font-bold mb-2 text-foreground">Wallet Connection Required</h2>
               <button
                 onClick={() => connect?.()}
                 className="w-full rounded-2xl bg-purple-600 py-4 font-bold text-white shadow-xl hover:bg-purple-500 transition-all"
@@ -267,7 +269,7 @@ export default function RedeemPage() {
             </div>
           ) : !isSupported ? (
             <div className="text-center py-4">
-              <h2 className="text-lg font-bold mb-2">Unsupported Network</h2>
+              <h2 className="text-lg font-bold mb-2 text-foreground">Unsupported Network</h2>
               <button
                 onClick={() => switchChain?.()}
                 className="w-full rounded-2xl bg-amber-600 py-4 font-bold text-white shadow-xl hover:bg-amber-500 transition-all"
@@ -285,7 +287,7 @@ export default function RedeemPage() {
                 status === 'submitting' ||
                 status === 'pending'
               }
-              className="w-full rounded-2xl bg-purple-600 py-4 font-bold text-white shadow-xl shadow-purple-500/25 hover:bg-purple-500 transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+              className="w-full rounded-2xl bg-purple-600 py-4 font-bold text-white shadow-xl shadow-purple-500/25 hover:bg-purple-500 transition-all disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
               aria-label="Redeem for USDC"
             >
               Redeem for USDC

@@ -12,25 +12,27 @@ export function NAVHistoryChart({ currentNAV = '$1.0000' }: NAVHistoryChartProps
   const [timeframe, setTimeframe] = React.useState<Timeframe>('7D');
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md">
+    <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             NAV Per Share (Live Oracle Feed)
           </span>
-          <h3 className="text-2xl font-extrabold text-white font-mono mt-1">{currentNAV} USD</h3>
+          <h3 className="text-2xl font-extrabold text-foreground font-mono mt-1">
+            {currentNAV} USD
+          </h3>
         </div>
 
         {/* Timeframe Selector */}
-        <div className="flex items-center gap-1.5 bg-gray-900/80 p-1 rounded-xl border border-gray-800">
+        <div className="flex items-center gap-1.5 bg-secondary/80 p-1 rounded-xl border border-border">
           {(['24H', '7D', '30D', 'ALL'] as Timeframe[]).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               className={`px-3 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
                 timeframe === tf
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {tf}
@@ -69,7 +71,7 @@ export function NAVHistoryChart({ currentNAV = '$1.0000' }: NAVHistoryChartProps
           <circle cx="500" cy="65" r="4" fill="#60A5FA" />
         </svg>
 
-        <div className="flex items-center justify-between text-xs text-gray-500 mt-2 font-mono">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mt-2 font-mono">
           <span>Target Valuation</span>
           <span>Live Oracle NAV ({timeframe})</span>
         </div>

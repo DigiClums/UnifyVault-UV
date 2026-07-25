@@ -35,7 +35,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-[#090d16]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/85 dark:bg-[#090d16]/90 backdrop-blur-md transition-colors duration-200">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <Link
@@ -43,12 +43,12 @@ export function Navbar() {
           onClick={() => setMobileMenuOpen(false)}
           className="flex items-center gap-2.5 sm:gap-3 shrink-0"
         >
-          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-500/30">
-            <span className="font-extrabold text-white text-lg sm:text-xl">UV</span>
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25">
+            <span className="font-extrabold text-primary-foreground text-lg sm:text-xl">UV</span>
           </div>
-          <span className="font-bold text-white text-lg sm:text-xl tracking-tight">
+          <span className="font-bold text-foreground text-lg sm:text-xl tracking-tight">
             UnifyVault{' '}
-            <span className="text-blue-400 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+            <span className="text-primary text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
               V2
             </span>
           </span>
@@ -64,8 +64,8 @@ export function Navbar() {
                 href={link.href}
                 className={`px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-lg text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 font-semibold'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    ? 'bg-primary/15 text-primary border border-primary/30 font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
                 }`}
               >
                 {link.label}
@@ -85,21 +85,17 @@ export function Navbar() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
-            className="md:hidden flex items-center justify-center p-2.5 min-h-[44px] min-w-[44px] rounded-lg border border-gray-800 bg-gray-900/80 text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            className="md:hidden flex items-center justify-center p-2.5 min-h-[44px] min-w-[44px] rounded-xl border border-border bg-secondary/80 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary transition-all"
           >
-            {mobileMenuOpen ? (
-              <X className="w-5 h-5 text-blue-400" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
+            {mobileMenuOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Drawer / Collapsible Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-800/80 bg-[#090d16]/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          <div className="text-[11px] font-semibold tracking-wider text-gray-400 uppercase px-2 pt-1">
+        <div className="md:hidden border-t border-border bg-card/95 dark:bg-[#090d16]/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 pt-1">
             Primary Navigation
           </div>
           <nav aria-label="Mobile Navigation" className="grid grid-cols-2 gap-2">
@@ -113,19 +109,21 @@ export function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2.5 px-3.5 py-3 min-h-[44px] rounded-xl text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 font-semibold shadow-md shadow-blue-500/10'
-                      : 'bg-gray-900/50 border border-gray-800/60 text-gray-300 hover:text-white hover:bg-gray-800/80'
+                      ? 'bg-primary/20 text-primary border border-primary/40 font-semibold shadow-md shadow-primary/10'
+                      : 'bg-muted/50 border border-border text-foreground hover:bg-accent'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+                  <Icon
+                    className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
+                  />
                   <span>{link.label}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="border-t border-gray-800/80 pt-3">
-            <div className="text-[11px] font-semibold tracking-wider text-gray-400 uppercase px-2 mb-2">
+          <div className="border-t border-border pt-3">
+            <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">
               Protocol Tools
             </div>
             <div className="flex flex-col gap-1.5">
@@ -139,15 +137,15 @@ export function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center justify-between px-3.5 py-3 min-h-[44px] rounded-lg text-xs font-medium transition-all ${
                       isActive
-                        ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20 font-semibold'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-900/60'
+                        ? 'bg-primary/10 text-primary border border-primary/20 font-semibold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon className="w-4 h-4 text-gray-400" />
+                      <Icon className="w-4 h-4 text-muted-foreground" />
                       <span>{link.label}</span>
                     </div>
-                    <span className="text-[10px] text-gray-400">→</span>
+                    <span className="text-[10px] text-muted-foreground">→</span>
                   </Link>
                 );
               })}

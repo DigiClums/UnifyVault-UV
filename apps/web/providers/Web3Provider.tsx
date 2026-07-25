@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
+import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
+import { useTheme } from 'next-themes';
 import { wagmiConfig } from '../lib/config/config';
 
 function makeQueryClient() {
@@ -29,22 +30,35 @@ function getQueryClient() {
   }
 }
 
+function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const rkTheme = React.useMemo(() => {
+    const isDark = !mounted || resolvedTheme === 'dark';
+    const themeOptions = {
+      accentColor: 'hsl(250, 89%, 60%)',
+      accentColorForeground: 'white',
+      borderRadius: 'medium' as const,
+      overlayBlur: 'small' as const,
+    };
+    return isDark ? darkTheme(themeOptions) : lightTheme(themeOptions);
+  }, [mounted, resolvedTheme]);
+
+  return <RainbowKitProvider theme={rkTheme}>{children}</RainbowKitProvider>;
+}
+
 export function Web3Provider({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: 'hsl(250, 89%, 60%)', // indigo accent
-            accentColorForeground: 'white',
-            borderRadius: 'medium',
-            overlayBlur: 'small',
-          })}
-        >
-          {children}
-        </RainbowKitProvider>
+        <DynamicRainbowKitProvider>{children}</DynamicRainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

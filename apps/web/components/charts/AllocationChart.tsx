@@ -35,10 +35,10 @@ export function AllocationChart({ items }: AllocationChartProps) {
   const chartData = items || defaultItems;
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md">
-      <h3 className="text-lg font-bold text-white mb-6 flex items-center justify-between">
+    <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
+      <h3 className="text-lg font-bold text-foreground mb-6 flex items-center justify-between">
         <span>Portfolio Strategy Allocation</span>
-        <span className="text-xs text-blue-400 font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+        <span className="text-xs text-primary font-semibold px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
           Target 10,000 BPS
         </span>
       </h3>
@@ -47,7 +47,15 @@ export function AllocationChart({ items }: AllocationChartProps) {
         {/* SVG Donut Visual */}
         <div className="relative flex items-center justify-center h-48 w-48 mx-auto">
           <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90 transform">
-            <circle cx="50" cy="50" r="40" stroke="#1F2937" strokeWidth="12" fill="transparent" />
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              stroke="currentColor"
+              className="text-muted/80"
+              strokeWidth="12"
+              fill="transparent"
+            />
             {/* Segment 1: cbBTC (60%) */}
             <circle
               cx="50"
@@ -74,8 +82,8 @@ export function AllocationChart({ items }: AllocationChartProps) {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-xs text-gray-400 font-medium">Allocation</span>
-            <span className="text-xl font-extrabold text-white font-mono">100%</span>
+            <span className="text-xs text-muted-foreground font-medium">Allocation</span>
+            <span className="text-xl font-extrabold text-foreground font-mono">100%</span>
           </div>
         </div>
 
@@ -84,20 +92,20 @@ export function AllocationChart({ items }: AllocationChartProps) {
           {chartData.map((item) => (
             <div
               key={item.symbol}
-              className="flex items-center justify-between p-3 rounded-xl bg-gray-900/50 border border-gray-800/80"
+              className="flex items-center justify-between p-3 rounded-xl bg-muted/50 dark:bg-gray-900/50 border border-border"
             >
               <div className="flex items-center gap-3">
                 <div className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: item.color }} />
                 <div>
-                  <span className="font-bold text-white text-sm block">{item.symbol}</span>
-                  <span className="text-xs text-gray-400">{item.name}</span>
+                  <span className="font-bold text-foreground text-sm block">{item.symbol}</span>
+                  <span className="text-xs text-muted-foreground">{item.name}</span>
                 </div>
               </div>
               <div className="text-right">
-                <span className="font-mono font-bold text-white text-sm block">
+                <span className="font-mono font-bold text-foreground text-sm block">
                   {item.percentage}%
                 </span>
-                <span className="text-xs text-gray-400 font-mono">{item.valueUSD}</span>
+                <span className="text-xs text-muted-foreground font-mono">{item.valueUSD}</span>
               </div>
             </div>
           ))}

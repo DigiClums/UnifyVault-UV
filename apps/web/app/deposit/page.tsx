@@ -176,30 +176,32 @@ export default function DepositPage() {
   const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
       <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="rounded-3xl border border-border bg-card/90 dark:bg-[#111827]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
                 Deposit Collateral
               </h1>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Interactive deposit form: Mint UVBTCETH index shares using USDC collateral
               </p>
             </div>
-            <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
               0.1% Fee
             </span>
           </div>
 
           {/* Amount Input */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-4 mb-6">
+          <div className="rounded-2xl border border-border bg-muted/40 dark:bg-gray-900/60 p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400 font-medium">You Pay (Collateral)</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground font-medium">
+                You Pay (Collateral)
+              </span>
+              <span className="text-xs text-muted-foreground">
                 Available:{' '}
-                <span className="font-mono text-gray-200">
+                <span className="font-mono text-foreground font-semibold">
                   {usdcBalanceFormatted || '0.00'} USDC
                 </span>
               </span>
@@ -211,7 +213,7 @@ export default function DepositPage() {
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
                 placeholder="0.0"
-                className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-white focus:outline-none min-h-[44px]"
+                className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-foreground focus:outline-none min-h-[44px]"
               />
               <button
                 onClick={() =>
@@ -220,7 +222,7 @@ export default function DepositPage() {
                   )
                 }
                 aria-label="Max"
-                className="rounded-lg bg-blue-600/10 border border-blue-500/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
+                className="rounded-lg bg-primary/10 border border-primary/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-primary hover:bg-primary/20 transition-colors"
               >
                 MAX
               </button>
@@ -228,34 +230,36 @@ export default function DepositPage() {
           </div>
 
           {/* Quote Breakdown */}
-          <div className="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-4 space-y-3 mb-8">
+          <div className="rounded-2xl border border-border bg-muted/30 dark:bg-gray-900/40 p-4 space-y-3 mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400 font-semibold">Live Yield Preview</span>
+              <span className="text-xs text-muted-foreground font-semibold">
+                Live Yield Preview
+              </span>
               {isLoadingPreview && (
-                <span className="text-[10px] font-mono text-blue-400 animate-pulse">
+                <span className="text-[10px] font-mono text-primary animate-pulse">
                   Calculating quote...
                 </span>
               )}
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Current NAV Per Share</span>
-              <span className="font-mono font-semibold text-gray-200">{formattedNAV}</span>
+              <span className="text-muted-foreground">Current NAV Per Share</span>
+              <span className="font-mono font-semibold text-foreground">{formattedNAV}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Protocol Deposit Fee (0.10%)</span>
-              <span className="font-mono text-gray-300">
+              <span className="text-muted-foreground">Protocol Deposit Fee (0.10%)</span>
+              <span className="font-mono text-foreground">
                 {isLoadingPreview ? '...' : `$${formattedFee} USDC`}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Net Collateral Allocated</span>
-              <span className="font-mono text-gray-300">
+              <span className="text-muted-foreground">Net Collateral Allocated</span>
+              <span className="font-mono text-foreground">
                 {isLoadingPreview ? '...' : `$${formattedNet} USDC`}
               </span>
             </div>
-            <div className="pt-2 border-t border-gray-800 flex items-center justify-between text-sm font-bold">
-              <span className="text-gray-200">Expected Shares (UVBTCETH)</span>
-              <span className="font-mono text-emerald-400">
+            <div className="pt-2 border-t border-border flex items-center justify-between text-sm font-bold">
+              <span className="text-foreground">Expected Shares (UVBTCETH)</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400">
                 {isLoadingPreview ? '...' : formattedShares}
               </span>
             </div>
@@ -264,10 +268,10 @@ export default function DepositPage() {
           {/* Action Trigger Button */}
           {!isConnected ? (
             <div className="text-center py-4">
-              <h2 className="text-lg font-bold mb-2">Wallet Connection Required</h2>
+              <h2 className="text-lg font-bold mb-2 text-foreground">Wallet Connection Required</h2>
               <button
                 onClick={() => connect?.()}
-                className="w-full rounded-2xl bg-blue-600 py-4 font-bold text-white shadow-xl hover:bg-blue-500 transition-all"
+                className="w-full rounded-2xl bg-primary py-4 font-bold text-primary-foreground shadow-xl hover:bg-primary/90 transition-all"
                 aria-label="Connect Wallet"
               >
                 Connect Wallet
@@ -275,7 +279,7 @@ export default function DepositPage() {
             </div>
           ) : !isSupported ? (
             <div className="text-center py-4">
-              <h2 className="text-lg font-bold mb-2">Unsupported Network</h2>
+              <h2 className="text-lg font-bold mb-2 text-foreground">Unsupported Network</h2>
               <button
                 onClick={() => switchChain?.()}
                 className="w-full rounded-2xl bg-amber-600 py-4 font-bold text-white shadow-xl hover:bg-amber-500 transition-all"
@@ -293,7 +297,7 @@ export default function DepositPage() {
                 status === 'submitting' ||
                 status === 'pending'
               }
-              className="w-full rounded-2xl bg-blue-600 py-4 font-bold text-white shadow-xl shadow-blue-500/25 hover:bg-blue-500 transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed"
+              className="w-full rounded-2xl bg-primary py-4 font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
               aria-label={needsApproval ? 'Approve Spend Limit for USDC' : 'Deposit USDC'}
             >
               {needsApproval ? 'Approve Spend Limit for USDC' : 'Deposit USDC'}

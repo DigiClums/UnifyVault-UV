@@ -48,15 +48,15 @@ export default function DashboardPage() {
     : '$0.00';
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {/* Header Title & Status */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Protocol Dashboard & Position Analytics
             </h1>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Real-time NAV, Unrealized PnL, TVL, and asset breakdown on Base Mainnet.
             </p>
           </div>
@@ -67,12 +67,12 @@ export default function DashboardPage() {
                 void refetchMetrics();
               }}
               aria-label="Refresh dashboard metrics"
-              className="text-xs bg-gray-800 hover:bg-gray-700 px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl font-medium transition-colors"
+              className="text-xs bg-secondary hover:bg-accent border border-border text-foreground px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl font-medium transition-colors"
             >
               Refresh
             </button>
             <HealthBadge status="HEALTHY" />
-            <span className="text-xs text-gray-400 font-mono bg-gray-900 border border-gray-800 px-3 py-2.5 min-h-[44px] inline-flex items-center rounded-xl max-w-full shrink truncate">
+            <span className="text-xs text-muted-foreground font-mono bg-secondary/70 border border-border px-3 py-2.5 min-h-[44px] inline-flex items-center rounded-xl max-w-full shrink truncate">
               {isConnected && address
                 ? `${address.slice(0, 6)}...${address.slice(-4)}`
                 : 'Wallet Disconnected'}
@@ -153,10 +153,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Asset Allocation Breakdown */}
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/40 p-6 backdrop-blur-md">
-          <h3 className="text-lg font-bold mb-4 flex items-center justify-between">
+        <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/40 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
+          <h3 className="text-lg font-bold text-foreground mb-4 flex items-center justify-between">
             <span>Portfolio Target Allocation</span>
-            <span className="text-xs text-gray-400">Total BPS: 10,000 (100.00%)</span>
+            <span className="text-xs text-muted-foreground">Total BPS: 10,000 (100.00%)</span>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

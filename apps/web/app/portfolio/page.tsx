@@ -36,10 +36,10 @@ export default function PortfolioPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
         <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
-          <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
-          <p className="text-gray-400 max-w-md mb-6">
+          <h2 className="text-2xl font-bold mb-4 text-foreground">Connect Your Wallet</h2>
+          <p className="text-muted-foreground max-w-md mb-6">
             Please connect your wallet to view your active index shares, yield metrics, and
             collateral breakdown.
           </p>
@@ -50,10 +50,10 @@ export default function PortfolioPage() {
 
   if (!isSupported) {
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
         <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
-          <h2 className="text-2xl font-bold mb-4 text-amber-400">Switch Network</h2>
-          <p className="text-gray-400 max-w-md mb-6">
+          <h2 className="text-2xl font-bold mb-4 text-amber-500">Switch Network</h2>
+          <p className="text-muted-foreground max-w-md mb-6">
             Please connect your wallet to Base Sepolia to load your vault portfolio.
           </p>
         </main>
@@ -63,14 +63,14 @@ export default function PortfolioPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
         <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10 space-y-6">
-          <div className="h-8 w-64 bg-gray-800 rounded animate-pulse" />
+          <div className="h-8 w-64 bg-muted rounded animate-pulse" />
           <div className="grid grid-cols-4 gap-6">
-            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
-            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
-            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
-            <div className="h-32 bg-gray-800 rounded-2xl animate-pulse" />
+            <div className="h-32 bg-muted rounded-2xl animate-pulse" />
+            <div className="h-32 bg-muted rounded-2xl animate-pulse" />
+            <div className="h-32 bg-muted rounded-2xl animate-pulse" />
+            <div className="h-32 bg-muted rounded-2xl animate-pulse" />
           </div>
         </main>
       </div>
@@ -79,10 +79,10 @@ export default function PortfolioPage() {
 
   if (portfolio === null) {
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
         <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
-          <h2 className="text-2xl font-bold mb-4 text-rose-400">No portfolio data available</h2>
-          <p className="text-gray-400 max-w-md mb-6">
+          <h2 className="text-2xl font-bold mb-4 text-rose-500">No portfolio data available</h2>
+          <p className="text-muted-foreground max-w-md mb-6">
             Unable to query vault portfolio metrics from contract state.
           </p>
         </main>
@@ -92,16 +92,16 @@ export default function PortfolioPage() {
 
   if (sharesBalance === 0n && (portfolio?.assetsBalances?.length ?? 0) === 0) {
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
         <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-center">
-          <h2 className="text-2xl font-bold mb-4">Your portfolio is empty</h2>
-          <p className="text-gray-400 max-w-md mb-6">
+          <h2 className="text-2xl font-bold mb-4 text-foreground">Your portfolio is empty</h2>
+          <p className="text-muted-foreground max-w-md mb-6">
             You do not own any UVBTCETH index shares yet. Deposit USDC collateral to mint index
             shares.
           </p>
           <Link
             href="/deposit"
-            className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white hover:bg-blue-500 transition-all"
+            className="rounded-xl bg-primary px-6 py-3 font-bold text-primary-foreground hover:bg-primary/90 transition-all"
           >
             Make your first deposit
           </Link>
@@ -111,13 +111,15 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {/* Header Title */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Your Portfolio</h1>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Your Portfolio
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Comprehensive strategy breakdown, historical performance charts, and recent activity.
             </p>
           </div>
@@ -125,7 +127,7 @@ export default function PortfolioPage() {
             <button
               onClick={() => refetch()}
               aria-label="Refresh portfolio balances"
-              className="text-xs bg-gray-800 px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl hover:bg-gray-700 transition-colors font-medium"
+              className="text-xs bg-secondary hover:bg-accent border border-border text-foreground px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl transition-colors font-medium"
             >
               Refresh Balances
             </button>
@@ -158,19 +160,19 @@ export default function PortfolioPage() {
         </div>
 
         {/* Assets Collateral Holdings */}
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md mb-8">
-          <h3 className="text-lg font-bold text-white mb-4">Your Collateral Holdings</h3>
+        <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md mb-8 shadow-sm dark:shadow-none">
+          <h3 className="text-lg font-bold text-foreground mb-4">Your Collateral Holdings</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-800 text-xs text-gray-400 uppercase tracking-wider">
+                <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
                   <th className="pb-3 font-semibold">Asset</th>
                   <th className="pb-3 font-semibold">Wallet Balance</th>
                   <th className="pb-3 font-semibold">Redeemable Collateral</th>
                   <th className="pb-3 font-semibold text-right">Redeemable USD</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60 font-mono text-xs">
+              <tbody className="divide-y divide-border/60 font-mono text-xs">
                 {(portfolio.assetsBalances || []).map((asset: PortfolioAsset) => {
                   const balanceNum = Number(asset.balance) / 10 ** asset.decimals;
                   const redeemNum = Number(asset.redeemableAmount) / 10 ** asset.decimals;
@@ -179,15 +181,19 @@ export default function PortfolioPage() {
                     { minimumFractionDigits: 2, maximumFractionDigits: 2 },
                   );
                   return (
-                    <tr key={asset.symbol} className="hover:bg-gray-800/30 transition-colors">
-                      <td className="py-4 font-bold text-white">{asset.name || asset.symbol}</td>
-                      <td className="py-4 text-gray-200">
+                    <tr key={asset.symbol} className="hover:bg-accent/40 transition-colors">
+                      <td className="py-4 font-bold text-foreground">
+                        {asset.name || asset.symbol}
+                      </td>
+                      <td className="py-4 text-foreground">
                         {balanceNum.toLocaleString()} {asset.symbol}
                       </td>
-                      <td className="py-4 text-gray-200">
+                      <td className="py-4 text-foreground">
                         {redeemNum.toLocaleString()} {asset.symbol}
                       </td>
-                      <td className="py-4 text-right text-emerald-400 font-bold">${redeemUSD}</td>
+                      <td className="py-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">
+                        ${redeemUSD}
+                      </td>
                     </tr>
                   );
                 })}
@@ -210,7 +216,7 @@ export default function PortfolioPage() {
 
         {/* Transaction Activity */}
         <div className="mb-8">
-          <h3 className="text-lg font-bold text-white mb-4">Transaction Activity</h3>
+          <h3 className="text-lg font-bold text-foreground mb-4">Transaction Activity</h3>
           <RecentActivityTable />
         </div>
       </main>

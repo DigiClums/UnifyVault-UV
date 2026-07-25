@@ -11,17 +11,19 @@ export function TVLHistoryChart({ tvlFormatted = '$0.00' }: TVLHistoryChartProps
   const [timeframe, setTimeframe] = React.useState<Timeframe>('7D');
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md">
+    <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Total Value Locked (TVL On-Chain)
           </span>
-          <h3 className="text-2xl font-extrabold text-white font-mono mt-1">{tvlFormatted} USD</h3>
+          <h3 className="text-2xl font-extrabold text-foreground font-mono mt-1">
+            {tvlFormatted} USD
+          </h3>
         </div>
 
         {/* Timeframe Selector */}
-        <div className="flex items-center gap-1.5 bg-gray-900/80 p-1 rounded-xl border border-gray-800">
+        <div className="flex items-center gap-1.5 bg-secondary/80 p-1 rounded-xl border border-border">
           {(['24H', '7D', '30D', 'ALL'] as Timeframe[]).map((tf) => (
             <button
               key={tf}
@@ -29,7 +31,7 @@ export function TVLHistoryChart({ tvlFormatted = '$0.00' }: TVLHistoryChartProps
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 timeframe === tf
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {tf}

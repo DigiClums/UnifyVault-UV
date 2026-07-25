@@ -4,46 +4,48 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11.2%;
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11.2%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11.2%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 250 89% 60%;
+    --primary: 243.4 75.4% 58.6%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11.2%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215.4 16.3% 45%;
 
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11.2%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 250 89% 60%;
+    --ring: 243.4 75.4% 58.6%;
 
     --radius: 0.75rem;
+
+    --ambient-glow: rgba(99, 102, 241, 0.08);
   }
 
   .dark {
     --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --foreground: 213 31% 94%;
 
     --card: 224 71% 7%;
-    --card-foreground: 213 31% 91%;
+    --card-foreground: 213 31% 94%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 224 71% 5%;
+    --popover-foreground: 213 31% 94%;
 
     --primary: 250 89% 60%;
     --primary-foreground: 210 40% 98%;
@@ -52,7 +54,7 @@
     --secondary-foreground: 210 40% 98%;
 
     --muted: 222 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
+    --muted-foreground: 215.4 16.3% 58%;
 
     --accent: 222 47% 11%;
     --accent-foreground: 210 40% 98%;
@@ -63,6 +65,8 @@
     --border: 222 47% 15%;
     --input: 222 47% 15%;
     --ring: 250 89% 60%;
+
+    --ambient-glow: rgba(59, 130, 246, 0.15);
   }
 }
 
@@ -70,8 +74,11 @@
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: light dark;
+  }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
