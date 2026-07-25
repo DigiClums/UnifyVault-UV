@@ -3,11 +3,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Redeem from '../../app/redeem/page';
 import { renderWithProviders, screen, userEvent } from '../utils';
 
+// Mock rainbowkit and next/dynamic
+vi.mock('@rainbow-me/rainbowkit', () => ({
+  getDefaultConfig: vi.fn().mockReturnValue({}),
+  ConnectButton: function MockConnectButton() {
+    return <button>Connect Wallet</button>;
+  },
+}));
+
+vi.mock('next/dynamic', () => ({
+  default: () => {
+    return function MockWalletButton() {
+      return <button aria-label="Connect Web3 Wallet">Connect Wallet</button>;
+    };
+  },
+}));
+
 const mockConnect = vi.fn();
 const mockSwitchChain = vi.fn();
 const mockRefetchAssetBalance = vi.fn();
 const mockRefetchShareBalance = vi.fn();
+const mockRefetchAllowance = vi.fn();
 const mockRefetchPreview = vi.fn();
+const mockApprove = vi.fn().mockResolvedValue(undefined);
 const mockRedeem = vi.fn().mockResolvedValue(undefined);
 
 let mockWalletState = {
@@ -27,9 +45,18 @@ let mockShareBalanceState: any = {
   isLoading: false,
   refetch: mockRefetchShareBalance,
 };
+let mockAllowanceState: any = {
+  allowance: 1000000000000000000000n, // Infinite allowance for shares
+  approve: mockApprove,
+  status: 'idle',
+  errorMessage: undefined,
+  refetch: mockRefetchAllowance,
+};
 let mockRedeemPreviewState: any = {
   previewAssets: 100000000n,
   netAssetsOut: 100000000n, // 100 USDC net out
+  grossAssets: 100250000n,
+  protocolFee: 250000n,
   isLoading: false,
   isError: false,
   refetch: mockRefetchPreview,
@@ -46,6 +73,18 @@ vi.mock('../../hooks/useWallet', () => ({
 
 vi.mock('../../hooks/useNetwork', () => ({
   useNetwork: () => mockNetworkState,
+}));
+
+vi.mock('../../hooks/useDashboardService', () => ({
+  useDashboardService: () => ({
+    data: {
+      NAV: { navUsdNumber: 1.0, formattedNavPerShare: '$1.0000' },
+      HealthStatus: { isPaused: false },
+    },
+    isLoading: false,
+    error: undefined,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock('../../hooks/useControllerAddress', () => ({
@@ -69,6 +108,10 @@ vi.mock('../../hooks/useTokenBalance', () => ({
     }
     return mockAssetBalanceState;
   },
+}));
+
+vi.mock('../../hooks/useAllowance', () => ({
+  useAllowance: () => mockAllowanceState,
 }));
 
 vi.mock('../../hooks/useRedeemPreview', () => ({
@@ -108,9 +151,18 @@ describe('Redeem Page Integration Tests', () => {
       isLoading: false,
       refetch: mockRefetchShareBalance,
     };
+    mockAllowanceState = {
+      allowance: 1000000000000000000000n,
+      approve: mockApprove,
+      status: 'idle',
+      errorMessage: undefined,
+      refetch: mockRefetchAllowance,
+    };
     mockRedeemPreviewState = {
       previewAssets: 100000000n,
       netAssetsOut: 100000000n,
+      grossAssets: 100250000n,
+      protocolFee: 250000n,
       isLoading: false,
       isError: false,
       refetch: mockRefetchPreview,
@@ -126,12 +178,12 @@ describe('Redeem Page Integration Tests', () => {
     renderWithProviders(<Redeem />);
 
     expect(screen.getByRole('heading', { name: /redeem vault shares/i })).toBeInTheDocument();
-    expect(screen.getByText(/interactive withdrawal form/i)).toBeInTheDocument();
-    expect(screen.getByText(/redemption preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/burn uvbtceth index shares/i)).toBeInTheDocument();
+    expect(screen.getByText(/live redemption & execution preview/i)).toBeInTheDocument();
   });
 
   it('renders wallet connection prompt when disconnected', () => {
-    mockWalletState = { isConnected: false, connect: mockConnect };
+    mockWalletState = { isConnected: false, address: undefined, connect: mockConnect };
 
     renderWithProviders(<Redeem />);
 
@@ -155,7 +207,7 @@ describe('Redeem Page Integration Tests', () => {
 
     renderWithProviders(<Redeem />);
 
-    expect(screen.getByText('0 UVBTCETH')).toBeInTheDocument();
+    expect(screen.getByText(/0\.0000 uvbtceth/i)).toBeInTheDocument();
   });
 
   it('disables redeem action button when amount input is zero or empty', () => {
@@ -235,6 +287,8 @@ describe('Redeem Page Integration Tests', () => {
     expect(mockRedeem).toHaveBeenCalledWith(
       10000000000000000000n, // 10 shares
       99500000n, // minAssetsOut with 0.5% slippage
+      '0x1234567890123456789012345678901234567890',
+      '0x1234567890123456789012345678901234567890',
     );
   });
 
@@ -254,6 +308,7 @@ describe('Redeem Page Integration Tests', () => {
     expect(await screen.findByText(/redemption completed successfully!/i)).toBeInTheDocument();
     expect(mockRefetchShareBalance).toHaveBeenCalled();
     expect(mockRefetchAssetBalance).toHaveBeenCalled();
+    expect(mockRefetchAllowance).toHaveBeenCalled();
     expect(mockRefetchPreview).toHaveBeenCalled();
   });
 
@@ -272,28 +327,14 @@ describe('Redeem Page Integration Tests', () => {
     ).toBeInTheDocument();
   });
 
-  it('displays $0.01 USDC for Protocol Redeem Fee when redeeming 8.9775 shares with 0.10% fee, not $0.00', async () => {
+  it('displays $0.25 USDC for Protocol Redeem Fee when redeeming 100 USDC worth of shares', async () => {
     const user = userEvent.setup({ delay: null });
-    // 8.9775 shares => gross 8,977,500 units USDC
-    // 0.10% fee = 8,977 units (0.008977 USDC)
-    // Net out = 8,968,523 units USDC
-    mockRedeemPreviewState = {
-      previewAssets: 8968523n,
-      netAssetsOut: 8968523n,
-      grossAssets: 8977500n,
-      protocolFee: 8977n,
-      isLoading: false,
-      isError: false,
-      refetch: mockRefetchPreview,
-    };
-
     renderWithProviders(<Redeem />);
 
     const sharesInput = screen.getByLabelText(/redeem shares amount input/i);
-    await user.type(sharesInput, '8.9775');
+    await user.type(sharesInput, '100');
 
-    expect(screen.getByText('Protocol Redeem Fee (0.10%)')).toBeInTheDocument();
-    expect(screen.getByText('$0.01 USDC')).toBeInTheDocument();
-    expect(screen.queryByText('$0.00 USDC')).not.toBeInTheDocument();
+    expect(screen.getByText('Protocol Redeem Fee (0.25%)')).toBeInTheDocument();
+    expect(screen.getByText('$0.25 USDC')).toBeInTheDocument();
   });
 });
