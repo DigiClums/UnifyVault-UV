@@ -9,6 +9,7 @@ vi.mock('../../components/web3/WalletButton', () => ({
 }));
 
 const mockRefetchPortfolio = vi.fn();
+const mockRefetchDashboard = vi.fn();
 
 let mockWalletState: { isConnected: boolean; address?: string } = {
   isConnected: true,
@@ -38,6 +39,17 @@ let mockPortfolioState: any = {
   refetch: mockRefetchPortfolio,
 };
 
+let mockDashboardState: any = {
+  data: {
+    NAV: { navUsdNumber: 1.0, formattedNavPerShare: '$1.0000' },
+    HealthStatus: { isPaused: false },
+    VaultMetrics: { totalSupply: 10000000000000000000000n },
+  },
+  isLoading: false,
+  error: undefined,
+  refetch: mockRefetchDashboard,
+};
+
 vi.mock('../../hooks/useWallet', () => ({
   useWallet: () => mockWalletState,
 }));
@@ -48,6 +60,10 @@ vi.mock('../../hooks/useNetwork', () => ({
 
 vi.mock('../../hooks/usePortfolio', () => ({
   usePortfolio: () => mockPortfolioState,
+}));
+
+vi.mock('../../hooks/useDashboardService', () => ({
+  useDashboardService: () => mockDashboardState,
 }));
 
 describe('Portfolio Page Integration Tests', () => {
@@ -76,6 +92,16 @@ describe('Portfolio Page Integration Tests', () => {
       },
       isLoading: false,
       refetch: mockRefetchPortfolio,
+    };
+    mockDashboardState = {
+      data: {
+        NAV: { navUsdNumber: 1.0, formattedNavPerShare: '$1.0000' },
+        HealthStatus: { isPaused: false },
+        VaultMetrics: { totalSupply: 10000000000000000000000n },
+      },
+      isLoading: false,
+      error: undefined,
+      refetch: mockRefetchDashboard,
     };
   });
 

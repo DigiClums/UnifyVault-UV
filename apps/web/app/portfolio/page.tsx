@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useWallet } from '../../hooks/useWallet';
 import { useNetwork } from '../../hooks/useNetwork';
 import { usePortfolio } from '../../hooks/usePortfolio';
+import { useDashboardService } from '../../hooks/useDashboardService';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { AllocationChart } from '../../components/charts/AllocationChart';
 import { NAVHistoryChart } from '../../components/charts/NAVHistoryChart';
 import { TVLHistoryChart } from '../../components/charts/TVLHistoryChart';
 import { RecentActivityTable } from '../../components/dashboard/RecentActivityTable';
 import { HealthBadge } from '../../components/ui/HealthBadge';
+import { PortfolioPerformanceCard } from '../../components/portfolio/PortfolioPerformanceCard';
 
 type PortfolioAsset = NonNullable<
   ReturnType<typeof usePortfolio>['portfolio']
@@ -19,7 +21,24 @@ type PortfolioAsset = NonNullable<
 export default function PortfolioPage() {
   const { isConnected, address } = useWallet();
   const { isSupported } = useNetwork();
-  const { portfolio, navData, isLoading, refetch } = usePortfolio();
+  const {
+    portfolio,
+    navData,
+    isLoading: isLoadingPortfolio,
+    refetch: refetchPortfolio,
+  } = usePortfolio();
+  const {
+    data: dashboardData,
+    isLoading: isLoadingDashboard,
+    refetch: refetchDashboard,
+  } = useDashboardService(15000);
+
+  const isLoading = isLoadingPortfolio || (isLoadingDashboard && !dashboardData);
+
+  const handleRefresh = React.useCallback(() => {
+    void refetchPortfolio();
+    void refetchDashboard();
+  }, [refetchPortfolio, refetchDashboard]);
 
   const sharesBalance = portfolio?.sharesBalance ?? 0n;
   const sharesCountFormatted = (Number(sharesBalance) / 1e18).toLocaleString(undefined, {
@@ -33,6 +52,23 @@ export default function PortfolioPage() {
   const totalPortfolioValueUSDFormatted = portfolio?.totalPortfolioValueUSD
     ? `$${(Number(portfolio.totalPortfolioValueUSD) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : '$0.00';
+
+  const grossUSDNum = portfolio?.sharesValueUSD ? Number(portfolio.sharesValueUSD) / 1e18 : 0;
+
+  // Total Supply Ownership Share %
+  const totalSupply = dashboardData?.TotalSupply?.raw;
+  const ownershipPercentage = React.useMemo(() => {
+    if (dashboardData?.UserShareBalance?.ownershipPercentage !== undefined && sharesBalance > 0n) {
+      return `${dashboardData.UserShareBalance.ownershipPercentage.toFixed(2)}%`;
+    }
+    if (!totalSupply || totalSupply === 0n || sharesBalance === 0n) return '0.00%';
+    const pct = (Number(sharesBalance) * 100) / Number(totalSupply);
+    return `${pct.toFixed(2)}%`;
+  }, [sharesBalance, totalSupply, dashboardData?.UserShareBalance?.ownershipPercentage]);
+
+  const formattedNAV =
+    dashboardData?.NAV?.formattedNavPerShare ||
+    (navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000');
 
   if (!isConnected) {
     return (
@@ -110,6 +146,8 @@ export default function PortfolioPage() {
     );
   }
 
+  const isPaused = dashboardData?.HealthStatus?.isPaused ?? false;
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
@@ -125,13 +163,13 @@ export default function PortfolioPage() {
           </div>
           <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
             <button
-              onClick={() => refetch()}
+              onClick={handleRefresh}
               aria-label="Refresh portfolio balances"
               className="text-xs bg-secondary hover:bg-accent border border-border text-foreground px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl transition-colors font-medium"
             >
               Refresh Balances
             </button>
-            <HealthBadge status="HEALTHY" />
+            <HealthBadge status={isPaused ? 'PAUSED' : 'HEALTHY'} />
           </div>
         </div>
 
@@ -159,7 +197,16 @@ export default function PortfolioPage() {
           />
         </div>
 
-        {/* Assets Collateral Holdings */}
+        {/* Performance & Payout Breakdown */}
+        <div className="mb-8">
+          <PortfolioPerformanceCard
+            currentNAV={formattedNAV}
+            grossValueUSD={grossUSDNum}
+            ownershipPercentage={ownershipPercentage}
+          />
+        </div>
+
+        {/* Assets Collateral Holdings Table */}
         <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md mb-8 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-bold text-foreground mb-4">Your Collateral Holdings</h3>
           <div className="overflow-x-auto">
@@ -205,9 +252,7 @@ export default function PortfolioPage() {
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <AllocationChart />
-          <NAVHistoryChart
-            currentNAV={navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000'}
-          />
+          <NAVHistoryChart currentNAV={formattedNAV} />
         </div>
 
         <div className="mb-8">
