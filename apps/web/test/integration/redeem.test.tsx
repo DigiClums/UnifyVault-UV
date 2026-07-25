@@ -200,6 +200,28 @@ describe('Redeem Page Integration Tests', () => {
     expect(sharesInput.value).toBe('50');
   });
 
+  it('populates share balance input correctly when 25%, 50%, 75%, and 100% preset buttons are clicked', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderWithProviders(<Redeem />);
+
+    const btn25 = screen.getByRole('button', { name: '25%' });
+    await user.click(btn25);
+    const sharesInput = screen.getByLabelText(/redeem shares amount input/i) as HTMLInputElement;
+    expect(sharesInput.value).toBe('12.5');
+
+    const btn50 = screen.getByRole('button', { name: '50%' });
+    await user.click(btn50);
+    expect(sharesInput.value).toBe('25');
+
+    const btn75 = screen.getByRole('button', { name: '75%' });
+    await user.click(btn75);
+    expect(sharesInput.value).toBe('37.5');
+
+    const btn100 = screen.getByRole('button', { name: '100%' });
+    await user.click(btn100);
+    expect(sharesInput.value).toBe('50');
+  });
+
   it('executes redeem flow when redeem button is clicked', async () => {
     const user = userEvent.setup({ delay: null });
     renderWithProviders(<Redeem />);
@@ -248,5 +270,30 @@ describe('Redeem Page Integration Tests', () => {
     expect(
       await screen.findByText(/redemption reverted: slippage limit exceeded/i),
     ).toBeInTheDocument();
+  });
+
+  it('displays $0.01 USDC for Protocol Redeem Fee when redeeming 8.9775 shares with 0.10% fee, not $0.00', async () => {
+    const user = userEvent.setup({ delay: null });
+    // 8.9775 shares => gross 8,977,500 units USDC
+    // 0.10% fee = 8,977 units (0.008977 USDC)
+    // Net out = 8,968,523 units USDC
+    mockRedeemPreviewState = {
+      previewAssets: 8968523n,
+      netAssetsOut: 8968523n,
+      grossAssets: 8977500n,
+      protocolFee: 8977n,
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetchPreview,
+    };
+
+    renderWithProviders(<Redeem />);
+
+    const sharesInput = screen.getByLabelText(/redeem shares amount input/i);
+    await user.type(sharesInput, '8.9775');
+
+    expect(screen.getByText('Protocol Redeem Fee (0.10%)')).toBeInTheDocument();
+    expect(screen.getByText('$0.01 USDC')).toBeInTheDocument();
+    expect(screen.queryByText('$0.00 USDC')).not.toBeInTheDocument();
   });
 });

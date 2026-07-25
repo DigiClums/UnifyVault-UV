@@ -3,51 +3,36 @@
 import * as React from 'react';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { useProtocolHealth } from '../../hooks/useProtocolHealth';
+import { useProtocolDirectoryAddresses } from '../../hooks/useProtocolDirectoryAddresses';
+import { getContractAddresses } from '../../lib/config/contracts';
+import { useNetwork } from '../../hooks/useNetwork';
 
 export default function ProtocolHealthPage() {
   const { healthData, lastUpdated, refetch } = useProtocolHealth();
+  const { chainId } = useNetwork();
+  const { controllerAddress, indexTokenAddress, vaultAddress } = useProtocolDirectoryAddresses();
+  const directoryAddress = getContractAddresses(chainId || 84532).directory;
 
   const contracts = [
     {
+      name: 'ProtocolDirectory',
+      address: directoryAddress,
+      status: 'HEALTHY',
+    },
+    {
       name: 'UnifyVaultController',
-      address: '0x1111111111111111111111111111111111111111',
-      status: 'HEALTHY',
-    },
-    {
-      name: 'PortfolioManager',
-      address: '0x2222222222222222222222222222222222222222',
-      status: 'HEALTHY',
-    },
-    {
-      name: 'StrategyManager',
-      address: '0x3333333333333333333333333333333333333333',
-      status: 'HEALTHY',
-    },
-    {
-      name: 'OracleManager',
-      address: '0x4444444444444444444444444444444444444444',
-      status: 'HEALTHY',
-    },
-    {
-      name: 'SwapAdapter',
-      address: '0x5555555555555555555555555555555555555555',
-      status: 'HEALTHY',
-    },
-    {
-      name: 'LiquidityManager',
-      address: '0x6666666666666666666666666666666666666666',
-      status: 'HEALTHY',
+      address: controllerAddress || '0x0000000000000000000000000000000000000000',
+      status: controllerAddress ? 'HEALTHY' : 'LOADING',
     },
     {
       name: 'CustodyVault',
-      address: '0x7777777777777777777777777777777777777777',
-      status: 'HEALTHY',
+      address: vaultAddress || '0x0000000000000000000000000000000000000000',
+      status: vaultAddress ? 'HEALTHY' : 'LOADING',
     },
-    { name: 'Treasury', address: '0x8888888888888888888888888888888888888888', status: 'HEALTHY' },
     {
       name: 'UVBTCETHToken',
-      address: '0x9999999999999999999999999999999999999999',
-      status: 'HEALTHY',
+      address: indexTokenAddress || '0x0000000000000000000000000000000000000000',
+      status: indexTokenAddress ? 'HEALTHY' : 'LOADING',
     },
   ];
 
@@ -69,7 +54,7 @@ export default function ProtocolHealthPage() {
             <HealthBadge status="HEALTHY" />
             <button
               onClick={() => refetch()}
-              className="rounded-xl border border-gray-800 bg-gray-900 px-3.5 py-2 text-xs font-semibold text-gray-300 hover:bg-gray-800 transition-colors flex items-center gap-2"
+              className="rounded-xl border border-gray-800 bg-gray-900 px-3.5 py-2.5 min-h-[44px] text-xs font-semibold text-gray-300 hover:bg-gray-800 transition-colors flex items-center gap-2"
             >
               <span>🔄 Refresh</span>
               <span className="text-gray-500 font-mono">({lastUpdated || 'Just now'})</span>
@@ -89,7 +74,7 @@ export default function ProtocolHealthPage() {
                 <span className="h-3 w-3 rounded-full bg-emerald-400 animate-ping" />
               </h2>
               <p className="text-sm text-gray-300 mt-2">
-                All 9 protocol modules active, Chainlink oracles fresh, and liquidity balances
+                All protocol modules active, Chainlink oracles fresh, and liquidity balances
                 synchronized.
               </p>
             </div>
@@ -97,12 +82,12 @@ export default function ProtocolHealthPage() {
             <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-gray-900/60 p-4 rounded-2xl border border-gray-800/80">
               <div>
                 <span className="text-gray-500 block">Target Network</span>
-                <span className="font-bold text-gray-200">Base Mainnet</span>
+                <span className="font-bold text-gray-200">Base Network</span>
               </div>
               <div>
                 <span className="text-gray-500 block">Current Block</span>
                 <span className="font-bold text-emerald-400">
-                  #{healthData?.blockNumber?.toString() || '24,891,042'}
+                  {healthData?.blockNumber ? `#${healthData.blockNumber.toString()}` : '--'}
                 </span>
               </div>
               <div>
@@ -153,12 +138,16 @@ export default function ProtocolHealthPage() {
             </div>
             <div className="space-y-2 text-xs font-mono">
               <div className="flex justify-between py-1 border-b border-gray-800">
-                <span className="text-gray-400">Operational Bal</span>
-                <span className="text-gray-200 font-bold">$100,000.00 (10%)</span>
+                <span className="text-gray-400">Operational Target</span>
+                <span className="text-gray-200 font-bold">
+                  {healthData?.liquidityStatus.operationalUSD || '10.00%'}
+                </span>
               </div>
               <div className="flex justify-between py-1 border-b border-gray-800">
-                <span className="text-gray-400">Reserve Bal</span>
-                <span className="text-gray-200 font-bold">$900,000.00 (90%)</span>
+                <span className="text-gray-400">Reserve Target</span>
+                <span className="text-gray-200 font-bold">
+                  {healthData?.liquidityStatus.reserveUSD || '90.00%'}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-gray-400">Refill Threshold</span>
@@ -178,7 +167,9 @@ export default function ProtocolHealthPage() {
             <div className="space-y-2 text-xs font-mono">
               <div className="flex justify-between py-1 border-b border-gray-800">
                 <span className="text-gray-400">Accumulated Fees</span>
-                <span className="text-emerald-400 font-bold">$1,245.50 USD</span>
+                <span className="text-emerald-400 font-bold">
+                  {healthData?.treasuryStatus.totalFeesUSD || '$0.00'} USD
+                </span>
               </div>
               <div className="flex justify-between py-1 border-b border-gray-800">
                 <span className="text-gray-400">Deposit Fee</span>
@@ -247,7 +238,7 @@ export default function ProtocolHealthPage() {
                         href={`https://basescan.org/address/${c.address}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-400 hover:underline"
+                        className="inline-flex items-center min-h-[44px] text-blue-400 hover:underline"
                       >
                         Basescan ↗
                       </a>

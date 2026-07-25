@@ -5,6 +5,7 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import 'forge-std/console.sol';
 import '../errors/Errors.sol';
 import '../libraries/AccessRoles.sol';
 
@@ -73,6 +74,13 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
     if (amount == 0) {
       revert Errors.MathCalculationOverflow();
     }
+
+    console.log('CustodyVault.deposit [Vault Deposit Transfer]:');
+    console.log('  Token Address:', asset);
+    console.log('  From Address:', from);
+    console.log('  Spender Address:', address(this));
+    console.log('  Current Allowance:', IERC20(asset).allowance(from, address(this)));
+    console.log('  Requested Amount:', amount);
 
     IERC20(asset).safeTransferFrom(from, address(this), amount);
 

@@ -136,9 +136,7 @@ contract DepositFeeRoutingTest is Test {
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    // Approve net to vault, fee to controller
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     // Expect event emissions
     vm.expectEmit(true, true, true, true);
@@ -194,8 +192,7 @@ contract DepositFeeRoutingTest is Test {
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),

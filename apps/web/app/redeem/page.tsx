@@ -25,7 +25,7 @@ export default function RedeemPage() {
   const { address, isConnected, connect } = useWallet();
   const { chainId, isSupported, switchChain } = useNetwork();
   const { indexTokenAddress } = useIndexTokenAddress();
-  const { navData } = usePortfolio();
+  const { portfolio, navData } = usePortfolio();
 
   const usdcAddress = React.useMemo<`0x${string}`>(() => {
     if (chainId === 8453) return '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -36,11 +36,14 @@ export default function RedeemPage() {
   const { balance: shareBalanceRaw, refetch: refetchShareBalance } =
     useTokenBalance(indexTokenAddress);
   const { refetch: refetchUsdc } = useTokenBalance(usdcAddress);
+
+  const effectiveShareBalance = shareBalanceRaw ?? portfolio?.sharesBalance;
+
   const shareBalanceFormatted =
-    shareBalanceRaw !== undefined
-      ? shareBalanceRaw === 0n
+    effectiveShareBalance !== undefined
+      ? effectiveShareBalance === 0n
         ? '0'
-        : (Number(shareBalanceRaw) / 1e18).toFixed(4)
+        : (Number(effectiveShareBalance) / 1e18).toFixed(4)
       : '0.0000';
 
   const parsedShares = React.useMemo(() => {
@@ -51,13 +54,19 @@ export default function RedeemPage() {
     }
   }, [sharesInput]);
 
-  const { previewAssets, refetch: refetchPreview } = useRedeemPreview(usdcAddress, parsedShares);
+  const {
+    previewAssets,
+    grossAssets,
+    protocolFee,
+    isLoading: isLoadingPreview,
+    refetch: refetchPreview,
+  } = useRedeemPreview(usdcAddress, sharesInput);
   const { redeem, status, errorMessage, txHash } = useRedeem(usdcAddress);
   const { openModal, setStep, setTxHash, setError } = useTransactionStore();
 
   const handlePercentagePreset = (percentage: number) => {
-    if (!shareBalanceRaw) return;
-    const selectedShares = (shareBalanceRaw * BigInt(percentage)) / 100n;
+    if (!effectiveShareBalance) return;
+    const selectedShares = (effectiveShareBalance * BigInt(percentage)) / 100n;
     setSharesInput(formatUnits(selectedShares, 18));
   };
 
@@ -105,25 +114,52 @@ export default function RedeemPage() {
     refetchPreview,
   ]);
 
-  const formattedOutputUSDC = previewAssets ? (Number(previewAssets) / 1e6).toFixed(2) : '0.00';
-  const grossUSD = previewAssets ? (Number(previewAssets) / 1e6 / 0.999).toFixed(2) : '0.00';
-  const feeUSD = previewAssets
-    ? (Number(grossUSD) - Number(formattedOutputUSDC)).toFixed(2)
-    : '0.00';
+  const navPerShareNum = navData ? Number(navData.navPerShare) / 1e18 : 1.0;
+  const sharesNum = Number(parsedShares) / 1e18;
+  const estGross = sharesNum * navPerShareNum;
+  const estFee = estGross * 0.001;
+  const estNet = estGross - estFee;
+
+  const formattedOutputUSDC = previewAssets
+    ? (Number(previewAssets) / 1e6).toFixed(2)
+    : parsedShares > 0n
+      ? estNet.toFixed(2)
+      : '0.00';
+
+  const grossUSD = grossAssets
+    ? (Number(grossAssets) / 1e6).toFixed(2)
+    : previewAssets
+      ? (Number(previewAssets) / 1e6 / 0.999).toFixed(2)
+      : parsedShares > 0n
+        ? estGross.toFixed(2)
+        : '0.00';
+
+  const feeUSD = protocolFee
+    ? (Number(protocolFee) / 1e6).toFixed(2)
+    : previewAssets
+      ? ((Number(previewAssets) / 1e6 / 0.999) * 0.001).toFixed(2)
+      : parsedShares > 0n
+        ? estFee > 0 && estFee < 0.005
+          ? '0.01'
+          : estFee.toFixed(2)
+        : '0.00';
+
   const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-12">
-        <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-6">
+      <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Redeem Vault Shares</h1>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                Redeem Vault Shares
+              </h1>
               <p className="text-xs text-gray-400 mt-1">
                 Interactive withdrawal form: Burn UVBTCETH shares and receive USDC payout
               </p>
             </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
               0.1% Fee
             </span>
           </div>
@@ -146,25 +182,25 @@ export default function RedeemPage() {
                 value={sharesInput}
                 onChange={(e) => setSharesInput(e.target.value)}
                 placeholder="0.0"
-                className="w-full bg-transparent font-mono text-3xl font-extrabold text-white focus:outline-none"
+                className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-white focus:outline-none min-h-[44px]"
               />
               <button
                 onClick={() =>
                   setSharesInput(
-                    shareBalanceRaw
-                      ? formatUnits(shareBalanceRaw, 18)
+                    effectiveShareBalance
+                      ? formatUnits(effectiveShareBalance, 18)
                       : shareBalanceFormatted || '0',
                   )
                 }
                 aria-label="Max"
-                className="rounded-lg bg-purple-600/10 border border-purple-500/20 px-3 py-1 text-xs font-bold text-purple-400 hover:bg-purple-600/20 transition-colors font-mono"
+                className="rounded-lg bg-purple-600/10 border border-purple-500/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-purple-400 hover:bg-purple-600/20 transition-colors font-mono"
               >
                 MAX
               </button>
             </div>
           </div>
 
-          {parsedShares > (shareBalanceRaw || 0n) && (
+          {parsedShares > (effectiveShareBalance || 0n) && (
             <p className="text-xs text-rose-400 mb-4 font-semibold">
               Insufficient UVBTCETH share balance.
             </p>
@@ -176,7 +212,7 @@ export default function RedeemPage() {
               <button
                 key={pct}
                 onClick={() => handlePercentagePreset(pct)}
-                className="rounded-xl border border-gray-800 bg-gray-900/40 py-2 text-xs font-bold text-gray-300 hover:border-blue-500/30 hover:bg-blue-600/10 hover:text-blue-400 transition-all"
+                className="rounded-xl border border-gray-800 bg-gray-900/40 py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-gray-300 hover:border-blue-500/30 hover:bg-blue-600/10 hover:text-blue-400 transition-all"
               >
                 {pct}%
               </button>
@@ -185,22 +221,35 @@ export default function RedeemPage() {
 
           {/* Output Preview */}
           <div className="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-4 space-y-3 mb-8">
-            <div className="text-xs text-gray-400 font-semibold mb-2">Redemption Preview</div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-400 font-semibold">Redemption Preview</span>
+              {isLoadingPreview && (
+                <span className="text-[10px] font-mono text-purple-400 animate-pulse">
+                  Calculating payout...
+                </span>
+              )}
+            </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Current NAV Per Share</span>
               <span className="font-mono font-semibold text-gray-200">{formattedNAV}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Gross Asset Valuation</span>
-              <span className="font-mono text-gray-300">${grossUSD} USDC</span>
+              <span className="font-mono text-gray-300">
+                {isLoadingPreview ? '...' : `$${grossUSD} USDC`}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Protocol Redeem Fee (0.10%)</span>
-              <span className="font-mono text-gray-300">${feeUSD} USDC</span>
+              <span className="font-mono text-gray-300">
+                {isLoadingPreview ? '...' : `$${feeUSD} USDC`}
+              </span>
             </div>
             <div className="pt-2 border-t border-gray-800 flex items-center justify-between text-sm font-bold">
               <span className="text-gray-200">Expected USDC Return</span>
-              <span className="font-mono text-emerald-400">${formattedOutputUSDC} USDC</span>
+              <span className="font-mono text-emerald-400">
+                {isLoadingPreview ? '...' : `$${formattedOutputUSDC} USDC`}
+              </span>
             </div>
           </div>
 
@@ -232,7 +281,7 @@ export default function RedeemPage() {
               onClick={handleRedeem}
               disabled={
                 parsedShares === 0n ||
-                parsedShares > (shareBalanceRaw || 0n) ||
+                parsedShares > (effectiveShareBalance || 0n) ||
                 status === 'submitting' ||
                 status === 'pending'
               }

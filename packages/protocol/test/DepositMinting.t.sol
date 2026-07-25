@@ -138,8 +138,7 @@ contract DepositMintingTest is Test {
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     vm.expectEmit(true, true, true, true);
     emit DepositCompleted(user, address(tokenA), amount, expectedFee, expectedNet, expectedNet);
@@ -161,8 +160,7 @@ contract DepositMintingTest is Test {
 
     tokenA.mint(user, amount1);
     vm.startPrank(user);
-    tokenA.approve(address(vault), net1);
-    tokenA.approve(address(controller), fee1);
+    tokenA.approve(address(controller), amount1);
     controller.deposit(address(tokenA), amount1, 0, user);
     vm.stopPrank();
 
@@ -175,8 +173,7 @@ contract DepositMintingTest is Test {
 
     tokenA.mint(user2, amount2);
     vm.startPrank(user2);
-    tokenA.approve(address(vault), net2);
-    tokenA.approve(address(controller), fee2);
+    tokenA.approve(address(controller), amount2);
 
     controller.deposit(address(tokenA), amount2, 0, user2);
     vm.stopPrank();
@@ -212,8 +209,7 @@ contract DepositMintingTest is Test {
 
     tokenA.mint(user, amount);
     vm.startPrank(user);
-    tokenA.approve(address(vault), net);
-    tokenA.approve(address(controller), fee);
+    tokenA.approve(address(controller), amount);
     controller.deposit(address(tokenA), amount, 0, user);
     vm.stopPrank();
 
@@ -230,8 +226,7 @@ contract DepositMintingTest is Test {
 
     tokenA.mint(user, amount);
     vm.startPrank(user);
-    tokenA.approve(address(vault), net);
-    tokenA.approve(address(controller), fee);
+    tokenA.approve(address(controller), amount);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),

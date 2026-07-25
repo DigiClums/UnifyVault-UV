@@ -125,8 +125,7 @@ contract RedemptionTest is Test {
     tokenA.mint(depositor, amount);
 
     vm.startPrank(depositor);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),

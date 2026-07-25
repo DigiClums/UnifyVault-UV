@@ -7,36 +7,36 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-blue-600/20 blur-3xl pointer-events-none" />
+      <section className="relative overflow-hidden pt-12 pb-14 sm:pt-24 sm:pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 sm:h-96 w-64 sm:w-96 rounded-full bg-blue-600/20 blur-3xl pointer-events-none" />
 
         <div className="mx-auto max-w-5xl text-center relative z-10">
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-4 py-1.5 text-xs font-semibold text-blue-400 mb-6">
+          <span className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-3.5 py-1 text-[11px] sm:text-xs font-semibold text-blue-400 mb-6">
             ✨ UnifyVault V2 Live on Base Mainnet
           </span>
-          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight leading-tight">
-            Institutional-Grade <br />
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-tight sm:leading-tight">
+            Institutional-Grade <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
               Multi-Asset Crypto Index Vaults
             </span>
           </h1>
-          <p className="mt-6 text-lg sm:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+          <p className="mt-4 sm:mt-6 text-base sm:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
             Deposit USDC collateral to mint{' '}
-            <code className="text-blue-300 bg-blue-950/50 px-2 py-0.5 rounded font-mono">
+            <code className="text-blue-300 bg-blue-950/50 px-2 py-0.5 rounded font-mono text-sm sm:text-base">
               UVBTCETH
             </code>{' '}
             index shares representing 100% asset-backed, target-allocated ownership of Wrapped
             Bitcoin (cbBTC) and Ether (WETH).
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4">
             <Link
               href="/dashboard"
-              className="w-full sm:w-auto rounded-xl bg-blue-600 px-8 py-4 font-bold text-white shadow-xl shadow-blue-500/25 hover:bg-blue-500 transition-all hover:scale-105"
+              className="w-full sm:w-auto rounded-xl bg-blue-600 px-8 py-3.5 sm:py-4 font-bold text-white shadow-xl shadow-blue-500/25 hover:bg-blue-500 transition-all hover:scale-105 text-center"
             >
               Launch App
             </Link>
-            <div className="w-full sm:w-auto">
+            <div className="w-full sm:w-auto flex justify-center">
               <ConnectButton label="Connect Wallet" />
             </div>
           </div>

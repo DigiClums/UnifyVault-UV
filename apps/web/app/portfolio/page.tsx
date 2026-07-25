@@ -19,7 +19,7 @@ type PortfolioAsset = NonNullable<
 export default function PortfolioPage() {
   const { isConnected, address } = useWallet();
   const { isSupported } = useNetwork();
-  const { portfolio, isLoading, refetch } = usePortfolio();
+  const { portfolio, navData, isLoading, refetch } = usePortfolio();
 
   const sharesBalance = portfolio?.sharesBalance ?? 0n;
   const sharesCountFormatted = (Number(sharesBalance) / 1e18).toLocaleString(undefined, {
@@ -112,20 +112,20 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {/* Header Title */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Your Portfolio</h1>
-            <p className="text-sm text-gray-400 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Your Portfolio</h1>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">
               Comprehensive strategy breakdown, historical performance charts, and recent activity.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
             <button
               onClick={() => refetch()}
               aria-label="Refresh portfolio balances"
-              className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+              className="text-xs bg-gray-800 px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl hover:bg-gray-700 transition-colors font-medium"
             >
               Refresh Balances
             </button>
@@ -199,11 +199,13 @@ export default function PortfolioPage() {
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <AllocationChart />
-          <NAVHistoryChart />
+          <NAVHistoryChart
+            currentNAV={navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000'}
+          />
         </div>
 
         <div className="mb-8">
-          <TVLHistoryChart />
+          <TVLHistoryChart tvlFormatted={totalPortfolioValueUSDFormatted} />
         </div>
 
         {/* Transaction Activity */}

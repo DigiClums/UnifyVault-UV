@@ -132,7 +132,6 @@ contract AccessControlTest is Test {
     // Controller should be able to trigger a deposit which mints
     mockCollateral.mint(rando, 10 * 10 ** 18);
     vm.startPrank(rando);
-    mockCollateral.approve(address(vault), 10 * 10 ** 18);
     mockCollateral.approve(controllerAddr, 10 * 10 ** 18);
     controller.deposit(address(mockCollateral), 10 * 10 ** 18, 0, rando);
     vm.stopPrank();

@@ -56,9 +56,16 @@ export function useAllowance(
     contracts: allowanceContracts,
     query: {
       enabled: allowanceContracts.length > 0,
-      staleTime: 5000,
+      staleTime: 0,
     },
   });
+
+  const wrappedRefetch = React.useCallback(async () => {
+    console.log('[AUDIT] allowance refetch starts');
+    const res = await refetch();
+    console.log('[AUDIT] allowance refetch ends', res);
+    return res;
+  }, [refetch]);
 
   const allowancePrimary = React.useMemo(() => {
     if (!spenderAddress || !allowanceData || allowanceData.length === 0) return undefined;
@@ -100,12 +107,30 @@ export function useAllowance(
 
   const approve = React.useCallback(
     async (amount: bigint) => {
-      if (!tokenAddress) return;
+      if (!tokenAddress || !spenderAddress) {
+        throw new Error('Token address or spender address not available');
+      }
       setErrorMessage(undefined);
       setTxHash(undefined);
       setIsSigning(true);
+      console.log('[AUDIT] approve: starting approval writeContractAsync');
       try {
-        // Approve secondary spender (CustodyVault) if insufficient allowance
+        // Approve primary spender (Controller)
+        const hashPrim = await writeContractAsync({
+          address: tokenAddress,
+          abi: IERC20_ABI,
+          functionName: 'approve',
+          args: [spenderAddress, amount],
+        });
+        console.log('[AUDIT] approval transaction hash received:', hashPrim);
+        setTxHash(hashPrim);
+        if (publicClient) {
+          console.log('[AUDIT] waiting for approval transaction receipt...');
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: hashPrim });
+          console.log('[AUDIT] approval receipt confirmed:', receipt);
+        }
+
+        // Approve secondary spender if provided and needed
         if (secondarySpenderAddress) {
           const secondaryCurrent = (allowanceSecondary as bigint | undefined) ?? 0n;
           if (secondaryCurrent < amount) {
@@ -115,30 +140,17 @@ export function useAllowance(
               functionName: 'approve',
               args: [secondarySpenderAddress, amount],
             });
+            console.log('[AUDIT] secondary approval transaction hash received:', hashSec);
             setTxHash(hashSec);
             if (publicClient) {
-              await publicClient.waitForTransactionReceipt({ hash: hashSec });
+              const receiptSec = await publicClient.waitForTransactionReceipt({ hash: hashSec });
+              console.log('[AUDIT] secondary approval receipt confirmed:', receiptSec);
             }
           }
         }
-        // Approve primary spender (Controller) if insufficient allowance
-        if (spenderAddress) {
-          const primaryCurrent = (allowancePrimary as bigint | undefined) ?? 0n;
-          if (primaryCurrent < amount) {
-            const hashPrim = await writeContractAsync({
-              address: tokenAddress,
-              abi: IERC20_ABI,
-              functionName: 'approve',
-              args: [spenderAddress, amount],
-            });
-            setTxHash(hashPrim);
-            if (publicClient) {
-              await publicClient.waitForTransactionReceipt({ hash: hashPrim });
-            }
-          }
-        }
-        await refetch();
+        await wrappedRefetch();
       } catch (err) {
+        console.error('[AUDIT] every caught exception with full error object (approval):', err);
         setErrorMessage(parseWalletError(err));
         throw err;
       } finally {
@@ -149,11 +161,10 @@ export function useAllowance(
       tokenAddress,
       spenderAddress,
       secondarySpenderAddress,
-      allowancePrimary,
       allowanceSecondary,
       writeContractAsync,
       publicClient,
-      refetch,
+      wrappedRefetch,
     ],
   );
 
@@ -171,13 +182,20 @@ export function useAllowance(
   }, [isTxSuccess, isTxPending, isSigning, isApproveSubmitPending]);
 
   const isApproving = React.useMemo(() => {
-    return (
+    const approvingState =
       isSigning ||
       isApproveSubmitPending ||
       isTxPending ||
       status === 'submitting' ||
-      status === 'pending'
-    );
+      status === 'pending';
+    console.log('[AUDIT] every loading state update (useAllowance):', {
+      isSigning,
+      isApproveSubmitPending,
+      isTxPending,
+      status,
+      isApproving: approvingState,
+    });
+    return approvingState;
   }, [isSigning, isApproveSubmitPending, isTxPending, status]);
 
   return {

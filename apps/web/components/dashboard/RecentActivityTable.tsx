@@ -15,28 +15,7 @@ interface RecentActivityTableProps {
 }
 
 export function RecentActivityTable({ transactions }: RecentActivityTableProps) {
-  const defaultTxs: ActivityTx[] = [
-    {
-      id: '1',
-      type: 'DEPOSIT',
-      amount: '$1,000.00 USDC',
-      shares: '999.0000 UVBTCETH',
-      timestamp: '10 mins ago',
-      status: 'CONFIRMED',
-      txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-    },
-    {
-      id: '2',
-      type: 'REDEEM',
-      amount: '$500.00 USDC',
-      shares: '499.5000 UVBTCETH',
-      timestamp: '1 hour ago',
-      status: 'CONFIRMED',
-      txHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as `0x${string}`,
-    },
-  ];
-
-  const list = transactions || defaultTxs;
+  const list = transactions || [];
 
   if (list.length === 0) {
     return (

@@ -116,8 +116,7 @@ contract AccountingModelTest is Test {
     // Perform initial deposit
     tokenA.mint(user, depositAmt);
     vm.startPrank(user);
-    tokenA.approve(address(vault), net);
-    tokenA.approve(address(controller), fee);
+    tokenA.approve(address(controller), depositAmt);
     controller.deposit(address(tokenA), depositAmt, 0, user);
     vm.stopPrank();
 
@@ -139,8 +138,7 @@ contract AccountingModelTest is Test {
     address user2 = address(0x333);
     tokenA.mint(user2, depositAmt);
     vm.startPrank(user2);
-    tokenA.approve(address(vault), net);
-    tokenA.approve(address(controller), fee);
+    tokenA.approve(address(controller), depositAmt);
     controller.deposit(address(tokenA), depositAmt, 0, user2);
     vm.stopPrank();
 
@@ -177,8 +175,7 @@ contract AccountingModelTest is Test {
     // 1. First Deposit (Bootstrap)
     tokenA.mint(user, depositAmt1);
     vm.startPrank(user);
-    tokenA.approve(address(vault), net1);
-    tokenA.approve(address(controller), fee1);
+    tokenA.approve(address(controller), depositAmt1);
     controller.deposit(address(tokenA), depositAmt1, 0, user);
     vm.stopPrank();
 
@@ -191,8 +188,7 @@ contract AccountingModelTest is Test {
     address user2 = address(0x333);
     tokenA.mint(user2, depositAmt2);
     vm.startPrank(user2);
-    tokenA.approve(address(vault), net2);
-    tokenA.approve(address(controller), fee2);
+    tokenA.approve(address(controller), depositAmt2);
     controller.deposit(address(tokenA), depositAmt2, 0, user2);
     vm.stopPrank();
 

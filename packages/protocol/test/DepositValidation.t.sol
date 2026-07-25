@@ -120,8 +120,7 @@ contract DepositValidationTest is Test {
 
     deal(tokenA, user, amount);
     vm.startPrank(user);
-    IERC20(tokenA).approve(address(vault), expectedNet);
-    IERC20(tokenA).approve(address(controller), expectedFee);
+    IERC20(tokenA).approve(address(controller), amount);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(tokenA, amount, 0, user);
     vm.stopPrank();

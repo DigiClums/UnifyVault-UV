@@ -134,8 +134,7 @@ contract ShareLibPrecisionTest is Test {
     usdc.mint(user1, depositAmt);
 
     vm.startPrank(user1);
-    usdc.approve(address(vault), expectedNet);
-    usdc.approve(address(controller), expectedFee);
+    usdc.approve(address(controller), depositAmt);
 
     // Preview verification
     uint256 previewShares = controller.previewDeposit(address(usdc), depositAmt);

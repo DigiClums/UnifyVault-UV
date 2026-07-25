@@ -171,8 +171,7 @@ contract DepositCollateralTest is Test {
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     // Expect event emission
     vm.expectEmit(true, true, true, true);
@@ -205,14 +204,11 @@ contract DepositCollateralTest is Test {
 
   function testInsufficientAllowanceRevert() public {
     uint256 amount = 10 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
 
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet - 1);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount - 1);
 
     // Reverts inside safeTransferFrom due to allowance exhaustion
     vm.expectRevert();
@@ -220,16 +216,31 @@ contract DepositCollateralTest is Test {
     vm.stopPrank();
   }
 
-  function testInsufficientBalanceRevert() public {
+  function testDepositSucceedsWithControllerApprovalOnly() public {
     uint256 amount = 10 * 10 ** 18;
     uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
     uint256 expectedNet = amount - expectedFee;
 
+    tokenA.mint(user, amount);
+
+    // User only approves controller for full amount
+    vm.startPrank(user);
+    tokenA.approve(address(controller), amount);
+
+    controller.deposit(address(tokenA), amount, 0, user);
+    vm.stopPrank();
+
+    assertEq(tokenA.balanceOf(address(vault)), expectedNet);
+    assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
+  }
+
+  function testInsufficientBalanceRevert() public {
+    uint256 amount = 10 * 10 ** 18;
+
     tokenA.mint(user, amount - 1);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     // Reverts inside safeTransferFrom due to insufficient balance
     vm.expectRevert();
@@ -237,8 +248,30 @@ contract DepositCollateralTest is Test {
     vm.stopPrank();
   }
 
+  function testZeroAmountDepositRevert() public {
+    vm.startPrank(user);
+    tokenA.approve(address(controller), 10 * 10 ** 18);
+
+    vm.expectRevert(abi.encodeWithSelector(ProtocolErrors.MathCalculationOverflow.selector));
+    controller.deposit(address(tokenA), 0, 0, user);
+    vm.stopPrank();
+  }
+
+  function testZeroAddressReceiverRevert() public {
+    tokenA.mint(user, 10 * 10 ** 18);
+
+    vm.startPrank(user);
+    tokenA.approve(address(controller), 10 * 10 ** 18);
+
+    vm.expectRevert(abi.encodeWithSelector(ProtocolErrors.ZeroAddressDetected.selector));
+    controller.deposit(address(tokenA), 10 * 10 ** 18, 0, address(0));
+    vm.stopPrank();
+  }
+
   function testUnsupportedAssetRevert() public {
-    address unsupported = address(0x999);
+    address unsupported = address(0x9999);
+
+    vm.startPrank(user);
     vm.expectRevert(
       abi.encodeWithSelector(
         ProtocolErrors.AssetNotSupported.selector,
@@ -246,6 +279,7 @@ contract DepositCollateralTest is Test {
       )
     );
     controller.deposit(unsupported, 10 * 10 ** 18, 0, user);
+    vm.stopPrank();
   }
 
   function testPausedProtocolRevert() public {
@@ -258,14 +292,11 @@ contract DepositCollateralTest is Test {
 
   function testFeeOnTransferTokenRejected() public {
     uint256 amount = 10 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
 
     tokenFOT.mint(user, amount);
 
     vm.startPrank(user);
-    tokenFOT.approve(address(vault), expectedNet);
-    tokenFOT.approve(address(controller), expectedFee);
+    tokenFOT.approve(address(controller), amount);
 
     // Reverts with InsufficientReserves due to balance mismatch (since transfer takes extra FOT fee)
     vm.expectRevert();
@@ -275,14 +306,11 @@ contract DepositCollateralTest is Test {
 
   function testRebasingMockRejected() public {
     uint256 amount = 100 * 10 ** 18;
-    uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
-    uint256 expectedNet = amount - expectedFee;
 
     tokenRebase.mint(user, amount);
 
     vm.startPrank(user);
-    tokenRebase.approve(address(vault), expectedNet);
-    tokenRebase.approve(address(controller), expectedFee);
+    tokenRebase.approve(address(controller), amount);
 
     // Reverts with InsufficientReserves due to balance mismatch
     vm.expectRevert();
@@ -305,8 +333,7 @@ contract DepositCollateralTest is Test {
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),

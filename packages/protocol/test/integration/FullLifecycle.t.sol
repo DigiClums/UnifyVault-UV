@@ -107,8 +107,7 @@ contract FullLifecycleTest is Test {
     mockCollateral.mint(user1, depositAmt1);
 
     vm.startPrank(user1);
-    mockCollateral.approve(address(vault), expectedNet1);
-    mockCollateral.approve(address(controller), expectedFee1);
+    mockCollateral.approve(address(controller), depositAmt1);
 
     // --- Step 2: First Deposit (Bootstrap) ---
     controller.deposit(address(mockCollateral), depositAmt1, 0, user1);
@@ -129,8 +128,7 @@ contract FullLifecycleTest is Test {
     mockCollateral.mint(user2, depositAmt2);
 
     vm.startPrank(user2);
-    mockCollateral.approve(address(vault), expectedNet2);
-    mockCollateral.approve(address(controller), expectedFee2);
+    mockCollateral.approve(address(controller), depositAmt2);
 
     controller.deposit(address(mockCollateral), depositAmt2, 0, user2);
     vm.stopPrank();

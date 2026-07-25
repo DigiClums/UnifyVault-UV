@@ -61,9 +61,24 @@ export function useRedeemPreview(tokenAddress?: `0x${string}`, sharesInput?: str
 
   const assets = netAssetsOut as bigint | undefined;
 
+  const { grossAssets, protocolFee } = React.useMemo(() => {
+    if (assets === undefined) {
+      return { grossAssets: undefined, protocolFee: undefined };
+    }
+    // Protocol redeem fee is 0.10% (10 BPS)
+    // netAssetsOut = grossAssets - (grossAssets * 10) / 10000 = (grossAssets * 9990) / 10000
+    // grossAssets = (netAssetsOut * 10000) / 9990
+    // protocolFee = grossAssets - netAssetsOut
+    const gross = (assets * 10000n) / 9990n;
+    const fee = gross - assets;
+    return { grossAssets: gross, protocolFee: fee };
+  }, [assets]);
+
   return {
     previewAssets: assets,
     netAssetsOut: assets,
+    grossAssets,
+    protocolFee,
     isLoading: isLoading && parsedShares > 0n,
     isError,
     error,

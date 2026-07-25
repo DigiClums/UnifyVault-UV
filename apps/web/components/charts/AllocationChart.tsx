@@ -20,14 +20,14 @@ export function AllocationChart({ items }: AllocationChartProps) {
       symbol: 'cbBTC',
       name: 'Coinbase Wrapped BTC',
       percentage: 60,
-      valueUSD: '$600,000.00',
+      valueUSD: '60.00% Target',
       color: '#F59E0B',
     },
     {
       symbol: 'WETH',
       name: 'Wrapped Ether',
       percentage: 40,
-      valueUSD: '$400,000.00',
+      valueUSD: '40.00% Target',
       color: '#6366F1',
     },
   ];

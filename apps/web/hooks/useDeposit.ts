@@ -45,9 +45,21 @@ export function useDeposit(tokenAddress?: `0x${string}`) {
       setErrorMessage(undefined);
       setTxHash(undefined);
       setIsSigning(true);
+      console.log('[AUDIT] call to controller.deposit() (or equivalent writeContract)', {
+        controllerAddress,
+        tokenAddress,
+        amount,
+        minSharesOut,
+        receiver,
+        hasSimulation: !!simulation?.request,
+      });
       try {
         if (simulation?.request) {
           const hash = await writeContractAsync(simulation.request);
+          console.log(
+            '[AUDIT] transaction hash returned from deposit write (simulation path):',
+            hash,
+          );
           setTxHash(hash);
         } else {
           const hash = await writeContractAsync({
@@ -56,9 +68,11 @@ export function useDeposit(tokenAddress?: `0x${string}`) {
             functionName: 'deposit',
             args: [tokenAddress, amount, minSharesOut, receiver],
           });
+          console.log('[AUDIT] transaction hash returned from deposit write (direct path):', hash);
           setTxHash(hash);
         }
       } catch (err) {
+        console.error('[AUDIT] every caught exception with full error object (deposit):', err);
         setErrorMessage(parseWalletError(err));
       } finally {
         setIsSigning(false);
@@ -75,10 +89,21 @@ export function useDeposit(tokenAddress?: `0x${string}`) {
   }, []);
 
   const status = React.useMemo(() => {
-    if (isTxSuccess) return 'confirmed';
-    if (isTxPending) return 'pending';
-    if (isSigning || isSubmitPending) return 'submitting';
-    return 'idle';
+    const currentStatus = isTxSuccess
+      ? 'confirmed'
+      : isTxPending
+        ? 'pending'
+        : isSigning || isSubmitPending
+          ? 'submitting'
+          : 'idle';
+    console.log('[AUDIT] every loading state update (useDeposit status):', {
+      isSigning,
+      isSubmitPending,
+      isTxPending,
+      isTxSuccess,
+      status: currentStatus,
+    });
+    return currentStatus;
   }, [isTxSuccess, isTxPending, isSigning, isSubmitPending]);
 
   return {

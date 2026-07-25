@@ -107,12 +107,21 @@ export const getExplorerLink = (
 
 export const parseWalletError = (error: unknown): string => {
   if (!error) return '';
-  const err = error as { code?: number; message?: string; shortMessage?: string };
-
-  const message = err.message || '';
-  const code = err.code;
+  const err = error as {
+    code?: number;
+    message?: string;
+    shortMessage?: string;
+    details?: string;
+    cause?: any;
+    walk?: (fn?: (e: any) => boolean) => any;
+  };
 
   // 1. User rejects connection / transaction / chain switch
+  const message = err.message || '';
+  const shortMessage = err.shortMessage || '';
+  const details = err.details || '';
+  const code = err.code;
+
   if (
     code === 4001 ||
     message.includes('User rejected') ||
@@ -159,5 +168,32 @@ export const parseWalletError = (error: unknown): string => {
     return 'RPC server is currently unreachable. Please check your network connection and try again.';
   }
 
-  return 'An unexpected wallet error occurred. Please try again.';
+  // 6. Extract Solidity revert reasons or contract execution errors
+  // A) Walk viem error tree for root cause with reason/errorName
+  if (typeof err.walk === 'function') {
+    const walked = err.walk((e: any) => Boolean(e?.reason || e?.data?.errorName));
+    if (walked?.reason) return String(walked.reason);
+    if (walked?.data?.errorName) return String(walked.data.errorName);
+  }
+
+  // B) Check direct cause properties
+  if (err.cause?.reason) return String(err.cause.reason);
+  if (err.cause?.data?.errorName) return String(err.cause.data.errorName);
+
+  // C) Match revert pattern in messages
+  const combinedText = `${shortMessage}\n${message}\n${details}`;
+  const revertMatch = combinedText.match(
+    /(?:(?:Execution )?reverted (?:with (?:the following )?(?:reason|error)?:?|with:?|:?)\s*)([^\n\r]+)/i,
+  );
+  if (revertMatch && revertMatch[1]) {
+    const reason = revertMatch[1].trim();
+    if (reason) return reason;
+  }
+
+  // D) Fallback to shortMessage if available
+  if (shortMessage) {
+    return shortMessage;
+  }
+
+  return message || 'An unexpected wallet error occurred. Please try again.';
 };

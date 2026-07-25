@@ -98,8 +98,7 @@ contract RedemptionFuzzTest is Test {
     tokenA.mint(depositor, amount);
 
     vm.startPrank(depositor);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),
@@ -182,18 +181,14 @@ contract RedemptionFuzzTest is Test {
       vm.startPrank(alice);
       uint256 fee = FeeLib.calculateDepositFee(depositAmount);
       uint256 net = FeeLib.calculateNetDeposit(depositAmount);
-      tokenA.approve(address(vault), net);
-      tokenA.approve(address(controller), fee);
+      tokenA.approve(address(controller), depositAmount);
       controller.deposit(address(tokenA), depositAmount, 0, alice);
       vm.stopPrank();
 
       // Bob deposits
       tokenA.mint(bob, depositAmount);
       vm.startPrank(bob);
-      fee = FeeLib.calculateDepositFee(depositAmount);
-      net = FeeLib.calculateNetDeposit(depositAmount);
-      tokenA.approve(address(vault), net);
-      tokenA.approve(address(controller), fee);
+      tokenA.approve(address(controller), depositAmount);
       controller.deposit(address(tokenA), depositAmount, 0, bob);
       vm.stopPrank();
 

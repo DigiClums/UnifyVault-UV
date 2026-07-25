@@ -13,19 +13,21 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <div className="w-9 h-9 rounded-md bg-secondary animate-pulse" />;
+    return (
+      <div className="w-11 h-11 rounded-lg bg-gray-900/80 border border-gray-800 animate-pulse" />
+    );
   }
 
   return (
     <button
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      className="p-2 rounded-lg bg-secondary hover:bg-accent border border-border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
+      className="p-2.5 rounded-lg bg-gray-900/80 hover:bg-gray-800 dark:bg-secondary dark:hover:bg-accent border border-gray-800 dark:border-border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center min-h-[44px] min-w-[44px]"
       aria-label="Toggle Theme"
     >
       {resolvedTheme === 'dark' ? (
-        <Sun className="w-4 h-4 text-amber-500 transition-transform hover:rotate-45" />
+        <Sun className="w-5 h-5 text-amber-400 transition-transform hover:rotate-45" />
       ) : (
-        <Moon className="w-4 h-4 text-indigo-400" />
+        <Moon className="w-5 h-5 text-indigo-400 transition-transform hover:-rotate-12" />
       )}
     </button>
   );

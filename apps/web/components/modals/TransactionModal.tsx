@@ -8,12 +8,49 @@ export function TransactionModal() {
 
   if (!isOpen) return null;
 
+  const getTitle = () => {
+    switch (actionType) {
+      case 'APPROVE':
+        return 'Token Approval';
+      case 'DEPOSIT':
+        return 'Deposit Processing';
+      case 'REDEEM':
+        return 'Redemption Processing';
+      default:
+        return 'Transaction Processing';
+    }
+  };
+
+  const getConfirmedMessage = () => {
+    switch (actionType) {
+      case 'APPROVE':
+        return 'Approval completed successfully!';
+      case 'DEPOSIT':
+        return 'Collateral deployed successfully!';
+      case 'REDEEM':
+        return 'Redemption completed successfully!';
+      default:
+        return 'Transaction completed successfully!';
+    }
+  };
+
+  const getFailedTitle = () => {
+    switch (actionType) {
+      case 'APPROVE':
+        return 'Approval Failed';
+      case 'DEPOSIT':
+        return 'Deposit Failed';
+      case 'REDEEM':
+        return 'Redemption Failed';
+      default:
+        return 'Transaction Failed';
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-800 bg-[#111827] p-6 shadow-2xl">
-        <h3 className="text-xl font-bold text-white mb-4">
-          {actionType === 'DEPOSIT' ? 'Deposit Processing' : 'Redemption Processing'}
-        </h3>
+        <h3 className="text-xl font-bold text-white mb-4">{getTitle()}</h3>
 
         {step === 'PREPARING' && (
           <div className="flex flex-col items-center py-6 text-center">
@@ -36,7 +73,13 @@ export function TransactionModal() {
           <div className="flex flex-col items-center py-6 text-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mb-4" />
             <p className="text-gray-300 font-medium">
-              {actionType === 'DEPOSIT' ? 'Confirming Deposit Transaction...' : 'Burning shares...'}
+              {actionType === 'DEPOSIT'
+                ? 'Confirming Deposit Transaction...'
+                : actionType === 'REDEEM'
+                  ? 'Burning shares...'
+                  : actionType === 'APPROVE'
+                    ? 'Confirming Approval Transaction...'
+                    : 'Executing Transaction...'}
             </p>
           </div>
         )}
@@ -46,11 +89,7 @@ export function TransactionModal() {
             <div className="h-12 w-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl font-bold mb-4">
               ✓
             </div>
-            <p className="text-emerald-400 font-bold text-lg mb-1">
-              {actionType === 'DEPOSIT'
-                ? 'Collateral deployed successfully!'
-                : 'Redemption completed successfully!'}
-            </p>
+            <p className="text-emerald-400 font-bold text-lg mb-1">{getConfirmedMessage()}</p>
             {txHash && (
               <a
                 href={`https://basescan.org/tx/${txHash}`}
@@ -75,9 +114,7 @@ export function TransactionModal() {
             <div className="h-12 w-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl font-bold mb-4">
               ✕
             </div>
-            <p className="text-rose-400 font-bold text-lg mb-1">
-              {actionType === 'DEPOSIT' ? 'Deposit Failed' : 'Redemption Failed'}
-            </p>
+            <p className="text-rose-400 font-bold text-lg mb-1">{getFailedTitle()}</p>
             <p className="text-xs text-gray-400 mt-2 bg-gray-900 p-3 rounded-lg w-full text-left font-mono">
               {errorMessage || 'Transaction was rejected or reverted.'}
             </p>

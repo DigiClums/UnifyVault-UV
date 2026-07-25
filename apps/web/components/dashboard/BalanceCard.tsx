@@ -35,7 +35,7 @@ export function BalanceCard({ sharesBalance, usdValue, loading }: BalanceCardPro
           {sharesBalance} UVBTCETH
         </span>
         <span className="block text-sm text-gray-400 mt-1 font-medium font-mono">
-          ≈ ${usdValue} USD
+          ≈ {usdValue.startsWith('$') ? usdValue : `$${usdValue}`} USD
         </span>
       </div>
 

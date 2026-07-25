@@ -49,30 +49,30 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {/* Header Title & Status */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Protocol Dashboard & Position Analytics
             </h1>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">
               Real-time NAV, Unrealized PnL, TVL, and asset breakdown on Base Mainnet.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 max-w-full">
             <button
               onClick={() => {
                 void refetchPortfolio();
                 void refetchMetrics();
               }}
               aria-label="Refresh dashboard metrics"
-              className="text-xs bg-gray-800 px-3 py-1.5 rounded-lg"
+              className="text-xs bg-gray-800 hover:bg-gray-700 px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-xl font-medium transition-colors"
             >
               Refresh
             </button>
             <HealthBadge status="HEALTHY" />
-            <span className="text-xs text-gray-400 font-mono bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-lg">
+            <span className="text-xs text-gray-400 font-mono bg-gray-900 border border-gray-800 px-3 py-2.5 min-h-[44px] inline-flex items-center rounded-xl max-w-full shrink truncate">
               {isConnected && address
                 ? `${address.slice(0, 6)}...${address.slice(-4)}`
                 : 'Wallet Disconnected'}
@@ -85,26 +85,20 @@ export default function DashboardPage() {
           <StatCard
             title="Portfolio Value (USD)"
             value={userPositionUSD}
-            change="+2.45%"
-            isPositive={true}
             loading={isShareBalanceLoading}
             subtitle="Current Position Value"
           />
           <StatCard
             title="Unrealized PnL"
-            value="+$24.50 USD"
-            change="+2.50%"
-            isPositive={true}
+            value="--"
             loading={isShareBalanceLoading}
-            subtitle="Gain/Loss vs Avg Cost"
+            subtitle="Unindexed (Requires Indexer)"
           />
           <StatCard
             title="Current NAV / Share"
             value={formattedNAV}
-            change="+0.50%"
-            isPositive={true}
             loading={isNavLoading}
-            subtitle="Avg Entry: $1.0000"
+            subtitle="Live Target Valuation"
           />
           <StatCard
             title="Est. Redeem Value"
@@ -135,9 +129,9 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Treasury Fees"
-            value="$1,245.50 USD"
+            value="$0.00 USD"
             loading={isMetricsLoading}
-            subtitle="Protocol Revenue"
+            subtitle="Protocol Fee Storage"
           />
         </div>
 
@@ -154,7 +148,7 @@ export default function DashboardPage() {
 
           {/* NAV Area Chart */}
           <div className="lg:col-span-2">
-            <NAVHistoryChart />
+            <NAVHistoryChart currentNAV={formattedNAV} />
           </div>
         </div>
 

@@ -14,13 +14,18 @@ import { useTokenBalance } from '../../hooks/useTokenBalance';
 import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
 import { useTransactionStore } from '../../store/useTransactionStore';
 
+import { parseWalletError } from '../../lib/utils/formatters';
+
 function getErrorMessage(error: unknown, fallback: string) {
+  const parsed = parseWalletError(error);
+  if (parsed && parsed !== 'An unexpected wallet error occurred. Please try again.') {
+    return parsed;
+  }
   if (typeof error === 'object' && error !== null && 'message' in error) {
     const { message } = error;
-    if (typeof message === 'string') return message;
+    if (typeof message === 'string' && message.trim()) return message;
   }
-
-  return fallback;
+  return parsed || fallback;
 }
 
 export default function DepositPage() {
@@ -56,40 +61,57 @@ export default function DepositPage() {
     isApproving,
     refetch: refetchAllowance,
   } = useAllowance(usdcAddress, controllerAddress);
-  const { quote: depositQuote, refetch: refetchPreview } = useDepositPreview(
-    usdcAddress,
-    amountInput,
-    6,
-  );
+  const {
+    quote: depositQuote,
+    isLoading: isLoadingPreview,
+    refetch: refetchPreview,
+  } = useDepositPreview(usdcAddress, amountInput, 6);
   const { deposit, status, errorMessage, txHash } = useDeposit(usdcAddress);
   const { openModal, setStep, setTxHash, setError } = useTransactionStore();
 
   const needsApproval = React.useMemo(() => {
-    return allowance !== undefined && parsedAmount > 0n && allowance < parsedAmount;
+    const isApprovalNeeded =
+      allowance !== undefined && parsedAmount > 0n && allowance < parsedAmount;
+    console.log('[AUDIT] condition deciding whether approval is complete:', {
+      allowance,
+      parsedAmount,
+      needsApproval: isApprovalNeeded,
+    });
+    return isApprovalNeeded;
   }, [allowance, parsedAmount]);
 
   const handleAction = async () => {
     if (!address || parsedAmount === 0n) return;
+    console.log('[AUDIT] handleAction invoked:', { needsApproval, parsedAmount });
+
+    const minShares = depositQuote
+      ? (depositQuote.sharesPreview * BigInt(10000 - slippageBps)) / 10000n
+      : 0n;
 
     if (needsApproval) {
+      console.log('[AUDIT] handleAction: starting approval flow (openModal APPROVE)');
       openModal('APPROVE');
       setStep('APPROVING');
       try {
         await approve(parsedAmount);
-        setStep('CONFIRMED');
+        console.log('[AUDIT] approval write/confirm finished, refetching allowance...');
+        await refetchAllowance();
       } catch (error) {
+        console.error('[AUDIT] handleAction approval error:', error);
         setError(getErrorMessage(error, 'Approval failed'));
       }
     } else {
+      console.log(
+        '[AUDIT] handleAction: needsApproval is false, starting deposit flow (openModal DEPOSIT)',
+      );
       openModal('DEPOSIT');
       setStep('EXECUTING');
-      const minShares = depositQuote
-        ? (depositQuote.sharesPreview * BigInt(10000 - slippageBps)) / 10000n
-        : 0n;
 
       try {
+        console.log('[AUDIT] calling deposit() with:', { parsedAmount, minShares, address });
         await deposit(parsedAmount, minShares, address);
       } catch (error) {
+        console.error('[AUDIT] handleAction deposit error:', error);
         setError(getErrorMessage(error, 'Deposit execution failed'));
       }
     }
@@ -125,25 +147,48 @@ export default function DepositPage() {
     refetchShareBalance,
   ]);
 
-  const formattedFee = depositQuote ? (Number(depositQuote.protocolFee) / 1e6).toFixed(2) : '0.00';
-  const formattedNet = depositQuote ? (Number(depositQuote.netDeposit) / 1e6).toFixed(2) : '0.00';
+  const navPerShareNum = navData ? Number(navData.navPerShare) / 1e18 : 1.0;
+  const amountNum = Number(parsedAmount) / 1e6;
+  const estFee = amountNum * 0.001;
+  const estNet = amountNum - estFee;
+  const estShares = estNet / navPerShareNum;
+
+  const formattedFee = depositQuote
+    ? (Number(depositQuote.protocolFee) / 1e6).toFixed(2)
+    : parsedAmount > 0n
+      ? estFee > 0 && estFee < 0.005
+        ? '0.01'
+        : estFee.toFixed(2)
+      : '0.00';
+
+  const formattedNet = depositQuote
+    ? (Number(depositQuote.netDeposit) / 1e6).toFixed(2)
+    : parsedAmount > 0n
+      ? estNet.toFixed(2)
+      : '0.00';
+
   const formattedShares = depositQuote
     ? (Number(depositQuote.sharesPreview) / 1e18).toFixed(4)
-    : '0.0000';
+    : parsedAmount > 0n
+      ? estShares.toFixed(4)
+      : '0.0000';
+
   const formattedNAV = navData ? `$${(Number(navData.navPerShare) / 1e18).toFixed(4)}` : '$1.0000';
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-      <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-12">
-        <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-6">
+      <main className="flex-1 mx-auto max-w-2xl w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        <div className="rounded-3xl border border-gray-800 bg-[#111827]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Deposit Collateral</h1>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                Deposit Collateral
+              </h1>
               <p className="text-xs text-gray-400 mt-1">
                 Interactive deposit form: Mint UVBTCETH index shares using USDC collateral
               </p>
             </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
               0.1% Fee
             </span>
           </div>
@@ -166,7 +211,7 @@ export default function DepositPage() {
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
                 placeholder="0.0"
-                className="w-full bg-transparent font-mono text-3xl font-extrabold text-white focus:outline-none"
+                className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-white focus:outline-none min-h-[44px]"
               />
               <button
                 onClick={() =>
@@ -175,7 +220,7 @@ export default function DepositPage() {
                   )
                 }
                 aria-label="Max"
-                className="rounded-lg bg-blue-600/10 border border-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
+                className="rounded-lg bg-blue-600/10 border border-blue-500/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-blue-400 hover:bg-blue-600/20 transition-colors"
               >
                 MAX
               </button>
@@ -184,22 +229,35 @@ export default function DepositPage() {
 
           {/* Quote Breakdown */}
           <div className="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-4 space-y-3 mb-8">
-            <div className="text-xs text-gray-400 font-semibold mb-2">Live Yield Preview</div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-400 font-semibold">Live Yield Preview</span>
+              {isLoadingPreview && (
+                <span className="text-[10px] font-mono text-blue-400 animate-pulse">
+                  Calculating quote...
+                </span>
+              )}
+            </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Current NAV Per Share</span>
               <span className="font-mono font-semibold text-gray-200">{formattedNAV}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Protocol Deposit Fee (0.10%)</span>
-              <span className="font-mono text-gray-300">${formattedFee} USDC</span>
+              <span className="font-mono text-gray-300">
+                {isLoadingPreview ? '...' : `$${formattedFee} USDC`}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Net Collateral Allocated</span>
-              <span className="font-mono text-gray-300">${formattedNet} USDC</span>
+              <span className="font-mono text-gray-300">
+                {isLoadingPreview ? '...' : `$${formattedNet} USDC`}
+              </span>
             </div>
             <div className="pt-2 border-t border-gray-800 flex items-center justify-between text-sm font-bold">
               <span className="text-gray-200">Expected Shares (UVBTCETH)</span>
-              <span className="font-mono text-emerald-400">{formattedShares}</span>
+              <span className="font-mono text-emerald-400">
+                {isLoadingPreview ? '...' : formattedShares}
+              </span>
             </div>
           </div>
 

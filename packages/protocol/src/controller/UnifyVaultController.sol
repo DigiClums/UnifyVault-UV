@@ -58,6 +58,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   address private immutable _token;
 
   uint256 private _maxDeposit = type(uint256).max;
+  uint256 private _swapSlippageBps = 100; // 1% default
+
+  uint256 public constant BPS_DENOMINATOR = 10000;
+
+  event SwapSlippageUpdated(uint256 oldBps, uint256 newBps, address indexed caller);
 
   // Events
   event DepositRequested(
@@ -162,6 +167,17 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     return _maxDeposit;
   }
 
+  function setSwapSlippageBps(uint256 slippageBps_) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    if (slippageBps_ > BPS_DENOMINATOR) revert ProtocolErrors.MathCalculationOverflow();
+    uint256 old = _swapSlippageBps;
+    _swapSlippageBps = slippageBps_;
+    emit SwapSlippageUpdated(old, slippageBps_, msg.sender);
+  }
+
+  function swapSlippageBps() external view returns (uint256) {
+    return _swapSlippageBps;
+  }
+
   // --- Module Directory View Functions ---
 
   function directory() external view returns (address) {
@@ -235,8 +251,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
     uint256 treasuryBalanceBefore = IERC20(asset).balanceOf(t);
 
+    // Pull the full deposit amount from the user in a single transferFrom
+    // to prevent allowance-based double-spend vulnerabilities.
+    IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+
     // 1. Route protocol deposit fee to Treasury
-    IERC20(asset).safeTransferFrom(msg.sender, address(this), quote.protocolFee);
     IERC20(asset).forceApprove(t, quote.protocolFee);
     ITreasury(t).collectFee(asset, quote.protocolFee);
     IERC20(asset).forceApprove(t, 0);
@@ -260,9 +279,6 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       uint256 len = targetAssets.length;
       assetsBought = new uint256[](len);
 
-      // Pull net deposit collateral into Controller for DEX swap routing
-      IERC20(asset).safeTransferFrom(msg.sender, address(this), quote.netDeposit);
-
       for (uint256 i = 0; i < len; i++) {
         address targetToken = targetAssets[i];
         uint256 allocAmount = (quote.netDeposit * weightsBps[i]) / 10000;
@@ -277,11 +293,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
           } else {
             // Execute atomic DEX swap: asset -> targetToken
             IERC20(asset).forceApprove(sa, allocAmount);
+            uint256 minOut = _computeMinAmountOut(asset, targetToken, allocAmount);
             uint256 bought = ISwapAdapter(sa).swap(
               asset,
               targetToken,
               allocAmount,
-              0,
+              minOut,
               address(this)
             );
             IERC20(asset).forceApprove(sa, 0);
@@ -296,7 +313,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       }
     } else {
       // Single-asset legacy deposit fallback directly to CustodyVault
-      CustodyVault(v).deposit(asset, msg.sender, quote.netDeposit);
+      IERC20(asset).forceApprove(v, quote.netDeposit);
+      CustodyVault(v).deposit(asset, address(this), quote.netDeposit);
+      IERC20(asset).forceApprove(v, 0);
     }
 
     // 3. Recalculate NAV & Mint UVBTCETH shares
@@ -395,11 +414,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
           } else {
             // Swap strategyToken -> payout collateral (USDC)
             IERC20(strategyToken).forceApprove(sa, propAmount);
+            uint256 minOut = _computeMinAmountOut(strategyToken, asset, propAmount);
             uint256 usdcBought = ISwapAdapter(sa).swap(
               strategyToken,
               asset,
               propAmount,
-              0,
+              minOut,
               address(this)
             );
             IERC20(strategyToken).forceApprove(sa, 0);
@@ -539,6 +559,40 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   }
 
   // --- Internal Validation Helpers ---
+
+  /**
+   * @dev Computes the minimum acceptable output amount for a swap leg based on
+   * oracle prices and configured slippage tolerance.
+   * @param tokenIn Input token address
+   * @param tokenOut Output token address
+   * @param amountIn Amount of input token (in native decimals)
+   * @return minAmountOut Minimum output amount (in output token native decimals)
+   */
+  function _computeMinAmountOut(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) internal view returns (uint256 minAmountOut) {
+    uint256 priceIn = IOracle(_oracle).getAssetPrice(tokenIn);
+    uint256 priceOut = IOracle(_oracle).getAssetPrice(tokenOut);
+    if (priceIn == 0 || priceOut == 0) {
+      revert ProtocolErrors.OraclePriceNegative(tokenIn, 0);
+    }
+
+    CustodyVault.AssetConfig memory cfgIn = CustodyVault(_vault).assetConfig(tokenIn);
+    CustodyVault.AssetConfig memory cfgOut = CustodyVault(_vault).assetConfig(tokenOut);
+    uint8 decimalsIn = cfgIn.decimals;
+    uint8 decimalsOut = cfgOut.decimals;
+
+    // expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
+    uint256 expectedOut =
+      (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
+
+    uint256 slippage = _swapSlippageBps;
+    if (slippage == 0) return 0; // no slippage protection when set to 0
+
+    minAmountOut = (expectedOut * (BPS_DENOMINATOR - slippage)) / BPS_DENOMINATOR;
+  }
 
   function _validateDeposit(
     address asset,

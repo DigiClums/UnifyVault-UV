@@ -50,8 +50,7 @@ contract DepositFeeRoutingHandler {
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
-    tokenA.approve(address(vault), expectedNet);
-    tokenA.approve(address(controller), expectedFee);
+    tokenA.approve(address(controller), amount);
 
     try controller.deposit(address(tokenA), amount, 0, user) {
       cumulativeExpectedNet += expectedNet;

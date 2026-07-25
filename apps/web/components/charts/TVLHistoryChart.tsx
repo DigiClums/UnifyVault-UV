@@ -3,7 +3,11 @@
 import * as React from 'react';
 import { Timeframe } from './NAVHistoryChart';
 
-export function TVLHistoryChart() {
+interface TVLHistoryChartProps {
+  tvlFormatted?: string;
+}
+
+export function TVLHistoryChart({ tvlFormatted = '$0.00' }: TVLHistoryChartProps) {
   const [timeframe, setTimeframe] = React.useState<Timeframe>('7D');
 
   return (
@@ -11,9 +15,9 @@ export function TVLHistoryChart() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Total Value Locked (TVL) History
+            Total Value Locked (TVL On-Chain)
           </span>
-          <h3 className="text-2xl font-extrabold text-white font-mono mt-1">$1,000,000.00 USD</h3>
+          <h3 className="text-2xl font-extrabold text-white font-mono mt-1">{tvlFormatted} USD</h3>
         </div>
 
         {/* Timeframe Selector */}

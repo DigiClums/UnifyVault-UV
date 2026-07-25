@@ -42,6 +42,8 @@ export function useDepositPreview(
     return parseAmount(debouncedAmountString, decimals);
   }, [debouncedAmountString, decimals]);
 
+  const receiverAddress = userAddress || '0x0000000000000000000000000000000000000001';
+
   const {
     data: quote,
     isLoading,
@@ -53,11 +55,11 @@ export function useDepositPreview(
     abi: UNIFY_VAULT_CONTROLLER_ABI,
     functionName: 'getDepositQuote',
     args:
-      controllerAddress && tokenAddress && parsedAmount > 0n && userAddress
-        ? [tokenAddress, parsedAmount, 0n, userAddress]
+      controllerAddress && tokenAddress && parsedAmount > 0n
+        ? [tokenAddress, parsedAmount, 0n, receiverAddress]
         : undefined,
     query: {
-      enabled: !!controllerAddress && !!tokenAddress && parsedAmount > 0n && !!userAddress,
+      enabled: !!controllerAddress && !!tokenAddress && parsedAmount > 0n,
       refetchInterval: 15000, // Sync with oracle updates every 15 seconds
     },
   });

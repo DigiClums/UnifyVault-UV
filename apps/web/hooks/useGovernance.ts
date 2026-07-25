@@ -24,14 +24,13 @@ export function useGovernance() {
         isReadOnly: true,
       };
     }
-    // Hardcoded mock check for demo address or connected governance wallet
-    const isGov = address.toLowerCase() === '0x1111111111111111111111111111111111111111' || true; // Allow testing UI controls
+
     return {
-      isAdmin: isGov,
-      isGovernance: isGov,
-      isGuardian: isGov,
+      isAdmin: false,
+      isGovernance: false,
+      isGuardian: false,
       isController: false,
-      isReadOnly: !isGov,
+      isReadOnly: true,
     };
   }, [address, isConnected]);
 
@@ -39,8 +38,8 @@ export function useGovernance() {
     queryKey: ['governanceState', address],
     queryFn: async () => {
       return {
-        governanceMultisig: '0x1111111111111111111111111111111111111111',
-        guardianMultisig: '0x2222222222222222222222222222222222222222',
+        governanceMultisig: undefined,
+        guardianMultisig: undefined,
         isPaused: false,
         totalBps: 10000,
         currentStrategy: [

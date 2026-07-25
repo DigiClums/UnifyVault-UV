@@ -58,15 +58,15 @@ export function useProtocolHealth() {
           USDC: { status: 'FRESH', timestamp: 'Just now', heartbeat: 3600 },
         },
         liquidityStatus: {
-          operationalUSD: '$100,000.00',
-          reserveUSD: '$900,000.00',
+          operationalUSD: '10.00% Target',
+          reserveUSD: '90.00% Target',
           operationalTargetBps: 1000,
           refillThresholdBps: 500,
           sweepThresholdBps: 1500,
           status: 'HEALTHY',
         },
         treasuryStatus: {
-          totalFeesUSD: '$1,245.50',
+          totalFeesUSD: '$0.00',
           depositFeeBps: 10,
           redeemFeeBps: 10,
           status: 'ACTIVE',

@@ -81,32 +81,14 @@ export default function GovernancePage() {
     }
   };
 
-  const activityLog = [
-    {
-      id: '1',
-      action: 'Liquidity Refill',
-      executor: '0x1111...1111',
-      time: '2 hours ago',
-      status: 'CONFIRMED',
-      txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
-    {
-      id: '2',
-      action: 'Strategy Weight Update',
-      executor: '0x1111...1111',
-      time: '1 day ago',
-      status: 'CONFIRMED',
-      txHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-    },
-    {
-      id: '3',
-      action: 'Emergency Unpause',
-      executor: '0x2222...2222',
-      time: '3 days ago',
-      status: 'CONFIRMED',
-      txHash: '0x9999999999abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
-  ];
+  const activityLog: Array<{
+    id: string;
+    action: string;
+    executor: string;
+    time: string;
+    status: string;
+    txHash: string;
+  }> = [];
 
   return (
     <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
@@ -150,12 +132,16 @@ export default function GovernancePage() {
         <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-mono">
             <div>
-              <span className="text-gray-400 block">Governance Multisig</span>
-              <span className="font-bold text-white mt-1 block">0x1111...1111</span>
+              <span className="text-gray-400 block">Governance Role</span>
+              <span className="font-bold text-white mt-1 block">
+                {roles.isGovernance ? 'Active (Authorized)' : 'Restricted'}
+              </span>
             </div>
             <div>
-              <span className="text-gray-400 block">Guardian Multisig</span>
-              <span className="font-bold text-amber-400 mt-1 block">0x2222...2222</span>
+              <span className="text-gray-400 block">Guardian Role</span>
+              <span className="font-bold text-amber-400 mt-1 block">
+                {roles.isGuardian ? 'Active (Authorized)' : 'Restricted'}
+              </span>
             </div>
             <div>
               <span className="text-gray-400 block">Connected Wallet</span>
@@ -212,12 +198,12 @@ export default function GovernancePage() {
 
             <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-gray-900/60 p-3 rounded-xl border border-gray-800 mb-4">
               <div>
-                <span className="text-gray-400 block">Operational Bal</span>
-                <span className="font-bold text-white">$100,000.00 (10%)</span>
+                <span className="text-gray-400 block">Operational Target</span>
+                <span className="font-bold text-white">10.00% (1,000 BPS)</span>
               </div>
               <div>
-                <span className="text-gray-400 block">Reserve Bal</span>
-                <span className="font-bold text-white">$900,000.00 (90%)</span>
+                <span className="text-gray-400 block">Reserve Target</span>
+                <span className="font-bold text-white">90.00% (9,000 BPS)</span>
               </div>
             </div>
 
@@ -306,39 +292,49 @@ export default function GovernancePage() {
         <div className="rounded-2xl border border-gray-800 bg-[#111827]/60 p-6 backdrop-blur-md">
           <h3 className="text-lg font-bold text-white mb-4">Governance Activity Log</h3>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-800 text-xs text-gray-400 uppercase tracking-wider">
-                  <th className="pb-3 font-semibold">Action</th>
-                  <th className="pb-3 font-semibold">Executor</th>
-                  <th className="pb-3 font-semibold">Time</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold text-right">Transaction</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/60 font-mono text-xs">
-                {activityLog.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="py-3.5 font-bold text-white">{log.action}</td>
-                    <td className="py-3.5 text-gray-400">{log.executor}</td>
-                    <td className="py-3.5 text-gray-400">{log.time}</td>
-                    <td className="py-3.5 text-emerald-400 font-semibold">{log.status}</td>
-                    <td className="py-3.5 text-right">
-                      <a
-                        href={`https://basescan.org/tx/${log.txHash}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-400 hover:underline"
-                      >
-                        {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)} ↗
-                      </a>
-                    </td>
+          {activityLog.length === 0 ? (
+            <div className="p-8 text-center border border-gray-800/60 rounded-xl bg-gray-900/30">
+              <span className="text-2xl mb-2 block">📋</span>
+              <h4 className="font-bold text-gray-300 text-sm">No Governance Activity Recorded</h4>
+              <p className="text-xs text-gray-500 mt-1">
+                Admin strategy parameter updates and liquidity operations will be logged here.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-800 text-xs text-gray-400 uppercase tracking-wider">
+                    <th className="pb-3 font-semibold">Action</th>
+                    <th className="pb-3 font-semibold">Executor</th>
+                    <th className="pb-3 font-semibold">Time</th>
+                    <th className="pb-3 font-semibold">Status</th>
+                    <th className="pb-3 font-semibold text-right">Transaction</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-800/60 font-mono text-xs">
+                  {activityLog.map((log) => (
+                    <tr key={log.id} className="hover:bg-gray-800/30 transition-colors">
+                      <td className="py-3.5 font-bold text-white">{log.action}</td>
+                      <td className="py-3.5 text-gray-400">{log.executor}</td>
+                      <td className="py-3.5 text-gray-400">{log.time}</td>
+                      <td className="py-3.5 text-emerald-400 font-semibold">{log.status}</td>
+                      <td className="py-3.5 text-right">
+                        <a
+                          href={`https://basescan.org/tx/${log.txHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center min-h-[44px] text-blue-400 hover:underline"
+                        >
+                          {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)} ↗
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
 
