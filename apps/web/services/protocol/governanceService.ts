@@ -46,7 +46,7 @@ export const GovernanceService = {
         swapSlippageBps,
       };
     } catch (error) {
-      console.error('❌ GovernanceService: Error fetching governance state:', error);
+      console.error('GovernanceService: Error fetching governance state:', error);
       return {
         isPaused: false,
         maxDeposit: 0n,

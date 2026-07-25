@@ -20,7 +20,7 @@ export function useDashboardService(intervalMs: number = 15000) {
       setData(result);
       setError(undefined);
     } catch (err) {
-      console.error('❌ useDashboardService error:', err);
+      console.error('useDashboardService error:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch dashboard data'));
     } finally {
       setIsLoading(false);

@@ -31,9 +31,9 @@ const getEnv = () => {
   const parsed = envSchema.safeParse(publicEnv);
   if (!parsed.success) {
     if (typeof window !== 'undefined') {
-      console.error('❌ Invalid client environment variables:', parsed.error.format());
+      console.error('Invalid client environment variables:', parsed.error.format());
     } else {
-      console.error('❌ Invalid server environment variables:', parsed.error.format());
+      console.error('Invalid server environment variables:', parsed.error.format());
     }
     throw new Error('Invalid environment variables config');
   }

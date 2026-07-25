@@ -18,7 +18,6 @@ export const TokenContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn(`⚠️ Token.balanceOf error for ${account}:`, error);
       return 0n;
     }
   },
@@ -32,7 +31,6 @@ export const TokenContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn('⚠️ Token.totalSupply error:', error);
       return 0n;
     }
   },
@@ -51,7 +49,6 @@ export const TokenContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn('⚠️ Token.allowance error:', error);
       return 0n;
     }
   },
@@ -82,7 +79,6 @@ export const TokenContract = {
         decimals: Number(decimalsRes) || 18,
       };
     } catch (error) {
-      console.warn(`⚠️ Token.getMetadata error for ${tokenAddress}:`, error);
       return { symbol: 'TOKEN', decimals: 18 };
     }
   },

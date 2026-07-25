@@ -43,7 +43,7 @@ export async function executeMulticall<T extends readonly unknown[]>(calls: {
       };
     }) as unknown as { [K in keyof T]: MulticallResult<T[K]> };
   } catch (error) {
-    console.error('❌ Multicall batch execution error:', error);
+    console.error('Multicall batch execution error:', error);
     return calls.map(() => ({
       status: 'failure',
       error: error instanceof Error ? error : new Error('Multicall execution error'),

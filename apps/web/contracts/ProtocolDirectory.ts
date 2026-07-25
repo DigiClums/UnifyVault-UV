@@ -44,7 +44,6 @@ export const ProtocolDirectoryContract = {
       });
       return result as `0x${string}`;
     } catch (error) {
-      console.warn(`⚠️ Failed to resolve address for module key ${id}:`, error);
       return undefined;
     }
   },

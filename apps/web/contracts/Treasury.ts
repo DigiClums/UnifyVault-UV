@@ -13,7 +13,6 @@ export const TreasuryContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn(`⚠️ Treasury.balance error for ${asset}:`, error);
       return 0n;
     }
   },
@@ -28,7 +27,6 @@ export const TreasuryContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn(`⚠️ Treasury.totalAssetBalance error for ${asset}:`, error);
       return 0n;
     }
   },
@@ -42,7 +40,6 @@ export const TreasuryContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn('⚠️ Treasury.nativeBalance error:', error);
       return 0n;
     }
   },
@@ -57,7 +54,6 @@ export const TreasuryContract = {
       });
       return Boolean(result);
     } catch (error) {
-      console.warn(`⚠️ Treasury.isSupported error for ${asset}:`, error);
       return false;
     }
   },

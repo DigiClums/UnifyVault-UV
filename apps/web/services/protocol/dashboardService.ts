@@ -186,7 +186,7 @@ export const DashboardService = {
         },
       };
     } catch (error) {
-      console.error('❌ DashboardService: Failed to fetch dashboard data:', error);
+      console.error('DashboardService: Failed to fetch dashboard data:', error);
       return getFallbackDashboardData();
     }
   },

@@ -74,7 +74,7 @@ export const HealthService = {
         checks,
       };
     } catch (error) {
-      console.error('❌ HealthService: Failed to execute protocol health check:', error);
+      console.error('HealthService: Failed to execute protocol health check:', error);
       return {
         isHealthy: false,
         isDirectoryResolved: false,

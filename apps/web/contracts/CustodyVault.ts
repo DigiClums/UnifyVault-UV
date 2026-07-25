@@ -18,7 +18,6 @@ export const CustodyVaultContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn(`⚠️ CustodyVault.totalAssets error for ${asset}:`, error);
       return 0n;
     }
   },
@@ -33,7 +32,6 @@ export const CustodyVaultContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn(`⚠️ CustodyVault.surplusAssets error for ${asset}:`, error);
       return 0n;
     }
   },
@@ -48,7 +46,6 @@ export const CustodyVaultContract = {
       });
       return result as bigint;
     } catch (error) {
-      console.warn(`⚠️ CustodyVault.balance error for ${asset}:`, error);
       return 0n;
     }
   },
@@ -63,7 +60,6 @@ export const CustodyVaultContract = {
       });
       return Boolean(result);
     } catch (error) {
-      console.warn(`⚠️ CustodyVault.isSupported error for ${asset}:`, error);
       return false;
     }
   },
@@ -83,7 +79,6 @@ export const CustodyVaultContract = {
       const resObj = result as unknown as { decimals: number; enabled: boolean };
       return { decimals: Number(resObj.decimals), enabled: Boolean(resObj.enabled) };
     } catch (error) {
-      console.warn(`⚠️ CustodyVault.assetConfig error for ${asset}:`, error);
       return undefined;
     }
   },
