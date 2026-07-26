@@ -7,7 +7,7 @@ pragma solidity >=0.8.20;
  */
 library FeeLib {
   uint256 public constant DEPOSIT_FEE_BPS = 25;
-  uint256 public constant REDEEM_FEE_BPS = 25;
+  uint256 public constant REDEEM_FEE_BPS = 200;
   uint256 public constant BPS_DENOMINATOR = 10000;
 
   /**

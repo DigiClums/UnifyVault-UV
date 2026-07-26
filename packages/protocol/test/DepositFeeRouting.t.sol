@@ -124,6 +124,17 @@ contract DepositFeeRoutingTest is Test {
 
     assertEq(FeeLib.calculateDepositFee(amount), expectedFee);
     assertEq(FeeLib.calculateNetDeposit(amount), expectedNet);
+
+    uint256 expectedRedeemFee = 200; // 200 BPS of 10000 = 200 (2.00%)
+    uint256 expectedRedeemNet = 9800;
+
+    assertEq(FeeLib.calculateRedeemFee(amount), expectedRedeemFee);
+    (uint256 grossOut, uint256 protocolFee, uint256 netAssets) = FeeLib.calculateRedemptionFee(
+      amount
+    );
+    assertEq(grossOut, amount);
+    assertEq(protocolFee, expectedRedeemFee);
+    assertEq(netAssets, expectedRedeemNet);
   }
 
   // --- Controller Routing Unit Tests ---
