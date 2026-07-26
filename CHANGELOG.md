@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [2.2.0-rc1] - 2026-07-26
+
+### Added
+
+- **UV-501 Cost Basis Engine (`CostBasisManager`):** Weighted average cost basis tracking per vault user ($O(1)$ constant time accounting).
+- **UV-502 High Water Mark Engine (`HighWaterMarkManager`):** Monotonically increasing High Water Mark tracking to prevent double-charging on realized gains.
+- **UV-503 Realized Profit Engine (`RealizedProfitEngine`):** Pure, deterministic calculation module for proportional cost removal, realized profit, and chargeable profit.
+- **UV-504 Performance Fee Settlement (`PerformanceFeeSettler`):** Orchestration engine connecting cost basis, high water marks, and fee calculation.
+- **UV-505 Controller Integration (`UnifyVaultController`):** Full end-to-end integration of performance fee settlement into deposit and redemption execution flows.
+- **UV-506 Hardening & Test Suite:** Added comprehensive unit, integration, fuzzing, and protocol-level economic invariant test suites (416 tests passing, 0 failing).
+
 ## [1.0.0-alpha.1] - 2026-07-16
 
 ### Added
