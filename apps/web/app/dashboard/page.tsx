@@ -19,8 +19,9 @@ import { SecurityCard } from '../../components/dashboard/SecurityCard';
 import { ContractAddressesTable } from '../../components/dashboard/ContractAddressesTable';
 import { GovernanceActivityCard } from '../../components/dashboard/GovernanceActivityCard';
 import { DashboardErrorCard } from '../../components/dashboard/DashboardErrorCard';
+import { ResolvedProtocolAddresses } from '../../contracts/ProtocolDirectory';
 
-const fallbackAddresses = {
+const fallbackAddresses: ResolvedProtocolAddresses = {
   directory: '0xDd29e54f91b86f3e4609AA2e279e04E98dcAb722',
   controller: '0xa8c6Baf298122d700269C0B331406522450ba967',
   vault: '0x11202B3Da20bB5432E3Be4A56743Ef879683b09F',

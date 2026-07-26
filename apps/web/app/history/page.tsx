@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 
 export interface ExtendedActivityTx {
   id: string;
@@ -141,6 +140,7 @@ export default function HistoryPage() {
 
           <button
             onClick={handleExportCSV}
+            aria-label="Export CSV Report"
             className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-2 self-start sm:self-auto"
           >
             <span>📥</span> Export CSV Report
