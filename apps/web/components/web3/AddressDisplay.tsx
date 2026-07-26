@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Copy, ExternalLink, Check } from 'lucide-react';
 import { shortenAddress, getExplorerLink } from '../../lib/utils/formatters';
 import { useNetwork } from '../../hooks/useNetwork';
+import { getDefaultChainId } from '../../lib/config/network';
 
 interface AddressDisplayProps {
   address?: string;
@@ -53,7 +54,7 @@ export function AddressDisplay({ address, chars = 4, className }: AddressDisplay
         )}
       </button>
       <a
-        href={getExplorerLink(address, 'address', chainId || 84532)}
+        href={getExplorerLink(address, 'address', chainId || getDefaultChainId())}
         target="_blank"
         rel="noopener noreferrer"
         className="p-1.5 rounded-lg hover:bg-secondary border border-transparent hover:border-border text-muted-foreground hover:text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"

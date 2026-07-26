@@ -1863,19 +1863,57 @@ export const COST_BASIS_MANAGER_ABI = [
     name: 'costBasis',
     inputs: [
       {
-        name: 'account',
+        name: 'user',
         type: 'address',
         internalType: 'address',
       },
     ],
     outputs: [
       {
-        name: 'totalCostBasis',
+        name: 'investedAssets',
         type: 'uint256',
         internalType: 'uint256',
       },
       {
         name: 'sharesOwned',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'investedAssets',
+    inputs: [
+      {
+        name: 'user',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'sharesOwned',
+    inputs: [
+      {
+        name: 'user',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
         type: 'uint256',
         internalType: 'uint256',
       },

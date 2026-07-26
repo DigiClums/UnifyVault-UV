@@ -31,13 +31,22 @@ export default function AnalyticsPage() {
     isConnected && dashboardData?.UserShareBalance?.usdValueNumber
       ? dashboardData.UserShareBalance.usdValueNumber
       : 0;
-  const userCostBasisUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.797 : 0;
+  const userCostBasisUSD =
+    isConnected && dashboardData?.UserShareBalance?.costBasisUsdNumber
+      ? dashboardData.UserShareBalance.costBasisUsdNumber
+      : 0;
   const unrealizedGainUSD = userShareUSD > userCostBasisUSD ? userShareUSD - userCostBasisUSD : 0;
   const unrealizedGainPct = userCostBasisUSD > 0 ? (unrealizedGainUSD / userCostBasisUSD) * 100 : 0;
-  const userRealizedProfitUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.0415 : 0;
-  const userPerfFeeUSD = isConnected && userShareUSD > 0 ? userRealizedProfitUSD * 0.05 : 0;
-  const totalFeesPaidUSD = userCostBasisUSD > 0 ? userCostBasisUSD * 0.0025 + userPerfFeeUSD : 0;
-  const effectiveFeeRatioPct = userShareUSD > 0 ? (totalFeesPaidUSD / userShareUSD) * 100 : 0.25;
+  const userRealizedProfitUSD =
+    isConnected && dashboardData?.UserShareBalance?.realizedProfitUsdNumber
+      ? dashboardData.UserShareBalance.realizedProfitUsdNumber
+      : 0;
+  const userPerfFeeUSD =
+    isConnected && dashboardData?.UserShareBalance?.performanceFeePaidUsdNumber
+      ? dashboardData.UserShareBalance.performanceFeePaidUsdNumber
+      : 0;
+  const totalFeesPaidUSD = userPerfFeeUSD;
+  const effectiveFeeRatioPct = userShareUSD > 0 ? (totalFeesPaidUSD / userShareUSD) * 100 : 0;
 
   const handleExportAnalyticsCSV = () => {
     const dataRows = [

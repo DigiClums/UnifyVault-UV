@@ -203,6 +203,10 @@ export default function PortfolioPage() {
             currentNAV={formattedNAV}
             grossValueUSD={grossUSDNum}
             ownershipPercentage={ownershipPercentage}
+            totalInvestedUSD={dashboardData?.UserShareBalance?.costBasisUsdNumber ?? 0}
+            performanceFeePaidUSD={
+              dashboardData?.UserShareBalance?.performanceFeePaidUsdNumber ?? 0
+            }
           />
         </div>
 

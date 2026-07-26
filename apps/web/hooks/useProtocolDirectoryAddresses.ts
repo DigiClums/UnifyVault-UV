@@ -2,6 +2,7 @@ import { useReadContracts } from 'wagmi';
 import { getContractAddresses } from '../lib/config/contracts';
 import { PROTOCOL_DIRECTORY_ABI } from '../lib/config/abis';
 import { useNetwork } from './useNetwork';
+import { getDefaultChainId } from '../lib/config/network';
 
 export const DEPOSIT_MANAGER_KEY =
   '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as const;
@@ -14,7 +15,7 @@ export const COST_BASIS_MANAGER_KEY =
 
 export function useProtocolDirectoryAddresses() {
   const { chainId } = useNetwork();
-  const addresses = getContractAddresses(chainId || 84532);
+  const addresses = getContractAddresses(chainId || getDefaultChainId());
 
   const { data, isLoading, error } = useReadContracts({
     contracts: [

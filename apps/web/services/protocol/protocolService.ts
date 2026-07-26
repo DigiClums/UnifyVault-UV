@@ -12,8 +12,10 @@ import {
   LIQUIDITY_MANAGER_ABI,
   ERC20_ABI,
   CONTROLLER_ABI,
+  COST_BASIS_MANAGER_ABI,
 } from '../../contracts/ABIs';
 import { executeMulticall } from '../../utils/multicall';
+import { ZERO_ADDRESS, getTokens, getDefaultChainId } from '../../lib/config/network';
 
 export interface StrategyAssetDetail {
   address: `0x${string}`;
@@ -75,14 +77,33 @@ export interface RawProtocolMetrics {
     ownershipPercentage: number;
     usdcBalanceRaw: bigint;
     usdcBalanceFormatted: string;
+    costBasisRaw: bigint;
+    costBasisFormatted: string;
+    costBasisUsdNumber: number;
+    realizedProfitUsdNumber: number;
+    performanceFeePaidUsdNumber: number;
   };
 }
 
-const DEFAULT_ASSET_METADATA: Record<string, { symbol: string; decimals: number }> = {
-  '0x036cbd53842c5426634e7929541ec2318f3dcf7e': { symbol: 'USDC', decimals: 6 },
-  '0x5026795198b4414c086e6cf9aafebc99a6ec5a8b': { symbol: 'cbBTC', decimals: 8 },
-  '0x0405e37feddd720a47fb5f3473914862385271': { symbol: 'WETH', decimals: 18 },
-};
+/**
+ * Builds a fallback token metadata lookup from the centralized network configuration.
+ */
+function buildAssetMetadataLookup(
+  chainId?: number,
+): Record<string, { symbol: string; decimals: number }> {
+  const tokens = getTokens(chainId || getDefaultChainId());
+  const lookup: Record<string, { symbol: string; decimals: number }> = {};
+  for (const token of tokens) {
+    lookup[token.address.toLowerCase()] = { symbol: token.symbol, decimals: token.decimals };
+  }
+  return lookup;
+}
+
+/** Default token addresses used as fallback when StrategyManager cannot be reached. */
+function getDefaultTargetAssets(chainId?: number): `0x${string}`[] {
+  const tokens = getTokens(chainId || getDefaultChainId());
+  return tokens.map((t) => t.address) as `0x${string}`[];
+}
 
 /**
  * ProtocolService orchestrates dynamic ProtocolDirectory address resolution and
@@ -97,14 +118,10 @@ export const ProtocolService = {
     const addresses = await ProtocolDirectoryContract.resolveAllModules(chainId);
 
     // 2. Fetch Strategy Assets & Target Weights from StrategyManager
-    let targetAssets: `0x${string}`[] = [
-      '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-      '0x5026795198b4414C086e6cf9AafeBC99a6eC5a8b',
-      '0x0405E37fe8dCDD720A47fB5F3473914862385271',
-    ];
+    let targetAssets: `0x${string}`[] = getDefaultTargetAssets(chainId);
     let targetWeightsBps: bigint[] = [0n, 5000n, 5000n];
 
-    if (addresses.strategyManager !== '0x0000000000000000000000000000000000000000') {
+    if (addresses.strategyManager !== ZERO_ADDRESS) {
       try {
         const weightsCall = await executeMulticall([
           {
@@ -171,14 +188,14 @@ export const ProtocolService = {
         address: addresses.liquidityManager,
         abi: LIQUIDITY_MANAGER_ABI,
         functionName: 'checkLiquidity',
-        args: [targetAssets[0] || '0x036CbD53842c5426634e7929541eC2318f3dCF7e'],
+        args: [targetAssets[0]],
       },
       // 7: LiquidityManager.getLiquidityBalances(USDC)
       {
         address: addresses.liquidityManager,
         abi: LIQUIDITY_MANAGER_ABI,
         functionName: 'getLiquidityBalances',
-        args: [targetAssets[0] || '0x036CbD53842c5426634e7929541eC2318f3dCF7e'],
+        args: [targetAssets[0]],
       },
     ];
 
@@ -230,7 +247,8 @@ export const ProtocolService = {
     // Optional User Calls
     let userShareIndex = -1;
     let userUsdcIndex = -1;
-    if (userAddress && userAddress !== '0x0000000000000000000000000000000000000000') {
+    let userCostBasisIndex = -1;
+    if (userAddress && userAddress !== ZERO_ADDRESS) {
       userShareIndex = batchCalls.length;
       batchCalls.push({
         address: addresses.token,
@@ -240,11 +258,20 @@ export const ProtocolService = {
       });
       userUsdcIndex = batchCalls.length;
       batchCalls.push({
-        address: targetAssets[0] || '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+        address: targetAssets[0],
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [userAddress],
       });
+      if (addresses.costBasisManager && addresses.costBasisManager !== ZERO_ADDRESS) {
+        userCostBasisIndex = batchCalls.length;
+        batchCalls.push({
+          address: addresses.costBasisManager,
+          abi: COST_BASIS_MANAGER_ABI,
+          functionName: 'costBasis',
+          args: [userAddress],
+        });
+      }
     }
 
     // Execute batch multicall
@@ -285,6 +312,8 @@ export const ProtocolService = {
     const oracleFeeds: OracleFeedDetail[] = [];
     let allOraclesFresh = true;
 
+    const defaultMetaLookup = buildAssetMetadataLookup(chainId);
+
     targetAssets.forEach((assetAddr, i) => {
       const offset = assetMetaIndex + i * 6;
       const custodyBal =
@@ -303,7 +332,7 @@ export const ProtocolService = {
           : 0n;
 
       const lowerAddr = assetAddr.toLowerCase();
-      const defaultMeta = DEFAULT_ASSET_METADATA[lowerAddr] || { symbol: 'TOKEN', decimals: 18 };
+      const defaultMeta = defaultMetaLookup[lowerAddr] || { symbol: 'TOKEN', decimals: 18 };
 
       const decimals =
         batchResults[offset + 4]?.status === 'success'
@@ -370,6 +399,37 @@ export const ProtocolService = {
           ? (batchResults[userUsdcIndex].result as bigint)
           : 0n;
 
+      let costBasisRaw = 0n;
+      if (userCostBasisIndex !== -1 && batchResults[userCostBasisIndex]?.status === 'success') {
+        const cbRes = batchResults[userCostBasisIndex].result;
+        if (Array.isArray(cbRes) && cbRes.length >= 1) {
+          const first = cbRes[0];
+          if (typeof first === 'bigint' || typeof first === 'number' || typeof first === 'string') {
+            costBasisRaw = BigInt(first);
+          } else if (first && typeof first === 'object') {
+            const firstObj = first as Record<string | number, unknown>;
+            if ('investedAssets' in firstObj && firstObj.investedAssets !== undefined) {
+              costBasisRaw = BigInt(firstObj.investedAssets as any);
+            } else if (0 in firstObj && firstObj[0] !== undefined) {
+              costBasisRaw = BigInt(firstObj[0] as any);
+            }
+          }
+        } else if (
+          typeof cbRes === 'bigint' ||
+          typeof cbRes === 'number' ||
+          typeof cbRes === 'string'
+        ) {
+          costBasisRaw = BigInt(cbRes);
+        } else if (cbRes && typeof cbRes === 'object') {
+          const resObj = cbRes as Record<string | number, unknown>;
+          if ('investedAssets' in resObj && resObj.investedAssets !== undefined) {
+            costBasisRaw = BigInt(resObj.investedAssets as any);
+          } else if (0 in resObj && resObj[0] !== undefined) {
+            costBasisRaw = BigInt(resObj[0] as any);
+          }
+        }
+      }
+
       const navNumber = Number(navPerShareRaw) / 1e18;
       const shareBalFormatted = formatUnits(shareBal, 18);
       const shareUsdValueNumber = Number(shareBalFormatted) * navNumber;
@@ -377,6 +437,11 @@ export const ProtocolService = {
       const totalSharesNumber = Number(formatUnits(totalSupplyRaw, 18));
       const ownershipPercentage =
         totalSharesNumber > 0 ? (Number(shareBalFormatted) / totalSharesNumber) * 100 : 0;
+
+      const costBasisFormatted = formatUnits(costBasisRaw, 6);
+      const costBasisUsdNumber = Number(costBasisFormatted);
+      const realizedProfitUsdNumber = 0;
+      const performanceFeePaidUsdNumber = 0;
 
       userMetrics = {
         userAddress,
@@ -386,6 +451,11 @@ export const ProtocolService = {
         ownershipPercentage,
         usdcBalanceRaw: usdcBal,
         usdcBalanceFormatted: formatUnits(usdcBal, 6),
+        costBasisRaw,
+        costBasisFormatted,
+        costBasisUsdNumber,
+        realizedProfitUsdNumber,
+        performanceFeePaidUsdNumber,
       };
     }
 

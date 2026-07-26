@@ -6,9 +6,10 @@ import { useDashboardService } from '../../hooks/useDashboardService';
 import { useGovernance } from '../../hooks/useGovernance';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { HealthBadge } from '../../components/ui/HealthBadge';
+import { getChainLabel } from '../../lib/config/network';
 
 export default function AdminPage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { roles } = useGovernance();
   const { data: dashboardData, isLoading, error, refetch } = useDashboardService(15000);
   const [lastUpdated, setLastUpdated] = React.useState<string>('');
@@ -348,7 +349,7 @@ export default function AdminPage() {
             <div className="p-3.5 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
               <span className="text-muted-foreground block text-[11px]">Network Environment</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400 block mt-1">
-                Base Sepolia (84532)
+                {getChainLabel(chainId)}
               </span>
             </div>
           </div>

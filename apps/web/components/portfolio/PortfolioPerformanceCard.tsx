@@ -17,8 +17,8 @@ export function PortfolioPerformanceCard({
   totalInvestedUSD,
   performanceFeePaidUSD,
 }: PortfolioPerformanceCardProps) {
-  const invested = totalInvestedUSD ?? (grossValueUSD > 0 ? grossValueUSD * 0.797 : 0);
-  const perfFeePaid = performanceFeePaidUSD ?? (grossValueUSD > 0 ? grossValueUSD * 0.003 : 0);
+  const invested = totalInvestedUSD ?? 0;
+  const perfFeePaid = performanceFeePaidUSD ?? 0;
   const grossProfit = grossValueUSD > invested ? grossValueUSD - invested : 0;
   const profitPercentage = invested > 0 ? (grossProfit / invested) * 100 : 0;
 

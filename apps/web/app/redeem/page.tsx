@@ -16,6 +16,7 @@ import { useTransactionStore } from '../../store/useTransactionStore';
 import { parseWalletError } from '../../lib/utils/formatters';
 import { RedeemSuccessSummaryCard } from '../../components/redeem/RedeemSuccessSummaryCard';
 import { DepositValidationBanner } from '../../components/deposit/DepositValidationBanner';
+import { getTokenAddress, getDefaultChainId } from '../../lib/config/network';
 
 function getErrorMessage(error: unknown, fallback: string) {
   const parsed = parseWalletError(error);
@@ -37,8 +38,7 @@ export default function RedeemPage() {
   const { data: dashboardData, refetch: refetchDashboard } = useDashboardService(15000);
 
   const usdcAddress = React.useMemo<`0x${string}`>(() => {
-    if (chainId === 8453) return '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-    return '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+    return getTokenAddress(chainId || getDefaultChainId(), 'USDC');
   }, [chainId]);
 
   const [sharesInput, setSharesInput] = React.useState<string>('');

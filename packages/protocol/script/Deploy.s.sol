@@ -9,6 +9,7 @@ import '../src/oracle/MockOracleProvider.sol';
 import '../src/oracle/ChainlinkOracleProvider.sol';
 import '../src/vault/CustodyVault.sol';
 import '../src/vault/LiquidityManager.sol';
+import '../src/vault/CostBasisManager.sol';
 import '../src/token/UVBTCETHToken.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/strategy/StrategyManager.sol';
@@ -94,6 +95,7 @@ contract DeployScript is Script, Test {
   StrategyManager public strategyManager;
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
+  CostBasisManager public costBasisManager;
   MockERC20 public mockCollateral;
 
   address public deployerAddress;
@@ -120,6 +122,7 @@ contract DeployScript is Script, Test {
     vault = new CustodyVault();
     liquidityManager = new LiquidityManager(deployerAddress, address(directory));
     token = new UVBTCETHToken();
+    costBasisManager = new CostBasisManager(deployerAddress);
     mockCollateral = new MockERC20();
 
     // Dummy router for local testing environment
@@ -163,6 +166,10 @@ contract DeployScript is Script, Test {
     directory.registerAddress(ModuleIds.STRATEGY_MANAGER, address(strategyManager));
     directory.registerAddress(ModuleIds.PORTFOLIO_MANAGER, address(portfolioManager));
     directory.registerAddress(ModuleIds.SWAP_ADAPTER, address(swapAdapter));
+    directory.registerAddress(ModuleIds.COST_BASIS_MANAGER, address(costBasisManager));
+
+    // Grant Roles to Controller
+    costBasisManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
 
     liquidityManager.syncModules();
 

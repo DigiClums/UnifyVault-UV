@@ -6,6 +6,7 @@ import { useNetwork } from '../../hooks/useNetwork';
 import { getExplorerLink, shortenAddress } from '../../lib/utils/formatters';
 import { LogOut, Copy, ExternalLink } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { getDefaultChainId } from '../../lib/config/network';
 
 interface WalletMenuProps {
   children: React.ReactNode;
@@ -59,7 +60,7 @@ export function WalletMenu({ children }: WalletMenuProps) {
           {/* View on Explorer */}
           <DropdownMenu.Item asChild>
             <a
-              href={getExplorerLink(address, 'address', chainId || 84532)}
+              href={getExplorerLink(address, 'address', chainId || getDefaultChainId())}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between px-2.5 py-2 text-xs font-medium text-foreground hover:bg-accent rounded-lg cursor-pointer transition-colors focus:outline-none focus:bg-accent"

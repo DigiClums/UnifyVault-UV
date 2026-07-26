@@ -6,12 +6,13 @@ import { useProtocolHealth } from '../../hooks/useProtocolHealth';
 import { useProtocolDirectoryAddresses } from '../../hooks/useProtocolDirectoryAddresses';
 import { getContractAddresses } from '../../lib/config/contracts';
 import { useNetwork } from '../../hooks/useNetwork';
+import { ZERO_ADDRESS, getDefaultChainId, getExplorerBaseUrl } from '../../lib/config/network';
 
 export default function ProtocolHealthPage() {
   const { healthData, lastUpdated, refetch } = useProtocolHealth();
   const { chainId } = useNetwork();
   const { controllerAddress, indexTokenAddress, vaultAddress } = useProtocolDirectoryAddresses();
-  const directoryAddress = getContractAddresses(chainId || 84532).directory;
+  const directoryAddress = getContractAddresses(chainId || getDefaultChainId()).directory;
 
   const contracts = [
     {
@@ -21,17 +22,17 @@ export default function ProtocolHealthPage() {
     },
     {
       name: 'UnifyVaultController',
-      address: controllerAddress || '0x0000000000000000000000000000000000000000',
+      address: (controllerAddress || ZERO_ADDRESS) as string,
       status: controllerAddress ? 'HEALTHY' : 'LOADING',
     },
     {
       name: 'CustodyVault',
-      address: vaultAddress || '0x0000000000000000000000000000000000000000',
+      address: (vaultAddress || ZERO_ADDRESS) as string,
       status: vaultAddress ? 'HEALTHY' : 'LOADING',
     },
     {
       name: 'UVBTCETHToken',
-      address: indexTokenAddress || '0x0000000000000000000000000000000000000000',
+      address: (indexTokenAddress || ZERO_ADDRESS) as string,
       status: indexTokenAddress ? 'HEALTHY' : 'LOADING',
     },
   ];
@@ -251,12 +252,12 @@ export default function ProtocolHealthPage() {
                     </td>
                     <td className="py-3.5 text-right">
                       <a
-                        href={`https://basescan.org/address/${c.address}`}
+                        href={`${getExplorerBaseUrl(chainId)}/address/${c.address}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center min-h-[44px] text-primary hover:underline"
                       >
-                        Basescan ↗
+                        BaseScan ↗
                       </a>
                     </td>
                   </tr>

@@ -18,10 +18,6 @@ vi.mock('../../hooks/useControllerAddress', () => ({
 }));
 
 vi.mock('wagmi', () => ({
-  useSimulateContract: () => ({
-    data: { request: { functionName: 'deposit' } },
-    error: null,
-  }),
   useWriteContract: () => ({
     writeContractAsync: vi.fn(async () => {
       if (mockWriteContractError) throw mockWriteContractError;

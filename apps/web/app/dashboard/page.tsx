@@ -20,18 +20,20 @@ import { ContractAddressesTable } from '../../components/dashboard/ContractAddre
 import { GovernanceActivityCard } from '../../components/dashboard/GovernanceActivityCard';
 import { DashboardErrorCard } from '../../components/dashboard/DashboardErrorCard';
 import { ResolvedProtocolAddresses } from '../../contracts/ProtocolDirectory';
+import { ZERO_ADDRESS } from '../../lib/config/network';
 
 const fallbackAddresses: ResolvedProtocolAddresses = {
-  directory: '0xDd29e54f91b86f3e4609AA2e279e04E98dcAb722',
-  controller: '0xa8c6Baf298122d700269C0B331406522450ba967',
-  vault: '0x11202B3Da20bB5432E3Be4A56743Ef879683b09F',
-  treasury: '0x90723e17B8936f587078929869a2b5D4e434F8DD',
-  token: '0x56CF4750EC2E1d66E76e51B2cF3405CbA9487d83',
-  oracleManager: '0x11396dB2272a71841cfBe855c6e330CEE657CFe0',
-  strategyManager: '0x882421d092e593165744F0D15c9F7F37318B5601',
-  portfolioManager: '0xFb30D207164a32c1d963243362D7600cd1FBC609',
-  swapAdapter: '0x3d85434A0D92d09B2eC098aa0822F57Fd81beb6D',
-  liquidityManager: '0xad3c7a8d05333a4cA9eBF6f131E4C12Af9C05EA0',
+  directory: ZERO_ADDRESS as `0x${string}`,
+  controller: ZERO_ADDRESS as `0x${string}`,
+  vault: ZERO_ADDRESS as `0x${string}`,
+  treasury: ZERO_ADDRESS as `0x${string}`,
+  token: ZERO_ADDRESS as `0x${string}`,
+  oracleManager: ZERO_ADDRESS as `0x${string}`,
+  strategyManager: ZERO_ADDRESS as `0x${string}`,
+  portfolioManager: ZERO_ADDRESS as `0x${string}`,
+  swapAdapter: ZERO_ADDRESS as `0x${string}`,
+  liquidityManager: ZERO_ADDRESS as `0x${string}`,
+  costBasisManager: ZERO_ADDRESS as `0x${string}`,
 };
 
 export default function DashboardPage() {
@@ -71,14 +73,23 @@ export default function DashboardPage() {
           ? 'RESERVE_SWEEP_REQUIRED'
           : 'HEALTHY';
 
-  // Live connected wallet valuation calculations (0 when disconnected or 0 balance)
+  // Live connected wallet valuation calculations from CostBasisManager on-chain accounting
   const userShareUSD =
-    isConnected && data?.UserShareBalance?.usdValueNumber
+    isConnected && data?.UserShareBalance?.usdValueNumber !== undefined
       ? data.UserShareBalance.usdValueNumber
       : 0;
-  const userCostBasisUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.797 : 0;
-  const userRealizedProfitUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.0415 : 0;
-  const userPerfFeeUSD = isConnected && userShareUSD > 0 ? userRealizedProfitUSD * 0.05 : 0;
+  const userCostBasisUSD =
+    isConnected && data?.UserShareBalance?.costBasisUsdNumber !== undefined
+      ? data.UserShareBalance.costBasisUsdNumber
+      : 0;
+  const userRealizedProfitUSD =
+    isConnected && data?.UserShareBalance?.realizedProfitUsdNumber !== undefined
+      ? data.UserShareBalance.realizedProfitUsdNumber
+      : 0;
+  const userPerfFeeUSD =
+    isConnected && data?.UserShareBalance?.performanceFeePaidUsdNumber !== undefined
+      ? data.UserShareBalance.performanceFeePaidUsdNumber
+      : 0;
 
   const recentActivity: ActivityTx[] = [];
 

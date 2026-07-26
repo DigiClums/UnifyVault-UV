@@ -1,4 +1,5 @@
 import { ProtocolService } from './protocolService';
+import { ZERO_ADDRESS } from '../../lib/config/network';
 
 export interface ProtocolHealthCheckReport {
   isHealthy: boolean;
@@ -24,11 +25,11 @@ export const HealthService = {
       const addresses = metrics.addresses;
 
       const isDirectoryResolved =
-        addresses.directory !== '0x0000000000000000000000000000000000000000' &&
-        addresses.controller !== '0x0000000000000000000000000000000000000000' &&
-        addresses.vault !== '0x0000000000000000000000000000000000000000' &&
-        addresses.treasury !== '0x0000000000000000000000000000000000000000' &&
-        addresses.token !== '0x0000000000000000000000000000000000000000';
+        addresses.directory !== ZERO_ADDRESS &&
+        addresses.controller !== ZERO_ADDRESS &&
+        addresses.vault !== ZERO_ADDRESS &&
+        addresses.treasury !== ZERO_ADDRESS &&
+        addresses.token !== ZERO_ADDRESS;
 
       const freshFeeds = metrics.oracleFeeds.filter((f) => f.isFresh);
       const isOracleHealthy = metrics.isOracleHealthy && freshFeeds.length > 0;
@@ -65,9 +66,7 @@ export const HealthService = {
         isControllerActive: !metrics.isControllerPaused,
         isOracleHealthy,
         paused: metrics.isControllerPaused,
-        modulesCount: Object.values(addresses).filter(
-          (a) => a !== '0x0000000000000000000000000000000000000000',
-        ).length,
+        modulesCount: Object.values(addresses).filter((a) => a !== ZERO_ADDRESS).length,
         oracleFeedsCount: metrics.oracleFeeds.length,
         freshFeedsCount: freshFeeds.length,
         timestamp: Date.now(),

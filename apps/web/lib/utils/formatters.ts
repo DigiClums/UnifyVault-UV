@@ -1,5 +1,5 @@
 import { formatUnits, parseUnits } from 'viem';
-import { SUPPORTED_CHAINS } from '../config/chains';
+import { getExplorerBaseUrl } from '../config/network';
 
 export const MAX_UINT256 =
   115792089237316195423570985008687907853269984665640564039457584007913129639935n;
@@ -98,10 +98,9 @@ export const formatLimit = (limit?: bigint, decimals = 18, precision = 2): strin
 export const getExplorerLink = (
   hashOrAddress: string,
   type: 'tx' | 'address',
-  chainId = 84532,
+  chainId?: number,
 ): string => {
-  const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId);
-  const baseUrl = chain?.blockExplorers?.default?.url || 'https://sepolia.basescan.org';
+  const baseUrl = getExplorerBaseUrl(chainId);
   return `${baseUrl}/${type}/${hashOrAddress}`;
 };
 

@@ -5,6 +5,12 @@ import { useWallet } from '../../hooks/useWallet';
 import { useNetwork } from '../../hooks/useNetwork';
 import { useTokenBalance } from '../../hooks/useTokenBalance';
 import { useIndexTokenAddress } from '../../hooks/useIndexTokenAddress';
+import {
+  getTokenAddress,
+  getChainLabel,
+  isMainnet,
+  getDefaultChainId,
+} from '../../lib/config/network';
 
 export function WalletSummaryBar() {
   const { address, isConnected, connect } = useWallet();
@@ -12,8 +18,7 @@ export function WalletSummaryBar() {
   const { indexTokenAddress } = useIndexTokenAddress();
 
   const usdcAddress = React.useMemo<`0x${string}`>(() => {
-    if (chainId === 8453) return '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-    return '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+    return getTokenAddress(chainId || getDefaultChainId(), 'USDC');
   }, [chainId]);
 
   const { balance: usdcBalanceRaw } = useTokenBalance(usdcAddress);
@@ -60,7 +65,7 @@ export function WalletSummaryBar() {
               Unsupported Network
             </p>
             <p className="text-xs text-muted-foreground">
-              Please switch your wallet network to Base Sepolia (Chain ID: 84532).
+              Please switch your wallet network to {getChainLabel(chainId)}.
             </p>
           </div>
         </div>
@@ -86,7 +91,7 @@ export function WalletSummaryBar() {
               {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected'}
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
-              Base Sepolia
+              {isMainnet(chainId) ? 'Base Mainnet' : 'Base Sepolia'}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">Connected Active Web3 Session</p>
