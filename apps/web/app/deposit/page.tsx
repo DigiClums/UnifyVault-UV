@@ -109,6 +109,12 @@ export default function DepositPage() {
     return isApprovalNeeded;
   }, [allowance, parsedAmount]);
 
+  const handlePresetClick = (pct: number) => {
+    if (!usdcBalanceRaw) return;
+    const fraction = (usdcBalanceRaw * BigInt(pct)) / 100n;
+    setAmountInput(formatUnits(fraction, 6));
+  };
+
   const handleAction = async () => {
     if (!address || parsedAmount === 0n || validationError) return;
 
@@ -279,7 +285,7 @@ export default function DepositPage() {
                   onChange={(e) => setAmountInput(e.target.value)}
                   placeholder="0.0"
                   disabled={isPaused}
-                  className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-foreground focus:outline-none min-h-[44px] disabled:opacity-50"
+                  className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-foreground focus:outline-none min-h-[44px] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2"
                 />
                 <button
                   onClick={() =>
@@ -289,11 +295,25 @@ export default function DepositPage() {
                   }
                   disabled={isPaused}
                   aria-label="Max"
-                  className="rounded-lg bg-primary/10 border border-primary/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                  className="rounded-lg bg-primary/10 border border-primary/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   MAX
                 </button>
               </div>
+            </div>
+
+            {/* Preset Percentage Buttons */}
+            <div className="grid grid-cols-4 gap-2 mb-6">
+              {[25, 50, 75, 100].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => handlePresetClick(pct)}
+                  disabled={isPaused}
+                  className="rounded-xl border border-border bg-secondary/80 hover:bg-accent py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-foreground hover:border-primary/30 transition-all font-mono disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {pct}%
+                </button>
+              ))}
             </div>
 
             {/* Inline Validation Banner */}
@@ -385,7 +405,7 @@ export default function DepositPage() {
                   status === 'pending' ||
                   Boolean(validationError)
                 }
-                className="w-full rounded-2xl bg-primary py-4 font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed font-semibold"
+                className="w-full rounded-2xl bg-primary py-4 font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed font-semibold focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label={needsApproval ? 'Approve Spend Limit for USDC' : 'Deposit USDC'}
               >
                 {isApproving
