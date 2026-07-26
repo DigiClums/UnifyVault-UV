@@ -12,12 +12,12 @@ interface DashboardPerformanceSectionProps {
 }
 
 export function DashboardPerformanceSection({
-  currentValueUSD = 12542.31,
-  totalInvestedUSD = 10000.0,
-  realizedProfitUSD = 520.0,
-  performanceFeesPaidUSD = 37.4,
-  currentNAV = '$1.2542',
-  todayChangePercent = 2.15,
+  currentValueUSD = 0,
+  totalInvestedUSD = 0,
+  realizedProfitUSD = 0,
+  performanceFeesPaidUSD = 0,
+  currentNAV = '$1.0000',
+  todayChangePercent = 0,
 }: DashboardPerformanceSectionProps) {
   const unrealizedGain =
     currentValueUSD > totalInvestedUSD ? currentValueUSD - totalInvestedUSD : 0;
@@ -54,7 +54,7 @@ export function DashboardPerformanceSection({
             })}
           </p>
           <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-            +${todayGainUSD.toFixed(2)} ({todayChangePercent > 0 ? '+' : ''}
+            +${todayGainUSD.toFixed(2)} ({todayChangePercent >= 0 ? '+' : ''}
             {todayChangePercent}%) Today
           </span>
         </div>

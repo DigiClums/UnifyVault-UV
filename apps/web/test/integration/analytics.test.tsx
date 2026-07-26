@@ -207,7 +207,7 @@ describe('Analytics Page Integration Tests', () => {
     renderWithProviders(<Analytics />);
 
     const exportButton = screen.getByRole('button', {
-      name: /historical export is unavailable\./i,
+      name: /historical export unavailable/i,
     });
     expect(exportButton).toBeDisabled();
   });

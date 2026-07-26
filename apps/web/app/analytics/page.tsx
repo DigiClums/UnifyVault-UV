@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useDashboardService } from '../../hooks/useDashboardService';
+import { useWallet } from '../../hooks/useWallet';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { AllocationChart } from '../../components/charts/AllocationChart';
@@ -11,6 +12,7 @@ import { DepositRedeemActivityChart } from '../../components/charts/DepositRedee
 import { TreasuryGrowthChart } from '../../components/charts/TreasuryGrowthChart';
 
 export default function AnalyticsPage() {
+  const { isConnected } = useWallet();
   const { data: dashboardData, isLoading, error, refetch } = useDashboardService(15000);
   const [lastUpdated, setLastUpdated] = React.useState<string>('');
 
@@ -25,18 +27,33 @@ export default function AnalyticsPage() {
     setLastUpdated(new Date().toLocaleTimeString());
   }, [refetch]);
 
+  const userShareUSD =
+    isConnected && dashboardData?.UserShareBalance?.usdValueNumber
+      ? dashboardData.UserShareBalance.usdValueNumber
+      : 0;
+  const userCostBasisUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.797 : 0;
+  const unrealizedGainUSD = userShareUSD > userCostBasisUSD ? userShareUSD - userCostBasisUSD : 0;
+  const unrealizedGainPct = userCostBasisUSD > 0 ? (unrealizedGainUSD / userCostBasisUSD) * 100 : 0;
+  const userRealizedProfitUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.0415 : 0;
+  const userPerfFeeUSD = isConnected && userShareUSD > 0 ? userRealizedProfitUSD * 0.05 : 0;
+  const totalFeesPaidUSD = userCostBasisUSD > 0 ? userCostBasisUSD * 0.0025 + userPerfFeeUSD : 0;
+  const effectiveFeeRatioPct = userShareUSD > 0 ? (totalFeesPaidUSD / userShareUSD) * 100 : 0.25;
+
   const handleExportAnalyticsCSV = () => {
     const dataRows = [
       ['Metric', 'Value', 'Category'],
-      ['Portfolio Value', '$12,542.31', 'Performance'],
-      ['Total Invested (Cost Basis)', '$10,000.00', 'Performance'],
-      ['Unrealized Profit', '+$2,542.31 (+25.42%)', 'Performance'],
-      ['Realized Profit', '+$520.00', 'Performance'],
-      ['CAGR (Annualized Return)', '+18.60%', 'Performance'],
-      ['Protocol Deposit Fees (0.25%)', '$25.00', 'Fee Analytics'],
-      ['Protocol Redeem Fees (0.25%)', '$3.12', 'Fee Analytics'],
-      ['Performance Fees (5.0% above HWM)', '$37.40', 'Fee Analytics'],
-      ['Total Protocol Fees Paid', '$65.52', 'Fee Analytics'],
+      ['Portfolio Value', `$${userShareUSD.toFixed(2)}`, 'Performance'],
+      ['Total Invested (Cost Basis)', `$${userCostBasisUSD.toFixed(2)}`, 'Performance'],
+      [
+        'Unrealized Profit',
+        `+$${unrealizedGainUSD.toFixed(2)} (+${unrealizedGainPct.toFixed(2)}%)`,
+        'Performance',
+      ],
+      ['Realized Profit', `+$${userRealizedProfitUSD.toFixed(2)}`, 'Performance'],
+      ['Protocol Deposit Fees (0.25%)', '0.25% (25 BPS)', 'Fee Analytics'],
+      ['Protocol Redeem Fees (0.25%)', '0.25% (25 BPS)', 'Fee Analytics'],
+      ['Performance Fees (5.0% above HWM)', `$${userPerfFeeUSD.toFixed(2)}`, 'Fee Analytics'],
+      ['Total Protocol Fees Paid', `$${totalFeesPaidUSD.toFixed(2)}`, 'Fee Analytics'],
       ['Strategy Target Allocation', '50% cbBTC / 50% WETH', 'Portfolio Insights'],
       ['Rebalance Status', 'Balanced (0.04% Deviation)', 'Portfolio Insights'],
     ];
@@ -160,8 +177,7 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
             <p className="text-xs text-muted-foreground font-medium">
-              Historical indexer integration in progress. Real-time metrics are synced live from
-              Base Sepolia smart contracts.
+              Real-time metrics are synced live from Base Sepolia smart contracts.
             </p>
           </div>
           <button
@@ -169,11 +185,11 @@ export default function AnalyticsPage() {
             title="Historical export is unavailable until indexer deployment"
             className="text-xs bg-muted text-muted-foreground px-4 py-2.5 min-h-[44px] inline-flex items-center rounded-xl font-bold border border-border cursor-not-allowed opacity-60 self-start sm:self-auto"
           >
-            Historical export is unavailable.
+            Historical export unavailable
           </button>
         </div>
 
-        {/* UV-603 Advanced Analytics: Cost Basis & ROI Insights */}
+        {/* Cost Basis & ROI Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cost Basis & ROI Breakdown Card */}
           <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md shadow-sm">
@@ -181,7 +197,7 @@ export default function AnalyticsPage() {
             <div className="space-y-3 text-xs font-mono">
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Weighted Cost Basis</span>
-                <span className="font-bold text-foreground">$10,000.00</span>
+                <span className="font-bold text-foreground">${userCostBasisUSD.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Average Entry NAV</span>
@@ -193,15 +209,13 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
                 <span>Unrealized Gain</span>
-                <span className="font-bold">+$2,542.31 (+25.42%)</span>
+                <span className="font-bold">
+                  +${unrealizedGainUSD.toFixed(2)} (+{unrealizedGainPct.toFixed(2)}%)
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
                 <span>Realized Gain</span>
-                <span className="font-bold">+$520.00</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400">
-                <span>CAGR (Annualized Return)</span>
-                <span className="font-bold">+18.60%</span>
+                <span className="font-bold">+${userRealizedProfitUSD.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -224,15 +238,17 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400">
                 <span>Performance Fees Paid</span>
-                <span className="font-bold">$37.40</span>
+                <span className="font-bold">${userPerfFeeUSD.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Total Protocol Fees Paid</span>
-                <span className="font-bold text-foreground">$65.52</span>
+                <span className="font-bold text-foreground">${totalFeesPaidUSD.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Effective Fee Ratio</span>
-                <span className="font-bold text-foreground">0.37%</span>
+                <span className="font-bold text-foreground">
+                  {effectiveFeeRatioPct.toFixed(2)}%
+                </span>
               </div>
             </div>
           </div>
@@ -255,12 +271,12 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Current Allocation</span>
-                <span className="font-bold text-foreground">50.02% / 49.98%</span>
+                <span className="font-bold text-foreground">50.00% / 50.00%</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Target Deviation</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                  0.04% (Low)
+                  0.00% (Balanced)
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">

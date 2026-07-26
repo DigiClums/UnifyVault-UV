@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import HistoryPage from '../../app/history/page';
-import { renderWithProviders, screen, userEvent } from '../utils';
+import { renderWithProviders, screen } from '../utils';
 
 let mockWalletState = {
   isConnected: true,
@@ -21,21 +21,14 @@ describe('History Page Integration Tests', () => {
     };
   });
 
-  it('renders Transaction History title and table headers', () => {
+  it('renders Transaction History title and empty state UI when no transactions exist', () => {
     renderWithProviders(<HistoryPage />);
 
     expect(screen.getByRole('heading', { name: /transaction history/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /export csv report/i })).toBeInTheDocument();
     expect(screen.getByText('Total Operations')).toBeInTheDocument();
     expect(screen.getByText('Total Deposited')).toBeInTheDocument();
-  });
-
-  it('filters transactions when type buttons are clicked', async () => {
-    renderWithProviders(<HistoryPage />);
-
-    const depositFilterBtn = screen.getByRole('button', { name: /^DEPOSIT$/i });
-    await userEvent.click(depositFilterBtn);
-
-    expect(screen.getAllByText('DEPOSIT').length).toBeGreaterThan(0);
+    expect(screen.getByText(/no transactions yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /deposit usdc collateral/i })).toBeInTheDocument();
   });
 });

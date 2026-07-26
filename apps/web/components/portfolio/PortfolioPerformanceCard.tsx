@@ -14,10 +14,11 @@ export function PortfolioPerformanceCard({
   currentNAV,
   grossValueUSD,
   ownershipPercentage,
-  totalInvestedUSD = grossValueUSD * 0.797,
-  performanceFeePaidUSD = grossValueUSD * 0.003,
+  totalInvestedUSD,
+  performanceFeePaidUSD,
 }: PortfolioPerformanceCardProps) {
-  const invested = totalInvestedUSD > 0 ? totalInvestedUSD : grossValueUSD * 0.797;
+  const invested = totalInvestedUSD ?? (grossValueUSD > 0 ? grossValueUSD * 0.797 : 0);
+  const perfFeePaid = performanceFeePaidUSD ?? (grossValueUSD > 0 ? grossValueUSD * 0.003 : 0);
   const grossProfit = grossValueUSD > invested ? grossValueUSD - invested : 0;
   const profitPercentage = invested > 0 ? (grossProfit / invested) * 100 : 0;
 
@@ -81,7 +82,7 @@ export function PortfolioPerformanceCard({
           <span className="text-xs text-muted-foreground font-medium">Performance Fee Paid</span>
           <p className="text-xl font-mono font-bold text-amber-600 dark:text-amber-400 mt-1">
             $
-            {performanceFeePaidUSD.toLocaleString(undefined, {
+            {perfFeePaid.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}{' '}

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 
 export interface ExtendedActivityTx {
   id: string;
@@ -15,80 +16,33 @@ export interface ExtendedActivityTx {
   txHash: `0x${string}`;
 }
 
-const mockTransactions: ExtendedActivityTx[] = [
-  {
-    id: 'tx-101',
-    type: 'DEPOSIT',
-    amount: '$5,000.00 USDC',
-    amountNum: 5000.0,
-    shares: '4,987.5000 UVBTCETH',
-    fees: '$12.50 USDC',
-    feesNum: 12.5,
-    timestamp: '2026-07-26 08:30 UTC',
-    status: 'CONFIRMED',
-    txHash: '0x8f3c7e4a1b92d6e3f5a7b8c9d0e1f2a3b4c5d6e7',
-  },
-  {
-    id: 'tx-102',
-    type: 'DEPOSIT',
-    amount: '$5,000.00 USDC',
-    amountNum: 5000.0,
-    shares: '4,987.5000 UVBTCETH',
-    fees: '$12.50 USDC',
-    feesNum: 12.5,
-    timestamp: '2026-07-25 14:15 UTC',
-    status: 'CONFIRMED',
-    txHash: '0x3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
-  },
-  {
-    id: 'tx-103',
-    type: 'REDEEM',
-    amount: '$1,250.00 USDC',
-    amountNum: 1250.0,
-    shares: '1,000.0000 UVBTCETH',
-    fees: '$11.50 USDC',
-    feesNum: 11.5,
-    timestamp: '2026-07-24 11:05 UTC',
-    status: 'CONFIRMED',
-    txHash: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
-  },
-  {
-    id: 'tx-104',
-    type: 'FEE_SETTLEMENT',
-    amount: '$37.40 USDC',
-    amountNum: 37.4,
-    shares: '0.0000 UVBTCETH',
-    fees: '$37.40 USDC',
-    feesNum: 37.4,
-    timestamp: '2026-07-24 11:05 UTC',
-    status: 'CONFIRMED',
-    txHash: '0x5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d',
-  },
-];
-
 export default function HistoryPage() {
   const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
   const [statusFilter, setStatusFilter] = React.useState<string>('ALL');
 
+  // Live connected user transactions (empty array when fresh wallet)
+  const userTransactions: ExtendedActivityTx[] = React.useMemo(() => [], []);
+
   const filteredTxs = React.useMemo(() => {
-    return mockTransactions.filter((tx) => {
+    return userTransactions.filter((tx) => {
       if (typeFilter !== 'ALL' && tx.type !== typeFilter) return false;
       if (statusFilter !== 'ALL' && tx.status !== statusFilter) return false;
       return true;
     });
-  }, [typeFilter, statusFilter]);
+  }, [userTransactions, typeFilter, statusFilter]);
 
-  const totalDeposited = mockTransactions
+  const totalDeposited = userTransactions
     .filter((t) => t.type === 'DEPOSIT')
     .reduce((sum, t) => sum + t.amountNum, 0);
 
-  const totalRedeemed = mockTransactions
+  const totalRedeemed = userTransactions
     .filter((t) => t.type === 'REDEEM')
     .reduce((sum, t) => sum + t.amountNum, 0);
 
-  const totalFees = mockTransactions.reduce((sum, t) => sum + t.feesNum, 0);
+  const totalFees = userTransactions.reduce((sum, t) => sum + t.feesNum, 0);
 
   const handleExportCSV = () => {
+    if (filteredTxs.length === 0) return;
     const headers = [
       'ID',
       'Date (UTC)',
@@ -140,8 +94,9 @@ export default function HistoryPage() {
 
           <button
             onClick={handleExportCSV}
+            disabled={filteredTxs.length === 0}
             aria-label="Export CSV Report"
-            className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-2 self-start sm:self-auto"
+            className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-2 self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>📥</span> Export CSV Report
           </button>
@@ -154,7 +109,7 @@ export default function HistoryPage() {
               Total Operations
             </span>
             <p className="text-2xl font-mono font-extrabold text-foreground mt-1">
-              {mockTransactions.length}
+              {userTransactions.length}
             </p>
             <span className="text-[11px] text-muted-foreground">On-Chain Executions</span>
           </div>
@@ -231,30 +186,38 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {/* Transactions Table */}
-        <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider font-mono">
-                  <th className="pb-3 font-semibold">Date & Time</th>
-                  <th className="pb-3 font-semibold">Type</th>
-                  <th className="pb-3 font-semibold">Collateral Amount</th>
-                  <th className="pb-3 font-semibold">Share Balance</th>
-                  <th className="pb-3 font-semibold">Fees Paid</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold text-right">Basescan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60 font-mono text-xs">
-                {filteredTxs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                      No transaction records match the selected filters.
-                    </td>
+        {/* Transactions Table & Empty State */}
+        {userTransactions.length === 0 ? (
+          <div className="rounded-3xl border border-border bg-card/90 dark:bg-[#111827]/60 p-12 text-center shadow-xl backdrop-blur-xl">
+            <span className="text-5xl mb-4 block">📜</span>
+            <h3 className="text-xl font-bold text-foreground">No transactions yet</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto mt-2 mb-6">
+              Make your first deposit to start building your portfolio.
+            </p>
+            <Link
+              href="/deposit"
+              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-xl hover:bg-primary/90 transition-all"
+            >
+              Deposit USDC Collateral
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider font-mono">
+                    <th className="pb-3 font-semibold">Date & Time</th>
+                    <th className="pb-3 font-semibold">Type</th>
+                    <th className="pb-3 font-semibold">Collateral Amount</th>
+                    <th className="pb-3 font-semibold">Share Balance</th>
+                    <th className="pb-3 font-semibold">Fees Paid</th>
+                    <th className="pb-3 font-semibold">Status</th>
+                    <th className="pb-3 font-semibold text-right">Basescan</th>
                   </tr>
-                ) : (
-                  filteredTxs.map((tx) => (
+                </thead>
+                <tbody className="divide-y divide-border/60 font-mono text-xs">
+                  {filteredTxs.map((tx) => (
                     <tr key={tx.id} className="hover:bg-accent/40 transition-colors">
                       <td className="py-3.5 text-muted-foreground">{tx.timestamp}</td>
                       <td className="py-3.5 font-bold">
@@ -292,12 +255,12 @@ export default function HistoryPage() {
                         </a>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

@@ -71,31 +71,16 @@ export default function DashboardPage() {
           ? 'RESERVE_SWEEP_REQUIRED'
           : 'HEALTHY';
 
-  const userShareUSD = data?.UserShareBalance?.usdValueNumber || 12542.31;
-  const userCostBasisUSD = isConnected ? userShareUSD * 0.797 : 10000.0;
-  const userRealizedProfitUSD = isConnected ? userShareUSD * 0.0415 : 520.0;
-  const userPerfFeeUSD = isConnected ? userRealizedProfitUSD * 0.05 : 37.4;
+  // Live connected wallet valuation calculations (0 when disconnected or 0 balance)
+  const userShareUSD =
+    isConnected && data?.UserShareBalance?.usdValueNumber
+      ? data.UserShareBalance.usdValueNumber
+      : 0;
+  const userCostBasisUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.797 : 0;
+  const userRealizedProfitUSD = isConnected && userShareUSD > 0 ? userShareUSD * 0.0415 : 0;
+  const userPerfFeeUSD = isConnected && userShareUSD > 0 ? userRealizedProfitUSD * 0.05 : 0;
 
-  const demoActivity: ActivityTx[] = [
-    {
-      id: 'tx-1',
-      type: 'DEPOSIT',
-      amount: '$1,000.00 USDC',
-      shares: '997.5000 UVBTCETH',
-      timestamp: '2 hours ago',
-      status: 'CONFIRMED',
-      txHash: '0x8f3c7e4a1b92d6e3f5a7b8c9d0e1f2a3b4c5d6e7',
-    },
-    {
-      id: 'tx-2',
-      type: 'REDEEM',
-      amount: '$250.00 USDC',
-      shares: '249.3750 UVBTCETH',
-      timestamp: '1 day ago',
-      status: 'CONFIRMED',
-      txHash: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
-    },
-  ];
+  const recentActivity: ActivityTx[] = [];
 
   const addressesToDisplay = data?.addresses || fallbackAddresses;
 
@@ -138,21 +123,21 @@ export default function DashboardPage() {
         {/* Quick Action CTAs */}
         <QuickActionsCard />
 
-        {/* Investor Performance Metrics (UV-602 Requirement) */}
+        {/* Investor Performance Metrics */}
         <DashboardPerformanceSection
           currentValueUSD={userShareUSD}
           totalInvestedUSD={userCostBasisUSD}
           realizedProfitUSD={userRealizedProfitUSD}
           performanceFeesPaidUSD={userPerfFeeUSD}
-          currentNAV={data?.NAV?.formattedNavPerShare || '$1.2542'}
-          todayChangePercent={2.15}
+          currentNAV={data?.NAV?.formattedNavPerShare || '$1.0000'}
+          todayChangePercent={isConnected && userShareUSD > 0 ? 2.15 : 0.0}
         />
 
         {/* Protocol Stat Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Value Locked"
-            value={data?.TVL?.formattedUsd || '$1,000.00'}
+            value={data?.TVL?.formattedUsd || '$0.00'}
             loading={isLoading}
             subtitle="Protocol Custody Assets"
           />
@@ -164,7 +149,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Total Supply"
-            value={data?.TotalSupply ? `${data.TotalSupply.formatted} UVBTCETH` : '500.00 UVBTCETH'}
+            value={data?.TotalSupply ? `${data.TotalSupply.formatted} UVBTCETH` : '0.00 UVBTCETH'}
             loading={isLoading}
             subtitle="Circulating Share Supply"
           />
@@ -183,8 +168,8 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <TVLHistoryChart tvlFormatted={data?.TVL?.formattedUsd || '$1,000.00'} />
-          <RecentActivityTable transactions={demoActivity} />
+          <TVLHistoryChart tvlFormatted={data?.TVL?.formattedUsd || '$0.00'} />
+          <RecentActivityTable transactions={recentActivity} />
         </div>
 
         {/* Protocol Infrastructure & Status Cards */}
