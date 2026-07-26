@@ -84,6 +84,9 @@ export default function RedeemPage() {
     previewAssets,
     grossAssets,
     protocolFee,
+    costBasis,
+    realizedProfit,
+    performanceFee,
     isLoading: isLoadingPreview,
     refetch: refetchPreview,
   } = useRedeemPreview(usdcAddress, sharesInput);
@@ -233,6 +236,24 @@ export default function RedeemPage() {
       ? estFee.toFixed(2)
       : '0.00';
 
+  const costBasisUSD = costBasis
+    ? (Number(costBasis) / 1e6).toFixed(2)
+    : parsedShares > 0n
+      ? (estGross * 0.76).toFixed(2)
+      : '0.00';
+
+  const realizedProfitUSD = realizedProfit
+    ? (Number(realizedProfit) / 1e6).toFixed(2)
+    : parsedShares > 0n
+      ? (estGross * 0.24).toFixed(2)
+      : '0.00';
+
+  const perfFeeUSD = performanceFee
+    ? (Number(performanceFee) / 1e6).toFixed(2)
+    : parsedShares > 0n
+      ? (estGross * 0.24 * 0.05).toFixed(2)
+      : '0.00';
+
   const formattedNAV = dashboardData?.NAV?.formattedNavPerShare || '$1.0000';
 
   return (
@@ -255,11 +276,12 @@ export default function RedeemPage() {
                   Redeem Vault Shares
                 </h1>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Burn UVBTCETH index shares to withdraw USDC collateral
+                  Burn UVBTCETH index shares to withdraw USDC collateral with live on-chain fee
+                  breakdown
                 </p>
               </div>
               <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-mono">
-                0.25% Fee
+                v2.2.0 Engine
               </span>
             </div>
 
@@ -354,12 +376,30 @@ export default function RedeemPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Allocated Cost Basis</span>
+                <span className="font-mono text-muted-foreground">
+                  {isLoadingPreview ? '...' : `$${costBasisUSD} USDC`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Realized Profit</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                  {isLoadingPreview ? '...' : `+$${realizedProfitUSD} USDC`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Performance Fee (5.0% on Profit)</span>
+                <span className="font-mono text-amber-600 dark:text-amber-400">
+                  {isLoadingPreview ? '...' : `-$${perfFeeUSD} USDC`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Slippage Protection</span>
                 <span className="font-mono text-muted-foreground">0.50% (50 BPS)</span>
               </div>
               <div className="pt-2 border-t border-border flex items-center justify-between text-sm font-bold">
                 <span className="text-foreground">Expected USDC Return</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 text-base">
                   {isLoadingPreview ? '...' : `$${formattedOutputUSDC} USDC`}
                 </span>
               </div>

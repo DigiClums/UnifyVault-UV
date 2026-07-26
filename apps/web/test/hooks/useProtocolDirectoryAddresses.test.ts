@@ -14,12 +14,13 @@ let mockIsLoading = false;
 
 vi.mock('wagmi', () => ({
   useReadContracts: (config: any) => {
-    if (config?.contracts?.length === 3) {
+    if (config?.contracts?.length === 4) {
       return {
         data: [
           { status: 'success', result: '0x1111111111111111111111111111111111111111' },
           { status: 'success', result: '0x3333333333333333333333333333333333333333' },
           { status: 'success', result: '0x2222222222222222222222222222222222222222' },
+          { status: 'success', result: '0x4444444444444444444444444444444444444444' },
         ],
         isLoading: mockIsLoading,
       };
@@ -43,6 +44,9 @@ describe('useProtocolDirectoryAddresses Hook', () => {
     expect(result.current.controllerAddress).toBe('0x1111111111111111111111111111111111111111');
     expect(result.current.indexTokenAddress).toBe('0x3333333333333333333333333333333333333333');
     expect(result.current.vaultAddress).toBe('0x2222222222222222222222222222222222222222');
+    expect(result.current.costBasisManagerAddress).toBe(
+      '0x4444444444444444444444444444444444444444',
+    );
   });
 
   it('handles loading state during directory address fetch', () => {
