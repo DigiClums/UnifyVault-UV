@@ -17,6 +17,7 @@ import '../interfaces/IProtocolDirectory.sol';
 import '../interfaces/IPortfolioManager.sol';
 import '../interfaces/IStrategyManager.sol';
 import '../interfaces/ISwapAdapter.sol';
+import '../interfaces/IFeeManager.sol';
 import '../constants/ModuleIds.sol';
 import '../vault/CustodyVault.sol';
 import '../token/UVBTCETHToken.sol';
@@ -224,6 +225,34 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     } catch {
       return address(0);
     }
+  }
+
+  function feeManager() public view returns (address) {
+    try IProtocolDirectory(_directory).getAddress(ModuleIds.FEE_MANAGER) returns (address fm) {
+      return fm;
+    } catch {
+      return address(0);
+    }
+  }
+
+  function getDepositFeeBps() public view returns (uint256) {
+    address fm = feeManager();
+    if (fm != address(0)) {
+      try IFeeManager(fm).depositFeeBps() returns (uint256 feeBps) {
+        return feeBps;
+      } catch {}
+    }
+    return 25;
+  }
+
+  function getRedeemFeeBps() public view returns (uint256) {
+    address fm = feeManager();
+    if (fm != address(0)) {
+      try IFeeManager(fm).redeemFeeBps() returns (uint256 feeBps) {
+        return feeBps;
+      } catch {}
+    }
+    return 200;
   }
 
   // --- Orchestrated Live Deposit & Redeem Workflows ---
@@ -440,8 +469,10 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       CustodyVault(_vault).withdraw(asset, address(this), grossPayoutCollateral);
     }
 
+    uint256 redFeeBps = getRedeemFeeBps();
     (uint256 grossOut, uint256 protocolFee, uint256 netOut) = FeeLib.calculateRedemptionFee(
-      grossPayoutCollateral
+      grossPayoutCollateral,
+      redFeeBps
     );
 
     if (netOut < minAssetsOut) {
@@ -492,6 +523,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   }
 
   function previewRedeem(address asset, uint256 shares) public view returns (uint256) {
+    uint256 redFeeBps = getRedeemFeeBps();
     address pm = portfolioManager();
     if (pm != address(0)) {
       IPortfolioManager.RedeemPreview memory preview = IPortfolioManager(pm).previewRedeem(
@@ -499,7 +531,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
         asset
       );
       uint256 gross = preview.payoutAmount;
-      return gross - FeeLib.calculateRedeemFee(gross);
+      return gross - FeeLib.calculateRedeemFee(gross, redFeeBps);
     }
 
     CustodyVault.AssetConfig memory config;
@@ -518,7 +550,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       accountedAssets,
       config.decimals
     );
-    return grossAssets - FeeLib.calculateRedeemFee(grossAssets);
+    return grossAssets - FeeLib.calculateRedeemFee(grossAssets, redFeeBps);
   }
 
   function estimateMint(address asset, uint256 amount) external view returns (uint256) {
@@ -636,8 +668,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     (address provider, ) = IOracle(_oracle).getFeedMetadata(asset);
     uint256 rawPrice = IOracleProvider(provider).getLatestRound(assetId).price;
 
-    uint256 protocolFee = FeeLib.calculateDepositFee(amount);
-    uint256 netDeposit = FeeLib.calculateNetDeposit(amount);
+    uint256 depFeeBps = getDepositFeeBps();
+    uint256 protocolFee = FeeLib.calculateDepositFee(amount, depFeeBps);
+    uint256 netDeposit = FeeLib.calculateNetDeposit(amount, depFeeBps);
 
     uint256 shares;
     address pm = portfolioManager();
