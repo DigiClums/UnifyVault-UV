@@ -9,6 +9,8 @@ export const INDEX_TOKEN_KEY =
   '0x0ac1902161e20716389981a690da9d8bdedd6217d645a4b359801d9bffce3bd8' as const;
 export const VAULT_KEY =
   '0x918e3e21ecee5b021c92b4a7262afa2668effbe830864da44b7d3e7a6bd66640' as const;
+export const COST_BASIS_MANAGER_KEY =
+  '0xd4741fb770f259864462ac1e0f0c516cde3c7a9a37aa2882da996c82ffff9796' as const;
 
 export function useProtocolDirectoryAddresses() {
   const { chainId } = useNetwork();
@@ -34,6 +36,12 @@ export function useProtocolDirectoryAddresses() {
         functionName: 'getAddress',
         args: [VAULT_KEY],
       },
+      {
+        address: addresses.directory,
+        abi: PROTOCOL_DIRECTORY_ABI,
+        functionName: 'getAddress',
+        args: [COST_BASIS_MANAGER_KEY],
+      },
     ],
     query: {
       enabled: !!addresses.directory,
@@ -42,7 +50,7 @@ export function useProtocolDirectoryAddresses() {
     },
   });
 
-  const [controllerRes, tokenRes, vaultRes] = data || [];
+  const [controllerRes, tokenRes, vaultRes, costBasisRes] = data || [];
 
   return {
     controllerAddress:
@@ -50,6 +58,8 @@ export function useProtocolDirectoryAddresses() {
     indexTokenAddress:
       tokenRes?.status === 'success' ? (tokenRes.result as `0x${string}`) : undefined,
     vaultAddress: vaultRes?.status === 'success' ? (vaultRes.result as `0x${string}`) : undefined,
+    costBasisManagerAddress:
+      costBasisRes?.status === 'success' ? (costBasisRes.result as `0x${string}`) : undefined,
     isLoading,
     error,
   };

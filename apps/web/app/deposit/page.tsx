@@ -51,7 +51,7 @@ export default function DepositPage() {
     hash?: `0x${string}`;
   } | null>(null);
 
-  const slippageBps = dashboardData?.HealthStatus ? 50 : 50; // 0.50% default
+  const slippageBps = 50; // 0.50% default
 
   const { balance: usdcBalanceRaw, refetch: refetchUsdc } = useTokenBalance(usdcAddress);
   const { refetch: refetchShareBalance } = useTokenBalance(indexTokenAddress);
@@ -106,46 +106,38 @@ export default function DepositPage() {
   const needsApproval = React.useMemo(() => {
     const isApprovalNeeded =
       allowance !== undefined && parsedAmount > 0n && allowance < parsedAmount;
-    console.log('[AUDIT] condition deciding whether approval is complete:', {
-      allowance,
-      parsedAmount,
-      needsApproval: isApprovalNeeded,
-    });
     return isApprovalNeeded;
   }, [allowance, parsedAmount]);
 
+  const handlePresetClick = (pct: number) => {
+    if (!usdcBalanceRaw) return;
+    const fraction = (usdcBalanceRaw * BigInt(pct)) / 100n;
+    setAmountInput(formatUnits(fraction, 6));
+  };
+
   const handleAction = async () => {
     if (!address || parsedAmount === 0n || validationError) return;
-    console.log('[AUDIT] handleAction invoked:', { needsApproval, parsedAmount });
 
     const minShares = depositQuote
       ? (depositQuote.sharesPreview * BigInt(10000 - slippageBps)) / 10000n
       : 0n;
 
     if (needsApproval) {
-      console.log('[AUDIT] handleAction: starting approval flow (openModal APPROVE)');
       openModal('APPROVE');
       setStep('APPROVING');
       try {
         await approve(parsedAmount);
-        console.log('[AUDIT] approval write/confirm finished, refetching allowance...');
         await refetchAllowance();
       } catch (error) {
-        console.error('[AUDIT] handleAction approval error:', error);
         setError(getErrorMessage(error, 'Approval failed'));
       }
     } else {
-      console.log(
-        '[AUDIT] handleAction: needsApproval is false, starting deposit flow (openModal DEPOSIT)',
-      );
       openModal('DEPOSIT');
       setStep('EXECUTING');
 
       try {
-        console.log('[AUDIT] calling deposit() with:', { parsedAmount, minShares, address });
         await deposit(parsedAmount, minShares, address);
       } catch (error) {
-        console.error('[AUDIT] handleAction deposit error:', error);
         setError(getErrorMessage(error, 'Deposit execution failed'));
       }
     }
@@ -222,6 +214,8 @@ export default function DepositPage() {
   const estNet = amountNum - estFee;
   const estShares = estNet / navPerShareNum;
 
+  const formattedDepositAmount = amountInput ? Number(amountInput).toFixed(2) : '0.00';
+
   const formattedFee = depositQuote
     ? (Number(depositQuote.protocolFee) / 1e6).toFixed(2)
     : parsedAmount > 0n
@@ -266,7 +260,7 @@ export default function DepositPage() {
                 </p>
               </div>
               <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-mono">
-                0.25% Fee
+                0.25% Protocol Fee
               </span>
             </div>
 
@@ -291,7 +285,7 @@ export default function DepositPage() {
                   onChange={(e) => setAmountInput(e.target.value)}
                   placeholder="0.0"
                   disabled={isPaused}
-                  className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-foreground focus:outline-none min-h-[44px] disabled:opacity-50"
+                  className="w-full bg-transparent font-mono text-2xl sm:text-3xl font-extrabold text-foreground focus:outline-none min-h-[44px] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2"
                 />
                 <button
                   onClick={() =>
@@ -301,11 +295,25 @@ export default function DepositPage() {
                   }
                   disabled={isPaused}
                   aria-label="Max"
-                  className="rounded-lg bg-primary/10 border border-primary/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                  className="rounded-lg bg-primary/10 border border-primary/20 px-3.5 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-xs font-bold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   MAX
                 </button>
               </div>
+            </div>
+
+            {/* Preset Percentage Buttons */}
+            <div className="grid grid-cols-4 gap-2 mb-6">
+              {[25, 50, 75, 100].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => handlePresetClick(pct)}
+                  disabled={isPaused}
+                  className="rounded-xl border border-border bg-secondary/80 hover:bg-accent py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-foreground hover:border-primary/30 transition-all font-mono disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {pct}%
+                </button>
+              ))}
             </div>
 
             {/* Inline Validation Banner */}
@@ -316,7 +324,7 @@ export default function DepositPage() {
               />
             )}
 
-            {/* Quote Breakdown */}
+            {/* Live Yield & Execution Breakdown */}
             <div className="rounded-2xl border border-border bg-muted/30 dark:bg-gray-900/40 p-4 space-y-3 mb-8">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-muted-foreground font-semibold">
@@ -329,8 +337,10 @@ export default function DepositPage() {
                 )}
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Current NAV Per Share</span>
-                <span className="font-mono font-semibold text-foreground">{formattedNAV}</span>
+                <span className="text-muted-foreground">Deposit Amount</span>
+                <span className="font-mono text-foreground">
+                  {isLoadingPreview ? '...' : `$${formattedDepositAmount} USDC`}
+                </span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Protocol Deposit Fee (0.25%)</span>
@@ -345,12 +355,16 @@ export default function DepositPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Slippage Tolerance</span>
+                <span className="text-muted-foreground">Estimated Index NAV</span>
+                <span className="font-mono font-semibold text-foreground">{formattedNAV}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Slippage Protection</span>
                 <span className="font-mono text-muted-foreground">0.50% (50 BPS)</span>
               </div>
               <div className="pt-2 border-t border-border flex items-center justify-between text-sm font-bold">
-                <span className="text-foreground">Expected Shares (UVBTCETH)</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="text-foreground">Shares to Receive (UVBTCETH)</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 text-base">
                   {isLoadingPreview ? '...' : formattedShares}
                 </span>
               </div>
@@ -391,7 +405,7 @@ export default function DepositPage() {
                   status === 'pending' ||
                   Boolean(validationError)
                 }
-                className="w-full rounded-2xl bg-primary py-4 font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                className="w-full rounded-2xl bg-primary py-4 font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed font-semibold focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label={needsApproval ? 'Approve Spend Limit for USDC' : 'Deposit USDC'}
               >
                 {isApproving

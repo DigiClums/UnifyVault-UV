@@ -12,6 +12,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   PieChart,
+  History,
+  LineChart,
   ShieldCheck,
   HeartPulse,
   Settings,
@@ -26,6 +28,8 @@ export function Navbar() {
     { href: '/deposit', label: 'Deposit', icon: ArrowDownLeft },
     { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
     { href: '/portfolio', label: 'Portfolio', icon: PieChart },
+    { href: '/analytics', label: 'Analytics', icon: LineChart },
+    { href: '/history', label: 'History', icon: History },
   ];
 
   const secondaryNavLinks = [
@@ -62,7 +66,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-2 min-h-[44px] inline-flex items-center rounded-lg text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-primary/15 text-primary border border-primary/30 font-semibold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
