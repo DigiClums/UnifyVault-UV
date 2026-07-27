@@ -326,13 +326,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
     // 1. Route protocol deposit fee to Treasury
-    IERC20(asset).forceApprove(t, quote.protocolFee);
-    ITreasury(t).collectFee(asset, quote.protocolFee);
-    IERC20(asset).forceApprove(t, 0);
+    if (quote.protocolFee > 0) {
+      IERC20(asset).forceApprove(t, quote.protocolFee);
+      ITreasury(t).collectFee(asset, quote.protocolFee);
+      IERC20(asset).forceApprove(t, 0);
 
-    uint256 treasuryReceived = IERC20(asset).balanceOf(t) - treasuryBalanceBefore;
-    if (treasuryReceived != quote.protocolFee) {
-      revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
+      uint256 treasuryReceived = IERC20(asset).balanceOf(t) - treasuryBalanceBefore;
+      if (treasuryReceived != quote.protocolFee) {
+        revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
+      }
     }
 
     // 2. Determine execution path (Live Asset Swaps vs Direct Custody Deposit)
@@ -349,9 +351,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       uint256 len = targetAssets.length;
       assetsBought = new uint256[](len);
 
+      uint256 allocatedSoFar = 0;
       for (uint256 i = 0; i < len; i++) {
         address targetToken = targetAssets[i];
-        uint256 allocAmount = (quote.netDeposit * weightsBps[i]) / 10000;
+        uint256 allocAmount =
+          (i == len - 1)
+            ? quote.netDeposit - allocatedSoFar
+            : (quote.netDeposit * weightsBps[i]) / 10000;
+        allocatedSoFar += allocAmount;
 
         if (allocAmount > 0) {
           if (targetToken == asset) {
@@ -380,6 +387,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
             assetsBought[i] = bought;
           }
         }
+      }
+
+      // Sweep any leftover residual input asset to CustodyVault if supported
+      uint256 residual = IERC20(asset).balanceOf(address(this));
+      if (residual > 0 && CustodyVault(v).isSupported(asset)) {
+        IERC20(asset).forceApprove(v, residual);
+        CustodyVault(v).deposit(asset, address(this), residual);
+        IERC20(asset).forceApprove(v, 0);
       }
     } else {
       // Single-asset legacy deposit fallback directly to CustodyVault

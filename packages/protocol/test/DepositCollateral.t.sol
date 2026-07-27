@@ -351,4 +351,24 @@ contract DepositCollateralTest is Test {
     uint256 expectedShares = expectedNet;
     assertEq(quote.sharesPreview, expectedShares);
   }
+
+  function testZeroDepositFeeSucceeds() public {
+    uint256 amount = 100; // Small amount where (100 * 25) / 10000 == 0 fee
+    tokenA.mint(user, amount);
+
+    vm.startPrank(user);
+    tokenA.approve(address(controller), amount);
+
+    UnifyVaultController.DepositQuote memory quote = controller.deposit(
+      address(tokenA),
+      amount,
+      0,
+      user
+    );
+    vm.stopPrank();
+
+    assertEq(quote.protocolFee, 0);
+    assertEq(tokenA.balanceOf(address(vault)), amount);
+    assertEq(tokenA.balanceOf(address(controller)), 0);
+  }
 }
