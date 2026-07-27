@@ -1,6 +1,22 @@
 /* eslint-disable */
 const { execSync } = require('child_process');
 
+const ENVIRONMENT = process.env.NODE_ENV || 'development';
+const ACTIVE_CHAIN = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base-sepolia';
+
+// STAGE 2: Auto-disable keeper service if deployed on Base Mainnet
+if (
+  ACTIVE_CHAIN === 'base-mainnet' ||
+  ACTIVE_CHAIN === '8453' ||
+  ENVIRONMENT === 'production_mainnet'
+) {
+  console.log(
+    '[OracleKeeper] Production Base Mainnet active: Chainlink mainnet feeds are decentralized on-chain.',
+  );
+  console.log('[OracleKeeper] Testnet keeper daemon auto-disabling.');
+  process.exit(0);
+}
+
 const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
@@ -12,7 +28,7 @@ if (!PRIVATE_KEY) {
   process.exit(1);
 }
 
-// Mock Chainlink Aggregators on Base Sepolia
+// Mock Chainlink Aggregators on Base Sepolia (Testnet Simulation Only)
 const CBBTC_AGGREGATOR = '0x384e9f7f5740fc7c081181cec0a7db945ad8c237';
 const WETH_AGGREGATOR = '0xe0c96e485d8b5e6a2c7fe7b8598a061b52dfc381';
 
@@ -61,7 +77,7 @@ async function updateAggregator(aggregatorAddress, price, assetName) {
 }
 
 async function main() {
-  console.log('[OracleKeeper] Starting UnifyVault Live Oracle Keeper Service...');
+  console.log('[OracleKeeper] Starting UnifyVault Live Oracle Keeper Service (Testnet Mode)...');
   console.log(`[OracleKeeper] Target BTC Aggregator: ${CBBTC_AGGREGATOR}`);
   console.log(`[OracleKeeper] Target ETH Aggregator: ${WETH_AGGREGATOR}`);
 
