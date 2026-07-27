@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useReadContract } from 'wagmi';
+import { FALLBACK_ADDRESSES } from '../../constants';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -19,11 +21,41 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
+const DEFAULT_ADMIN_ROLE =
+  '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
+
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { address, isConnected } = useAccount();
 
-  const navLinks = [
+  // Read admin role for Task 5 Role-Based Nav Visibility
+  const { data: isAdminRole } = useReadContract({
+    address: FALLBACK_ADDRESSES.TREASURY,
+    abi: [
+      {
+        inputs: [
+          { name: 'role', type: 'bytes32' },
+          { name: 'account', type: 'address' },
+        ],
+        name: 'hasRole',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ],
+    functionName: 'hasRole',
+    args: address ? [DEFAULT_ADMIN_ROLE, address] : undefined,
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  const isDeployerAdmin =
+    address && address.toLowerCase() === '0xb145ac2a59575fbe306a58ac924718f4dd4659da';
+  const isAdmin = isConnected && ((isAdminRole as boolean) || isDeployerAdmin);
+
+  const baseNavLinks = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
     { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
@@ -31,8 +63,12 @@ export function Navbar() {
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/treasury', label: 'Treasury', icon: Vault },
     { href: '/transactions', label: 'Activity', icon: History },
-    { href: '/admin', label: 'Admin', icon: ShieldAlert, isAdmin: true },
   ];
+
+  // Task 5: Only include Admin link if connected wallet possesses admin role
+  const navLinks = isAdmin
+    ? [...baseNavLinks, { href: '/admin', label: 'Admin', icon: ShieldAlert, isAdmin: true }]
+    : baseNavLinks;
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border-subtle/80 transition-all">
@@ -91,42 +127,13 @@ export function Navbar() {
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white"
+            className="lg:hidden p-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-border-subtle bg-surface/95 backdrop-blur-2xl px-4 py-4 space-y-2">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive =
-              pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  'flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors',
-                  isActive
-                    ? 'bg-accent-blue text-white shadow-glow'
-                    : link.isAdmin
-                      ? 'text-purple-400 hover:bg-purple-500/10'
-                      : 'text-slate-300 hover:bg-card/60',
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{link.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
     </header>
   );
 }

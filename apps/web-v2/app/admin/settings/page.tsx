@@ -124,7 +124,7 @@ export default function AdminSettingsPage() {
 
           <form onSubmit={handleUpdateSlippage} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-400 font-medium mb-1">
+              <label className="block text-slate-400 font-semibold mb-1">
                 DEX Swap Slippage Tolerance (in BPS)
               </label>
               <div className="relative">
@@ -133,9 +133,9 @@ export default function AdminSettingsPage() {
                   placeholder="100"
                   value={slippageBps}
                   onChange={(e) => setSlippageBps(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:border-accent-blue"
+                  className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
                 />
-                <span className="absolute right-3 top-2.5 text-slate-400 font-mono text-xs">
+                <span className="absolute right-3 top-3 text-slate-400 font-mono text-xs">
                   = {(parseInt(slippageBps || '0') / 100).toFixed(2)}%
                 </span>
               </div>
@@ -147,7 +147,7 @@ export default function AdminSettingsPage() {
             <button
               type="submit"
               disabled={isWritePending || isTxWaiting}
-              className="w-full py-3 px-4 rounded-xl bg-accent-blue hover:bg-blue-600 font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all"
+              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-accent-blue hover:bg-blue-600 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-accent-blue/50"
             >
               {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>
@@ -161,16 +161,16 @@ export default function AdminSettingsPage() {
           </form>
 
           {isTxSuccess && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>Slippage limit successfully updated on-chain!</span>
             </div>
           )}
 
           {writeError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center space-x-2 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{writeError.message}</span>
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+              <span>Parameter update failed or requires authorized governance permission.</span>
             </div>
           )}
         </div>
