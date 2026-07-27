@@ -23,7 +23,7 @@
     "recharts": "^3.10.1",
     "tailwind-merge": "^2.5.5",
     "viem": "^2.21.43",
-    "wagmi": "^2.12.37"
+    "wagmi": "^3.7.4"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
