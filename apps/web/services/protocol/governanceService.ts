@@ -1,6 +1,7 @@
 import { ProtocolDirectoryContract } from '../../contracts/ProtocolDirectory';
 import { CONTROLLER_ABI } from '../../contracts/ABIs';
 import { executeMulticall } from '../../utils/multicall';
+import { ZERO_ADDRESS } from '../../lib/config/network';
 
 export interface GovernanceState {
   isPaused: boolean;
@@ -19,7 +20,7 @@ export const GovernanceService = {
   ): Promise<GovernanceState> {
     try {
       const addresses = await ProtocolDirectoryContract.resolveAllModules(chainId);
-      if (addresses.controller === '0x0000000000000000000000000000000000000000') {
+      if (addresses.controller === ZERO_ADDRESS) {
         return {
           isPaused: false,
           maxDeposit: 0n,

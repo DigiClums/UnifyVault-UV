@@ -18,6 +18,9 @@ import '../interfaces/IPortfolioManager.sol';
 import '../interfaces/IStrategyManager.sol';
 import '../interfaces/ISwapAdapter.sol';
 import '../interfaces/IFeeManager.sol';
+import '../interfaces/ICostBasisManager.sol';
+import '../interfaces/IHighWaterMarkManager.sol';
+import '../interfaces/IRealizedProfitEngine.sol';
 import '../constants/ModuleIds.sol';
 import '../vault/CustodyVault.sol';
 import '../token/UVBTCETHToken.sol';
@@ -122,6 +125,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 fee,
     uint256 usdcReturned,
     uint256 navAfter
+  );
+
+  event PerformanceFeeApplied(
+    address indexed user,
+    uint256 realizedProfit,
+    uint256 chargeableProfit,
+    uint256 performanceFee,
+    uint256 netAssets
   );
 
   constructor(
@@ -235,6 +246,36 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     }
   }
 
+  function costBasisManager() public view returns (address) {
+    try IProtocolDirectory(_directory).getAddress(ModuleIds.COST_BASIS_MANAGER) returns (
+      address cbm
+    ) {
+      return cbm;
+    } catch {
+      return address(0);
+    }
+  }
+
+  function highWaterMarkManager() public view returns (address) {
+    try IProtocolDirectory(_directory).getAddress(ModuleIds.HIGH_WATER_MARK_MANAGER) returns (
+      address hwmm
+    ) {
+      return hwmm;
+    } catch {
+      return address(0);
+    }
+  }
+
+  function realizedProfitEngine() public view returns (address) {
+    try IProtocolDirectory(_directory).getAddress(ModuleIds.REALIZED_PROFIT_ENGINE) returns (
+      address rpe
+    ) {
+      return rpe;
+    } catch {
+      return address(0);
+    }
+  }
+
   function getDepositFeeBps() public view returns (uint256) {
     address fm = feeManager();
     if (fm != address(0)) {
@@ -285,13 +326,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
     // 1. Route protocol deposit fee to Treasury
-    IERC20(asset).forceApprove(t, quote.protocolFee);
-    ITreasury(t).collectFee(asset, quote.protocolFee);
-    IERC20(asset).forceApprove(t, 0);
+    if (quote.protocolFee > 0) {
+      IERC20(asset).forceApprove(t, quote.protocolFee);
+      ITreasury(t).collectFee(asset, quote.protocolFee);
+      IERC20(asset).forceApprove(t, 0);
 
-    uint256 treasuryReceived = IERC20(asset).balanceOf(t) - treasuryBalanceBefore;
-    if (treasuryReceived != quote.protocolFee) {
-      revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
+      uint256 treasuryReceived = IERC20(asset).balanceOf(t) - treasuryBalanceBefore;
+      if (treasuryReceived != quote.protocolFee) {
+        revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
+      }
     }
 
     // 2. Determine execution path (Live Asset Swaps vs Direct Custody Deposit)
@@ -308,9 +351,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       uint256 len = targetAssets.length;
       assetsBought = new uint256[](len);
 
+      uint256 allocatedSoFar = 0;
       for (uint256 i = 0; i < len; i++) {
         address targetToken = targetAssets[i];
-        uint256 allocAmount = (quote.netDeposit * weightsBps[i]) / 10000;
+        uint256 allocAmount =
+          (i == len - 1)
+            ? quote.netDeposit - allocatedSoFar
+            : (quote.netDeposit * weightsBps[i]) / 10000;
+        allocatedSoFar += allocAmount;
 
         if (allocAmount > 0) {
           if (targetToken == asset) {
@@ -340,6 +388,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
           }
         }
       }
+
+      // Sweep any leftover residual input asset to CustodyVault if supported
+      uint256 residual = IERC20(asset).balanceOf(address(this));
+      if (residual > 0 && CustodyVault(v).isSupported(asset)) {
+        IERC20(asset).forceApprove(v, residual);
+        CustodyVault(v).deposit(asset, address(this), residual);
+        IERC20(asset).forceApprove(v, 0);
+      }
     } else {
       // Single-asset legacy deposit fallback directly to CustodyVault
       IERC20(asset).forceApprove(v, quote.netDeposit);
@@ -354,6 +410,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     }
 
     UVBTCETHToken(_token).mint(receiver, shares);
+
+    // Record investment cost basis in CostBasisManager if registered
+    address cbm = costBasisManager();
+    if (cbm != address(0)) {
+      try ICostBasisManager(cbm).recordDeposit(receiver, quote.netDeposit, shares) {} catch {}
+    }
 
     // 4. Assert zero controller balance invariant
     uint256 controllerBal = IERC20(asset).balanceOf(address(this));
@@ -475,22 +537,82 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       redFeeBps
     );
 
-    if (netOut < minAssetsOut) {
-      revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netOut);
+    address cbm = costBasisManager();
+    address hwmm = highWaterMarkManager();
+    address rpe = realizedProfitEngine();
+    address fm = feeManager();
+
+    uint256 performanceFee = 0;
+    uint256 realizedProfit = 0;
+    uint256 chargeableProfit = 0;
+    uint256 netAssetsToUser = netOut;
+
+    if (cbm != address(0) && hwmm != address(0) && rpe != address(0) && fm != address(0)) {
+      (uint256 investedAssets, uint256 sharesOwned) = ICostBasisManager(cbm).costBasis(msg.sender);
+      uint256 hwm = IHighWaterMarkManager(hwmm).highWaterMark(msg.sender);
+      uint256 perfFeeBps = IFeeManager(fm).performanceFeeBps();
+
+      if (sharesOwned > 0) {
+        IRealizedProfitEngine.RedemptionContext memory ctx = IRealizedProfitEngine
+          .RedemptionContext({
+            assetsReceived: netOut,
+            investedAssets: investedAssets,
+            sharesOwned: sharesOwned,
+            sharesRedeemed: shares,
+            highWaterMark: hwm
+          });
+
+        IRealizedProfitEngine.ProfitResult memory pResult = IRealizedProfitEngine(rpe)
+          .calculateRealizedProfit(ctx);
+
+        realizedProfit = pResult.realizedProfit;
+        chargeableProfit = pResult.chargeableProfit;
+        performanceFee = FeeLib.calculatePerformanceFee(chargeableProfit, perfFeeBps);
+        netAssetsToUser = netOut > performanceFee ? netOut - performanceFee : 0;
+      }
+    }
+
+    if (netAssetsToUser < minAssetsOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netAssetsToUser);
     }
 
     // 1. Burn shares from msg.sender
     UVBTCETHToken(_token).burn(msg.sender, shares);
 
     // 2. Route protocol redemption fee to Treasury
-    IERC20(asset).forceApprove(_treasury, protocolFee);
-    ITreasury(_treasury).collectFee(asset, protocolFee);
-    IERC20(asset).forceApprove(_treasury, 0);
+    if (protocolFee > 0) {
+      IERC20(asset).forceApprove(_treasury, protocolFee);
+      ITreasury(_treasury).collectFee(asset, protocolFee);
+      IERC20(asset).forceApprove(_treasury, 0);
+    }
+
+    // Route performance fee to Treasury
+    if (performanceFee > 0) {
+      IERC20(asset).forceApprove(_treasury, performanceFee);
+      ITreasury(_treasury).collectFee(asset, performanceFee);
+      IERC20(asset).forceApprove(_treasury, 0);
+    }
 
     // 3. Transfer net collateral to receiver
-    IERC20(asset).safeTransfer(receiver, netOut);
+    IERC20(asset).safeTransfer(receiver, netAssetsToUser);
 
-    // 4. Recalculate NAV
+    // 4. Update accounting managers after successful transfer
+    if (cbm != address(0)) {
+      (, uint256 sharesOwned) = ICostBasisManager(cbm).costBasis(msg.sender);
+      if (sharesOwned > 0) {
+        ICostBasisManager(cbm).recordRedemption(msg.sender, shares);
+        if (hwmm != address(0)) {
+          if (shares == sharesOwned) {
+            IHighWaterMarkManager(hwmm).resetHighWaterMark(msg.sender);
+          } else if (chargeableProfit > 0) {
+            uint256 hwm = IHighWaterMarkManager(hwmm).highWaterMark(msg.sender);
+            IHighWaterMarkManager(hwmm).updateHighWaterMark(msg.sender, hwm + chargeableProfit);
+          }
+        }
+      }
+    }
+
+    // 5. Recalculate NAV
     uint256 navAfter = 1e18;
     if (pm != address(0)) {
       (, navAfter) = IPortfolioManager(pm).calculateNAV();
@@ -502,18 +624,36 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       revert ProtocolErrors.InsufficientReserves(asset, 0, controllerBal);
     }
 
-    emit RedeemCompleted(msg.sender, receiver, asset, shares, grossOut, protocolFee, netOut);
+    emit RedeemCompleted(
+      msg.sender,
+      receiver,
+      asset,
+      shares,
+      grossOut,
+      protocolFee + performanceFee,
+      netAssetsToUser
+    );
     emit RedeemExecuted(
       msg.sender,
       shares,
       targetAssets,
       assetsSold,
-      protocolFee,
-      netOut,
+      protocolFee + performanceFee,
+      netAssetsToUser,
       navAfter
     );
 
-    return netOut;
+    if (performanceFee > 0 || realizedProfit > 0) {
+      emit PerformanceFeeApplied(
+        msg.sender,
+        realizedProfit,
+        chargeableProfit,
+        performanceFee,
+        netAssetsToUser
+      );
+    }
+
+    return netAssetsToUser;
   }
 
   // --- Previews & Estimations ---
@@ -524,6 +664,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   function previewRedeem(address asset, uint256 shares) public view returns (uint256) {
     uint256 redFeeBps = getRedeemFeeBps();
+    uint256 netOut = 0;
     address pm = portfolioManager();
     if (pm != address(0)) {
       IPortfolioManager.RedeemPreview memory preview = IPortfolioManager(pm).previewRedeem(
@@ -531,26 +672,60 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
         asset
       );
       uint256 gross = preview.payoutAmount;
-      return gross - FeeLib.calculateRedeemFee(gross, redFeeBps);
+      netOut = gross - FeeLib.calculateRedeemFee(gross, redFeeBps);
+    } else {
+      CustodyVault.AssetConfig memory config;
+      try CustodyVault(_vault).assetConfig(asset) returns (
+        CustodyVault.AssetConfig memory _config
+      ) {
+        if (!_config.enabled) return 0;
+        config = _config;
+      } catch {
+        return 0;
+      }
+
+      uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
+      uint256 totalSupply = IERC20(_token).totalSupply();
+      uint256 grossAssets = ShareLib.sharesToAssets(
+        shares,
+        totalSupply,
+        accountedAssets,
+        config.decimals
+      );
+      netOut = grossAssets - FeeLib.calculateRedeemFee(grossAssets, redFeeBps);
     }
 
-    CustodyVault.AssetConfig memory config;
-    try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory _config) {
-      if (!_config.enabled) return 0;
-      config = _config;
-    } catch {
-      return 0;
+    address cbm = costBasisManager();
+    address hwmm = highWaterMarkManager();
+    address rpe = realizedProfitEngine();
+    address fm = feeManager();
+
+    if (cbm != address(0) && hwmm != address(0) && rpe != address(0) && fm != address(0)) {
+      (uint256 investedAssets, uint256 sharesOwned) = ICostBasisManager(cbm).costBasis(msg.sender);
+      if (sharesOwned > 0) {
+        uint256 hwm = IHighWaterMarkManager(hwmm).highWaterMark(msg.sender);
+        uint256 perfFeeBps = IFeeManager(fm).performanceFeeBps();
+
+        IRealizedProfitEngine.RedemptionContext memory ctx = IRealizedProfitEngine
+          .RedemptionContext({
+            assetsReceived: netOut,
+            investedAssets: investedAssets,
+            sharesOwned: sharesOwned,
+            sharesRedeemed: shares,
+            highWaterMark: hwm
+          });
+
+        IRealizedProfitEngine.ProfitResult memory pResult = IRealizedProfitEngine(rpe)
+          .calculateRealizedProfit(ctx);
+        uint256 performanceFee = FeeLib.calculatePerformanceFee(
+          pResult.chargeableProfit,
+          perfFeeBps
+        );
+        return netOut > performanceFee ? netOut - performanceFee : 0;
+      }
     }
 
-    uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
-    uint256 totalSupply = IERC20(_token).totalSupply();
-    uint256 grossAssets = ShareLib.sharesToAssets(
-      shares,
-      totalSupply,
-      accountedAssets,
-      config.decimals
-    );
-    return grossAssets - FeeLib.calculateRedeemFee(grossAssets, redFeeBps);
+    return netOut;
   }
 
   function estimateMint(address asset, uint256 amount) external view returns (uint256) {

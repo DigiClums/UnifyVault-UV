@@ -1856,3 +1856,90 @@ export const IERC20_ABI = [
     anonymous: false,
   },
 ] as const;
+
+export const COST_BASIS_MANAGER_ABI = [
+  {
+    type: 'function',
+    name: 'costBasis',
+    inputs: [
+      {
+        name: 'user',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: 'investedAssets',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'sharesOwned',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'investedAssets',
+    inputs: [
+      {
+        name: 'user',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'sharesOwned',
+    inputs: [
+      {
+        name: 'user',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+] as const;
+
+export const HIGH_WATER_MARK_MANAGER_ABI = [
+  {
+    type: 'function',
+    name: 'highWaterMark',
+    inputs: [
+      {
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: 'hwm',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+] as const;

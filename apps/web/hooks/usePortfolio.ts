@@ -4,6 +4,7 @@ import { UNIFY_VAULT_CONTROLLER_ABI, IERC20_ABI } from '../lib/config/abis';
 import { useProtocolDirectoryAddresses } from './useProtocolDirectoryAddresses';
 import { useNetwork } from './useNetwork';
 import { SUPPORTED_ASSETS } from '../lib/config/assets';
+import { getDefaultChainId } from '../lib/config/network';
 import * as React from 'react';
 
 export function usePortfolio() {
@@ -15,7 +16,7 @@ export function usePortfolio() {
     isLoading: isLoadingDirectory,
   } = useProtocolDirectoryAddresses();
 
-  const currentChainId = chainId || 84532;
+  const currentChainId = chainId || getDefaultChainId();
   const assets = React.useMemo(() => SUPPORTED_ASSETS[currentChainId] || [], [currentChainId]);
 
   // 1. Single consolidated portfolio contract query array

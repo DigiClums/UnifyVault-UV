@@ -61,10 +61,7 @@ export function useAllowance(
   });
 
   const wrappedRefetch = React.useCallback(async () => {
-    console.log('[AUDIT] allowance refetch starts');
-    const res = await refetch();
-    console.log('[AUDIT] allowance refetch ends', res);
-    return res;
+    return await refetch();
   }, [refetch]);
 
   const allowancePrimary = React.useMemo(() => {
@@ -113,7 +110,6 @@ export function useAllowance(
       setErrorMessage(undefined);
       setTxHash(undefined);
       setIsSigning(true);
-      console.log('[AUDIT] approve: starting approval writeContractAsync');
       try {
         // Approve primary spender (Controller)
         const hashPrim = await writeContractAsync({
@@ -122,12 +118,9 @@ export function useAllowance(
           functionName: 'approve',
           args: [spenderAddress, amount],
         });
-        console.log('[AUDIT] approval transaction hash received:', hashPrim);
         setTxHash(hashPrim);
         if (publicClient) {
-          console.log('[AUDIT] waiting for approval transaction receipt...');
-          const receipt = await publicClient.waitForTransactionReceipt({ hash: hashPrim });
-          console.log('[AUDIT] approval receipt confirmed:', receipt);
+          await publicClient.waitForTransactionReceipt({ hash: hashPrim });
         }
 
         // Approve secondary spender if provided and needed
@@ -140,17 +133,14 @@ export function useAllowance(
               functionName: 'approve',
               args: [secondarySpenderAddress, amount],
             });
-            console.log('[AUDIT] secondary approval transaction hash received:', hashSec);
             setTxHash(hashSec);
             if (publicClient) {
-              const receiptSec = await publicClient.waitForTransactionReceipt({ hash: hashSec });
-              console.log('[AUDIT] secondary approval receipt confirmed:', receiptSec);
+              await publicClient.waitForTransactionReceipt({ hash: hashSec });
             }
           }
         }
         await wrappedRefetch();
       } catch (err) {
-        console.error('[AUDIT] every caught exception with full error object (approval):', err);
         setErrorMessage(parseWalletError(err));
         throw err;
       } finally {
@@ -182,20 +172,13 @@ export function useAllowance(
   }, [isTxSuccess, isTxPending, isSigning, isApproveSubmitPending]);
 
   const isApproving = React.useMemo(() => {
-    const approvingState =
+    return (
       isSigning ||
       isApproveSubmitPending ||
       isTxPending ||
       status === 'submitting' ||
-      status === 'pending';
-    console.log('[AUDIT] every loading state update (useAllowance):', {
-      isSigning,
-      isApproveSubmitPending,
-      isTxPending,
-      status,
-      isApproving: approvingState,
-    });
-    return approvingState;
+      status === 'pending'
+    );
   }, [isSigning, isApproveSubmitPending, isTxPending, status]);
 
   return {

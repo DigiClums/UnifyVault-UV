@@ -4,6 +4,7 @@ import { PROTOCOL_DIRECTORY_ABI } from './ABIs';
 import { config } from '../lib/config/config';
 import { getContractAddresses } from '../lib/config/contracts';
 import { executeMulticall } from '../utils/multicall';
+import { ZERO_ADDRESS, getDefaultChainId } from '../lib/config/network';
 
 export const MODULE_KEYS = {
   ORACLE: keccak256(toHex('OracleManager')),
@@ -15,6 +16,7 @@ export const MODULE_KEYS = {
   PORTFOLIO_MANAGER: keccak256(toHex('PortfolioManager')),
   SWAP_ADAPTER: keccak256(toHex('SwapAdapter')),
   LIQUIDITY_MANAGER: keccak256(toHex('LiquidityManager')),
+  COST_BASIS_MANAGER: keccak256(toHex('CostBasisManager')),
 } as const;
 
 export interface ResolvedProtocolAddresses {
@@ -28,12 +30,13 @@ export interface ResolvedProtocolAddresses {
   portfolioManager: `0x${string}`;
   swapAdapter: `0x${string}`;
   liquidityManager: `0x${string}`;
+  costBasisManager: `0x${string}`;
 }
 
 export const ProtocolDirectoryContract = {
   async getAddress(id: `0x${string}`, chainId?: number): Promise<`0x${string}` | undefined> {
     try {
-      const addresses = getContractAddresses(chainId || 84532);
+      const addresses = getContractAddresses(chainId || getDefaultChainId());
       if (!addresses?.directory) return undefined;
 
       const result = await readContract(config, {
@@ -49,7 +52,7 @@ export const ProtocolDirectoryContract = {
   },
 
   async resolveAllModules(chainId?: number): Promise<ResolvedProtocolAddresses> {
-    const addresses = getContractAddresses(chainId || 84532);
+    const addresses = getContractAddresses(chainId || getDefaultChainId());
     const directory = addresses.directory;
 
     const keys = [
@@ -62,6 +65,7 @@ export const ProtocolDirectoryContract = {
       MODULE_KEYS.PORTFOLIO_MANAGER,
       MODULE_KEYS.SWAP_ADAPTER,
       MODULE_KEYS.LIQUIDITY_MANAGER,
+      MODULE_KEYS.COST_BASIS_MANAGER,
     ] as const;
 
     const calls = keys.map((key) => ({
@@ -82,19 +86,16 @@ export const ProtocolDirectoryContract = {
         `0x${string}`,
         `0x${string}`,
         `0x${string}`,
+        `0x${string}`,
       ]
     >(calls as any);
 
     const getRes = (index: number): `0x${string}` => {
       const item = results[index];
-      if (
-        item?.status === 'success' &&
-        item.result &&
-        item.result !== '0x0000000000000000000000000000000000000000'
-      ) {
+      if (item?.status === 'success' && item.result && item.result !== ZERO_ADDRESS) {
         return item.result as `0x${string}`;
       }
-      return '0x0000000000000000000000000000000000000000';
+      return ZERO_ADDRESS as `0x${string}`;
     };
 
     return {
@@ -108,6 +109,7 @@ export const ProtocolDirectoryContract = {
       portfolioManager: getRes(6),
       swapAdapter: getRes(7),
       liquidityManager: getRes(8),
+      costBasisManager: getRes(9),
     };
   },
 };

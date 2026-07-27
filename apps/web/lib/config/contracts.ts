@@ -10,10 +10,18 @@ export const CONTRACT_ADDRESSES: Record<number, { directory: `0x${string}` }> = 
   },
 };
 
+/**
+ * Returns contract addresses for the given chain ID.
+ * Throws an error for unsupported chains — never silently falls back.
+ */
 export const getContractAddresses = (chainId: number) => {
   const addresses = CONTRACT_ADDRESSES[chainId];
   if (!addresses) {
-    return CONTRACT_ADDRESSES[baseSepolia.id]; // Fallback to Sepolia for safety
+    throw new Error(
+      `No contract addresses configured for chain ID ${chainId}. ` +
+        `Supported chains: ${Object.keys(CONTRACT_ADDRESSES).join(', ')}. ` +
+        `Ensure NEXT_PUBLIC_DIRECTORY_ADDRESS_* environment variables are set correctly.`,
+    );
   }
   return addresses;
 };

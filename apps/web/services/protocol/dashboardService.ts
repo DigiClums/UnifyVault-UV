@@ -6,6 +6,7 @@ import {
   TreasuryAssetDetail,
   OracleFeedDetail,
 } from './protocolService';
+import { ZERO_ADDRESS } from '../../lib/config/network';
 
 export interface TVLData {
   rawUsd: bigint;
@@ -40,6 +41,11 @@ export interface UserShareBalanceData {
   ownershipPercentage: number;
   userUsdcBalanceRaw: bigint;
   userUsdcBalanceFormatted: string;
+  costBasisRaw: bigint;
+  costBasisFormatted: string;
+  costBasisUsdNumber: number;
+  realizedProfitUsdNumber: number;
+  performanceFeePaidUsdNumber: number;
 }
 
 export interface OracleStatusData {
@@ -130,6 +136,11 @@ export const DashboardService = {
             ownershipPercentage: metrics.userMetrics.ownershipPercentage,
             userUsdcBalanceRaw: metrics.userMetrics.usdcBalanceRaw,
             userUsdcBalanceFormatted: metrics.userMetrics.usdcBalanceFormatted,
+            costBasisRaw: metrics.userMetrics.costBasisRaw,
+            costBasisFormatted: metrics.userMetrics.costBasisFormatted,
+            costBasisUsdNumber: metrics.userMetrics.costBasisUsdNumber,
+            realizedProfitUsdNumber: metrics.userMetrics.realizedProfitUsdNumber,
+            performanceFeePaidUsdNumber: metrics.userMetrics.performanceFeePaidUsdNumber,
           }
         : {
             rawShares: 0n,
@@ -138,12 +149,17 @@ export const DashboardService = {
             ownershipPercentage: 0,
             userUsdcBalanceRaw: 0n,
             userUsdcBalanceFormatted: '0.00',
+            costBasisRaw: 0n,
+            costBasisFormatted: '0.00',
+            costBasisUsdNumber: 0,
+            realizedProfitUsdNumber: 0,
+            performanceFeePaidUsdNumber: 0,
           };
 
       // 6. Health Status
       const isDirectoryResolved =
-        metrics.addresses.directory !== '0x0000000000000000000000000000000000000000' &&
-        metrics.addresses.controller !== '0x0000000000000000000000000000000000000000';
+        metrics.addresses.directory !== ZERO_ADDRESS &&
+        metrics.addresses.controller !== ZERO_ADDRESS;
 
       const isHealthy =
         isDirectoryResolved && !metrics.isControllerPaused && metrics.isOracleHealthy;
@@ -199,16 +215,17 @@ export const DashboardService = {
 function getFallbackDashboardData(): DashboardData {
   return {
     addresses: {
-      directory: '0xDd29e54f91b86f3e4609AA2e279e04E98dcAb722',
-      controller: '0xa8c6Baf298122d700269C0B331406522450ba967',
-      vault: '0x11202B3Da20bB5432E3Be4A56743Ef879683b09F',
-      treasury: '0x90723e17B8936f587078929869a2b5D4e434F8DD',
-      token: '0x56CF4750EC2E1d66E76e51B2cF3405CbA9487d83',
-      oracleManager: '0x11396dB2272a71841cfBe855c6e330CEE657CFe0',
-      strategyManager: '0x882421d092e593165744F0D15c9F7F37318B5601',
-      portfolioManager: '0xFb30D207164a32c1d963243362D7600cd1FBC609',
-      swapAdapter: '0x3d85434A0D92d09B2eC098aa0822F57Fd81beb6D',
-      liquidityManager: '0xad3c7a8d05333a4cA9eBF6f131E4C12Af9C05EA0',
+      directory: ZERO_ADDRESS as `0x${string}`,
+      controller: ZERO_ADDRESS as `0x${string}`,
+      vault: ZERO_ADDRESS as `0x${string}`,
+      treasury: ZERO_ADDRESS as `0x${string}`,
+      token: ZERO_ADDRESS as `0x${string}`,
+      oracleManager: ZERO_ADDRESS as `0x${string}`,
+      strategyManager: ZERO_ADDRESS as `0x${string}`,
+      portfolioManager: ZERO_ADDRESS as `0x${string}`,
+      swapAdapter: ZERO_ADDRESS as `0x${string}`,
+      liquidityManager: ZERO_ADDRESS as `0x${string}`,
+      costBasisManager: ZERO_ADDRESS as `0x${string}`,
     },
     TVL: { rawUsd: 0n, formattedUsd: '$0.00', usdValueNumber: 0 },
     NAV: {
@@ -232,6 +249,11 @@ function getFallbackDashboardData(): DashboardData {
       ownershipPercentage: 0,
       userUsdcBalanceRaw: 0n,
       userUsdcBalanceFormatted: '0.00',
+      costBasisRaw: 0n,
+      costBasisFormatted: '0.00',
+      costBasisUsdNumber: 0,
+      realizedProfitUsdNumber: 0,
+      performanceFeePaidUsdNumber: 0,
     },
     OracleStatus: { isHealthy: false, feeds: [] },
     LiquidityStatus: {

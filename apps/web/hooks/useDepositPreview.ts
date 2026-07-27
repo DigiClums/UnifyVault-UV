@@ -42,7 +42,7 @@ export function useDepositPreview(
     return parseAmount(debouncedAmountString, decimals);
   }, [debouncedAmountString, decimals]);
 
-  const receiverAddress = userAddress || '0x0000000000000000000000000000000000000001';
+  const receiverAddress = userAddress || ('0x0000000000000000000000000000000000000001' as const);
 
   const {
     data: quote,

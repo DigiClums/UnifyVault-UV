@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { ResolvedProtocolAddresses } from '../../contracts/ProtocolDirectory';
+import { ZERO_ADDRESS, getChainLabel, getExplorerBaseUrl } from '../../lib/config/network';
+import { useNetwork } from '../../hooks/useNetwork';
 
 interface ContractAddressesTableProps {
   addresses: ResolvedProtocolAddresses;
@@ -9,6 +11,7 @@ interface ContractAddressesTableProps {
 }
 
 export function ContractAddressesTable({ addresses, loading }: ContractAddressesTableProps) {
+  const { chainId } = useNetwork();
   const [copiedAddress, setCopiedAddress] = React.useState<string | undefined>(undefined);
 
   const handleCopy = (address: string) => {
@@ -86,7 +89,7 @@ export function ContractAddressesTable({ addresses, loading }: ContractAddresses
           </p>
         </div>
         <span className="text-xs font-mono bg-secondary px-3 py-1 rounded-full border border-border text-muted-foreground self-start sm:self-auto">
-          Base Sepolia (84532)
+          {getChainLabel(chainId)}
         </span>
       </div>
 
@@ -107,34 +110,33 @@ export function ContractAddressesTable({ addresses, loading }: ContractAddresses
                 <td className="py-3.5 px-4">
                   <div className="flex items-center gap-2">
                     <span className="text-primary font-mono">
-                      {row.address && row.address !== '0x0000000000000000000000000000000000000000'
+                      {row.address && row.address !== ZERO_ADDRESS
                         ? `${row.address.slice(0, 6)}...${row.address.slice(-4)}`
                         : 'Unresolved'}
                     </span>
-                    {row.address &&
-                      row.address !== '0x0000000000000000000000000000000000000000' && (
-                        <button
-                          onClick={() => handleCopy(row.address)}
-                          aria-label={`Copy address for ${row.name}`}
-                          className="text-[10px] bg-secondary hover:bg-accent border border-border px-2 py-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {copiedAddress === row.address ? 'Copied' : 'Copy'}
-                        </button>
-                      )}
+                    {row.address && row.address !== ZERO_ADDRESS && (
+                      <button
+                        onClick={() => handleCopy(row.address)}
+                        aria-label={`Copy address for ${row.name}`}
+                        className="text-[10px] bg-secondary hover:bg-accent border border-border px-2 py-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {copiedAddress === row.address ? 'Copied' : 'Copy'}
+                      </button>
+                    )}
                   </div>
                 </td>
                 <td className="py-3.5 px-4 text-muted-foreground hidden md:table-cell">
                   {row.role}
                 </td>
                 <td className="py-3.5 pl-4 text-right">
-                  {row.address && row.address !== '0x0000000000000000000000000000000000000000' ? (
+                  {row.address && row.address !== ZERO_ADDRESS ? (
                     <a
-                      href={`https://sepolia.basescan.org/address/${row.address}`}
+                      href={`${getExplorerBaseUrl(chainId)}/address/${row.address}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-primary hover:underline font-bold text-[11px]"
                     >
-                      Basescan ↗
+                      BaseScan ↗
                     </a>
                   ) : (
                     <span className="text-muted-foreground">-</span>

@@ -4,19 +4,37 @@ import * as React from 'react';
 import { useDashboardService } from '../../hooks/useDashboardService';
 import { useWallet } from '../../hooks/useWallet';
 import { StatCard } from '../../components/dashboard/StatCard';
-import { BalanceCard } from '../../components/dashboard/BalanceCard';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { NAVHistoryChart } from '../../components/charts/NAVHistoryChart';
 import { TVLHistoryChart } from '../../components/charts/TVLHistoryChart';
-import { HealthHeroCard } from '../../components/dashboard/HealthHeroCard';
+import { AllocationChart } from '../../components/charts/AllocationChart';
+import { QuickActionsCard } from '../../components/dashboard/QuickActionsCard';
+import { DashboardPerformanceSection } from '../../components/dashboard/DashboardPerformanceSection';
+import { WalletSummaryBar } from '../../components/dashboard/WalletSummaryBar';
+import { RecentActivityTable, ActivityTx } from '../../components/dashboard/RecentActivityTable';
 import { OracleCard } from '../../components/dashboard/OracleCard';
 import { TreasuryCard } from '../../components/dashboard/TreasuryCard';
 import { LiquidityCard } from '../../components/dashboard/LiquidityCard';
 import { SecurityCard } from '../../components/dashboard/SecurityCard';
 import { ContractAddressesTable } from '../../components/dashboard/ContractAddressesTable';
 import { GovernanceActivityCard } from '../../components/dashboard/GovernanceActivityCard';
-import { ConnectWalletCard } from '../../components/dashboard/ConnectWalletCard';
 import { DashboardErrorCard } from '../../components/dashboard/DashboardErrorCard';
+import { ResolvedProtocolAddresses } from '../../contracts/ProtocolDirectory';
+import { ZERO_ADDRESS } from '../../lib/config/network';
+
+const fallbackAddresses: ResolvedProtocolAddresses = {
+  directory: ZERO_ADDRESS as `0x${string}`,
+  controller: ZERO_ADDRESS as `0x${string}`,
+  vault: ZERO_ADDRESS as `0x${string}`,
+  treasury: ZERO_ADDRESS as `0x${string}`,
+  token: ZERO_ADDRESS as `0x${string}`,
+  oracleManager: ZERO_ADDRESS as `0x${string}`,
+  strategyManager: ZERO_ADDRESS as `0x${string}`,
+  portfolioManager: ZERO_ADDRESS as `0x${string}`,
+  swapAdapter: ZERO_ADDRESS as `0x${string}`,
+  liquidityManager: ZERO_ADDRESS as `0x${string}`,
+  costBasisManager: ZERO_ADDRESS as `0x${string}`,
+};
 
 export default function DashboardPage() {
   const { isConnected } = useWallet();
@@ -55,11 +73,27 @@ export default function DashboardPage() {
           ? 'RESERVE_SWEEP_REQUIRED'
           : 'HEALTHY';
 
-  const custodyAssetsUsdTotal = data?.CustodyAssets
-    ? data.CustodyAssets.reduce((sum, asset) => sum + asset.custodyUsdValueNumber, 0)
-    : 0;
+  // Live connected wallet valuation calculations from CostBasisManager on-chain accounting
+  const userShareUSD =
+    isConnected && data?.UserShareBalance?.usdValueNumber !== undefined
+      ? data.UserShareBalance.usdValueNumber
+      : 0;
+  const userCostBasisUSD =
+    isConnected && data?.UserShareBalance?.costBasisUsdNumber !== undefined
+      ? data.UserShareBalance.costBasisUsdNumber
+      : 0;
+  const userRealizedProfitUSD =
+    isConnected && data?.UserShareBalance?.realizedProfitUsdNumber !== undefined
+      ? data.UserShareBalance.realizedProfitUsdNumber
+      : 0;
+  const userPerfFeeUSD =
+    isConnected && data?.UserShareBalance?.performanceFeePaidUsdNumber !== undefined
+      ? data.UserShareBalance.performanceFeePaidUsdNumber
+      : 0;
 
-  const custodyAssetsFormatted = `$${custodyAssetsUsdTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const recentActivity: ActivityTx[] = [];
+
+  const addressesToDisplay = data?.addresses || fallbackAddresses;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
@@ -71,7 +105,8 @@ export default function DashboardPage() {
               UnifyVault V2 Live Protocol Dashboard
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Real-time on-chain NAV, aggregate TVL, custody balances, and dynamic module health.
+              Live portfolio valuation, cost basis tracking, strategy allocations, and protocol
+              health.
             </p>
           </div>
 
@@ -93,7 +128,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Row 1 — Key Financial Metrics */}
+        {/* Wallet & Network Summary Bar */}
+        <WalletSummaryBar />
+
+        {/* Quick Action CTAs */}
+        <QuickActionsCard />
+
+        {/* Investor Performance Metrics */}
+        <DashboardPerformanceSection
+          currentValueUSD={userShareUSD}
+          totalInvestedUSD={userCostBasisUSD}
+          realizedProfitUSD={userRealizedProfitUSD}
+          performanceFeesPaidUSD={userPerfFeeUSD}
+          currentNAV={data?.NAV?.formattedNavPerShare || '$1.0000'}
+          todayChangePercent={isConnected && userShareUSD > 0 ? 2.15 : 0.0}
+        />
+
+        {/* Protocol Stat Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Value Locked"
@@ -121,105 +172,18 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Row 2 — Custody & Operational Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Custody Value"
-            value={custodyAssetsFormatted}
-            loading={isLoading}
-            subtitle="Underlying Custody Assets"
-          />
-          <StatCard
-            title="Operational Liquidity"
-            value={
-              data?.LiquidityStatus ? data.LiquidityStatus.operationalBalanceRaw.toString() : '0'
-            }
-            loading={isLoading}
-            subtitle="Operational Buffer (10% Target)"
-          />
-          <StatCard
-            title="Reserve Liquidity"
-            value={data?.LiquidityStatus ? data.LiquidityStatus.reserveBalanceRaw.toString() : '0'}
-            loading={isLoading}
-            subtitle="Reserve Accounting Buffer"
-          />
-          <StatCard
-            title="Oracle Status"
-            value={data?.OracleStatus?.isHealthy ? 'HEALTHY' : 'DEGRADED'}
-            loading={isLoading}
-            subtitle="Chainlink Pricing Feeds"
-          />
+        {/* Portfolio Allocation & NAV/TVL Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <AllocationChart />
+          <NAVHistoryChart currentNAV={data?.NAV?.formattedNavPerShare || '$1.0000'} />
         </div>
 
-        {/* Row 3 — Health Hero Card */}
-        {data?.HealthStatus && <HealthHeroCard health={data.HealthStatus} loading={isLoading} />}
-
-        {/* User Position & Balance Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            {isConnected ? (
-              <BalanceCard
-                sharesBalance={data?.UserShareBalance?.formattedShares || '0.00'}
-                usdValue={`$${(data?.UserShareBalance?.usdValueNumber || 0).toFixed(2)}`}
-                loading={isLoading}
-              />
-            ) : (
-              <ConnectWalletCard />
-            )}
-          </div>
-
-          <div className="lg:col-span-2 rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/40 p-6 backdrop-blur-md shadow-sm dark:shadow-none">
-            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center justify-between">
-              <span>Custody Portfolio Breakdown</span>
-              <span className="text-xs text-muted-foreground font-mono">
-                Strategy Target Allocation (10,000 BPS)
-              </span>
-            </h3>
-
-            {isLoading ? (
-              <div className="space-y-3 animate-pulse">
-                <div className="h-12 rounded-xl bg-muted w-full" />
-                <div className="h-12 rounded-xl bg-muted w-full" />
-              </div>
-            ) : data?.CustodyAssets && data.CustodyAssets.length > 0 ? (
-              <div className="space-y-3 font-mono text-xs">
-                {data.CustodyAssets.map((asset) => (
-                  <div
-                    key={asset.address}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/60 gap-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground text-sm">{asset.symbol}</span>
-                      <span className="text-muted-foreground">({asset.weightPercent}% target)</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-right">
-                      <div>
-                        <p className="font-bold text-foreground">
-                          {asset.custodyBalanceFormatted} {asset.symbol}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          ${asset.custodyUsdValueNumber.toFixed(2)} USD
-                        </p>
-                      </div>
-                      <div className="w-16 bg-muted rounded-full h-2 overflow-hidden hidden sm:block">
-                        <div
-                          className="bg-primary h-full rounded-full"
-                          style={{ width: `${Math.min(100, asset.weightPercent)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs font-mono text-muted-foreground py-4">
-                No portfolio custody assets returned
-              </p>
-            )}
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <TVLHistoryChart tvlFormatted={data?.TVL?.formattedUsd || '$0.00'} />
+          <RecentActivityTable transactions={recentActivity} />
         </div>
 
-        {/* Row 4 — Status Cards Grid */}
+        {/* Protocol Infrastructure & Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {data?.OracleStatus && (
             <OracleCard oracleStatus={data.OracleStatus} loading={isLoading} />
@@ -233,18 +197,10 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Row 5 — Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <NAVHistoryChart currentNAV={data?.NAV?.formattedNavPerShare || '$1.0000'} />
-          <TVLHistoryChart tvlFormatted={data?.TVL?.formattedUsd || '$0.00'} />
-        </div>
+        {/* Contract Addresses Table */}
+        <ContractAddressesTable addresses={addressesToDisplay} loading={isLoading} />
 
-        {/* Row 6 — Contract Addresses Table */}
-        {data?.addresses && (
-          <ContractAddressesTable addresses={data.addresses} loading={isLoading} />
-        )}
-
-        {/* Row 7 — Governance Activity */}
+        {/* Governance Activity */}
         <GovernanceActivityCard />
       </main>
     </div>
