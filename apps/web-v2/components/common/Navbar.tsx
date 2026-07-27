@@ -70,9 +70,9 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+                  'flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 relative',
                   isActive
-                    ? 'bg-accent-blue text-white shadow-glow'
+                    ? 'bg-accent-blue text-white shadow-glow after:absolute after:bottom-0.5 after:left-3 after:right-3 after:h-0.5 after:bg-white/80 after:rounded-full'
                     : link.isAdmin
                       ? 'text-purple-400 hover:text-white hover:bg-purple-500/10'
                       : 'text-slate-400 hover:text-white hover:bg-card/60',

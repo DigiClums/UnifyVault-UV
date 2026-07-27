@@ -4,6 +4,7 @@ import React from 'react';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { TableCard } from '../ui/TableCard';
 import { TokenCard } from '../ui/TokenCard';
+import { TokenIcon } from '../ui/TokenIcon';
 import { TableSkeleton } from '../ui/Skeleton';
 import { StatusBadge } from '../ui/StatusBadge';
 import { ShieldCheck, LayoutGrid, List } from 'lucide-react';
@@ -82,9 +83,7 @@ export function HoldingsTable() {
               holdings.map((asset) => (
                 <tr key={asset.symbol} className="hover:bg-card/40 transition-colors">
                   <td className="py-4 px-3 font-sans font-bold text-white flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center font-extrabold text-[11px] text-accent-blue">
-                      {asset.symbol.substring(0, 2)}
-                    </div>
+                    <TokenIcon symbol={asset.symbol} size={32} />
                     <div>
                       <div className="font-bold text-white text-sm">{asset.symbol}</div>
                       <div className="text-[10px] text-slate-400">{asset.name}</div>

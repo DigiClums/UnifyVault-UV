@@ -2,11 +2,21 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
+import Link from 'next/link';
 import { Card } from '../common/Card';
 import { useRedeem } from '../../hooks/useRedeem';
 import { useBalances } from '../../hooks/useBalances';
-import { formatUnits, formatUSD, formatShares } from '../../lib/math';
-import { ArrowUpRight, CheckCircle2, ShieldCheck, Loader2, Info, AlertCircle } from 'lucide-react';
+import { formatUnits, formatShares } from '../../lib/math';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  ShieldCheck,
+  Loader2,
+  Info,
+  AlertCircle,
+  ExternalLink,
+  ArrowRight,
+} from 'lucide-react';
 
 export function RedeemForm() {
   const { isConnected } = useAccount();
@@ -56,7 +66,7 @@ export function RedeemForm() {
               <ArrowUpRight className="w-5 h-5 text-accent-emerald" />
               <span>Redeem Shares</span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 mt-0.5">
               Burn UVBTCETH Shares for USDC Collateral Payout
             </p>
           </div>
@@ -74,7 +84,7 @@ export function RedeemForm() {
               <span>Balance: {sharesBalFormatted} Shares</span>
               <button
                 onClick={handleMax}
-                className="text-accent-emerald hover:underline font-semibold ml-1"
+                className="text-accent-emerald hover:underline font-semibold ml-1 focus:ring-2 focus:ring-accent-emerald/50 rounded"
               >
                 MAX
               </button>
@@ -135,7 +145,7 @@ export function RedeemForm() {
                   <button
                     key={bps}
                     onClick={() => setSlippageBps(bps)}
-                    className={`px-2 py-0.5 rounded font-mono transition-all ${
+                    className={`px-2 py-0.5 rounded font-mono transition-all focus:ring-2 focus:ring-accent-emerald/50 ${
                       slippageBps === bps
                         ? 'bg-accent-emerald text-white font-bold'
                         : 'bg-card text-slate-400 hover:text-white'
@@ -157,15 +167,51 @@ export function RedeemForm() {
           </div>
         )}
 
-        {/* Success Notification */}
+        {/* Institutional Transaction Success Modal/Screen */}
         {txSuccess && (
-          <div className="p-4 rounded-xl bg-accent-emerald/10 border border-accent-emerald/20 text-accent-emerald text-xs flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <div>
-              <p className="font-bold">Redemption Executed Successfully!</p>
-              <p className="text-[11px] text-slate-300">
-                Your USDC payout has been transferred to your wallet.
-              </p>
+          <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs space-y-4">
+            <div className="flex items-center space-x-3 text-emerald-400">
+              <CheckCircle2 className="w-6 h-6 shrink-0" />
+              <div>
+                <h4 className="font-bold text-sm text-white">Redemption Executed Successfully</h4>
+                <p className="text-slate-300 text-[11px]">
+                  Your UVBTCETH index shares have been burned and collateral transferred.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-3 border-t border-emerald-500/20 font-mono text-slate-300">
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-sans">Shares Burned</span>
+                <span className="font-bold text-white">{sharesInput} UVBTCETH</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-sans">USDC Received</span>
+                <span className="font-bold text-emerald-400">{netUSD}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-sans">Fee Charged (2.00%)</span>
+                <span>{feeUSD}</span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row gap-2">
+              <a
+                href="https://sepolia.basescan.org"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 py-2 px-3 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors"
+              >
+                <span>View on BaseScan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <Link
+                href="/portfolio"
+                className="flex-1 py-2 px-3 rounded-xl bg-accent-emerald hover:bg-emerald-600 text-white font-bold text-center flex items-center justify-center space-x-1.5 transition-colors shadow-glow-emerald"
+              >
+                <span>Go to Portfolio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
         )}
@@ -174,7 +220,7 @@ export function RedeemForm() {
         {!isConnected ? (
           <button
             disabled
-            className="w-full py-4 rounded-xl bg-slate-800 text-slate-400 font-bold text-sm"
+            className="w-full min-h-[48px] py-4 rounded-xl bg-slate-800 text-slate-400 font-bold text-sm cursor-not-allowed"
           >
             Please Connect Wallet
           </button>
@@ -182,7 +228,7 @@ export function RedeemForm() {
           <button
             onClick={handleRedeem}
             disabled={sharesRaw <= 0n || isRedeeming}
-            className="w-full py-4 rounded-xl bg-accent-emerald hover:bg-emerald-600 font-bold text-white text-sm shadow-glow-emerald transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            className="w-full min-h-[48px] py-4 rounded-xl bg-accent-emerald hover:bg-emerald-600 active:scale-[0.99] font-bold text-white text-sm shadow-glow-emerald transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 focus:ring-2 focus:ring-accent-emerald/50"
           >
             {isRedeeming ? (
               <>
@@ -190,7 +236,7 @@ export function RedeemForm() {
                 <span>Executing Multi-Asset Redemption...</span>
               </>
             ) : (
-              <span>Confirm Redemption</span>
+              <span>Confirm Redemption & Burn Shares</span>
             )}
           </button>
         )}

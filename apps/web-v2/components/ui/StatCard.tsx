@@ -46,9 +46,10 @@ export function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'p-5 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl transition-all duration-300',
+        'p-5 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl transition-all duration-200',
         glowStyles[glowColor],
         className,
       )}
@@ -65,7 +66,7 @@ export function StatCard({
       </div>
 
       <div className="mt-3">
-        <div className="text-2xl sm:text-3xl font-bold font-mono text-white tracking-tight">
+        <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">
           {value}
         </div>
       </div>

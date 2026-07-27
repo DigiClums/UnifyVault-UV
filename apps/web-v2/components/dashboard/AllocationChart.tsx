@@ -27,7 +27,7 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
       subtitle="50% BTC / 50% ETH Index Target Ratio"
       icon={PieIcon}
     >
-      <div className="h-44 w-full flex items-center justify-center">
+      <div className="h-44 w-full relative flex items-center justify-center">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -54,6 +54,12 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
             />
           </PieChart>
         </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-xs font-extrabold text-white">100%</span>
+          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+            Allocated
+          </span>
+        </div>
       </div>
 
       <div className="space-y-4 pt-2">
