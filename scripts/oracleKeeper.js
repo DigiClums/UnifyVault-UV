@@ -2,8 +2,15 @@
 const { execSync } = require('child_process');
 
 const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
-const PRIVATE_KEY =
-  process.env.PRIVATE_KEY || '852e2a34d79e4c77945339d11d3926743c7c73b3fe6d89654fa43cd8ad755ba0';
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
+if (!PRIVATE_KEY) {
+  console.error('[OracleKeeper] FATAL ERROR: PRIVATE_KEY environment variable is not defined.');
+  console.error(
+    '[OracleKeeper] Service aborting. Please set PRIVATE_KEY in environment variables.',
+  );
+  process.exit(1);
+}
 
 // Mock Chainlink Aggregators on Base Sepolia
 const CBBTC_AGGREGATOR = '0x384e9f7f5740fc7c081181cec0a7db945ad8c237';
