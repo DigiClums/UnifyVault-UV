@@ -71,14 +71,58 @@ cast send <TREASURY_ADDRESS> "grantRole(bytes32,address)" 0x71840dc4906370ebb945
 
 After confirming the Safe address has verified role access on-chain, revoke deployer privileges:
 
+````bash
+## 5. Automated Governance Migration Scripts (Foundry)
+
+Production-grade automated scripts are located in `packages/protocol/script/mainnet/`.
+
+### Configuration Files
+- **Base Sepolia**: `packages/protocol/script/mainnet/config/base_sepolia.json`
+- **Base Mainnet**: `packages/protocol/script/mainnet/config/base_mainnet.json`
+
+---
+
+### Step 1: Grant Admin Roles
+
+Grant `DEFAULT_ADMIN_ROLE`, `GOVERNANCE_ROLE`, and `GUARDIAN_ROLE` to the new Safe multisig and sentinel addresses across all protocol contracts:
+
 ```bash
-cast send <CONTROLLER_ADDRESS> "renounceRole(bytes32,address)" 0x0000000000000000000000000000000000000000000000000000000000000000 <DEPLOYER_ADDRESS> --rpc-url $BASE_MAINNET_RPC
+cd packages/protocol
+
+CONFIG_PATH="script/mainnet/config/base_sepolia.json" \
+forge script script/mainnet/GrantAdminRoles.s.sol:GrantAdminRolesScript \
+  --rpc-url $BASE_SEPOLIA_RPC \
+  --broadcast \
+  --private-key $DEPLOYER_PRIVATE_KEY
+````
+
+---
+
+### Step 2: Read-Only Governance Verification
+
+Verify all role assignments on-chain across every contract. This step performs read-only checks and exits with a failure code if any expected role is missing:
+
+```bash
+cd packages/protocol
+
+CONFIG_PATH="script/mainnet/config/base_sepolia.json" \
+forge script script/mainnet/VerifyGovernance.s.sol:VerifyGovernanceScript \
+  --rpc-url $BASE_SEPOLIA_RPC
 ```
 
 ---
 
-## 4. Verification Checklist
+### Step 3: Renounce Old Admin Privileges
 
-- [ ] Safe multisig confirmed as owner of `DEFAULT_ADMIN_ROLE` on all 6 contracts.
-- [ ] Deployer single-key address has 0 active administrative roles remaining.
-- [ ] Emergency `GUARDIAN_ROLE` configured on separate 2-of-3 fast-response Sentinel multisig.
+After verifying that the new admin has full operational permissions, renounce `DEFAULT_ADMIN_ROLE`, `GOVERNANCE_ROLE`, and `GUARDIAN_ROLE` from the old deployer key:
+
+```bash
+cd packages/protocol
+
+CONFIRM_RENOUNCE=true \
+CONFIG_PATH="script/mainnet/config/base_sepolia.json" \
+forge script script/mainnet/RenounceOldAdmin.s.sol:RenounceOldAdminScript \
+  --rpc-url $BASE_SEPOLIA_RPC \
+  --broadcast \
+  --private-key $DEPLOYER_PRIVATE_KEY
+```

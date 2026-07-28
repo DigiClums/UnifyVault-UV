@@ -51,9 +51,9 @@ export function Navbar() {
     },
   });
 
-  const isDeployerAdmin =
-    address && address.toLowerCase() === '0xb145ac2a59575fbe306a58ac924718f4dd4659da';
-  const isAdmin = isConnected && ((isAdminRole as boolean) || isDeployerAdmin);
+  const envAdmin = process.env.NEXT_PUBLIC_ADMIN_ADDRESS?.toLowerCase();
+  const isEnvAdmin = !!(address && envAdmin && address.toLowerCase() === envAdmin);
+  const isAdmin = isConnected && ((isAdminRole as boolean) || isEnvAdmin);
 
   const baseNavLinks = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },

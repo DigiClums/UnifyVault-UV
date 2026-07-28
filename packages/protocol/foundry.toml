@@ -3,6 +3,10 @@ src = "src"
 out = "out"
 libs = ["node_modules", "lib"]
 via_ir = true
+fs_permissions = [
+  { access = "read", path = "./" },
+  { access = "read-write", path = "./script/mainnet/config/" }
+]
 
 # Compiler Settings
 solc_version = "0.8.24"

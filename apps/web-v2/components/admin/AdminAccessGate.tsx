@@ -41,10 +41,10 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
     },
   });
 
-  // Also check deployer address override as fallback admin
-  const isDeployerAdmin =
-    address && address.toLowerCase() === '0xb145ac2a59575fbe306a58ac924718f4dd4659da';
-  const isAdmin = (isAdminRole as boolean) || isDeployerAdmin;
+  // Check optional env override or rely on on-chain AccessControl role
+  const envAdmin = process.env.NEXT_PUBLIC_ADMIN_ADDRESS?.toLowerCase();
+  const isEnvAdmin = !!(address && envAdmin && address.toLowerCase() === envAdmin);
+  const isAdmin = (isAdminRole as boolean) || isEnvAdmin;
 
   if (!isConnected) {
     return (

@@ -62,13 +62,36 @@ Ran 44 test suites in 2.22s (14.61s CPU time): 335 tests passed, 0 failed, 0 ski
 
 ---
 
+---
+
+## 🏛️ Governance Migration Automation
+
+Production Foundry scripts for transferring administrative and governance privileges to the Safe multisig are located in `script/mainnet/`:
+
+```bash
+# 1. Grant Roles to New Safe Multisig & Guardian
+CONFIG_PATH="script/mainnet/config/base_sepolia.json" \
+forge script script/mainnet/GrantAdminRoles.s.sol:GrantAdminRolesScript --rpc-url $RPC_URL --broadcast --private-key $KEY
+
+# 2. Read-Only Governance Verification
+CONFIG_PATH="script/mainnet/config/base_sepolia.json" \
+forge script script/mainnet/VerifyGovernance.s.sol:VerifyGovernanceScript --rpc-url $RPC_URL
+
+# 3. Renounce Privileges from Old Deployer Key
+CONFIRM_RENOUNCE=true CONFIG_PATH="script/mainnet/config/base_sepolia.json" \
+forge script script/mainnet/RenounceOldAdmin.s.sol:RenounceOldAdminScript --rpc-url $RPC_URL --broadcast --private-key $KEY
+```
+
+---
+
 ## 📚 Complete Production Documentation
 
 - [ARCHITECTURE.md](../../docs/ARCHITECTURE.md): Module breakdown, dependency graph, call flow diagrams.
 - [PROTOCOL.md](../../docs/PROTOCOL.md): Deposit/redeem lifecycles, NAV math, fee structure, strategy weights.
 - [SECURITY.md](../../docs/SECURITY.md): Access control matrix, pause controls, reentrancy guards, oracle security.
+- [GOVERNANCE_MULTISIG_MIGRATION.md](../../docs/GOVERNANCE_MULTISIG_MIGRATION.md): Complete multi-sig role migration plan & verification steps.
 - [THREAT_MODEL.md](../../docs/THREAT_MODEL.md): Threat analysis, attack vectors, mitigations, trust assumptions.
 - [OPERATIONS.md](../../docs/OPERATIONS.md): Operational guide, liquidity refill/sweep, pause procedures.
-- [DEPLOYMENT.md](../../docs/DEPLOYMENT.md): Deployment order, constructor params, verification, role grants.
+- [DEPLOYMENT.md](../../docs/DEPLOYMENT_GUIDE.md): Deployment order, constructor params, verification, role grants.
 - [TESTING.md](../../docs/TESTING.md): Test layer breakdown and verification commands.
 - [AUDIT_PREP.md](../../docs/AUDIT_PREP.md): Auditor guide, scope, privilege map, review priorities.

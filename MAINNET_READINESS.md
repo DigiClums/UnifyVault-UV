@@ -70,3 +70,14 @@ If an unexpected condition occurs during mainnet setup:
 1. Invoke `UnifyVaultController.emergencyPause()`.
 2. Revoke active roles on `UnifyVaultController`.
 3. Redeem or sweep custodied assets back to depositors via `CustodyVault` governance override.
+
+---
+
+## 6. Related Launch Documentation & Policies
+
+For executive reports, sign-off status, code freeze policies, and security policies, refer to:
+
+- [LAUNCH_READINESS_REPORT.md](file:///var/www/UnifyVault-UV/docs/LAUNCH_READINESS_REPORT.md) — Executive launch report & readiness status
+- [CODE_FREEZE_POLICY.md](file:///var/www/UnifyVault-UV/docs/CODE_FREEZE_POLICY.md) — Mainnet Code Freeze allowed/prohibited scope rules
+- [RELEASE_SIGNOFF.md](file:///var/www/UnifyVault-UV/docs/RELEASE_SIGNOFF.md) — Multi-domain release approval sign-off table
+- [SECURITY.md](file:///var/www/UnifyVault-UV/SECURITY.md) — Responsible disclosure policy & bug bounty contacts
