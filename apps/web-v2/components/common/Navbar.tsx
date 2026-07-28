@@ -74,7 +74,11 @@ export function Navbar() {
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border-subtle/80 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center space-x-3 group">
+        <Link
+          href="/"
+          onClick={() => setMobileMenuOpen(false)}
+          className="flex items-center space-x-3 group"
+        >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-accent-cyan p-0.5 shadow-glow flex items-center justify-center transition-transform group-hover:scale-105">
             <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
               <ShieldCheck className="w-5 h-5 text-accent-blue" />
@@ -96,7 +100,10 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center space-x-1 bg-surface/60 p-1.5 rounded-xl border border-border-subtle/80 backdrop-blur-md">
+        <nav
+          aria-label="Main Navigation"
+          className="hidden lg:flex items-center space-x-1 bg-surface/60 p-1.5 rounded-xl border border-border-subtle/80 backdrop-blur-md"
+        >
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive =
@@ -127,13 +134,47 @@ export function Navbar() {
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
-            aria-label="Toggle menu"
+            className="lg:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/50 transition-all"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-border-subtle/80 bg-background/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-2 animate-in slide-in-from-top-2 duration-200">
+          <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase px-2 pt-1 pb-1">
+            Navigation Menu
+          </div>
+          <nav aria-label="Mobile Navigation" className="flex flex-col space-y-1">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive =
+                pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    'flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 min-h-[44px]',
+                    isActive
+                      ? 'bg-accent-blue text-white shadow-glow'
+                      : link.isAdmin
+                        ? 'text-purple-400 hover:text-white bg-purple-500/10'
+                        : 'text-slate-300 hover:text-white bg-surface/60 hover:bg-card/60',
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
