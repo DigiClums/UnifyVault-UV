@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { NavSnapshot } from '../types';
 
-const INDEXER_API_URL = process.env.NEXT_PUBLIC_INDEXER_API_URL || 'http://localhost:3006';
+const INDEXER_API_URL =
+  process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_INDEXER_API_URL || '';
 
 export interface IndexedEvent {
   blockNumber: number;
@@ -14,8 +16,15 @@ export interface IndexedEvent {
   from?: string;
   to?: string;
   amount?: string;
+  amountIn?: string;
+  grossAmount?: string;
+  netAmount?: string;
+  feeAmount?: string;
+  sharesMinted?: string;
+  sharesBurned?: string;
   value?: string;
   timestamp: string;
+  [key: string]: unknown;
 }
 
 export function useTransactionHistory() {
@@ -79,17 +88,26 @@ export function useProtocolRevenue() {
   return { revenueHistory, isLoading };
 }
 
-export function useHistoricalNAV() {
-  const [navHistory, setNavHistory] = useState<Record<string, unknown>[]>([]);
+export function useHistoricalNAV(period: string = 'ALL') {
+  const [navHistory, setNavHistory] = useState<NavSnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchNAV() {
+      setIsLoading(true);
       try {
-        const res = await fetch(`${INDEXER_API_URL}/api/indexer/nav`);
-        if (res.ok) {
+        let res = await fetch(`/api/nav/history?period=${period}`).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch(`${INDEXER_API_URL}/api/nav/history?period=${period}`).catch(
+            () => null,
+          );
+        }
+        if (!res || !res.ok) {
+          res = await fetch(`/historical-nav.json`).catch(() => null);
+        }
+        if (res && res.ok) {
           const data = await res.json();
-          setNavHistory(data || []);
+          setNavHistory(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.warn('NAV history indexer error:', err);
@@ -99,7 +117,7 @@ export function useHistoricalNAV() {
     }
 
     fetchNAV();
-  }, []);
+  }, [period]);
 
   return { navHistory, isLoading };
 }
@@ -152,4 +170,29 @@ export function useHistoricalFees() {
   }, []);
 
   return { feesHistory, isLoading };
+}
+
+export function useIndexerStats() {
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch(`${INDEXER_API_URL}/api/indexer/stats`);
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.warn('Indexer stats fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchStats();
+  }, []);
+
+  return { stats, isLoading };
 }

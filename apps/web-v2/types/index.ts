@@ -72,3 +72,17 @@ export interface HistoricalNavPoint {
   navUSD: number;
   portfolioValueUSD: number;
 }
+
+export interface NavSnapshot {
+  blockNumber: number;
+  blockHash: string;
+  timestamp: string;
+  nav: number;
+  totalAssets: number;
+  totalSupply: number;
+  btcPrice: number;
+  ethPrice: number;
+  btcWeight: number;
+  ethWeight: number;
+  sharePrice: number;
+}

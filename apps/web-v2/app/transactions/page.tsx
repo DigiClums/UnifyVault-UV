@@ -13,7 +13,7 @@ import {
   ArrowDownLeft,
   DollarSign,
 } from 'lucide-react';
-import { useTransactionHistory } from '../../hooks/useIndexerData';
+import { useTransactionHistory, IndexedEvent } from '../../hooks/useIndexerData';
 import { formatUnits } from 'viem';
 
 export default function ActivityPage() {
@@ -50,21 +50,25 @@ export default function ActivityPage() {
     }
   }
 
-  function formatAmount(tx: IndexedEvent & Record<string, unknown>) {
+  function formatAmount(tx: IndexedEvent) {
     if (tx.type === 'DEPOSIT') {
-      const val = parseFloat(formatUnits(BigInt(tx.amountIn || '0'), 6)).toFixed(4);
+      const raw = typeof tx.amountIn === 'string' ? tx.amountIn : '0';
+      const val = parseFloat(formatUnits(BigInt(raw), 6)).toFixed(4);
       return `${val} USDC`;
     }
     if (tx.type === 'REDEEM') {
-      const val = parseFloat(formatUnits(BigInt(tx.grossAmount || '0'), 6)).toFixed(4);
+      const raw = typeof tx.grossAmount === 'string' ? tx.grossAmount : '0';
+      const val = parseFloat(formatUnits(BigInt(raw), 6)).toFixed(4);
       return `${val} USDC`;
     }
     if (tx.type === 'FEE_COLLECTED') {
-      const val = parseFloat(formatUnits(BigInt(tx.amount || '0'), 6)).toFixed(4);
+      const raw = typeof tx.amount === 'string' ? tx.amount : '0';
+      const val = parseFloat(formatUnits(BigInt(raw), 6)).toFixed(4);
       return `${val} USDC`;
     }
     if (tx.type === 'TRANSFER') {
-      const val = parseFloat(formatUnits(BigInt(tx.value || '0'), 18)).toFixed(4);
+      const raw = typeof tx.value === 'string' ? tx.value : '0';
+      const val = parseFloat(formatUnits(BigInt(raw), 18)).toFixed(4);
       return `${val} UV-BTC-ETH`;
     }
     return '-';

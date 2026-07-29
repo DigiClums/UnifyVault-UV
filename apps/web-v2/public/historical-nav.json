@@ -1,0 +1,80 @@
+[
+  {
+    "blockNumber": 44680000,
+    "blockHash": "0xoldhash",
+    "timestamp": "2026-06-19T12:18:17.261Z",
+    "nav": 1,
+    "totalAssets": 1000,
+    "totalSupply": 1000,
+    "btcPrice": 60000,
+    "ethPrice": 1800,
+    "btcWeight": 0.5,
+    "ethWeight": 0.5,
+    "sharePrice": 1
+  },
+  {
+    "blockNumber": 44683001,
+    "blockHash": "0xhash1",
+    "timestamp": "2026-07-29T11:01:00.000Z",
+    "nav": 0.7659,
+    "totalAssets": 22.06,
+    "totalSupply": 28.8079,
+    "btcPrice": 64252.13,
+    "ethPrice": 1903.65,
+    "btcWeight": 0.5035,
+    "ethWeight": 0.4965,
+    "sharePrice": 0.7659
+  },
+  {
+    "blockNumber": 44683002,
+    "blockHash": "0xhash2",
+    "timestamp": "2026-07-29T11:02:00.000Z",
+    "nav": 0.7659,
+    "totalAssets": 22.06,
+    "totalSupply": 28.8079,
+    "btcPrice": 64252.13,
+    "ethPrice": 1903.65,
+    "btcWeight": 0.5035,
+    "ethWeight": 0.4965,
+    "sharePrice": 0.7659
+  },
+  {
+    "blockNumber": 44683003,
+    "blockHash": "0xhash3",
+    "timestamp": "2026-07-29T11:03:00.000Z",
+    "nav": 0.7659,
+    "totalAssets": 22.06,
+    "totalSupply": 28.8079,
+    "btcPrice": 64252.13,
+    "ethPrice": 1903.65,
+    "btcWeight": 0.5035,
+    "ethWeight": 0.4965,
+    "sharePrice": 0.7659
+  },
+  {
+    "blockNumber": 44683004,
+    "blockHash": "0xhash4",
+    "timestamp": "2026-07-29T11:04:00.000Z",
+    "nav": 0.7659,
+    "totalAssets": 22.06,
+    "totalSupply": 28.8079,
+    "btcPrice": 64252.13,
+    "ethPrice": 1903.65,
+    "btcWeight": 0.5035,
+    "ethWeight": 0.4965,
+    "sharePrice": 0.7659
+  },
+  {
+    "blockNumber": 44683005,
+    "blockHash": "0xhash5",
+    "timestamp": "2026-07-29T11:05:00.000Z",
+    "nav": 0.7659,
+    "totalAssets": 22.06,
+    "totalSupply": 28.8079,
+    "btcPrice": 64252.13,
+    "ethPrice": 1903.65,
+    "btcWeight": 0.5035,
+    "ethWeight": 0.4965,
+    "sharePrice": 0.7659
+  }
+]

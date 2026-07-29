@@ -24,8 +24,7 @@ interface IndexerTelemetry {
 
 const DEPLOY_BLOCK = 44682885;
 
-const INDEXER_API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_INDEXER_API_URL || '';
+const INDEXER_API_BASE = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_INDEXER_API_URL || '';
 
 export default function AdminMonitoringPage() {
   const { data: blockNumber } = useBlockNumber({ watch: true });
@@ -50,13 +49,13 @@ export default function AdminMonitoringPage() {
       {
         address: FALLBACK_ADDRESSES.ORACLE,
         abi: ORACLE_MANAGER_ABI,
-        functionName: 'isPriceFresh',
+        functionName: 'lastUpdatedTimestamp',
         args: [FALLBACK_ADDRESSES.WBTC],
       },
       {
         address: FALLBACK_ADDRESSES.ORACLE,
         abi: ORACLE_MANAGER_ABI,
-        functionName: 'isPriceFresh',
+        functionName: 'lastUpdatedTimestamp',
         args: [FALLBACK_ADDRESSES.WETH],
       },
     ],
@@ -67,8 +66,12 @@ export default function AdminMonitoringPage() {
 
   const btcPriceRaw = (contractReads?.[0]?.result as bigint) || 0n;
   const ethPriceRaw = (contractReads?.[1]?.result as bigint) || 0n;
-  const btcFresh = Boolean(contractReads?.[2]?.result);
-  const ethFresh = Boolean(contractReads?.[3]?.result);
+  const btcLastUpdated = Number((contractReads?.[2]?.result as bigint) || 0n);
+  const ethLastUpdated = Number((contractReads?.[3]?.result as bigint) || 0n);
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const btcFresh = btcLastUpdated > 0 && nowSec - btcLastUpdated < 86400;
+  const ethFresh = ethLastUpdated > 0 && nowSec - ethLastUpdated < 86400;
 
   const isOracleHealthy = btcFresh && ethFresh && btcPriceRaw > 0n && ethPriceRaw > 0n;
   const keeperStatus = isOracleHealthy ? 'Healthy' : 'Error';
@@ -141,7 +144,10 @@ export default function AdminMonitoringPage() {
   const syncPercent =
     currentChainBlock > 0 && currentIndexedBlock >= currentChainBlock
       ? 100
-      : Math.min(100, Math.max(0, Number(((syncedBlocks / totalBlocksToSync) * 100).toFixed(2))));
+      : Math.min(
+          100,
+          Math.max(0, Number(((syncedBlocks / totalBlocksToSync) * 100).toFixed(2))),
+        );
 
   const gasGwei = '0.001 Gwei';
 
@@ -210,14 +216,18 @@ export default function AdminMonitoringPage() {
           <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
             Blocks Remaining
           </p>
-          <p className="text-base font-mono font-bold text-cyan-400 mt-1">{blocksRemaining}</p>
+          <p className="text-base font-mono font-bold text-cyan-400 mt-1">
+            {blocksRemaining}
+          </p>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
           <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
             Sync %
           </p>
-          <p className="text-base font-mono font-bold text-emerald-400 mt-1">{syncPercent}%</p>
+          <p className="text-base font-mono font-bold text-emerald-400 mt-1">
+            {syncPercent}%
+          </p>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
@@ -316,9 +326,7 @@ export default function AdminMonitoringPage() {
               </td>
               <td className="py-3.5 px-3 text-slate-300">Data Event Pipeline</td>
               <td className="py-3.5 px-3 text-slate-400">
-                {indexerState.lastScanDurationMs
-                  ? `${indexerState.lastScanDurationMs}ms`
-                  : '10s scan'}
+                {indexerState.lastScanDurationMs ? `${indexerState.lastScanDurationMs}ms` : '10s scan'}
               </td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge

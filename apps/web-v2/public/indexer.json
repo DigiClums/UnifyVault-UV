@@ -1,5 +1,5 @@
 {
-  "lastBlock": 44773547,
+  "lastBlock": 44788815,
   "deposits": [
     {
       "blockNumber": 44682978,
@@ -65,10 +65,44 @@
       "sharesMinted": "12981178897493406143",
       "type": "DEPOSIT",
       "timestamp": "2026-07-29T08:56:37.507Z"
+    },
+    {
+      "blockNumber": 44778558,
+      "txHash": "0x3e4b15d44fade1dda9eedd4714727c0801b20eb7dbfaf8b174462f55c054fecc",
+      "logIndex": 180,
+      "user": "0xd905920c91853039060246ed5724aa72b91a96da",
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amountIn": "19791652",
+      "feeAmount": "49479",
+      "netAmount": "19742173",
+      "sharesMinted": "25709214010292308776",
+      "type": "DEPOSIT",
+      "timestamp": "2026-07-29T12:15:54.411Z"
     }
   ],
   "redeems": [],
-  "transfers": [],
+  "transfers": [
+    {
+      "blockNumber": 44777001,
+      "txHash": "0x3193743c44ef536ecb5b6e8c04130e8ec67f9775918cd9c984f02ba4f1c985b3",
+      "logIndex": 29,
+      "from": "0xd905920c91853039060246ed5724aa72b91a96da",
+      "to": "0x0000000000000000000000000000000000000000",
+      "value": "12981178897493406143",
+      "type": "TRANSFER",
+      "timestamp": "2026-07-29T12:13:14.555Z"
+    },
+    {
+      "blockNumber": 44778558,
+      "txHash": "0x3e4b15d44fade1dda9eedd4714727c0801b20eb7dbfaf8b174462f55c054fecc",
+      "logIndex": 176,
+      "from": "0x0000000000000000000000000000000000000000",
+      "to": "0xd905920c91853039060246ed5724aa72b91a96da",
+      "value": "25709214010292308776",
+      "type": "TRANSFER",
+      "timestamp": "2026-07-29T12:15:54.410Z"
+    }
+  ],
   "fees": [
     {
       "blockNumber": 44682978,
@@ -199,12 +233,121 @@
       "amount": "25000",
       "type": "FEE_COLLECTED",
       "timestamp": "2026-07-29T08:56:37.507Z"
+    },
+    {
+      "blockNumber": 44777001,
+      "txHash": "0x3193743c44ef536ecb5b6e8c04130e8ec67f9775918cd9c984f02ba4f1c985b3",
+      "logIndex": 32,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "199829",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T12:13:14.555Z"
+    },
+    {
+      "blockNumber": 44778558,
+      "txHash": "0x3e4b15d44fade1dda9eedd4714727c0801b20eb7dbfaf8b174462f55c054fecc",
+      "logIndex": 148,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "49479",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T12:15:54.339Z"
+    },
+    {
+      "blockNumber": 44778558,
+      "txHash": "0x3e4b15d44fade1dda9eedd4714727c0801b20eb7dbfaf8b174462f55c054fecc",
+      "logIndex": 179,
+      "asset": "0xd905920c91853039060246ed5724aa72b91a96da",
+      "from": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amount": "49479",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T12:15:54.410Z"
     }
   ],
   "rebalances": [],
   "oracleUpdates": [],
   "tvlSnapshots": [],
-  "navSnapshots": [],
+  "navSnapshots": [
+    {
+      "blockNumber": 44680000,
+      "blockHash": "0xoldhash",
+      "timestamp": "2026-06-19T12:18:17.261Z",
+      "nav": 1,
+      "totalAssets": 1000,
+      "totalSupply": 1000,
+      "btcPrice": 60000,
+      "ethPrice": 1800,
+      "btcWeight": 0.5,
+      "ethWeight": 0.5,
+      "sharePrice": 1
+    },
+    {
+      "blockNumber": 44683001,
+      "blockHash": "0xhash1",
+      "timestamp": "2026-07-29T11:01:00.000Z",
+      "nav": 0.7659,
+      "totalAssets": 22.06,
+      "totalSupply": 28.8079,
+      "btcPrice": 64252.13,
+      "ethPrice": 1903.65,
+      "btcWeight": 0.5035,
+      "ethWeight": 0.4965,
+      "sharePrice": 0.7659
+    },
+    {
+      "blockNumber": 44683002,
+      "blockHash": "0xhash2",
+      "timestamp": "2026-07-29T11:02:00.000Z",
+      "nav": 0.7659,
+      "totalAssets": 22.06,
+      "totalSupply": 28.8079,
+      "btcPrice": 64252.13,
+      "ethPrice": 1903.65,
+      "btcWeight": 0.5035,
+      "ethWeight": 0.4965,
+      "sharePrice": 0.7659
+    },
+    {
+      "blockNumber": 44683003,
+      "blockHash": "0xhash3",
+      "timestamp": "2026-07-29T11:03:00.000Z",
+      "nav": 0.7659,
+      "totalAssets": 22.06,
+      "totalSupply": 28.8079,
+      "btcPrice": 64252.13,
+      "ethPrice": 1903.65,
+      "btcWeight": 0.5035,
+      "ethWeight": 0.4965,
+      "sharePrice": 0.7659
+    },
+    {
+      "blockNumber": 44683004,
+      "blockHash": "0xhash4",
+      "timestamp": "2026-07-29T11:04:00.000Z",
+      "nav": 0.7659,
+      "totalAssets": 22.06,
+      "totalSupply": 28.8079,
+      "btcPrice": 64252.13,
+      "ethPrice": 1903.65,
+      "btcWeight": 0.5035,
+      "ethWeight": 0.4965,
+      "sharePrice": 0.7659
+    },
+    {
+      "blockNumber": 44683005,
+      "blockHash": "0xhash5",
+      "timestamp": "2026-07-29T11:05:00.000Z",
+      "nav": 0.7659,
+      "totalAssets": 22.06,
+      "totalSupply": 28.8079,
+      "btcPrice": 64252.13,
+      "ethPrice": 1903.65,
+      "btcWeight": 0.5035,
+      "ethWeight": 0.4965,
+      "sharePrice": 0.7659
+    }
+  ],
   "users": {},
-  "updatedAt": "2026-07-29T08:56:23.547Z"
+  "updatedAt": "2026-07-29T17:25:19.165Z"
 }

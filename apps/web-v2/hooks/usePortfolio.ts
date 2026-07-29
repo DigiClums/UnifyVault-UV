@@ -5,6 +5,7 @@ import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI, ERC20_ABI } from '../lib/contrac
 import { FALLBACK_ADDRESSES } from '../constants';
 import { calculateAssetUSDValue, formatUSD, formatUnits } from '../lib/math';
 import { AssetHolding, HistoricalNavPoint } from '../types';
+import { useHistoricalNAV } from './useIndexerData';
 
 /**
  * Strictly Read-Only Protocol Data from Deployed Contracts
@@ -130,8 +131,12 @@ export function usePortfolio() {
     },
   ];
 
-  // No fake historical points - empty until indexed historical NAV is provided
-  const historicalNAV: HistoricalNavPoint[] = [];
+  const { navHistory } = useHistoricalNAV('ALL');
+  const historicalNAV: HistoricalNavPoint[] = (navHistory || []).map((point) => ({
+    timestamp: point.timestamp,
+    navUSD: point.nav || point.sharePrice || 1.0,
+    portfolioValueUSD: point.totalAssets || 0,
+  }));
 
   return {
     holdings,

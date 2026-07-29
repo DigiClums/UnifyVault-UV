@@ -77,6 +77,58 @@ const lastSentPrices = {};
 const lastSentTimestamps = {};
 const HEARTBEAT_MS = 5 * 60 * 1000; // 5 minutes heartbeat force update
 
+let keeperAddressCache = null;
+let isUpdating = false;
+
+function sanitizeLog(text) {
+  if (!text || typeof text !== 'string') return text;
+  return PRIVATE_KEY ? text.replaceAll(PRIVATE_KEY, '[REDACTED]') : text;
+}
+
+function getKeeperAddress() {
+  if (!keeperAddressCache) {
+    const output = execSync('cast wallet address --private-key "$PRIVATE_KEY"', {
+      env: process.env,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    keeperAddressCache = output.trim();
+  }
+  return keeperAddressCache;
+}
+
+function getNonce(blockTag = 'latest') {
+  try {
+    const addr = getKeeperAddress();
+    const cmd = `cast nonce ${addr} --block ${blockTag} --rpc-url "${RPC_URL}"`;
+    const output = execSync(cmd, {
+      env: process.env,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return parseInt(output.trim(), 10);
+  } catch (err) {
+    console.warn(`[OracleKeeper] Failed to fetch ${blockTag} nonce:`, sanitizeLog(err.message));
+    return null;
+  }
+}
+
+async function waitForPendingTransactions(maxWaitMs = 30000) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWaitMs) {
+    const latestNonce = getNonce('latest');
+    const pendingNonce = getNonce('pending');
+    if (latestNonce !== null && pendingNonce !== null && latestNonce >= pendingNonce) {
+      return latestNonce;
+    }
+    console.log(
+      `[OracleKeeper] Pending transaction in mempool (Latest: ${latestNonce}, Pending: ${pendingNonce}). Waiting for block inclusion...`,
+    );
+    await sleep(3000);
+  }
+  return getNonce('latest');
+}
+
 async function fetchLivePrices() {
   const fetchOpts = {
     headers: { 'Cache-Control': 'no-cache, no-store' },
@@ -133,11 +185,6 @@ async function fetchLivePrices() {
   }
 }
 
-function sanitizeLog(text) {
-  if (!text || typeof text !== 'string') return text;
-  return PRIVATE_KEY ? text.replaceAll(PRIVATE_KEY, '[REDACTED]') : text;
-}
-
 async function updateAggregator(aggregatorAddress, price, assetName) {
   const price8Decimals = BigInt(Math.round(price * 1e8)).toString();
   const now = Date.now();
@@ -153,19 +200,73 @@ async function updateAggregator(aggregatorAddress, price, assetName) {
     return;
   }
 
-  // Pass $PRIVATE_KEY via shell environment variable expansion so private key isn't in command string
-  const cmd = `cast send ${aggregatorAddress} "setPrice(int256)" ${price8Decimals} --rpc-url "${RPC_URL}" --private-key "$PRIVATE_KEY"`;
+  // Ensure any previous pending transactions are mined first
+  const currentNonce = await waitForPendingTransactions();
 
+  let nonceFlag = '';
+  if (currentNonce !== null && !isNaN(currentNonce)) {
+    nonceFlag = `--nonce ${currentNonce}`;
+  }
+
+  // Pass $PRIVATE_KEY via shell environment variable expansion so private key isn't in command string
+  // Use --confirmations 1 and --timeout 60 to wait synchronously for block receipt before returning
+  const cmd = `cast send ${aggregatorAddress} "setPrice(int256)" ${price8Decimals} ${nonceFlag} --confirmations 1 --timeout 60 --rpc-url "${RPC_URL}" --private-key "$PRIVATE_KEY"`;
+
+  const MAX_RETRIES = 3;
+  const backoffs = [2000, 4000, 8000];
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      execSync(cmd, { env: process.env, stdio: 'pipe' });
+      lastSentPrices[aggregatorAddress] = price8Decimals;
+      lastSentTimestamps[aggregatorAddress] = now;
+      console.log(
+        `[OracleKeeper] Updated ${assetName} Aggregator (${aggregatorAddress}): $${price.toFixed(2)} (${price8Decimals})`,
+      );
+      return;
+    } catch (err) {
+      const rawMsg = err.message || err.toString();
+      const sanitized = sanitizeLog(rawMsg);
+      const isNullResponseError = rawMsg.includes(
+        'server returned a null response when a non-null response was expected',
+      );
+
+      if (isNullResponseError && attempt < MAX_RETRIES) {
+        const delay = backoffs[attempt];
+        console.warn(
+          `[OracleKeeper] Transient RPC null response during ${assetName} update. Retry ${attempt + 1}/${MAX_RETRIES} in ${delay / 1000}s...`,
+        );
+        await sleep(delay);
+      } else {
+        console.error(`[OracleKeeper] Failed to update ${assetName}:`, sanitized);
+        break;
+      }
+    }
+  }
+}
+
+async function runUpdateCycle() {
+  if (isUpdating) {
+    console.log('[OracleKeeper] Previous update cycle still in progress, skipping loop tick.');
+    return;
+  }
+
+  isUpdating = true;
   try {
-    execSync(cmd, { env: process.env, stdio: 'pipe' });
-    lastSentPrices[aggregatorAddress] = price8Decimals;
-    lastSentTimestamps[aggregatorAddress] = now;
-    console.log(
-      `[OracleKeeper] Updated ${assetName} Aggregator (${aggregatorAddress}): $${price.toFixed(2)} (${price8Decimals})`,
-    );
+    const prices = await fetchLivePrices();
+    if (prices) {
+      console.log(
+        `[OracleKeeper] Live Prices - BTC: $${prices.btcPrice.toFixed(2)}, ETH: $${prices.ethPrice.toFixed(2)}`,
+      );
+      await updateAggregator(CBBTC_AGGREGATOR, prices.btcPrice, 'BTC');
+      // Buffer delay after receipt confirmation before processing next asset
+      await sleep(1000);
+      await updateAggregator(WETH_AGGREGATOR, prices.ethPrice, 'ETH');
+    }
   } catch (err) {
-    const rawMsg = err.message || err.toString();
-    console.error(`[OracleKeeper] Failed to update ${assetName}:`, sanitizeLog(rawMsg));
+    console.error('[OracleKeeper] Error in update cycle:', sanitizeLog(err.message));
+  } finally {
+    isUpdating = false;
   }
 }
 
@@ -175,15 +276,7 @@ async function main() {
   console.log(`[OracleKeeper] Target ETH Aggregator: ${WETH_AGGREGATOR}`);
 
   while (true) {
-    const prices = await fetchLivePrices();
-    if (prices) {
-      console.log(
-        `[OracleKeeper] Live Prices - BTC: $${prices.btcPrice.toFixed(2)}, ETH: $${prices.ethPrice.toFixed(2)}`,
-      );
-      await updateAggregator(CBBTC_AGGREGATOR, prices.btcPrice, 'BTC');
-      await sleep(2500);
-      await updateAggregator(WETH_AGGREGATOR, prices.ethPrice, 'ETH');
-    }
+    await runUpdateCycle();
     await sleep(15000);
   }
 }

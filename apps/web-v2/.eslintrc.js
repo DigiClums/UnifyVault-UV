@@ -5,5 +5,6 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': 'off',
     'no-unused-vars': 'off',
     '@next/next/no-img-element': 'off',
+    '@typescript-eslint/triple-slash-reference': 'off',
   },
 };

@@ -90,7 +90,7 @@ The Oracle Keeper runs under PM2 as process `unifyvault-oracle-keeper` (ID 32).
 The Event Indexer runs under PM2 as process `unifyvault-indexer` (ID 33).
 
 - **Script Location**: `scripts/indexerDaemon.js`
-- **API Endpoint**: `http://localhost:3006/api/indexer/stats`
+- **API Endpoint**: `/api/indexer/stats` (Internal daemon: `http://127.0.0.1:3006/api/indexer/stats`)
 - **Command Control**:
   ```bash
   pm2 status unifyvault-indexer
