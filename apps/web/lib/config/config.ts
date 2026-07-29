@@ -11,6 +11,7 @@ import {
 import { http } from 'wagmi';
 import { SUPPORTED_CHAINS } from './chains';
 import { env } from './env';
+import { createSafeWagmiStorage } from '../utils/storageFallback';
 
 export const wagmiConfig = getDefaultConfig({
   appName: 'UnifyVault',
@@ -19,6 +20,7 @@ export const wagmiConfig = getDefaultConfig({
   appIcon: 'https://app.unifyvault.xyz/favicon.ico',
   projectId: env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
   chains: SUPPORTED_CHAINS,
+  storage: createSafeWagmiStorage(),
   wallets: [
     {
       groupName: 'Supported Wallets',

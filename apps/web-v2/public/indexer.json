@@ -1,0 +1,210 @@
+{
+  "lastBlock": 44773547,
+  "deposits": [
+    {
+      "blockNumber": 44682978,
+      "txHash": "0x26c08af3c2061e3b6de1b61aa8f1e8213cba11719daa7396dfc6710d73250d9e",
+      "logIndex": 51,
+      "user": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amountIn": "1000000",
+      "feeAmount": "2500",
+      "netAmount": "997500",
+      "sharesMinted": "997500000000000000",
+      "type": "DEPOSIT",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683621,
+      "txHash": "0xb6cb2f04de21fa313902addc2cd6411b63ae9164123bfe8d1f90d3c73bcb01c2",
+      "logIndex": 62,
+      "user": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amountIn": "1000000",
+      "feeAmount": "2500",
+      "netAmount": "997500",
+      "sharesMinted": "997700040108292389",
+      "type": "DEPOSIT",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683906,
+      "txHash": "0x19389cb44b5b6cabbf4927d3676b5d101c3afeadeb2bdc6ba63b491b9ded88de",
+      "logIndex": 47,
+      "user": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amountIn": "4203652",
+      "feeAmount": "10509",
+      "netAmount": "4193143",
+      "sharesMinted": "4193143000000000000",
+      "type": "DEPOSIT",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44684108,
+      "txHash": "0x0a192e7671005027a9de8cb28b9e7eb8f289cdae4870eeb1e54f309bf7b969db",
+      "logIndex": 174,
+      "user": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amountIn": "4108965",
+      "feeAmount": "10272",
+      "netAmount": "4098693",
+      "sharesMinted": "4098693000000000000",
+      "type": "DEPOSIT",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44771737,
+      "txHash": "0x6099716459de66ccb77a78a8fea68d9bda9b2aef5a237ed45e68966d8d7818a7",
+      "logIndex": 43,
+      "user": "0xd905920c91853039060246ed5724aa72b91a96da",
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amountIn": "10000000",
+      "feeAmount": "25000",
+      "netAmount": "9975000",
+      "sharesMinted": "12981178897493406143",
+      "type": "DEPOSIT",
+      "timestamp": "2026-07-29T08:56:37.507Z"
+    }
+  ],
+  "redeems": [],
+  "transfers": [],
+  "fees": [
+    {
+      "blockNumber": 44682978,
+      "txHash": "0x26c08af3c2061e3b6de1b61aa8f1e8213cba11719daa7396dfc6710d73250d9e",
+      "logIndex": 19,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "2500",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44682978,
+      "txHash": "0x26c08af3c2061e3b6de1b61aa8f1e8213cba11719daa7396dfc6710d73250d9e",
+      "logIndex": 50,
+      "asset": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "from": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amount": "2500",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683621,
+      "txHash": "0xb6cb2f04de21fa313902addc2cd6411b63ae9164123bfe8d1f90d3c73bcb01c2",
+      "logIndex": 30,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "2500",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683621,
+      "txHash": "0xb6cb2f04de21fa313902addc2cd6411b63ae9164123bfe8d1f90d3c73bcb01c2",
+      "logIndex": 61,
+      "asset": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "from": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amount": "2500",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683643,
+      "txHash": "0x11ae90a76af00d6b5abeee9c19b7685fb360fad881c6786e183d03c1a490b444",
+      "logIndex": 27,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "39892",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683906,
+      "txHash": "0x19389cb44b5b6cabbf4927d3676b5d101c3afeadeb2bdc6ba63b491b9ded88de",
+      "logIndex": 15,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "10509",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44683906,
+      "txHash": "0x19389cb44b5b6cabbf4927d3676b5d101c3afeadeb2bdc6ba63b491b9ded88de",
+      "logIndex": 46,
+      "asset": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "from": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amount": "10509",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44684025,
+      "txHash": "0xf4cd2be360b573aafc1fe6f6815cb5b90c5deef667ccbf0ca8e621171259cfe1",
+      "logIndex": 84,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "83856",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44684108,
+      "txHash": "0x0a192e7671005027a9de8cb28b9e7eb8f289cdae4870eeb1e54f309bf7b969db",
+      "logIndex": 144,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "10272",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44684108,
+      "txHash": "0x0a192e7671005027a9de8cb28b9e7eb8f289cdae4870eeb1e54f309bf7b969db",
+      "logIndex": 173,
+      "asset": "0xb145ac2a59575fbe306a58ac924718f4dd4659da",
+      "from": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amount": "10272",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44684130,
+      "txHash": "0x5e3b022e5c97aa93163c3ba6013c9ffaed20f04edfe9e3ccc9d894f3d1764fbc",
+      "logIndex": 60,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "19997",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:23.780Z"
+    },
+    {
+      "blockNumber": 44771737,
+      "txHash": "0x6099716459de66ccb77a78a8fea68d9bda9b2aef5a237ed45e68966d8d7818a7",
+      "logIndex": 11,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0x7ef5d93f83995228effc63dbe513367a719f0633",
+      "amount": "25000",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:37.507Z"
+    },
+    {
+      "blockNumber": 44771737,
+      "txHash": "0x6099716459de66ccb77a78a8fea68d9bda9b2aef5a237ed45e68966d8d7818a7",
+      "logIndex": 42,
+      "asset": "0xd905920c91853039060246ed5724aa72b91a96da",
+      "from": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "amount": "25000",
+      "type": "FEE_COLLECTED",
+      "timestamp": "2026-07-29T08:56:37.507Z"
+    }
+  ],
+  "rebalances": [],
+  "oracleUpdates": [],
+  "tvlSnapshots": [],
+  "navSnapshots": [],
+  "users": {},
+  "updatedAt": "2026-07-29T08:56:23.547Z"
+}

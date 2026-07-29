@@ -50,7 +50,7 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
                 borderRadius: '12px',
                 color: '#FFF',
               }}
-              formatter={(val: number) => [`${val.toFixed(1)}%`, 'Weight']}
+              formatter={(val: unknown) => [`${Number(val || 0).toFixed(1)}%`, 'Weight']}
             />
           </PieChart>
         </ResponsiveContainer>

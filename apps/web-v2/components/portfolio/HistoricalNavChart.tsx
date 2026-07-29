@@ -50,7 +50,7 @@ export function HistoricalNavChart() {
                   borderRadius: '12px',
                   color: '#FFF',
                 }}
-                formatter={(val: number) => [`$${val.toFixed(4)}`, 'NAV/Share']}
+                formatter={(val: unknown) => [`$${Number(val || 0).toFixed(4)}`, 'NAV/Share']}
               />
               <Area
                 type="monotone"

@@ -7,6 +7,8 @@ const INDEXER_API_URL = process.env.NEXT_PUBLIC_INDEXER_API_URL || 'http://local
 export interface IndexedEvent {
   blockNumber: number;
   txHash: string;
+  logIndex?: number;
+  type?: string;
   user?: string;
   asset?: string;
   from?: string;
@@ -23,13 +25,17 @@ export function useTransactionHistory() {
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const res = await fetch(`${INDEXER_API_URL}/api/indexer/events`);
-        if (res.ok) {
+        let res = await fetch(`${INDEXER_API_URL}/api/indexer/events`).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch('/indexer.json').catch(() => null);
+        }
+        if (res && res.ok) {
           const data = await res.json();
           const combined = [
-            ...(data.deposits || []).map((d: any) => ({ ...d, type: 'DEPOSIT' })),
-            ...(data.redeems || []).map((r: any) => ({ ...r, type: 'REDEEM' })),
-            ...(data.transfers || []).map((t: any) => ({ ...t, type: 'TRANSFER' })),
+            ...(data.deposits || []).map((d: IndexedEvent) => ({ ...d, type: 'DEPOSIT' })),
+            ...(data.redeems || []).map((r: IndexedEvent) => ({ ...r, type: 'REDEEM' })),
+            ...(data.transfers || []).map((t: IndexedEvent) => ({ ...t, type: 'TRANSFER' })),
+            ...(data.fees || []).map((f: IndexedEvent) => ({ ...f, type: 'FEE_COLLECTED' })),
           ];
           setTransactions(combined);
         }
@@ -49,7 +55,7 @@ export function useTransactionHistory() {
 }
 
 export function useProtocolRevenue() {
-  const [revenueHistory, setRevenueHistory] = useState<any[]>([]);
+  const [revenueHistory, setRevenueHistory] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -74,7 +80,7 @@ export function useProtocolRevenue() {
 }
 
 export function useHistoricalNAV() {
-  const [navHistory, setNavHistory] = useState<any[]>([]);
+  const [navHistory, setNavHistory] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -99,7 +105,7 @@ export function useHistoricalNAV() {
 }
 
 export function useHistoricalTVL() {
-  const [tvlHistory, setTvlHistory] = useState<any[]>([]);
+  const [tvlHistory, setTvlHistory] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -124,7 +130,7 @@ export function useHistoricalTVL() {
 }
 
 export function useHistoricalFees() {
-  const [feesHistory, setFeesHistory] = useState<any[]>([]);
+  const [feesHistory, setFeesHistory] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

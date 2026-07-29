@@ -13,6 +13,7 @@ const path = require('path');
 const RPC_URL = process.env.RPC_URL || 'https://sepolia.base.org';
 const PORT = 3006;
 const DB_FILE = path.join(__dirname, '../apps/web-v2/public/indexer.json');
+const DEPLOY_BLOCK = 44682885;
 
 const CONTRACTS = {
   CONTROLLER: '0x7EF5D93f83995228efFc63dbe513367a719f0633',
@@ -23,10 +24,14 @@ const CONTRACTS = {
 };
 
 const TOPICS = {
-  // Deposit(address,address,uint256,uint256,uint256)
-  DEPOSIT: '0xe1fff3675409f656e3089d71c6a67d7168d89e52518e32906b3e70d44007b82f',
-  // Redeem(address,address,uint256,uint256,uint256)
-  REDEEM: '0x327a331165e638bc2c7a5223abf541249b6b9074092b7470fcf2cfb6967eb7d3',
+  // DepositCompleted(address,address,uint256,uint256,uint256,uint256)
+  DEPOSIT_COMPLETED: '0xc6adf00eb581311634c389e7daf8729eecb58a15f7b23367de7f6d55284bd7c9',
+  // RedeemCompleted(address,address,uint256,uint256,uint256,uint256)
+  REDEEM_COMPLETED: '0x4721d77d87221806e7f81092c203cf8e24cf5c79e5f9745c8634f00678632677',
+  // ProtocolFeeCollected(address,address,uint256)
+  PROTOCOL_FEE: '0xed040e87d6391f48e803a4af393c8744ae0b272b4a61f4a2203d8769149604eb',
+  // FeeCollected(address,address,uint256)
+  FEE_COLLECTED: '0xf228de527fc1b9843baac03b9a04565473a263375950e63435d4138464386f46',
   // Transfer(address,address,uint256)
   TRANSFER: '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
 };
@@ -65,7 +70,7 @@ function jsonRpcCall(method, params) {
     const postData = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
     const options = {
       hostname: url.hostname,
-      port: url.port || 443,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
       path: url.pathname,
       method: 'POST',
       headers: {
@@ -74,7 +79,8 @@ function jsonRpcCall(method, params) {
       },
     };
 
-    const req = https.request(options, (res) => {
+    const client = url.protocol === 'https:' ? https : http;
+    const req = client.request(options, (res) => {
       let body = '';
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
@@ -94,52 +100,157 @@ function jsonRpcCall(method, params) {
   });
 }
 
+function parseHexBigInt(hexStr) {
+  if (!hexStr || hexStr === '0x') return BigInt(0);
+  return BigInt(hexStr);
+}
+
 async function indexEvents() {
   try {
     const latestBlockHex = await jsonRpcCall('eth_blockNumber', []);
     const latestBlock = parseInt(latestBlockHex, 16);
 
-    if (db.lastBlock === 0) {
-      db.lastBlock = Math.max(0, latestBlock - 5000);
+    if (db.lastBlock === 0 || db.lastBlock < DEPLOY_BLOCK) {
+      db.lastBlock = DEPLOY_BLOCK - 1;
     }
 
-    const fromBlock = db.lastBlock + 1;
-    const toBlock = latestBlock;
+    const targetBlock = latestBlock;
+    let currentFrom = db.lastBlock + 1;
 
-    if (fromBlock <= toBlock) {
+    while (currentFrom <= targetBlock) {
+      // Base Sepolia public RPC allows max 1000-2000 blocks per eth_getLogs
+      const currentTo = Math.min(currentFrom + 1500, targetBlock);
+
       const logs = await jsonRpcCall('eth_getLogs', [
         {
-          address: [CONTRACTS.CONTROLLER, CONTRACTS.TOKEN, CONTRACTS.VAULT],
-          fromBlock: '0x' + fromBlock.toString(16),
-          toBlock: '0x' + toBlock.toString(16),
+          address: [CONTRACTS.CONTROLLER, CONTRACTS.TOKEN, CONTRACTS.TREASURY, CONTRACTS.VAULT],
+          fromBlock: '0x' + currentFrom.toString(16),
+          toBlock: '0x' + currentTo.toString(16),
         },
       ]);
 
       if (Array.isArray(logs)) {
         for (const log of logs) {
           const txHash = log.transactionHash;
-          const logIndex = log.logIndex;
+          const logIndex = parseInt(log.logIndex, 16);
+          const blockNumber = parseInt(log.blockNumber, 16);
           const topic0 = log.topics[0];
+          const contractAddr = log.address.toLowerCase();
 
+          // 1. DEPOSIT_COMPLETED on Controller
           if (
-            topic0 === TOPICS.TRANSFER &&
-            log.address.toLowerCase() === CONTRACTS.TOKEN.toLowerCase()
+            topic0 === TOPICS.DEPOSIT_COMPLETED &&
+            contractAddr === CONTRACTS.CONTROLLER.toLowerCase()
           ) {
+            const isDuplicate = db.deposits.some(
+              (d) => d.txHash === txHash && d.logIndex === logIndex,
+            );
+            if (!isDuplicate) {
+              const user = '0x' + log.topics[1].slice(26);
+              const asset = '0x' + log.topics[2].slice(26);
+
+              // Data layout: amountIn (32b), feeAmount (32b), netAmount (32b), sharesMinted (32b)
+              const rawData = log.data.slice(2);
+              const amountIn = parseHexBigInt('0x' + rawData.slice(0, 64)).toString();
+              const feeAmount = parseHexBigInt('0x' + rawData.slice(64, 128)).toString();
+              const netAmount = parseHexBigInt('0x' + rawData.slice(128, 192)).toString();
+              const sharesMinted = parseHexBigInt('0x' + rawData.slice(192, 256)).toString();
+
+              db.deposits.push({
+                blockNumber,
+                txHash,
+                logIndex,
+                user,
+                asset,
+                amountIn,
+                feeAmount,
+                netAmount,
+                sharesMinted,
+                type: 'DEPOSIT',
+                timestamp: new Date().toISOString(),
+              });
+            }
+          }
+
+          // 2. REDEEM_COMPLETED on Controller
+          if (
+            topic0 === TOPICS.REDEEM_COMPLETED &&
+            contractAddr === CONTRACTS.CONTROLLER.toLowerCase()
+          ) {
+            const isDuplicate = db.redeems.some(
+              (r) => r.txHash === txHash && r.logIndex === logIndex,
+            );
+            if (!isDuplicate) {
+              const user = '0x' + log.topics[1].slice(26);
+              const assetOut = '0x' + log.topics[2].slice(26);
+
+              const rawData = log.data.slice(2);
+              const sharesBurned = parseHexBigInt('0x' + rawData.slice(0, 64)).toString();
+              const grossAmount = parseHexBigInt('0x' + rawData.slice(64, 128)).toString();
+              const feeAmount = parseHexBigInt('0x' + rawData.slice(128, 192)).toString();
+              const netAmount = parseHexBigInt('0x' + rawData.slice(192, 256)).toString();
+
+              db.redeems.push({
+                blockNumber,
+                txHash,
+                logIndex,
+                user,
+                assetOut,
+                sharesBurned,
+                grossAmount,
+                feeAmount,
+                netAmount,
+                type: 'REDEEM',
+                timestamp: new Date().toISOString(),
+              });
+            }
+          }
+
+          // 3. FeeCollected on Treasury or ProtocolFeeCollected on Controller
+          if (
+            (topic0 === TOPICS.FEE_COLLECTED &&
+              contractAddr === CONTRACTS.TREASURY.toLowerCase()) ||
+            (topic0 === TOPICS.PROTOCOL_FEE && contractAddr === CONTRACTS.CONTROLLER.toLowerCase())
+          ) {
+            const isDuplicate = db.fees.some((f) => f.txHash === txHash && f.logIndex === logIndex);
+            if (!isDuplicate) {
+              const asset = '0x' + log.topics[1].slice(26);
+              const fromOrPayer = log.topics[2]
+                ? '0x' + log.topics[2].slice(26)
+                : CONTRACTS.CONTROLLER;
+              const feeAmount = parseHexBigInt(log.data).toString();
+
+              db.fees.push({
+                blockNumber,
+                txHash,
+                logIndex,
+                asset,
+                from: fromOrPayer,
+                amount: feeAmount,
+                type: 'FEE_COLLECTED',
+                timestamp: new Date().toISOString(),
+              });
+            }
+          }
+
+          // 4. TRANSFER on UVBTCETHToken
+          if (topic0 === TOPICS.TRANSFER && contractAddr === CONTRACTS.TOKEN.toLowerCase()) {
             const isDuplicate = db.transfers.some(
               (t) => t.txHash === txHash && t.logIndex === logIndex,
             );
             if (!isDuplicate) {
               const from = '0x' + log.topics[1].slice(26);
               const to = '0x' + log.topics[2].slice(26);
-              const value = BigInt(log.data).toString();
+              const value = parseHexBigInt(log.data).toString();
 
               db.transfers.push({
-                blockNumber: parseInt(log.blockNumber, 16),
+                blockNumber,
                 txHash,
                 logIndex,
                 from,
                 to,
                 value,
+                type: 'TRANSFER',
                 timestamp: new Date().toISOString(),
               });
 
@@ -157,22 +268,24 @@ async function indexEvents() {
         }
       }
 
-      // Record block snapshot for TVL/NAV
-      const nowIso = new Date().toISOString().substring(11, 16);
-      const lastTvlPoint = db.tvlSnapshots[db.tvlSnapshots.length - 1];
-      if (!lastTvlPoint || lastTvlPoint.blockNumber !== latestBlock) {
-        db.tvlSnapshots.push({
-          blockNumber: latestBlock,
-          timestamp: nowIso,
-          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          tvlUSD: 0,
-        });
-        if (db.tvlSnapshots.length > 100) db.tvlSnapshots.shift();
-      }
-
-      db.lastBlock = latestBlock;
-      saveDB();
+      currentFrom = currentTo + 1;
     }
+
+    // Record block snapshot for TVL/NAV
+    const nowIso = new Date().toISOString().substring(11, 16);
+    const lastTvlPoint = db.tvlSnapshots[db.tvlSnapshots.length - 1];
+    if (!lastTvlPoint || lastTvlPoint.blockNumber !== latestBlock) {
+      db.tvlSnapshots.push({
+        blockNumber: latestBlock,
+        timestamp: nowIso,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        tvlUSD: 0,
+      });
+      if (db.tvlSnapshots.length > 100) db.tvlSnapshots.shift();
+    }
+
+    db.lastBlock = targetBlock;
+    saveDB();
   } catch (err) {
     console.error('Indexer scan error:', err.message);
   }
@@ -197,6 +310,7 @@ const server = http.createServer((req, res) => {
         depositsCount: db.deposits.length,
         redeemsCount: db.redeems.length,
         transfersCount: db.transfers.length,
+        feesCount: db.fees.length,
         usersCount: Object.keys(db.users).length,
         updatedAt: db.updatedAt,
       }),

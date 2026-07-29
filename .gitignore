@@ -60,3 +60,7 @@ write-tests/
 ignition/deployments/
 
 packages/protocol/.gas-snapshot
+
+*.tsbuildinfo
+filebrowser.db
+env.sh

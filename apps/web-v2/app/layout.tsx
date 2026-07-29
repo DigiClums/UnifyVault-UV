@@ -37,8 +37,11 @@ export const metadata: Metadata = {
     locale: 'en_US',
     type: 'website',
   },
+  manifest: '/branding/manifest.json',
   icons: {
-    icon: '/favicon.ico',
+    icon: [{ url: '/favicon.ico' }, { url: '/branding/favicon.svg', type: 'image/svg+xml' }],
+    shortcut: '/branding/favicon.svg',
+    apple: '/branding/apple-touch-icon.png',
   },
 };
 

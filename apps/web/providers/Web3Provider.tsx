@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import { useTheme } from 'next-themes';
 import { wagmiConfig } from '../lib/config/config';
+import { setupIndexedDBGuard } from '../lib/utils/storageFallback';
 
 function makeQueryClient() {
   return new QueryClient({
@@ -54,6 +55,10 @@ function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) 
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+
+  React.useEffect(() => {
+    setupIndexedDBGuard();
+  }, []);
 
   return (
     <WagmiProvider config={wagmiConfig}>

@@ -1,5 +1,44 @@
 /* eslint-disable */
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// Safe, production-compatible .env loading (Node.js 20+ native support with fallback)
+function loadEnv() {
+  const envPath = path.resolve(__dirname, '../.env');
+  if (fs.existsSync(envPath)) {
+    try {
+      if (typeof process.loadEnvFile === 'function') {
+        process.loadEnvFile(envPath);
+      } else {
+        const content = fs.readFileSync(envPath, 'utf8');
+        content.split('\n').forEach((line) => {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#')) {
+            const eqIdx = trimmed.indexOf('=');
+            if (eqIdx > 0) {
+              const key = trimmed.slice(0, eqIdx).trim();
+              let val = trimmed.slice(eqIdx + 1).trim();
+              if (
+                (val.startsWith('"') && val.endsWith('"')) ||
+                (val.startsWith("'") && val.endsWith("'"))
+              ) {
+                val = val.slice(1, -1);
+              }
+              if (!process.env[key]) {
+                process.env[key] = val;
+              }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore reading errors if env is already provided by host environment
+    }
+  }
+}
+
+loadEnv();
 
 const ENVIRONMENT = process.env.NODE_ENV || 'development';
 const ACTIVE_CHAIN = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base-sepolia';
@@ -34,26 +73,59 @@ const WETH_AGGREGATOR = '0xe0c96e485d8b5e6a2c7fe7b8598a061b52dfc381';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const lastSentPrices = {};
+const lastSentTimestamps = {};
+const HEARTBEAT_MS = 5 * 60 * 1000; // 5 minutes heartbeat force update
+
 async function fetchLivePrices() {
+  const fetchOpts = {
+    headers: { 'Cache-Control': 'no-cache, no-store' },
+  };
   try {
-    const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=USD');
-    const data = await res.json();
-    const rates = data?.data?.rates;
+    const timestamp = Date.now();
+    const [btcRes, ethRes] = await Promise.all([
+      fetch(`https://api.coinbase.com/v2/prices/BTC-USD/spot?_t=${timestamp}`, fetchOpts),
+      fetch(`https://api.coinbase.com/v2/prices/ETH-USD/spot?_t=${timestamp}`, fetchOpts),
+    ]);
 
-    if (!rates) throw new Error('Invalid response from Coinbase API');
+    const btcData = await btcRes.json();
+    const ethData = await ethRes.json();
 
-    const btcPrice = 1 / parseFloat(rates.BTC);
-    const ethPrice = 1 / parseFloat(rates.ETH);
+    const btcPrice = parseFloat(btcData?.data?.amount);
+    const ethPrice = parseFloat(ethData?.data?.amount);
+
+    if (
+      !Number.isFinite(btcPrice) ||
+      !Number.isFinite(ethPrice) ||
+      btcPrice <= 0 ||
+      ethPrice <= 0
+    ) {
+      throw new Error('Invalid numeric price values received from Coinbase Spot API');
+    }
 
     return { btcPrice, ethPrice };
   } catch (err) {
     console.warn('[OracleKeeper] Coinbase API failed, trying CoinGecko fallback:', err.message);
     try {
+      const timestamp = Date.now();
       const res = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd',
+        `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&_t=${timestamp}`,
+        fetchOpts,
       );
       const data = await res.json();
-      return { btcPrice: data.bitcoin.usd, ethPrice: data.ethereum.usd };
+      const btcPrice = data?.bitcoin?.usd;
+      const ethPrice = data?.ethereum?.usd;
+
+      if (
+        !Number.isFinite(btcPrice) ||
+        !Number.isFinite(ethPrice) ||
+        btcPrice <= 0 ||
+        ethPrice <= 0
+      ) {
+        throw new Error('Invalid numeric price values received from CoinGecko API');
+      }
+
+      return { btcPrice, ethPrice };
     } catch (e) {
       console.error('[OracleKeeper] All price feeds failed:', e.message);
       return null;
@@ -61,18 +133,39 @@ async function fetchLivePrices() {
   }
 }
 
-async function updateAggregator(aggregatorAddress, price, assetName) {
-  const price8Decimals = Math.round(price * 1e8);
-  const dataHex = `0x3a00508600000000000000000000000000000000000000000000000000000000${price8Decimals.toString(16).padStart(64, '0')}`;
+function sanitizeLog(text) {
+  if (!text || typeof text !== 'string') return text;
+  return PRIVATE_KEY ? text.replaceAll(PRIVATE_KEY, '[REDACTED]') : text;
+}
 
-  const cmd = `cast send ${aggregatorAddress} "${dataHex}" --rpc-url ${RPC_URL} --private-key ${PRIVATE_KEY}`;
+async function updateAggregator(aggregatorAddress, price, assetName) {
+  const price8Decimals = BigInt(Math.round(price * 1e8)).toString();
+  const now = Date.now();
+
+  const lastPrice = lastSentPrices[aggregatorAddress];
+  const lastTime = lastSentTimestamps[aggregatorAddress] || 0;
+
+  // Deduplicate identical price updates unless heartbeat expired (5 minutes)
+  if (lastPrice === price8Decimals && now - lastTime < HEARTBEAT_MS) {
+    console.log(
+      `[OracleKeeper] ${assetName} price unchanged ($${price.toFixed(2)} / ${price8Decimals}), skipping on-chain submit (heartbeat active).`,
+    );
+    return;
+  }
+
+  // Pass $PRIVATE_KEY via shell environment variable expansion so private key isn't in command string
+  const cmd = `cast send ${aggregatorAddress} "setPrice(int256)" ${price8Decimals} --rpc-url "${RPC_URL}" --private-key "$PRIVATE_KEY"`;
+
   try {
-    execSync(cmd, { stdio: 'pipe' });
+    execSync(cmd, { env: process.env, stdio: 'pipe' });
+    lastSentPrices[aggregatorAddress] = price8Decimals;
+    lastSentTimestamps[aggregatorAddress] = now;
     console.log(
       `[OracleKeeper] Updated ${assetName} Aggregator (${aggregatorAddress}): $${price.toFixed(2)} (${price8Decimals})`,
     );
   } catch (err) {
-    console.error(`[OracleKeeper] Failed to update ${assetName}:`, err.message);
+    const rawMsg = err.message || err.toString();
+    console.error(`[OracleKeeper] Failed to update ${assetName}:`, sanitizeLog(rawMsg));
   }
 }
 
@@ -88,6 +181,7 @@ async function main() {
         `[OracleKeeper] Live Prices - BTC: $${prices.btcPrice.toFixed(2)}, ETH: $${prices.ethPrice.toFixed(2)}`,
       );
       await updateAggregator(CBBTC_AGGREGATOR, prices.btcPrice, 'BTC');
+      await sleep(2500);
       await updateAggregator(WETH_AGGREGATOR, prices.ethPrice, 'ETH');
     }
     await sleep(15000);
@@ -95,6 +189,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[OracleKeeper] Fatal error:', err);
+  const rawMsg = err.stack || err.message || String(err);
+  console.error('[OracleKeeper] Fatal error:', sanitizeLog(rawMsg));
   process.exit(1);
 });

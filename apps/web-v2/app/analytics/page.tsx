@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
                       borderRadius: '12px',
                       color: '#FFF',
                     }}
-                    formatter={(val: number) => [`${val.toFixed(1)}%`, 'Allocation']}
+                    formatter={(val: unknown) => [`${Number(val || 0).toFixed(1)}%`, 'Allocation']}
                   />
                   <Legend />
                 </RePieChart>
