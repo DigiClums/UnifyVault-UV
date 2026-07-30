@@ -5,22 +5,17 @@ import { PieChart as RePieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
 import { StatCard } from '../../components/ui/StatCard';
 import { ChartCard } from '../../components/ui/ChartCard';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { HistoricalNavChart } from '../../components/portfolio/HistoricalNavChart';
+import { PortfolioAnalyticsCard } from '../../components/dashboard/PortfolioAnalyticsCard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { usePortfolio } from '../../hooks/usePortfolio';
-import {
-  BarChart3,
-  TrendingUp,
-  DollarSign,
-  PieChart as PieIcon,
-  Layers,
-  Activity,
-  History,
-} from 'lucide-react';
+import { TrendingUp, DollarSign, PieChart as PieIcon, Layers } from 'lucide-react';
 
 const COLORS = ['#F7931A', '#627EEA', '#2775CA'];
 
 export default function AnalyticsPage() {
-  const { totalPortfolioValueUSD, sharePriceUSD } = useDashboard();
+  const metrics = useDashboard();
+  const { totalPortfolioValueUSD, sharePriceUSD } = metrics;
   const { holdings } = usePortfolio();
 
   const allocationData = holdings
@@ -37,14 +32,15 @@ export default function AnalyticsPage() {
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Protocol Analytics & Telemetry
+              Protocol & Portfolio Analytics
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-xs font-semibold">
               Live On-Chain
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Real-time asset metrics and allocation performance across the index vault.
+            Real-time cost basis tracking, asset allocations, and historical NAV progression
+            telemetry.
           </p>
         </div>
       </div>
@@ -74,7 +70,10 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      {/* Real-time Allocation Breakdown */}
+      {/* User Portfolio Analytics */}
+      <PortfolioAnalyticsCard metrics={metrics} />
+
+      {/* Real-time Allocation Breakdown & Historical NAV */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ChartCard
           title="Live Portfolio Asset Allocation"
@@ -121,33 +120,11 @@ export default function AnalyticsPage() {
           )}
         </ChartCard>
 
-        {/* Historical Charts Reassuring UX Copy */}
-        <ChartCard
-          title="Historical TVL & Volume Trajectory"
-          subtitle="On-chain performance progression"
-          icon={Activity}
-          className="lg:col-span-2"
-        >
-          <EmptyState
-            title="Historical performance is not yet available."
-            description="Historical analytics will appear automatically as on-chain history becomes available. Real-time portfolio state is active above."
-            icon={History}
-          />
-        </ChartCard>
+        {/* Historical NAV Chart */}
+        <div className="lg:col-span-2">
+          <HistoricalNavChart />
+        </div>
       </div>
-
-      {/* Historical Revenue & Fee Chart */}
-      <ChartCard
-        title="Protocol Revenue & Fee Accrual History"
-        subtitle="Cumulative protocol fee progression"
-        icon={BarChart3}
-      >
-        <EmptyState
-          title="Revenue history is accumulating."
-          description="Historical fee accrual records will appear automatically as protocol activity grows."
-          icon={History}
-        />
-      </ChartCard>
     </div>
   );
 }

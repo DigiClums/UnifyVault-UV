@@ -58,10 +58,6 @@ UnifyVault operates a Bug Bounty Program for security researchers who identify c
 
 ---
 
-## 5. Security Architecture & Documentation
+## 5. Security Architecture
 
-For detailed information regarding protocol access control roles, emergency pause circuits, and reentrancy guards, see:
-
-- [docs/SECURITY.md](file:///var/www/UnifyVault-UV/docs/SECURITY.md) — Security Model & Access Control Matrix
-- [docs/THREAT_MODEL.md](file:///var/www/UnifyVault-UV/docs/THREAT_MODEL.md) — Protocol Threat Analysis
-- [docs/Known_Limitations.md](file:///var/www/UnifyVault-UV/docs/Known_Limitations.md) — Known Limitations & Assumptions
+For detailed information regarding protocol access control roles, emergency pause circuits, and reentrancy guards, consult the core protocol smart contract specifications and access control contracts.

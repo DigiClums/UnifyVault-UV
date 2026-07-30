@@ -14,12 +14,10 @@ import '../interfaces/IFeeManager.sol';
 contract FeeManager is IFeeManager, AccessControl {
   uint256 public constant MAX_DEPOSIT_FEE_BPS = 500; // 5.00%
   uint256 public constant MAX_REDEEM_FEE_BPS = 500; // 5.00%
-  uint256 public constant MAX_PERFORMANCE_FEE_BPS = 2000; // 20.00%
   uint256 public constant BPS_DENOMINATOR = 10000;
 
   uint256 public depositFeeBps;
   uint256 public redeemFeeBps;
-  uint256 public performanceFeeBps;
   address public treasury;
 
   // Custom errors
@@ -28,7 +26,6 @@ contract FeeManager is IFeeManager, AccessControl {
   // Events
   event DepositFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
   event RedeemFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
-  event PerformanceFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
   event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
   constructor(address initialTreasury) {
@@ -41,12 +38,10 @@ contract FeeManager is IFeeManager, AccessControl {
     treasury = initialTreasury;
     depositFeeBps = 25;
     redeemFeeBps = 200;
-    performanceFeeBps = 500;
 
     emit TreasuryUpdated(address(0), initialTreasury);
     emit DepositFeeUpdated(0, 25);
     emit RedeemFeeUpdated(0, 200);
-    emit PerformanceFeeUpdated(0, 500);
   }
 
   /**
@@ -73,19 +68,6 @@ contract FeeManager is IFeeManager, AccessControl {
     uint256 oldFeeBps = redeemFeeBps;
     redeemFeeBps = newFeeBps;
     emit RedeemFeeUpdated(oldFeeBps, newFeeBps);
-  }
-
-  /**
-   * @notice Updates the performance fee BPS
-   * @param newFeeBps New performance fee in basis points (max 2000 = 20.00%)
-   */
-  function setPerformanceFeeBps(uint256 newFeeBps) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
-    if (newFeeBps > MAX_PERFORMANCE_FEE_BPS) {
-      revert FeeExceedsMaxCap(newFeeBps, MAX_PERFORMANCE_FEE_BPS);
-    }
-    uint256 oldFeeBps = performanceFeeBps;
-    performanceFeeBps = newFeeBps;
-    emit PerformanceFeeUpdated(oldFeeBps, newFeeBps);
   }
 
   /**

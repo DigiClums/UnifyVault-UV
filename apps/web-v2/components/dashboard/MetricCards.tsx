@@ -46,7 +46,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       isPositive: true,
       icon: Wallet,
       iconBg: 'bg-accent-emerald/10 text-accent-emerald',
-      source: 'On-chain: CostBasisManager.costBasis(user)',
+      source: 'On-chain: UnifyVaultController',
     },
     {
       title: 'Current Holding Value',

@@ -8,7 +8,6 @@ import { CustodyVault } from 'src/vault/CustodyVault.sol';
 import { Treasury } from 'src/vault/Treasury.sol';
 import { OracleManager } from 'src/oracle/OracleManager.sol';
 import { UVBTCETHToken } from 'src/token/UVBTCETHToken.sol';
-import { CostBasisManager } from 'src/vault/CostBasisManager.sol';
 import {
   GovernanceMigrationHelper,
   MigrationConfig,
@@ -18,16 +17,13 @@ import {
 import { GrantAdminRolesScript } from 'script/mainnet/GrantAdminRoles.s.sol';
 import { VerifyGovernanceScript } from 'script/mainnet/VerifyGovernance.s.sol';
 import { RenounceOldAdminScript } from 'script/mainnet/RenounceOldAdmin.s.sol';
-
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
-
 contract GovernanceMigrationTest is Test {
   ProtocolDirectory public directory;
   CustodyVault public vault;
   Treasury public treasury;
   OracleManager public oracle;
   UVBTCETHToken public token;
-  CostBasisManager public costBasis;
 
   address public oldAdmin;
   address public newAdmin = 0xd905920c91853039060246Ed5724AA72B91a96DA;
@@ -43,7 +39,6 @@ contract GovernanceMigrationTest is Test {
     treasury = new Treasury();
     oracle = new OracleManager();
     token = new UVBTCETHToken();
-    costBasis = new CostBasisManager(oldAdmin);
   }
 
   function test_LoadConfig() public {

@@ -8,7 +8,6 @@ import '../src/oracle/OracleManager.sol';
 import '../src/oracle/ChainlinkOracleProvider.sol';
 import '../src/vault/CustodyVault.sol';
 import '../src/vault/LiquidityManager.sol';
-import '../src/vault/CostBasisManager.sol';
 import '../src/token/UVBTCETHToken.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/strategy/StrategyManager.sol';
@@ -185,7 +184,6 @@ contract DeployV2Script is Script, Test {
   StrategyManager public strategyManager;
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
-  CostBasisManager public costBasisManager;
   TestSwapRouter public swapRouter;
 
   TestToken public testCbBTC;
@@ -221,7 +219,6 @@ contract DeployV2Script is Script, Test {
     vault = new CustodyVault();
     liquidityManager = new LiquidityManager(deployerAddress, address(directory));
     token = new UVBTCETHToken();
-    costBasisManager = new CostBasisManager(deployerAddress);
 
     // Deploy test strategy assets: cbBTC (8 decimals) and WETH (18 decimals)
     testCbBTC = new TestToken('Coinbase Wrapped BTC', 'cbBTC', 8);
@@ -268,7 +265,6 @@ contract DeployV2Script is Script, Test {
     directory.registerAddress(ModuleIds.STRATEGY_MANAGER, address(strategyManager));
     directory.registerAddress(ModuleIds.PORTFOLIO_MANAGER, address(portfolioManager));
     directory.registerAddress(ModuleIds.SWAP_ADAPTER, address(swapAdapter));
-    directory.registerAddress(ModuleIds.COST_BASIS_MANAGER, address(costBasisManager));
 
     // Verify registrations
     require(directory.getAddress(ModuleIds.TREASURY) == address(treasury), 'Treasury reg failed');
@@ -294,10 +290,6 @@ contract DeployV2Script is Script, Test {
     require(
       directory.getAddress(ModuleIds.SWAP_ADAPTER) == address(swapAdapter),
       'SwapAdapter reg failed'
-    );
-    require(
-      directory.getAddress(ModuleIds.COST_BASIS_MANAGER) == address(costBasisManager),
-      'CostBasisManager reg failed'
     );
 
     // --------------------------------------------------
@@ -362,7 +354,6 @@ contract DeployV2Script is Script, Test {
     token.revokeRole(token.CONTROLLER_ROLE(), deployerAddress);
 
     liquidityManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
-    costBasisManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
 
     require(
       vault.hasRole(vault.CONTROLLER_ROLE(), address(controller)),
@@ -380,10 +371,6 @@ contract DeployV2Script is Script, Test {
       !token.hasRole(token.CONTROLLER_ROLE(), deployerAddress),
       'Token deployer revoke failed'
     );
-    require(
-      costBasisManager.hasRole(AccessRoles.CONTROLLER_ROLE, address(controller)),
-      'CostBasisManager controller role failed'
-    );
 
     // Print addresses for logging
     console.log('=== DEPLOYMENT V2 ADDRESSES ===');
@@ -398,7 +385,6 @@ contract DeployV2Script is Script, Test {
     console.log('StrategyManager:         ', address(strategyManager));
     console.log('PortfolioManager:        ', address(portfolioManager));
     console.log('SwapAdapter:             ', address(swapAdapter));
-    console.log('CostBasisManager:        ', address(costBasisManager));
     console.log('TestSwapRouter:          ', address(swapRouter));
     console.log('TestCbBTC:               ', address(testCbBTC));
     console.log('TestWETH:                ', address(testWETH));

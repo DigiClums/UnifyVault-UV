@@ -59,14 +59,13 @@ library GovernanceMigrationHelper {
       }
     } catch {}
 
-    string[11] memory names = [
+    string[10] memory names = [
       'ProtocolDirectory',
       'UnifyVaultController',
       'CustodyVault',
       'Treasury',
       'OracleManager',
       'UVBTCETHToken',
-      'CostBasisManager',
       'LiquidityManager',
       'StrategyManager',
       'PortfolioManager',

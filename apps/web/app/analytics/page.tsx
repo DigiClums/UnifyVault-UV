@@ -239,24 +239,12 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Protocol Redeem Fee Rate</span>
-                <span className="font-bold text-foreground">0.25% (25 BPS)</span>
+                <span className="font-bold text-foreground">2.00% (200 BPS)</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
-                <span className="text-muted-foreground">Performance Fee Rate</span>
-                <span className="font-bold text-amber-600 dark:text-amber-400">5.0% above HWM</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400">
-                <span>Performance Fees Paid</span>
-                <span className="font-bold">${userPerfFeeUSD.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
-                <span className="text-muted-foreground">Total Protocol Fees Paid</span>
-                <span className="font-bold text-foreground">${totalFeesPaidUSD.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
-                <span className="text-muted-foreground">Effective Fee Ratio</span>
-                <span className="font-bold text-foreground">
-                  {effectiveFeeRatioPct.toFixed(2)}%
+                <span className="text-muted-foreground">Performance Fee</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  0.00% (Disabled)
                 </span>
               </div>
             </div>

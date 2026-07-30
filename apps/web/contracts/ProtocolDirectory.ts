@@ -16,7 +16,6 @@ export const MODULE_KEYS = {
   PORTFOLIO_MANAGER: keccak256(toHex('PortfolioManager')),
   SWAP_ADAPTER: keccak256(toHex('SwapAdapter')),
   LIQUIDITY_MANAGER: keccak256(toHex('LiquidityManager')),
-  COST_BASIS_MANAGER: keccak256(toHex('CostBasisManager')),
 } as const;
 
 export interface ResolvedProtocolAddresses {
@@ -30,7 +29,6 @@ export interface ResolvedProtocolAddresses {
   portfolioManager: `0x${string}`;
   swapAdapter: `0x${string}`;
   liquidityManager: `0x${string}`;
-  costBasisManager: `0x${string}`;
 }
 
 export const ProtocolDirectoryContract = {
@@ -65,7 +63,6 @@ export const ProtocolDirectoryContract = {
       MODULE_KEYS.PORTFOLIO_MANAGER,
       MODULE_KEYS.SWAP_ADAPTER,
       MODULE_KEYS.LIQUIDITY_MANAGER,
-      MODULE_KEYS.COST_BASIS_MANAGER,
     ] as const;
 
     const calls = keys.map((key) => ({
@@ -77,7 +74,6 @@ export const ProtocolDirectoryContract = {
 
     const results = await executeMulticall<
       [
-        `0x${string}`,
         `0x${string}`,
         `0x${string}`,
         `0x${string}`,
@@ -109,7 +105,6 @@ export const ProtocolDirectoryContract = {
       portfolioManager: getRes(6),
       swapAdapter: getRes(7),
       liquidityManager: getRes(8),
-      costBasisManager: getRes(9),
     };
   },
 };

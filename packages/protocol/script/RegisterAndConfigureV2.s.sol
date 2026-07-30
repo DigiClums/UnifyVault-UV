@@ -4,7 +4,6 @@ pragma solidity 0.8.24;
 import 'forge-std/Script.sol';
 import '../src/ProtocolDirectory.sol';
 import '../src/vault/CustodyVault.sol';
-import '../src/vault/CostBasisManager.sol';
 import '../src/token/UVBTCETHToken.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/libraries/AccessRoles.sol';
@@ -24,7 +23,6 @@ contract RegisterAndConfigureV2Script is Script {
   address public constant TREASURY = 0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D;
   address public constant ORACLE = 0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635;
   address public constant TOKEN = 0xce9e6Cb560aC3EdB9a8164d68205c895265c5ce4;
-  address public constant COST_BASIS = 0xef0637A3D2080749BbcD5D98e6C68D9944C700A6;
   address public constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
 
   function run() external {
@@ -32,7 +30,6 @@ contract RegisterAndConfigureV2Script is Script {
 
     ProtocolDirectory dir = ProtocolDirectory(DIRECTORY);
     CustodyVault custodyVault = CustodyVault(VAULT);
-    CostBasisManager costBasisManager = CostBasisManager(COST_BASIS);
     UVBTCETHToken uvToken = UVBTCETHToken(TOKEN);
     ITreasuryMinimal treasury = ITreasuryMinimal(TREASURY);
 
@@ -42,13 +39,11 @@ contract RegisterAndConfigureV2Script is Script {
     _registerOrUpdate(dir, ModuleIds.DEPOSIT_MANAGER, CONTROLLER);
     _registerOrUpdate(dir, ModuleIds.ORACLE, ORACLE);
     _registerOrUpdate(dir, ModuleIds.TOKEN, TOKEN);
-    _registerOrUpdate(dir, ModuleIds.COST_BASIS_MANAGER, COST_BASIS);
 
     console.log('=== CONFIGURING ACCESS ROLES ===');
     custodyVault.grantRole(custodyVault.CONTROLLER_ROLE(), CONTROLLER);
     treasury.grantRole(treasury.CONTROLLER_ROLE(), CONTROLLER);
     uvToken.grantRole(uvToken.CONTROLLER_ROLE(), CONTROLLER);
-    costBasisManager.grantRole(AccessRoles.CONTROLLER_ROLE, CONTROLLER);
 
     console.log('=== REGISTERING ASSETS IN VAULT AND TREASURY ===');
     custodyVault.registerAsset(USDC, 6);
@@ -57,7 +52,6 @@ contract RegisterAndConfigureV2Script is Script {
     vm.stopBroadcast();
 
     console.log('[SUCCESS] All contracts registered and roles granted!');
-    console.log('CostBasisManager in Directory:', dir.getAddress(ModuleIds.COST_BASIS_MANAGER));
   }
 
   function _registerOrUpdate(ProtocolDirectory dir, bytes32 id, address target) internal {

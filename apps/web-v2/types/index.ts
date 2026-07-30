@@ -50,6 +50,11 @@ export interface DashboardMetrics {
   btcAllocationPercent: string;
   ethAllocationPercent: string;
   usdcBalanceFormatted: string;
+  averageEntryPriceUSD: string;
+  ownershipPercentage: string;
+  rawInvestedAssetsUSD: number;
+  rawCurrentValueUSD: number;
+  rawPnLUSD: number;
   isLoading: boolean;
   isError: boolean;
 }

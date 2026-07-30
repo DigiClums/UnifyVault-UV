@@ -87,23 +87,4 @@ library FeeLib {
   ) internal pure returns (uint256 grossOut, uint256 protocolFee, uint256 netAssets) {
     return calculateRedemptionFee(grossAssets, REDEEM_FEE_BPS);
   }
-
-  uint256 public constant PERFORMANCE_FEE_BPS = 500; // 5.00%
-
-  /**
-   * @notice Calculates performance fee for chargeable profit with custom performanceFeeBps
-   */
-  function calculatePerformanceFee(
-    uint256 chargeableProfit,
-    uint256 performanceFeeBps
-  ) internal pure returns (uint256) {
-    return (chargeableProfit * performanceFeeBps) / BPS_DENOMINATOR;
-  }
-
-  /**
-   * @notice Calculates performance fee for chargeable profit using default performance fee (500 = 5.00%)
-   */
-  function calculatePerformanceFee(uint256 chargeableProfit) internal pure returns (uint256) {
-    return calculatePerformanceFee(chargeableProfit, PERFORMANCE_FEE_BPS);
-  }
 }

@@ -1,12 +1,7 @@
 'use client';
 
 import { useAccount, useReadContracts } from 'wagmi';
-import {
-  CUSTODY_VAULT_ABI,
-  ERC20_ABI,
-  COST_BASIS_MANAGER_ABI,
-  ORACLE_MANAGER_ABI,
-} from '../lib/contracts';
+import { CUSTODY_VAULT_ABI, ERC20_ABI, ORACLE_MANAGER_ABI } from '../lib/contracts';
 import { FALLBACK_ADDRESSES } from '../constants';
 import {
   calculateAssetUSDValue,
@@ -85,14 +80,7 @@ export function useDashboard(): DashboardMetrics {
         functionName: 'balanceOf',
         args: userAddress ? [userAddress] : undefined,
       },
-      // 8. CostBasisManager user costBasis
-      {
-        address: FALLBACK_ADDRESSES.COST_BASIS,
-        abi: COST_BASIS_MANAGER_ABI,
-        functionName: 'costBasis',
-        args: userAddress ? [userAddress] : undefined,
-      },
-      // 9. User USDC balance
+      // 8. User USDC balance
       {
         address: FALLBACK_ADDRESSES.USDC,
         abi: ERC20_ABI,
@@ -116,9 +104,8 @@ export function useDashboard(): DashboardMetrics {
 
   const totalShares = (data?.[6]?.result as bigint) || 0n;
   const userShares = (data?.[7]?.result as bigint) || 0n;
-  const costBasisResult = data?.[8]?.result as [bigint, bigint] | undefined;
-  const investedAssetsRaw = costBasisResult ? costBasisResult[0] : 0n;
-  const userUsdcRaw = (data?.[9]?.result as bigint) || 0n;
+  const investedAssetsRaw = 0n;
+  const userUsdcRaw = (data?.[8]?.result as bigint) || 0n;
 
   // Perform Calculations using lib/math engine
   const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC);
@@ -133,7 +120,6 @@ export function useDashboard(): DashboardMetrics {
 
   const investedAssetsUSD = Number(formatUnits(investedAssetsRaw, 6)); // USDC 6 decimals
   const currentValueUSD = calculateCurrentValueUSD(userShares, sharePriceUSD);
-
   const { pnlUSD, pnlPercent, isProfitable } = calculatePnL(currentValueUSD, investedAssetsUSD);
 
   // Asset allocation percentages
@@ -145,6 +131,28 @@ export function useDashboard(): DashboardMetrics {
     totalPortfolioValueUSDNumber > 0
       ? ((wethUSDValue / totalPortfolioValueUSDNumber) * 100).toFixed(1)
       : '50.0';
+
+  // Derive Average Entry Price (Cost Basis ÷ User Shares)
+  const userSharesNumber = Number(formatUnits(userShares, 18));
+  const totalSharesNumber = Number(formatUnits(totalShares, 18));
+
+  const averageEntryPriceUSDNum =
+    userSharesNumber > 0 && investedAssetsUSD > 0
+      ? investedAssetsUSD / userSharesNumber
+      : sharePriceUSD;
+
+  // Derive User Ownership % of Protocol (User Shares ÷ Total Supply)
+  const ownershipPercentNum =
+    totalSharesNumber > 0 && userSharesNumber > 0
+      ? (userSharesNumber / totalSharesNumber) * 100
+      : 0;
+
+  const ownershipPercentageFormatted =
+    ownershipPercentNum === 0
+      ? '0.00%'
+      : ownershipPercentNum < 0.01
+        ? '< 0.01%'
+        : `${ownershipPercentNum.toFixed(2)}%`;
 
   return {
     totalPortfolioValueUSD: formatUSD(totalPortfolioValueUSDNumber),
@@ -160,6 +168,11 @@ export function useDashboard(): DashboardMetrics {
     btcAllocationPercent: `${btcAllocationPercent}%`,
     ethAllocationPercent: `${ethAllocationPercent}%`,
     usdcBalanceFormatted: formatUSD(Number(formatUnits(userUsdcRaw, 6))),
+    averageEntryPriceUSD: formatUSD(averageEntryPriceUSDNum),
+    ownershipPercentage: ownershipPercentageFormatted,
+    rawInvestedAssetsUSD: investedAssetsUSD,
+    rawCurrentValueUSD: currentValueUSD,
+    rawPnLUSD: pnlUSD,
     isLoading,
     isError,
   };

@@ -16,7 +16,6 @@ contract FeeManagerTest is Test {
 
   event DepositFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
   event RedeemFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
-  event PerformanceFeeUpdated(uint256 oldFeeBps, uint256 newFeeBps);
   event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
   function setUp() public {
@@ -29,7 +28,6 @@ contract FeeManagerTest is Test {
   function testInitialization() public {
     assertEq(feeManager.depositFeeBps(), 25);
     assertEq(feeManager.redeemFeeBps(), 200);
-    assertEq(feeManager.performanceFeeBps(), 500);
     assertEq(feeManager.treasury(), treasury);
 
     assertTrue(feeManager.hasRole(feeManager.DEFAULT_ADMIN_ROLE(), address(this)));
@@ -112,41 +110,6 @@ contract FeeManagerTest is Test {
     vm.stopPrank();
   }
 
-  // --- Performance Fee Tests ---
-
-  function testSetPerformanceFeeBpsSuccessAndEvent() public {
-    uint256 newFee = 1000; // 10.00%
-    vm.startPrank(gov);
-    vm.expectEmit(true, true, true, true);
-    emit PerformanceFeeUpdated(500, newFee);
-
-    feeManager.setPerformanceFeeBps(newFee);
-    vm.stopPrank();
-
-    assertEq(feeManager.performanceFeeBps(), newFee);
-  }
-
-  function testSetPerformanceFeeBpsAtMaxCap() public {
-    uint256 maxFee = feeManager.MAX_PERFORMANCE_FEE_BPS(); // 2000 = 20.00%
-    vm.prank(gov);
-    feeManager.setPerformanceFeeBps(maxFee);
-    assertEq(feeManager.performanceFeeBps(), maxFee);
-  }
-
-  function testSetPerformanceFeeBpsCapExceededRevert() public {
-    uint256 capExceededFee = feeManager.MAX_PERFORMANCE_FEE_BPS() + 1; // 2001
-    vm.startPrank(gov);
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        FeeManager.FeeExceedsMaxCap.selector,
-        capExceededFee,
-        feeManager.MAX_PERFORMANCE_FEE_BPS()
-      )
-    );
-    feeManager.setPerformanceFeeBps(capExceededFee);
-    vm.stopPrank();
-  }
-
   // --- Treasury Tests ---
 
   function testSetTreasurySuccessAndEvent() public {
@@ -183,11 +146,6 @@ contract FeeManagerTest is Test {
       abi.encodeWithSignature('AccessControlUnauthorizedAccount(address,bytes32)', rando, govRole)
     );
     feeManager.setRedeemFeeBps(100);
-
-    vm.expectRevert(
-      abi.encodeWithSignature('AccessControlUnauthorizedAccount(address,bytes32)', rando, govRole)
-    );
-    feeManager.setPerformanceFeeBps(300);
 
     vm.expectRevert(
       abi.encodeWithSignature('AccessControlUnauthorizedAccount(address,bytes32)', rando, govRole)

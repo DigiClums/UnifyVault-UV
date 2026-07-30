@@ -4,9 +4,6 @@ pragma solidity 0.8.24;
 import 'forge-std/Test.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/vault/CustodyVault.sol';
-import '../src/vault/CostBasisManager.sol';
-import '../src/vault/HighWaterMarkManager.sol';
-import '../src/vault/RealizedProfitEngine.sol';
 import '../src/treasury/FeeManager.sol';
 import '../src/oracle/OracleManager.sol';
 import '../src/oracle/MockOracleProvider.sol';
@@ -41,22 +38,11 @@ contract ControllerIntegrationTest is Test {
   ITestTreasury public treasury;
   UVBTCETHToken public token;
   FeeManager public feeManager;
-  CostBasisManager public costBasisManager;
-  HighWaterMarkManager public hwmManager;
-  RealizedProfitEngine public profitEngine;
   UnifyVaultController public controller;
 
   address public admin = address(0x111);
   address public user = address(0x222);
   bytes32 public assetId;
-
-  event PerformanceFeeApplied(
-    address indexed user,
-    uint256 realizedProfit,
-    uint256 chargeableProfit,
-    uint256 performanceFee,
-    uint256 netAssets
-  );
 
   function setUp() public {
     vm.warp(100000);
@@ -87,10 +73,6 @@ contract ControllerIntegrationTest is Test {
     feeManager = new FeeManager(address(treasury));
     feeManager.grantRole(AccessRoles.GOVERNANCE_ROLE, admin);
 
-    costBasisManager = new CostBasisManager(address(this));
-    hwmManager = new HighWaterMarkManager(address(this));
-    profitEngine = new RealizedProfitEngine();
-
     controller = new UnifyVaultController(
       address(directory),
       address(oracleManager),
@@ -102,16 +84,11 @@ contract ControllerIntegrationTest is Test {
     // Register modules in ProtocolDirectory
     directory.grantRole(AccessRoles.GOVERNANCE_ROLE, address(this));
     directory.registerAddress(ModuleIds.FEE_MANAGER, address(feeManager));
-    directory.registerAddress(ModuleIds.COST_BASIS_MANAGER, address(costBasisManager));
-    directory.registerAddress(ModuleIds.HIGH_WATER_MARK_MANAGER, address(hwmManager));
-    directory.registerAddress(ModuleIds.REALIZED_PROFIT_ENGINE, address(profitEngine));
 
     // Grant CONTROLLER_ROLE to Controller contract
     vault.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
     token.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
-    costBasisManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
-    hwmManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
 
     // Fund user
     usdc.mint(user, 100_000e18);
@@ -137,7 +114,6 @@ contract ControllerIntegrationTest is Test {
     vm.stopPrank();
 
     uint256 shares = quote.sharesPreview;
-    assertEq(costBasisManager.investedAssets(user), quote.netDeposit);
 
     // Simulate vault gain
     simulateVaultGain(address(usdc), 300e18);
@@ -148,12 +124,10 @@ contract ControllerIntegrationTest is Test {
     vm.stopPrank();
 
     assertTrue(netAssetsOut > 0);
-    assertEq(costBasisManager.investedAssets(user), 0);
-    assertEq(hwmManager.highWaterMark(user), 0);
   }
 
-  // 2. Integration Test: Partial Redemption Twice (No Double Fee)
-  function testPartialRedemptionTwiceNoDoubleFee() public {
+  // 2. Integration Test: Partial Redemption Twice
+  function testPartialRedemptionTwice() public {
     vm.startPrank(user);
     usdc.approve(address(controller), 1000e18);
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
@@ -181,8 +155,6 @@ contract ControllerIntegrationTest is Test {
     vm.stopPrank();
 
     assertTrue(net1 > 0);
-    uint256 hwmAfter1 = hwmManager.highWaterMark(user);
-    assertTrue(hwmAfter1 > 0);
 
     // Redeem remaining shares without further gains
     vm.startPrank(user);
@@ -196,11 +168,10 @@ contract ControllerIntegrationTest is Test {
     vm.stopPrank();
 
     assertTrue(net2 > 0);
-    assertEq(hwmManager.highWaterMark(user), 0);
   }
 
-  // 3. Integration Test: Loss Redemption (Fee = 0)
-  function testLossRedeemFeeZero() public {
+  // 3. Integration Test: Loss Redeem
+  function testLossRedeem() public {
     vm.startPrank(user);
     usdc.approve(address(controller), 1000e18);
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
@@ -222,8 +193,6 @@ contract ControllerIntegrationTest is Test {
     vm.stopPrank();
 
     assertTrue(netAssetsOut > 0);
-    assertEq(costBasisManager.investedAssets(user), 0);
-    assertEq(hwmManager.highWaterMark(user), 0);
   }
 
   // 4. Integration Test: Full Exit Reset -> Redeploy
@@ -239,9 +208,6 @@ contract ControllerIntegrationTest is Test {
     controller.redeem(address(usdc), quote1.sharesPreview, 0, user, block.timestamp + 100);
     vm.stopPrank();
 
-    assertEq(costBasisManager.investedAssets(user), 0);
-    assertEq(hwmManager.highWaterMark(user), 0);
-
     vm.startPrank(user);
     usdc.approve(address(controller), 1000e18);
     UnifyVaultController.DepositQuote memory quote2 = controller.deposit(
@@ -252,8 +218,7 @@ contract ControllerIntegrationTest is Test {
     );
     vm.stopPrank();
 
-    assertEq(costBasisManager.investedAssets(user), quote2.netDeposit);
-    assertEq(hwmManager.highWaterMark(user), 0);
+    assertTrue(quote2.sharesPreview > 0);
   }
 
   // 5. Integration Test: Multiple Deposits
@@ -274,20 +239,11 @@ contract ControllerIntegrationTest is Test {
     );
     vm.stopPrank();
 
-    assertEq(costBasisManager.investedAssets(user), q1.netDeposit + q2.netDeposit);
-    assertEq(costBasisManager.sharesOwned(user), q1.sharesPreview + q2.sharesPreview);
+    assertTrue(q1.sharesPreview > 0);
+    assertTrue(q2.sharesPreview > 0);
   }
 
-  // 6. Integration Test: Governance changes performance fee BPS
-  function testGovernanceUpdatesPerformanceFeeBps() public {
-    vm.startPrank(admin);
-    feeManager.setPerformanceFeeBps(1000);
-    vm.stopPrank();
-
-    assertEq(feeManager.performanceFeeBps(), 1000);
-  }
-
-  // 7. Integration Test: Preview equals execution
+  // 6. Integration Test: Preview equals execution
   function testPreviewEqualsExecution() public {
     vm.startPrank(user);
     usdc.approve(address(controller), 1000e18);
@@ -311,7 +267,7 @@ contract ControllerIntegrationTest is Test {
     assertEq(previewNet, actualNet);
   }
 
-  // 8. Protocol Financial & Economic Invariants
+  // 7. Protocol Financial & Economic Invariants
   function testFuzzEconomicInvariants(uint256 depositAmt, uint256 gainAmt) public {
     depositAmt = bound(depositAmt, 1000e18, 100_000e18);
     gainAmt = bound(gainAmt, 0, 50_000e18);
@@ -349,10 +305,5 @@ contract ControllerIntegrationTest is Test {
 
     assertTrue(netAssetsOut > 0 || depositAmt == 0);
     assertTrue(treasuryFeeCollected >= 0);
-
-    // Full exit clears accounting state completely
-    assertEq(costBasisManager.investedAssets(user), 0);
-    assertEq(costBasisManager.sharesOwned(user), 0);
-    assertEq(hwmManager.highWaterMark(user), 0);
   }
 }

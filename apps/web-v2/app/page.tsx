@@ -3,17 +3,19 @@
 import React from 'react';
 import { useDashboard } from '../hooks/useDashboard';
 import { MetricCards } from '../components/dashboard/MetricCards';
-import { PerformanceChart } from '../components/dashboard/PerformanceChart';
+import { PortfolioAnalyticsCard } from '../components/dashboard/PortfolioAnalyticsCard';
+import { HistoricalNavChart } from '../components/portfolio/HistoricalNavChart';
 import { AllocationChart } from '../components/dashboard/AllocationChart';
 import { QuickActions } from '../components/dashboard/QuickActions';
+import { Layers, Activity, TrendingUp } from 'lucide-react';
 
 export default function DashboardPage() {
   const metrics = useDashboard();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 py-2">
       {/* Hero Welcome */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-accent-blue/10 via-surface to-accent-violet/10 p-6 rounded-2xl border border-border-subtle">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-accent-blue/10 via-surface to-accent-violet/10 p-6 rounded-2xl border border-border-subtle shadow-glow">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             UnifyVault V2 Portfolio Dashboard
@@ -28,19 +30,39 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Metric Cards (6 core cards with documented sources) */}
-      <MetricCards metrics={metrics} />
+      {/* 1. Protocol Metrics Section */}
+      <section className="space-y-4">
+        <div className="flex items-center space-x-2 pb-1 border-b border-border-subtle">
+          <Layers className="w-4 h-4 text-accent-blue" />
+          <h2 className="text-base font-bold text-white tracking-tight">Protocol Overview</h2>
+        </div>
+        <MetricCards metrics={metrics} />
+      </section>
 
-      {/* Analytics & Execution Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <PerformanceChart />
-          <QuickActions />
+      {/* 2. User Metrics & Portfolio Analytics Section */}
+      <section className="space-y-4">
+        <PortfolioAnalyticsCard metrics={metrics} />
+      </section>
+
+      {/* 3. Performance Metrics & Execution Section */}
+      <section className="space-y-4">
+        <div className="flex items-center space-x-2 pb-1 border-b border-border-subtle">
+          <TrendingUp className="w-4 h-4 text-accent-blue" />
+          <h2 className="text-base font-bold text-white tracking-tight">
+            Performance & Strategy Execution
+          </h2>
         </div>
-        <div>
-          <AllocationChart metrics={metrics} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <HistoricalNavChart />
+            <QuickActions />
+          </div>
+          <div>
+            <AllocationChart metrics={metrics} />
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
