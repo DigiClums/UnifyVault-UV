@@ -139,6 +139,18 @@ export function useDeposit() {
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
+
+      if (userAddress) {
+        try {
+          const key = `unifyvault_invested_assets_${userAddress.toLowerCase()}`;
+          const currentInvested = Number(localStorage.getItem(key) || '0');
+          const netAdded = Number(formatUnits(formattedQuote?.rawQuote.netDeposit || amountRaw, 6));
+          localStorage.setItem(key, String(currentInvested + netAdded));
+        } catch {
+          // ignore localStorage errors
+        }
+      }
+
       setDepositAmountInput('');
     } catch (error) {
       console.error('Deposit failed:', error);

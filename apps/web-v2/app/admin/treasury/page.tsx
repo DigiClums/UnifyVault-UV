@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   useAccount,
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
 } from 'wagmi';
+import { createPublicClient, http, formatUnits, parseUnits, Log } from 'viem';
+import { baseSepolia } from 'viem/chains';
 import { TREASURY_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../../constants';
-import { formatUSD, formatUnits, parseUnits } from '../../../lib/math';
+import { FALLBACK_ADDRESSES, RPC_URL } from '../../../constants';
+import { formatUSD } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
+import { TableCard } from '../../../components/ui/TableCard';
 import {
   Vault,
   DollarSign,
@@ -21,12 +24,165 @@ import {
   AlertCircle,
   Loader2,
   Check,
+  History,
+  RefreshCw,
+  ExternalLink,
+  ArrowDownLeft,
+  Layers,
 } from 'lucide-react';
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(RPC_URL),
+});
+
+export interface TreasuryEventLog {
+  id: string;
+  blockNumber: bigint;
+  timestamp: number;
+  type: 'TreasuryWithdrawal' | 'FeeCollected' | 'NativeWithdrawn';
+  asset: string;
+  recipient: `0x${string}`;
+  amountFormatted: string;
+  transactionHash: `0x${string}`;
+  logIndex: number;
+}
 
 export default function AdminTreasuryPage() {
   const [recipient, setRecipient] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [assetAddress, setAssetAddress] = useState<string>(FALLBACK_ADDRESSES.USDC);
+
+  const [treasuryLogs, setTreasuryLogs] = useState<TreasuryEventLog[]>([]);
+  const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
+  const [isRefreshingLogs, setIsRefreshingLogs] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  const blockTimeCache = useMemo(() => new Map<bigint, number>(), []);
+
+  const getBlockTimestamp = useCallback(
+    async (blockNumber: bigint): Promise<number> => {
+      if (blockTimeCache.has(blockNumber)) {
+        return blockTimeCache.get(blockNumber)!;
+      }
+      try {
+        const block = await publicClient.getBlock({ blockNumber });
+        const ts = Number(block.timestamp);
+        blockTimeCache.set(blockNumber, ts);
+        return ts;
+      } catch (err) {
+        return Math.floor(Date.now() / 1000);
+      }
+    },
+    [blockTimeCache],
+  );
+
+  const fetchTreasuryLogs = useCallback(async () => {
+    setIsRefreshingLogs(true);
+    try {
+      const logs = await publicClient.getContractEvents({
+        address: FALLBACK_ADDRESSES.TREASURY,
+        abi: TREASURY_ABI,
+        fromBlock: 0n,
+        toBlock: 'latest',
+      });
+
+      const parsedPromises = logs.map(async (log) => {
+        if (!log.blockNumber || !log.transactionHash) return null;
+        const ts = await getBlockTimestamp(log.blockNumber);
+        const logIndex = log.logIndex ?? 0;
+        const id = `${log.transactionHash}-${logIndex}`;
+
+        const eventLog = log as unknown as {
+          eventName: TreasuryEventLog['type'];
+          args: Record<string, any>;
+        };
+
+        const eventName = eventLog.eventName;
+        const args = eventLog.args || {};
+
+        let assetSymbol = 'USDC';
+        let amountFormatted = '0.00';
+        let rec: `0x${string}` = '0x0000000000000000000000000000000000000000';
+
+        const assetAddr = (args.asset as string)?.toLowerCase() || '';
+
+        if (assetAddr === FALLBACK_ADDRESSES.WBTC.toLowerCase()) {
+          assetSymbol = 'WBTC';
+        } else if (assetAddr === FALLBACK_ADDRESSES.WETH.toLowerCase()) {
+          assetSymbol = 'WETH';
+        } else {
+          assetSymbol = 'USDC';
+        }
+
+        const decimals = assetSymbol === 'WBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+
+        if (eventName === 'TreasuryWithdrawal') {
+          rec = (args.recipient as `0x${string}`) || rec;
+          amountFormatted = args.amount
+            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+            : `0.00 ${assetSymbol}`;
+        } else if (eventName === 'FeeCollected') {
+          rec = (args.from as `0x${string}`) || rec;
+          amountFormatted = args.amount
+            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+            : `0.00 ${assetSymbol}`;
+        } else if (eventName === 'NativeWithdrawn') {
+          rec = (args.recipient as `0x${string}`) || rec;
+          assetSymbol = 'ETH';
+          amountFormatted = args.amount
+            ? `${Number(formatUnits(args.amount as bigint, 18)).toFixed(4)} ETH`
+            : '0.00 ETH';
+        }
+
+        return {
+          id,
+          blockNumber: log.blockNumber,
+          timestamp: ts,
+          type: eventName,
+          asset: assetSymbol,
+          recipient: rec,
+          amountFormatted,
+          transactionHash: log.transactionHash,
+          logIndex,
+        };
+      });
+
+      const results = await Promise.all(parsedPromises);
+      const valid = results.filter((e): e is TreasuryEventLog => e !== null);
+
+      valid.sort((a, b) => {
+        if (b.blockNumber !== a.blockNumber) {
+          return b.blockNumber > a.blockNumber ? 1 : -1;
+        }
+        return b.logIndex - a.logIndex;
+      });
+
+      setTreasuryLogs(valid);
+      setLastSyncTime(new Date());
+    } catch (err) {
+      console.warn('Treasury event log fetch error:', err);
+    } finally {
+      setIsLogsLoading(false);
+      setIsRefreshingLogs(false);
+    }
+  }, [getBlockTimestamp]);
+
+  useEffect(() => {
+    fetchTreasuryLogs();
+
+    const unwatch = publicClient.watchContractEvent({
+      address: FALLBACK_ADDRESSES.TREASURY,
+      abi: TREASURY_ABI,
+      onLogs: () => {
+        fetchTreasuryLogs();
+      },
+    });
+
+    return () => {
+      unwatch();
+    };
+  }, [fetchTreasuryLogs]);
 
   const { data: treasuryData } = useReadContracts({
     contracts: [
@@ -105,30 +261,49 @@ export default function AdminTreasuryPage() {
     });
   };
 
-  // Task 1: Hide Raw Developer Errors
   const getFriendlyErrorMessage = (err: unknown): string => {
     if (!err) return '';
     console.error('[Developer Logs - Treasury Error]:', err);
-    return 'Treasury withdrawal is currently unavailable or unauthorized by connected wallet.';
+    return 'Treasury withdrawal is currently unavailable or requires authorized GOVERNANCE_ROLE permission.';
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Treasury Revenue & Releases
+              Treasury Revenue & Releases Log
             </h1>
             <StatusBadge status="Admin" label="GOVERNANCE" />
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Safeguard protocol-owned fee reserves and execute authorized revenue withdrawals.
+            Safeguard protocol-owned fee reserves, audit release history, and execute authorized
+            revenue withdrawals.
           </p>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          {lastSyncTime && (
+            <span className="text-[11px] text-slate-400 font-mono">
+              Synced: {lastSyncTime.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={fetchTreasuryLogs}
+            disabled={isRefreshingLogs}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isRefreshingLogs ? 'animate-spin text-purple-400' : ''}`}
+            />
+            <span>{isRefreshingLogs ? 'Syncing...' : 'Sync Log'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Task 4: Total Treasury Value Summary Card */}
+      {/* Total Treasury Value Summary Card */}
       <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl shadow-xl space-y-2">
         <span className="text-xs font-semibold text-purple-400 tracking-wider uppercase">
           Total Treasury Value
@@ -137,7 +312,7 @@ export default function AdminTreasuryPage() {
           {formatUSD(totalTreasuryValUSD)}
         </div>
         <p className="text-xs text-slate-400">
-          Combined protocol-owned reserves across all supported strategy assets.
+          Combined protocol-owned fee reserves custodied in Treasury on Base Sepolia.
         </p>
       </div>
 
@@ -166,7 +341,7 @@ export default function AdminTreasuryPage() {
         />
       </div>
 
-      {/* Task 7 & Task 6: Withdrawal Form & Treasury Safeguards */}
+      {/* Withdrawal Form & Safeguards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
           <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
@@ -224,7 +399,7 @@ export default function AdminTreasuryPage() {
                   ? 'Confirming in Wallet...'
                   : isTxWaiting
                     ? 'Broadcasting Tx...'
-                    : 'Execute Withdrawal'}
+                    : 'Execute Revenue Release'}
               </span>
             </button>
           </form>
@@ -232,11 +407,10 @@ export default function AdminTreasuryPage() {
           {isTxSuccess && (
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Revenue withdrawal executed successfully on Base Sepolia!</span>
+              <span>Revenue release executed successfully on Base Sepolia!</span>
             </div>
           )}
 
-          {/* Task 1: Friendly User Error Message */}
           {writeError && (
             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
@@ -245,7 +419,7 @@ export default function AdminTreasuryPage() {
           )}
         </div>
 
-        {/* Task 6: Treasury Safeguards Polish */}
+        {/* Treasury Safeguards */}
         <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-5">
           <div className="flex items-center space-x-2 text-white font-bold text-base border-b border-border-subtle/40 pb-3">
             <ShieldCheck className="w-5 h-5 text-accent-blue" />
@@ -258,7 +432,9 @@ export default function AdminTreasuryPage() {
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">Treasury Contract</span>
               </div>
-              <span className="font-mono text-accent-blue font-bold">0x0F51D2...13D</span>
+              <span className="font-mono text-accent-blue font-bold">
+                {FALLBACK_ADDRESSES.TREASURY.slice(0, 6)}...{FALLBACK_ADDRESSES.TREASURY.slice(-4)}
+              </span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
@@ -280,13 +456,129 @@ export default function AdminTreasuryPage() {
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Live On-Chain</span>
+                <span className="font-semibold text-slate-200">Live On-Chain Network</span>
               </div>
               <span className="font-mono text-slate-300 font-bold">Base Sepolia L2</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Recent Treasury Releases & Fee Log Table */}
+      <TableCard
+        title="Recent Treasury Releases Log & Fee Inflows"
+        subtitle="Auditable log of on-chain revenue releases and fee collections from Treasury"
+        icon={History}
+      >
+        {isLogsLoading ? (
+          <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
+            <RefreshCw className="w-8 h-8 animate-spin text-purple-400" />
+            <p className="text-sm font-medium">Syncing live Treasury releases log...</p>
+          </div>
+        ) : treasuryLogs.length === 0 ? (
+          <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
+            <Layers className="w-10 h-10 text-slate-500" />
+            <h3 className="text-base font-bold text-white">No treasury releases yet</h3>
+            <p className="text-xs text-slate-400 max-w-sm text-center">
+              On-chain revenue withdrawals and fee collections will appear here automatically.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm text-slate-300">
+              <thead className="bg-slate-900/50 text-slate-400 border-b border-slate-800 font-semibold uppercase text-[11px] tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Block</th>
+                  <th className="py-3 px-4">Event Type</th>
+                  <th className="py-3 px-4">Asset</th>
+                  <th className="py-3 px-4">Recipient / From</th>
+                  <th className="py-3 px-4 text-right">Amount</th>
+                  <th className="py-3 px-4 text-right">Tx Hash</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50 font-mono">
+                {treasuryLogs.map((log) => {
+                  const dateStr = new Date(log.timestamp * 1000).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  const isWithdrawal =
+                    log.type === 'TreasuryWithdrawal' || log.type === 'NativeWithdrawn';
+
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                      {/* Block Number */}
+                      <td className="py-3 px-4 text-slate-300">
+                        #{log.blockNumber.toString()}
+                        <div className="text-[10px] text-slate-500 font-sans">{dateStr}</div>
+                      </td>
+
+                      {/* Event Type Badge */}
+                      <td className="py-3 px-4 font-sans">
+                        {isWithdrawal ? (
+                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            <ArrowUpRight className="w-3 h-3" />
+                            <span>Revenue Release</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <DollarSign className="w-3 h-3" />
+                            <span>Fee Inflow</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Asset */}
+                      <td className="py-3 px-4 font-bold text-white">{log.asset}</td>
+
+                      {/* Recipient */}
+                      <td className="py-3 px-4 text-slate-300">
+                        {log.recipient !== '0x0000000000000000000000000000000000000000' ? (
+                          <a
+                            href={`https://sepolia.basescan.org/address/${log.recipient}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-purple-400 transition-colors"
+                            title={log.recipient}
+                          >
+                            {log.recipient.slice(0, 6)}...{log.recipient.slice(-4)}
+                          </a>
+                        ) : (
+                          <span className="text-slate-500">-</span>
+                        )}
+                      </td>
+
+                      {/* Amount */}
+                      <td className="py-3 px-4 text-right font-bold text-slate-100">
+                        {log.amountFormatted}
+                      </td>
+
+                      {/* Explorer Link */}
+                      <td className="py-3 px-4 text-right">
+                        <a
+                          href={`https://sepolia.basescan.org/tx/${log.transactionHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1 text-purple-400 hover:text-purple-300 transition-colors hover:underline"
+                          title="View on BaseScan"
+                        >
+                          <span>
+                            {log.transactionHash.slice(0, 6)}...{log.transactionHash.slice(-4)}
+                          </span>
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </TableCard>
     </div>
   );
 }

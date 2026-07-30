@@ -1,7 +1,12 @@
 'use client';
 
 import { useAccount, useReadContracts } from 'wagmi';
-import { CUSTODY_VAULT_ABI, ERC20_ABI, ORACLE_MANAGER_ABI } from '../lib/contracts';
+import {
+  CUSTODY_VAULT_ABI,
+  ERC20_ABI,
+  ORACLE_MANAGER_ABI,
+  COST_BASIS_MANAGER_ABI,
+} from '../lib/contracts';
 import { FALLBACK_ADDRESSES } from '../constants';
 import {
   calculateAssetUSDValue,
@@ -87,6 +92,13 @@ export function useDashboard(): DashboardMetrics {
         functionName: 'balanceOf',
         args: userAddress ? [userAddress] : undefined,
       },
+      // 9. CostBasis user investedAssets
+      {
+        address: FALLBACK_ADDRESSES.COST_BASIS,
+        abi: COST_BASIS_MANAGER_ABI,
+        functionName: 'investedAssets',
+        args: userAddress ? [userAddress] : undefined,
+      },
     ],
     query: {
       refetchInterval: 5_000,
@@ -104,8 +116,8 @@ export function useDashboard(): DashboardMetrics {
 
   const totalShares = (data?.[6]?.result as bigint) || 0n;
   const userShares = (data?.[7]?.result as bigint) || 0n;
-  const investedAssetsRaw = 0n;
   const userUsdcRaw = (data?.[8]?.result as bigint) || 0n;
+  const contractInvestedAssetsRaw = (data?.[9]?.result as bigint) || 0n;
 
   // Perform Calculations using lib/math engine
   const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC);
@@ -118,7 +130,29 @@ export function useDashboard(): DashboardMetrics {
   const sharePriceUSD = calculateSharePriceUSD(totalPortfolioValueUSD18, totalShares);
   const navUSD = calculateNAVUSD(totalPortfolioValueUSD18);
 
-  const investedAssetsUSD = Number(formatUnits(investedAssetsRaw, 6)); // USDC 6 decimals
+  // Derive Cost Basis & Invested Capital
+  let investedAssetsUSD = 0;
+  if (contractInvestedAssetsRaw > 0n) {
+    investedAssetsUSD = Number(formatUnits(contractInvestedAssetsRaw, 6));
+  } else if (typeof window !== 'undefined' && userAddress) {
+    try {
+      const localStored = localStorage.getItem(
+        `unifyvault_invested_assets_${userAddress.toLowerCase()}`,
+      );
+      if (localStored && !isNaN(Number(localStored)) && Number(localStored) > 0) {
+        investedAssetsUSD = Number(localStored);
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+  }
+
+  // Fallback: If user holds shares but cost basis is untracked, assume $1.00/share genesis cost basis
+  if (investedAssetsUSD === 0 && userShares > 0n) {
+    const userSharesNum = Number(formatUnits(userShares, 18));
+    investedAssetsUSD = userSharesNum * 1.0;
+  }
+
   const currentValueUSD = calculateCurrentValueUSD(userShares, sharePriceUSD);
   const { pnlUSD, pnlPercent, isProfitable } = calculatePnL(currentValueUSD, investedAssetsUSD);
 

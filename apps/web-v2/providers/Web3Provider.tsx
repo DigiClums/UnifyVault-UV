@@ -4,7 +4,7 @@ import React from 'react';
 import { RainbowKitProvider, getDefaultConfig, darkTheme } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
-import { CHAIN_CONFIG } from '../constants';
+import { baseSepolia, base } from 'viem/chains';
 import { createSafeWagmiStorage, setupIndexedDBGuard } from '../lib/utils/storageFallback';
 import '@rainbow-me/rainbowkit/styles.css';
 
@@ -12,7 +12,7 @@ const config = getDefaultConfig({
   appName: 'UnifyVault V2',
   projectId:
     process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '146781145b65a1c63ffcd7d6eaf03bd1',
-  chains: [CHAIN_CONFIG],
+  chains: [baseSepolia, base],
   storage: createSafeWagmiStorage(),
   ssr: true,
 });

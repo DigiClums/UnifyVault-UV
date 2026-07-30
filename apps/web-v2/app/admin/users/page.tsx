@@ -36,7 +36,8 @@ export default function AdminUsersPage() {
           title="UnifyVaultController"
           value="Active"
           subtitle="V2 Live Execution Engine"
-          icon={<ShieldCheck className="w-5 h-5 text-emerald-400" />}
+          icon={ShieldCheck}
+          glowColor="emerald"
         />
         <StatCard
           title="Connected Admin Wallet"
@@ -44,7 +45,8 @@ export default function AdminUsersPage() {
             userAddress ? `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}` : 'Not Connected'
           }
           subtitle={userAddress ? 'Verified Governance Operator' : 'Connect Wallet to Inspect'}
-          icon={<Users className="w-5 h-5 text-indigo-400" />}
+          icon={Users}
+          glowColor="purple"
         />
       </div>
 

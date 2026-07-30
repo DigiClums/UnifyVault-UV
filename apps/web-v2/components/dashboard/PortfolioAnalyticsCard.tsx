@@ -6,8 +6,6 @@ import {
   TrendingUp,
   DollarSign,
   PieChart,
-  Percent,
-  Coins,
   Activity,
   ArrowUpRight,
   ArrowDownRight,
@@ -24,14 +22,6 @@ interface PortfolioAnalyticsCardProps {
 export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps) {
   const items = [
     {
-      label: 'User Cost Basis',
-      value: metrics.investedAssetsUSD,
-      subtitle: 'On-chain Recorded Capital',
-      icon: Wallet,
-      iconBg: 'bg-accent-emerald/10 text-accent-emerald',
-      source: 'UnifyVaultController',
-    },
-    {
       label: 'Current Holding Value',
       value: metrics.currentValueUSD,
       subtitle: `${metrics.userSharesBalance} UVBTCETH`,
@@ -40,9 +30,17 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       source: 'userShares × Share Price',
     },
     {
-      label: 'Unrealized Profit / Loss ($)',
+      label: 'User Cost Basis',
+      value: metrics.investedAssetsUSD,
+      subtitle: 'On-chain Recorded Capital',
+      icon: Wallet,
+      iconBg: 'bg-accent-emerald/10 text-accent-emerald',
+      source: 'UnifyVaultController',
+    },
+    {
+      label: 'Net Profit / Loss (PNL)',
       value: metrics.pnlUSD,
-      subtitle: metrics.pnlPercentage,
+      subtitle: `${metrics.pnlPercentage} (${metrics.isProfitable ? 'Net Growth' : 'Capital Loss'})`,
       isPositive: metrics.isProfitable,
       icon: TrendingUp,
       iconBg: metrics.isProfitable
@@ -51,39 +49,12 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       source: 'Holding Value − Cost Basis',
     },
     {
-      label: 'Unrealized Profit / Loss (%)',
-      value: metrics.pnlPercentage,
-      subtitle: metrics.isProfitable ? 'Net Capital Growth' : 'Capital Loss',
-      isPositive: metrics.isProfitable,
-      icon: Percent,
-      iconBg: metrics.isProfitable
-        ? 'bg-accent-emerald/10 text-accent-emerald'
-        : 'bg-accent-rose/10 text-accent-rose',
-      source: '(Holding Value ÷ Cost Basis) − 1',
-    },
-    {
       label: 'Average Entry Price',
       value: metrics.averageEntryPriceUSD,
       subtitle: 'Per Index Share ($/Share)',
       icon: Activity,
       iconBg: 'bg-accent-cyan/10 text-accent-cyan',
       source: 'Cost Basis ÷ Shares Owned',
-    },
-    {
-      label: 'Current NAV per Share',
-      value: metrics.navPerShareUSD,
-      subtitle: 'Live On-chain NAV',
-      icon: Coins,
-      iconBg: 'bg-accent-violet/10 text-accent-violet',
-      source: 'PortfolioManager.calculateNAV()',
-    },
-    {
-      label: 'Total Shares Owned',
-      value: metrics.userSharesBalance,
-      subtitle: 'UVBTCETH Index Tokens',
-      icon: Coins,
-      iconBg: 'bg-accent-amber/10 text-accent-amber',
-      source: 'ERC20.balanceOf(user)',
     },
     {
       label: 'Protocol Ownership Share',
@@ -109,8 +80,8 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
         </div>
       </div>
 
-      {/* 8-Card Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Streamlined Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((item, idx) => {
           const Icon = item.icon;
           return (
@@ -163,7 +134,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
                   <Info className="w-3 h-3 text-slate-500" />
                   <span>Source</span>
                 </div>
-                <span className="font-mono text-[9px] text-slate-400 bg-slate-900/60 px-1.5 py-0.5 rounded border border-border-subtle/80 truncate max-w-[130px]">
+                <span className="font-mono text-[9px] text-slate-400 bg-slate-900/60 px-1.5 py-0.5 rounded border border-border-subtle/80 truncate max-w-[150px]">
                   {item.source}
                 </span>
               </div>

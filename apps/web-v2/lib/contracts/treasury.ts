@@ -48,4 +48,37 @@ export const TREASURY_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+
+  // --- Treasury Events ---
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'asset', type: 'address' },
+      { indexed: true, name: 'from', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+    ],
+    name: 'FeeCollected',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'asset', type: 'address' },
+      { indexed: true, name: 'recipient', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: true, name: 'caller', type: 'address' },
+    ],
+    name: 'TreasuryWithdrawal',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'recipient', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: true, name: 'caller', type: 'address' },
+    ],
+    name: 'NativeWithdrawn',
+    type: 'event',
+  },
 ] as const;

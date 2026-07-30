@@ -150,7 +150,7 @@ export function Navbar() {
         {/* Right Section: Connect Button & Mobile Toggle */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
           <div className="scale-90 sm:scale-100 origin-right flex items-center shrink">
-            <ConnectButton showBalance={false} accountStatus="avatar" chainStatus="icon" />
+            <ConnectButton showBalance={false} accountStatus="avatar" chainStatus="full" />
           </div>
 
           <button

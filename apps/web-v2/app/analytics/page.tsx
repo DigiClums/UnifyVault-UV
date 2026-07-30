@@ -6,10 +6,16 @@ import { StatCard } from '../../components/ui/StatCard';
 import { ChartCard } from '../../components/ui/ChartCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { HistoricalNavChart } from '../../components/portfolio/HistoricalNavChart';
-import { PortfolioAnalyticsCard } from '../../components/dashboard/PortfolioAnalyticsCard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { usePortfolio } from '../../hooks/usePortfolio';
-import { TrendingUp, DollarSign, PieChart as PieIcon, Layers } from 'lucide-react';
+import {
+  TrendingUp,
+  DollarSign,
+  PieChart as PieIcon,
+  Layers,
+  ShieldCheck,
+  Activity,
+} from 'lucide-react';
 
 const COLORS = ['#F7931A', '#627EEA', '#2775CA'];
 
@@ -26,27 +32,28 @@ export default function AnalyticsPage() {
     .filter((d) => d.value > 0);
 
   return (
-    <div className="space-y-8 py-6">
+    <div className="space-y-8 py-4">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Protocol & Portfolio Analytics
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center space-x-2">
+              <Activity className="w-7 h-7 text-accent-blue" />
+              <span>Protocol Telemetry & Historical Analytics</span>
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-xs font-semibold">
-              Live On-Chain
-            </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Real-time cost basis tracking, asset allocations, and historical NAV progression
-            telemetry.
+            Historical NAV trajectory, asset allocation weights, and protocol fee telemetry on Base
+            Sepolia.
           </p>
         </div>
+        <span className="px-3 py-1 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-xs font-semibold self-start md:self-auto">
+          Base Sepolia Live Sync
+        </span>
       </div>
 
-      {/* Top Stat Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Top Protocol Stat Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Value Locked (TVL)"
           value={totalPortfolioValueUSD || '$0.00'}
@@ -63,20 +70,23 @@ export default function AnalyticsPage() {
         />
         <StatCard
           title="Collateral Assets"
-          value={holdings.length}
-          subtitle="WBTC, WETH, USDC"
+          value={holdings.length.toString()}
+          subtitle="cbBTC, WETH, USDC"
           icon={DollarSign}
           glowColor="purple"
         />
       </div>
 
-      {/* User Portfolio Analytics */}
-      <PortfolioAnalyticsCard metrics={metrics} />
-
-      {/* Real-time Allocation Breakdown & Historical NAV */}
+      {/* Historical NAV Performance & Asset Allocation */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Historical NAV Chart (2 cols) */}
+        <div className="lg:col-span-2">
+          <HistoricalNavChart />
+        </div>
+
+        {/* Live Allocation Pie Chart (1 col) */}
         <ChartCard
-          title="Live Portfolio Asset Allocation"
+          title="Live Asset Distribution"
           subtitle="Current weight breakdown by asset valuation"
           icon={PieIcon}
           className="lg:col-span-1"
@@ -89,8 +99,8 @@ export default function AnalyticsPage() {
                     data={allocationData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
+                    innerRadius={55}
+                    outerRadius={85}
                     paddingAngle={4}
                     dataKey="value"
                   >
@@ -119,10 +129,41 @@ export default function AnalyticsPage() {
             />
           )}
         </ChartCard>
+      </div>
 
-        {/* Historical NAV Chart */}
-        <div className="lg:col-span-2">
-          <HistoricalNavChart />
+      {/* Fee & System Architecture Card */}
+      <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
+        <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
+          <ShieldCheck className="w-5 h-5 text-accent-blue" />
+          <h3 className="text-base font-bold text-white tracking-tight">
+            Protocol Fee Architecture & Safety Caps
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
+            <span className="text-slate-400 font-medium">Deposit Protocol Fee</span>
+            <div className="text-lg font-bold font-mono text-emerald-400">0.25% (25 BPS)</div>
+            <p className="text-[11px] text-slate-400">
+              Collected into Treasury upon collateral deposit
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
+            <span className="text-slate-400 font-medium">Redemption Protocol Fee</span>
+            <div className="text-lg font-bold font-mono text-purple-400">2.00% (200 BPS)</div>
+            <p className="text-[11px] text-slate-400">
+              Deducted from gross payout collateral upon redemption
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
+            <span className="text-slate-400 font-medium">Performance Fee / HWM</span>
+            <div className="text-lg font-bold font-mono text-slate-400">0.00% (Disabled)</div>
+            <p className="text-[11px] text-slate-400">
+              Zero performance fee charged across all user accounts
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -146,4 +146,83 @@ export const CONTROLLER_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+
+  // --- Events ---
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'depositAmount', type: 'uint256' },
+      { indexed: false, name: 'fee', type: 'uint256' },
+      { indexed: false, name: 'targetAssets', type: 'address[]' },
+      { indexed: false, name: 'assetsBought', type: 'uint256[]' },
+      { indexed: false, name: 'sharesMinted', type: 'uint256' },
+      { indexed: false, name: 'navAfter', type: 'uint256' },
+    ],
+    name: 'DepositExecuted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'sharesBurned', type: 'uint256' },
+      { indexed: false, name: 'targetAssets', type: 'address[]' },
+      { indexed: false, name: 'assetsSold', type: 'uint256[]' },
+      { indexed: false, name: 'fee', type: 'uint256' },
+      { indexed: false, name: 'usdcReturned', type: 'uint256' },
+      { indexed: false, name: 'navAfter', type: 'uint256' },
+    ],
+    name: 'RedeemExecuted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'receiver', type: 'address' },
+      { indexed: true, name: 'asset', type: 'address' },
+      { indexed: false, name: 'grossDeposit', type: 'uint256' },
+      { indexed: false, name: 'protocolFee', type: 'uint256' },
+      { indexed: false, name: 'netDeposit', type: 'uint256' },
+      { indexed: false, name: 'sharesMinted', type: 'uint256' },
+    ],
+    name: 'DepositCompleted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'owner', type: 'address' },
+      { indexed: true, name: 'receiver', type: 'address' },
+      { indexed: true, name: 'asset', type: 'address' },
+      { indexed: false, name: 'sharesBurned', type: 'uint256' },
+      { indexed: false, name: 'grossAssets', type: 'uint256' },
+      { indexed: false, name: 'protocolFee', type: 'uint256' },
+      { indexed: false, name: 'netAssets', type: 'uint256' },
+    ],
+    name: 'RedeemCompleted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'payer', type: 'address' },
+      { indexed: true, name: 'asset', type: 'address' },
+      { indexed: false, name: 'feeAmount', type: 'uint256' },
+    ],
+    name: 'ProtocolFeeCollected',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: 'caller', type: 'address' }],
+    name: 'EmergencyPaused',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: 'caller', type: 'address' }],
+    name: 'EmergencyResumed',
+    type: 'event',
+  },
 ] as const;

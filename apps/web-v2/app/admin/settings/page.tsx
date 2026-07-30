@@ -1,17 +1,51 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTROLLER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../../constants';
+import {
+  useReadContract,
+  useReadContracts,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from 'wagmi';
+import { CONTROLLER_ABI, FEE_MANAGER_ABI, PROTOCOL_DIRECTORY_ABI } from '../../../lib/contracts';
+import { FALLBACK_ADDRESSES, MODULE_IDS, PROTOCOL_DIRECTORY_ADDRESS } from '../../../constants';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
-import { Settings, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  Settings,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Percent,
+  Sliders,
+  DollarSign,
+  ArrowDownLeft,
+  ArrowUpRight,
+} from 'lucide-react';
 
 export default function AdminSettingsPage() {
+  const [depositFeeInput, setDepositFeeInput] = useState<string>('25');
+  const [redeemFeeInput, setRedeemFeeInput] = useState<string>('200');
   const [slippageBps, setSlippageBps] = useState<string>('100');
 
-  const { data: controllerSettings, refetch } = useReadContracts({
+  const [activeAction, setActiveAction] = useState<'depositFee' | 'redeemFee' | 'slippage' | null>(
+    null,
+  );
+
+  // Read FeeManager contract address from ProtocolDirectory
+  const { data: feeManagerAddress } = useReadContract({
+    address: PROTOCOL_DIRECTORY_ADDRESS,
+    abi: PROTOCOL_DIRECTORY_ABI,
+    functionName: 'getModuleAddress',
+    args: [MODULE_IDS.FEE_MANAGER],
+  });
+
+  const targetFeeManager =
+    (feeManagerAddress as `0x${string}`) || '0x0000000000000000000000000000000000000000';
+
+  // Read current protocol parameters
+  const { data: controllerSettings } = useReadContracts({
     contracts: [
       {
         address: FALLBACK_ADDRESSES.CONTROLLER,
@@ -50,19 +84,53 @@ export default function AdminSettingsPage() {
     isPending: isWritePending,
     error: writeError,
   } = useWriteContract();
+
   const { isLoading: isTxWaiting, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
   });
 
+  // Handler: Update Deposit Fee (FeeManager)
+  const handleUpdateDepositFee = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseInt(depositFeeInput);
+    if (isNaN(parsed) || parsed < 0 || parsed > 500) return;
+
+    setActiveAction('depositFee');
+    writeContract({
+      address: targetFeeManager,
+      abi: FEE_MANAGER_ABI,
+      functionName: 'setDepositFeeBps',
+      args: [BigInt(parsed)],
+    });
+  };
+
+  // Handler: Update Redeem Fee (FeeManager)
+  const handleUpdateRedeemFee = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseInt(redeemFeeInput);
+    if (isNaN(parsed) || parsed < 0 || parsed > 500) return;
+
+    setActiveAction('redeemFee');
+    writeContract({
+      address: targetFeeManager,
+      abi: FEE_MANAGER_ABI,
+      functionName: 'setRedeemFeeBps',
+      args: [BigInt(parsed)],
+    });
+  };
+
+  // Handler: Update Swap Slippage (UnifyVaultController)
   const handleUpdateSlippage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!slippageBps || parseInt(slippageBps) < 0 || parseInt(slippageBps) > 10000) return;
+    const parsed = parseInt(slippageBps);
+    if (isNaN(parsed) || parsed < 0 || parsed > 10000) return;
 
+    setActiveAction('slippage');
     writeContract({
       address: FALLBACK_ADDRESSES.CONTROLLER,
       abi: CONTROLLER_ABI,
       functionName: 'setSwapSlippageBps',
-      args: [BigInt(slippageBps)],
+      args: [BigInt(parsed)],
     });
   };
 
@@ -73,7 +141,7 @@ export default function AdminSettingsPage() {
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Protocol Parameters & Settings
+              Protocol Parameters & Governance Settings
             </h1>
             <StatusBadge
               status={isPaused ? 'Paused' : 'Active'}
@@ -81,7 +149,8 @@ export default function AdminSettingsPage() {
             />
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Configure deposit/redeem fees, DEX swap slippage limits, and emergency controls.
+            Configure live Deposit Fee, Redemption Fee, DEX Swap Slippage limits, and Treasury
+            destinations.
           </p>
         </div>
       </div>
@@ -89,17 +158,17 @@ export default function AdminSettingsPage() {
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Deposit Fee"
+          title="Deposit Protocol Fee"
           value={`${(Number(depositFeeBps) / 100).toFixed(2)}%`}
-          subtitle={`${depositFeeBps.toString()} BPS`}
-          icon={Settings}
-          glowColor="blue"
+          subtitle={`${depositFeeBps.toString()} BPS (Max 5.00%)`}
+          icon={ArrowUpRight}
+          glowColor="emerald"
         />
         <StatCard
-          title="Redeem Fee"
+          title="Redemption Protocol Fee"
           value={`${(Number(redeemFeeBps) / 100).toFixed(2)}%`}
-          subtitle={`${redeemFeeBps.toString()} BPS`}
-          icon={Settings}
+          subtitle={`${redeemFeeBps.toString()} BPS (Max 5.00%)`}
+          icon={ArrowDownLeft}
           glowColor="purple"
         />
         <StatCard
@@ -107,25 +176,158 @@ export default function AdminSettingsPage() {
           value={`${(Number(currentSlippageBps) / 100).toFixed(2)}%`}
           subtitle={`${currentSlippageBps.toString()} BPS`}
           icon={ShieldCheck}
-          glowColor="emerald"
+          glowColor="cyan"
         />
       </div>
 
-      {/* Settings Forms */}
+      {/* Settings Forms Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Slippage Update Form */}
+        {/* 1. Set Deposit Fee Form */}
+        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
+          <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
+            <ArrowUpRight className="w-5 h-5 text-emerald-400" />
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Update Deposit Protocol Fee
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Applied to gross collateral deposits (Max Cap: 500 BPS = 5.00%)
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdateDepositFee} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Deposit Fee Rate (in BPS)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  placeholder="25"
+                  value={depositFeeInput}
+                  onChange={(e) => setDepositFeeInput(e.target.value)}
+                  className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+                <span className="absolute right-3 top-3 text-emerald-400 font-mono text-xs font-bold">
+                  = {(parseInt(depositFeeInput || '0') / 100).toFixed(2)}%
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                25 BPS = 0.25%, 50 BPS = 0.50%, 100 BPS = 1.00%
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isWritePending || isTxWaiting}
+              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-emerald-500/50"
+            >
+              {activeAction === 'depositFee' && (isWritePending || isTxWaiting) && (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              )}
+              <span>
+                {activeAction === 'depositFee' && isWritePending
+                  ? 'Confirming in Wallet...'
+                  : activeAction === 'depositFee' && isTxWaiting
+                    ? 'Broadcasting Tx...'
+                    : 'Set Deposit Fee'}
+              </span>
+            </button>
+          </form>
+
+          {activeAction === 'depositFee' && isTxSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>Deposit fee successfully updated on-chain!</span>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Set Redemption Fee Form */}
+        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
+          <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
+            <ArrowDownLeft className="w-5 h-5 text-purple-400" />
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Update Redemption Protocol Fee
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Deducted from net payout collateral upon redemption (Max Cap: 500 BPS = 5.00%)
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdateRedeemFee} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Redemption Fee Rate (in BPS)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  placeholder="200"
+                  value={redeemFeeInput}
+                  onChange={(e) => setRedeemFeeInput(e.target.value)}
+                  className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+                <span className="absolute right-3 top-3 text-purple-400 font-mono text-xs font-bold">
+                  = {(parseInt(redeemFeeInput || '0') / 100).toFixed(2)}%
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                200 BPS = 2.00%, 150 BPS = 1.50%, 100 BPS = 1.00%
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isWritePending || isTxWaiting}
+              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50"
+            >
+              {activeAction === 'redeemFee' && (isWritePending || isTxWaiting) && (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              )}
+              <span>
+                {activeAction === 'redeemFee' && isWritePending
+                  ? 'Confirming in Wallet...'
+                  : activeAction === 'redeemFee' && isTxWaiting
+                    ? 'Broadcasting Tx...'
+                    : 'Set Redemption Fee'}
+              </span>
+            </button>
+          </form>
+
+          {activeAction === 'redeemFee' && isTxSuccess && (
+            <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center space-x-2 text-xs">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>Redemption fee successfully updated on-chain!</span>
+            </div>
+          )}
+        </div>
+
+        {/* 3. Set Swap Slippage Limit Form */}
         <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
           <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
             <Settings className="w-5 h-5 text-accent-blue" />
-            <h3 className="text-base font-bold text-white tracking-tight">
-              Update Swap Slippage Limit
-            </h3>
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Update Swap Slippage Limit
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Max allowed slippage tolerance during DEX swaps (e.g. 100 BPS = 1.00%)
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleUpdateSlippage} className="space-y-4 text-xs">
             <div>
               <label className="block text-slate-400 font-semibold mb-1">
-                DEX Swap Slippage Tolerance (in BPS)
+                DEX Swap Slippage Limit (in BPS)
               </label>
               <div className="relative">
                 <input
@@ -135,7 +337,7 @@ export default function AdminSettingsPage() {
                   onChange={(e) => setSlippageBps(e.target.value)}
                   className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
                 />
-                <span className="absolute right-3 top-3 text-slate-400 font-mono text-xs">
+                <span className="absolute right-3 top-3 text-slate-400 font-mono text-xs font-bold">
                   = {(parseInt(slippageBps || '0') / 100).toFixed(2)}%
                 </span>
               </div>
@@ -149,18 +351,20 @@ export default function AdminSettingsPage() {
               disabled={isWritePending || isTxWaiting}
               className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-accent-blue hover:bg-blue-600 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-accent-blue/50"
             >
-              {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {activeAction === 'slippage' && (isWritePending || isTxWaiting) && (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              )}
               <span>
-                {isWritePending
+                {activeAction === 'slippage' && isWritePending
                   ? 'Confirming in Wallet...'
-                  : isTxWaiting
+                  : activeAction === 'slippage' && isTxWaiting
                     ? 'Broadcasting Tx...'
                     : 'Update Slippage Limit'}
               </span>
             </button>
           </form>
 
-          {isTxSuccess && (
+          {activeAction === 'slippage' && isTxSuccess && (
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>Slippage limit successfully updated on-chain!</span>
@@ -170,12 +374,12 @@ export default function AdminSettingsPage() {
           {writeError && (
             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
-              <span>Parameter update failed or requires authorized governance permission.</span>
+              <span>Transaction failed or requires GOVERNANCE_ROLE permission.</span>
             </div>
           )}
         </div>
 
-        {/* Read-Only Fixed Protocol Parameters */}
+        {/* 4. Protocol Configuration Info */}
         <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
           <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
             <ShieldCheck className="w-5 h-5 text-purple-400" />
@@ -186,22 +390,27 @@ export default function AdminSettingsPage() {
 
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
+              <span className="text-slate-400">FeeManager Contract</span>
+              <span className="font-mono text-emerald-400 font-bold">
+                {targetFeeManager !== '0x0000000000000000000000000000000000000000'
+                  ? `${targetFeeManager.slice(0, 6)}...${targetFeeManager.slice(-4)}`
+                  : 'Resolving...'}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">Target Index Ratio</span>
               <span className="font-mono text-amber-400 font-bold">50% BTC / 50% ETH</span>
             </div>
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
-              <span className="text-slate-400">Oracle Heartbeat Threshold</span>
-              <span className="font-mono text-emerald-400 font-bold">86,400 Seconds (24h)</span>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">Fee Routing Destination</span>
               <span className="font-mono text-accent-blue font-bold">
-                Treasury (0x0F51D2...13D)
+                Treasury ({FALLBACK_ADDRESSES.TREASURY.slice(0, 6)}...
+                {FALLBACK_ADDRESSES.TREASURY.slice(-4)})
               </span>
             </div>
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
-              <span className="text-slate-400">Maximum Deposit Cap</span>
-              <span className="font-mono text-slate-300">Unlimited (type(uint256).max)</span>
+              <span className="text-slate-400">Max Fee Safety Cap</span>
+              <span className="font-mono text-slate-300 font-bold">500 BPS (5.00%)</span>
             </div>
           </div>
         </div>
