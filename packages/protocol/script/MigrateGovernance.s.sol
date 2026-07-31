@@ -33,38 +33,58 @@ contract MigrateGovernanceScript is Script {
 
     TargetContract[] memory targets = getTargets();
 
-    vm.startBroadcast();
-
     // ----------------------------------------------------
-    // STAGE 1: Grant Roles to SafePal Hardware Wallet
+    // STAGE 1: Grant Roles to SafePal Hardware Wallet (Idempotent)
     // ----------------------------------------------------
-    console.log('\n--- STAGE 1: Granting Roles to SafePal Hardware Wallet ---');
+    console.log('\n--- STAGE 1: Granting Roles to SafePal Hardware Wallet (Idempotent) ---');
     for (uint256 i = 0; i < targets.length; i++) {
       if (targets[i].addr == address(0)) continue;
       IAccessControl ac = IAccessControl(targets[i].addr);
 
-      console.log('Granting roles on contract:', targets[i].name, targets[i].addr);
+      console.log('Processing contract:', targets[i].name, targets[i].addr);
 
-      try ac.grantRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN) {
-        console.log('  -> Granted DEFAULT_ADMIN_ROLE');
-      } catch {
-        console.log('  -> DEFAULT_ADMIN_ROLE grant skipped or failed');
+      // Check DEFAULT_ADMIN_ROLE
+      if (!ac.hasRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN)) {
+        console.log('  -> [GRANT] DEFAULT_ADMIN_ROLE missing. Granting...');
+        vm.startBroadcast();
+        try ac.grantRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN) {
+          console.log('     [+] Granted DEFAULT_ADMIN_ROLE');
+        } catch {
+          console.log('     [-] DEFAULT_ADMIN_ROLE grant failed');
+        }
+        vm.stopBroadcast();
+      } else {
+        console.log('  -> [SKIP] DEFAULT_ADMIN_ROLE already granted.');
       }
 
-      try ac.grantRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN) {
-        console.log('  -> Granted GOVERNANCE_ROLE');
-      } catch {
-        console.log('  -> GOVERNANCE_ROLE grant skipped or failed');
+      // Check GOVERNANCE_ROLE
+      if (!ac.hasRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN)) {
+        console.log('  -> [GRANT] GOVERNANCE_ROLE missing. Granting...');
+        vm.startBroadcast();
+        try ac.grantRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN) {
+          console.log('     [+] Granted GOVERNANCE_ROLE');
+        } catch {
+          console.log('     [-] GOVERNANCE_ROLE grant failed');
+        }
+        vm.stopBroadcast();
+      } else {
+        console.log('  -> [SKIP] GOVERNANCE_ROLE already granted.');
       }
 
-      try ac.grantRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN) {
-        console.log('  -> Granted GUARDIAN_ROLE');
-      } catch {
-        console.log('  -> GUARDIAN_ROLE grant skipped or failed');
+      // Check GUARDIAN_ROLE
+      if (!ac.hasRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN)) {
+        console.log('  -> [GRANT] GUARDIAN_ROLE missing. Granting...');
+        vm.startBroadcast();
+        try ac.grantRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN) {
+          console.log('     [+] Granted GUARDIAN_ROLE');
+        } catch {
+          console.log('     [-] GUARDIAN_ROLE grant failed');
+        }
+        vm.stopBroadcast();
+      } else {
+        console.log('  -> [SKIP] GUARDIAN_ROLE already granted.');
       }
     }
-
-    vm.stopBroadcast();
 
     // ----------------------------------------------------
     // STAGE 2: 100% On-Chain Verification
