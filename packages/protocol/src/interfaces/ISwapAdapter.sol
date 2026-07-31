@@ -59,6 +59,15 @@ interface ISwapAdapter {
     address recipient
   ) external returns (uint256 amountOut);
 
+  function swap(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn,
+    uint256 minAmountOut,
+    address recipient,
+    uint256 deadline
+  ) external returns (uint256 amountOut);
+
   function getExpectedOutput(
     address tokenIn,
     address tokenOut,

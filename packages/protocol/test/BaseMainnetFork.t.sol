@@ -277,9 +277,9 @@ contract BaseMainnetForkTest is Test {
     // 2. Shares fully burned
     assertEq(token.balanceOf(alice), 0);
 
-    // 3. CustodyVault assets released
-    assertEq(vault.totalAssets(address(cbBTC)), 0);
-    assertEq(vault.totalAssets(address(weth)), 0);
+    // 3. CustodyVault assets released (residual <= 1 wei for DEAD_SHARES)
+    assertLe(vault.totalAssets(address(cbBTC)), 1);
+    assertLe(vault.totalAssets(address(weth)), 1);
   }
 
   // =========================================================================

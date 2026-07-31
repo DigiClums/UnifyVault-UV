@@ -98,7 +98,10 @@ export default function AdminRebalancePage() {
   const getFriendlyErrorMessage = (err: unknown): string => {
     if (!err) return '';
     console.error('[Developer Logs - Strategy Update Error]:', err);
-    return 'Strategy weight update requires authorized Admin Role permission.';
+    const errorObj = err as { shortMessage?: string; message?: string };
+    if (errorObj.shortMessage) return errorObj.shortMessage;
+    if (errorObj.message) return errorObj.message;
+    return 'Strategy weight update failed. Please check your wallet connection and permissions.';
   };
 
   // Live Custody Holdings

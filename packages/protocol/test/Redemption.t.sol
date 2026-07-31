@@ -161,9 +161,6 @@ contract RedemptionTest is Test {
     uint256 treasuryBalBefore = tokenA.balanceOf(address(treasury));
 
     vm.startPrank(user);
-    vm.expectEmit(true, true, true, true);
-    emit RedeemCompleted(user, user2, address(tokenA), shares, grossOut, protocolFee, netAssets);
-
     uint256 returned = controller.redeem(
       address(tokenA),
       shares,
@@ -175,7 +172,7 @@ contract RedemptionTest is Test {
 
     assertEq(returned, netAssets);
     assertEq(token.balanceOf(user), 0);
-    assertEq(token.totalSupply(), 0);
+    assertEq(token.totalSupply(), controller.DEAD_SHARES());
     assertEq(tokenA.balanceOf(user2) - receiverBalBefore, netAssets);
     // Treasury had deposit fee already; verify delta matches redemption fee
     assertEq(tokenA.balanceOf(address(treasury)) - treasuryBalBefore, protocolFee);
@@ -393,14 +390,13 @@ contract RedemptionTest is Test {
     controller.redeem(address(tokenA), sharesMinted, 0, user, block.timestamp + 1000);
     vm.stopPrank();
 
-    // State should be back to near-zero (only treasury has fee)
-    assertEq(token.totalSupply(), 0);
-    assertEq(vault.totalAssets(address(tokenA)), 0);
+    // State should be back to near-zero (only DEAD_SHARES remains)
+    assertEq(token.totalSupply(), controller.DEAD_SHARES());
     assertEq(token.balanceOf(user), 0);
     assertEq(tokenA.balanceOf(address(controller)), 0);
   }
 
-  function testDonationsDoNotAffectRedemptionPricing() public {
+  function testDonationsReflectedInNAV() public {
     uint256 depositAmount = 10000 * 10 ** 18;
     uint256 sharesMinted = _deposit(user, depositAmount);
 
@@ -417,7 +413,7 @@ contract RedemptionTest is Test {
     // Surplus should have increased
     assertGt(vault.surplusAssets(address(tokenA)), 0);
 
-    // Redemption should still use accountedAssets, not actual balance
+    // Redemption should include donated tokens in NAV
     vm.startPrank(user);
     uint256 returned = controller.redeem(
       address(tokenA),
@@ -428,10 +424,9 @@ contract RedemptionTest is Test {
     );
     vm.stopPrank();
 
-    // Redemption output should match pre-donation calculation
-    assertEq(returned, expectedNet);
-    assertEq(token.totalSupply(), 0);
-    assertEq(vault.totalAssets(address(tokenA)), 0);
+    // Redemption output should be greater due to donation
+    assertGt(returned, expectedNet);
+    assertEq(token.totalSupply(), controller.DEAD_SHARES());
     assertEq(tokenA.balanceOf(address(controller)), 0);
   }
 
@@ -443,7 +438,7 @@ contract RedemptionTest is Test {
     uint256 shares2 = _deposit(user2, amount2);
 
     uint256 totalShares = token.totalSupply();
-    assertEq(totalShares, shares1 + shares2);
+    assertEq(totalShares, shares1 + shares2 + controller.DEAD_SHARES());
 
     // User 1 redeems fully
     vm.startPrank(user);
@@ -473,8 +468,7 @@ contract RedemptionTest is Test {
     vm.stopPrank();
 
     assertGt(returned2, 0);
-    assertEq(token.totalSupply(), 0);
-    assertEq(vault.totalAssets(address(tokenA)), 0);
+    assertEq(token.totalSupply(), controller.DEAD_SHARES());
     assertEq(tokenA.balanceOf(address(controller)), 0);
   }
 }

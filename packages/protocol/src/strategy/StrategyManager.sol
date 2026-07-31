@@ -106,8 +106,11 @@ contract StrategyManager is AccessControl, IStrategyManager {
     delete _isSupported[asset];
     delete _targetWeightsBps[asset];
 
+    if (_supportedAssets.length == 0) {
+      revert EmptyStrategyNotAllowed();
+    }
     uint256 total = _calculateTotalBps();
-    if (_supportedAssets.length > 0 && total != TOTAL_BPS) {
+    if (total != TOTAL_BPS) {
       revert InvalidTotalAllocation(total, TOTAL_BPS);
     }
 

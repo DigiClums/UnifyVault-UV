@@ -18,7 +18,11 @@ export function calculateEstimatedShares(
 
   // Convert net deposit to 18 decimals
   const netDeposit18 =
-    assetDecimals === 18 ? netDepositRaw : netDepositRaw * 10n ** BigInt(18 - assetDecimals);
+    assetDecimals === 18
+      ? netDepositRaw
+      : assetDecimals < 18
+        ? netDepositRaw * 10n ** BigInt(18 - assetDecimals)
+        : netDepositRaw / 10n ** BigInt(assetDecimals - 18);
 
   // Compute deposit value in USD (18 decimals)
   const depositValueUSD18 = (netDeposit18 * assetPriceUSD18) / 10n ** 18n;

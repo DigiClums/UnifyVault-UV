@@ -103,11 +103,11 @@ contract OracleManager is AccessControl, IOracle {
     try IOracleProvider(config.primaryProvider).getLatestRound(assetId) returns (
       ProviderPrice memory rawRound
     ) {
-      if (block.timestamp >= rawRound.updatedAt) {
-        if (block.timestamp - rawRound.updatedAt <= config.heartbeat) {
-          if (rawRound.price > 0) {
-            return _normalizePrice(rawRound);
-          }
+      if (rawRound.updatedAt <= block.timestamp + 15) {
+        uint256 age =
+          block.timestamp > rawRound.updatedAt ? block.timestamp - rawRound.updatedAt : 0;
+        if (age <= config.heartbeat && rawRound.price > 0) {
+          return _normalizePrice(rawRound);
         }
       }
     } catch {}
@@ -117,11 +117,11 @@ contract OracleManager is AccessControl, IOracle {
       try IOracleProvider(config.fallbackProvider).getLatestRound(assetId) returns (
         ProviderPrice memory rawRound
       ) {
-        if (block.timestamp >= rawRound.updatedAt) {
-          if (block.timestamp - rawRound.updatedAt <= config.heartbeat) {
-            if (rawRound.price > 0) {
-              return _normalizePrice(rawRound);
-            }
+        if (rawRound.updatedAt <= block.timestamp + 15) {
+          uint256 age =
+            block.timestamp > rawRound.updatedAt ? block.timestamp - rawRound.updatedAt : 0;
+          if (age <= config.heartbeat && rawRound.price > 0) {
+            return _normalizePrice(rawRound);
           }
         }
       } catch {}
@@ -155,11 +155,11 @@ contract OracleManager is AccessControl, IOracle {
     try IOracleProvider(config.primaryProvider).getLatestRound(assetId) returns (
       ProviderPrice memory rawRound
     ) {
-      if (block.timestamp >= rawRound.updatedAt) {
-        if (block.timestamp - rawRound.updatedAt <= config.heartbeat) {
-          if (rawRound.price > 0) {
-            return true;
-          }
+      if (rawRound.updatedAt <= block.timestamp + 15) {
+        uint256 age =
+          block.timestamp > rawRound.updatedAt ? block.timestamp - rawRound.updatedAt : 0;
+        if (age <= config.heartbeat && rawRound.price > 0) {
+          return true;
         }
       }
     } catch {}
@@ -169,11 +169,11 @@ contract OracleManager is AccessControl, IOracle {
       try IOracleProvider(config.fallbackProvider).getLatestRound(assetId) returns (
         ProviderPrice memory rawRound
       ) {
-        if (block.timestamp >= rawRound.updatedAt) {
-          if (block.timestamp - rawRound.updatedAt <= config.heartbeat) {
-            if (rawRound.price > 0) {
-              return true;
-            }
+        if (rawRound.updatedAt <= block.timestamp + 15) {
+          uint256 age =
+            block.timestamp > rawRound.updatedAt ? block.timestamp - rawRound.updatedAt : 0;
+          if (age <= config.heartbeat && rawRound.price > 0) {
+            return true;
           }
         }
       } catch {}

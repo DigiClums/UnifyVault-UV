@@ -52,6 +52,7 @@ The protocol MUST be deployed in exact sequential order using Foundry scripts (`
 |    - Deploy CustodyVault.sol                                          |
 |    - Deploy UVBTCETHToken.sol ($uvBTCETH)                             |
 |    - Deploy Treasury.sol                                              |
+|    - Deploy FeeManager.sol                                            |
 |    - Deploy OracleManager.sol                                         |
 |    - Deploy StrategyManager.sol                                       |
 +-----------------------------------------------------------------------+
@@ -65,7 +66,7 @@ The protocol MUST be deployed in exact sequential order using Foundry scripts (`
                                    v
 +-----------------------------------------------------------------------+
 | 4. DIRECTORY REGISTRATION & RBAC ROLE GATING                          |
-|    - Register module addresses in ProtocolDirectory.sol               |
+|    - Register module addresses (including FEE_MANAGER) in directory   |
 |    - Grant CONTROLLER_ROLE to UnifyVaultController on CustodyVault    |
 |    - Grant CONTROLLER_ROLE to UnifyVaultController on Token           |
 |    - Grant GOVERNANCE_ROLE & GUARDIAN_ROLE to SafePal/Multi-Sig       |
@@ -73,10 +74,11 @@ The protocol MUST be deployed in exact sequential order using Foundry scripts (`
                                    |
                                    v
 +-----------------------------------------------------------------------+
-| 5. ORACLE & STRATEGY INITIALIZATION                                   |
+| 5. ORACLE, STRATEGY & PORTFOLIO INITIALIZATION                         |
 |    - OracleManager.configureAsset(WBTC, primaryProvider, 86400)       |
 |    - OracleManager.configureAsset(WETH, primaryProvider, 86400)       |
 |    - StrategyManager.setTargetWeights([WBTC, WETH], [5000, 5000])     |
+|    - PortfolioManager.syncModules()                                   |
 +-----------------------------------------------------------------------+
                                    |
                                    v

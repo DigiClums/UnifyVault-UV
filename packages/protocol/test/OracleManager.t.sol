@@ -170,6 +170,20 @@ contract OracleManagerTest is Test {
     assertEq(hb, 3600);
   }
 
+  function testFutureTimestampGracePeriod() public {
+    // 1. updatedAt 5 seconds in future (within 15s grace) -> succeeds
+    primaryMock.setTimestamp(TEST_BTC, block.timestamp + 5);
+    uint256 priceGrace = manager.getNormalizedPrice(TEST_BTC);
+    assertEq(priceGrace, 60000 * 10 ** 18);
+    assertTrue(manager.isHealthy(TEST_BTC));
+
+    // 2. updatedAt 20 seconds in future (> 15s grace) -> reverts
+    primaryMock.setTimestamp(TEST_BTC, block.timestamp + 20);
+    vm.expectRevert(abi.encodeWithSelector(Errors.AssetNotSupported.selector, TEST_BTC));
+    manager.getPrice(TEST_BTC);
+    assertFalse(manager.isHealthy(TEST_BTC));
+  }
+
   // --- Fuzz Tests ---
 
   function testFuzzPriceNormalization(bytes32 assetId, uint256 rawPrice, uint8 decimals) public {

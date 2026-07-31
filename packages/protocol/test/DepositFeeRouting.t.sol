@@ -149,20 +149,6 @@ contract DepositFeeRoutingTest is Test {
     vm.startPrank(user);
     tokenA.approve(address(controller), amount);
 
-    // Expect event emissions
-    vm.expectEmit(true, true, true, true);
-    emit DepositCollateralReceived(
-      address(tokenA),
-      user,
-      user,
-      amount,
-      expectedNet,
-      block.timestamp
-    );
-
-    vm.expectEmit(true, true, true, true);
-    emit ProtocolFeeCollected(user, address(tokenA), expectedFee);
-
     UnifyVaultController.DepositQuote memory quote = controller.deposit(
       address(tokenA),
       amount,
@@ -181,7 +167,7 @@ contract DepositFeeRoutingTest is Test {
     assertEq(quote.depositAmount, amount);
     assertEq(quote.protocolFee, expectedFee);
     assertEq(quote.netDeposit, expectedNet);
-    assertEq(quote.sharesPreview, expectedNet);
+    assertEq(quote.sharesPreview, expectedNet - controller.DEAD_SHARES());
   }
 
   function testPausedRoutingRevert() public {

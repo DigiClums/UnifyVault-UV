@@ -7,5 +7,5 @@ pragma solidity >=0.8.20;
  */
 library Constants {
   uint256 public constant BASIS_POINTS_DIVISOR = 10000;
-  uint256 public constant MAX_FEE_BPS = 100; // 1.00% max fee
+  uint256 public constant MAX_FEE_BPS = 500; // 5.00% max fee
 }

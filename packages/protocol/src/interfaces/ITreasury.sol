@@ -7,7 +7,7 @@ pragma solidity >=0.8.20;
  */
 interface ITreasury {
   function collectFee(address asset, uint256 amount) external;
-  function allocateOperationalFunds(uint256 amount) external;
-  function getOperationalBalance() external view returns (uint256);
-  function getProtocolReserveBalance() external view returns (uint256);
+  function withdraw(address asset, address recipient, uint256 amount) external;
+  function balance(address asset) external view returns (uint256);
+  function totalAssetBalance(address asset) external view returns (uint256);
 }

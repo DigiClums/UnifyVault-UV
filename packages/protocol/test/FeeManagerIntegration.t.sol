@@ -155,18 +155,18 @@ contract FeeManagerIntegrationTest is Test {
     uint256 shares = token.balanceOf(user);
 
     // 1. Initial Preview Redeem at 200 BPS (2.00%)
+    uint256 expectedInitialRedeemFee = (shares * 200) / 10000;
     uint256 previewInitial = controller.previewRedeem(address(usdc), shares);
-    // Net deposit was 9975. 2% fee of 9975 = 199.5. Net redemption = 9775.5
-    assertEq(previewInitial, 97755 * 10 ** 17);
+    assertEq(previewInitial, shares - expectedInitialRedeemFee);
 
     // 2. Update Redeem Fee to 500 BPS (5.00%) via FeeManager
     feeManager.setRedeemFeeBps(500);
     assertEq(controller.getRedeemFeeBps(), 500);
 
     // 3. Updated Preview Redeem at 500 BPS (5.00%)
+    uint256 expectedUpdatedRedeemFee = (shares * 500) / 10000;
     uint256 previewUpdated = controller.previewRedeem(address(usdc), shares);
-    // Net deposit was 9975. 5% fee of 9975 = 498.75. Net redemption = 9476.25
-    assertEq(previewUpdated, 947625 * 10 ** 16);
+    assertEq(previewUpdated, shares - expectedUpdatedRedeemFee);
 
     // 4. Execute Redeem and verify Treasury routing
     uint256 treasuryBefore = usdc.balanceOf(address(treasury));
@@ -177,7 +177,6 @@ contract FeeManagerIntegrationTest is Test {
 
     assertEq(netReceived, previewUpdated);
     uint256 treasuryAfter = usdc.balanceOf(address(treasury));
-    // Treasury received initial deposit fee (25) + updated redeem fee (498.75)
-    assertEq(treasuryAfter - treasuryBefore, 49875 * 10 ** 16);
+    assertEq(treasuryAfter - treasuryBefore, expectedUpdatedRedeemFee);
   }
 }

@@ -62,8 +62,10 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   uint256 private _swapSlippageBps = 100; // 1% default
 
   uint256 public constant BPS_DENOMINATOR = 10000;
+  uint256 public constant DEAD_SHARES = 1000;
 
   event SwapSlippageUpdated(uint256 oldBps, uint256 newBps, address indexed caller);
+  event MaxDepositUpdated(uint256 oldMax, uint256 newMax, address indexed caller);
 
   // Events
   event DepositRequested(
@@ -161,7 +163,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Configurations ---
 
   function setMaxDeposit(uint256 maxDeposit_) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    uint256 old = _maxDeposit;
     _maxDeposit = maxDeposit_;
+    emit MaxDepositUpdated(old, maxDeposit_, msg.sender);
   }
 
   function maxDeposit() external view returns (uint256) {
@@ -240,9 +244,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     if (fm != address(0)) {
       try IFeeManager(fm).depositFeeBps() returns (uint256 feeBps) {
         return feeBps;
-      } catch {}
+      } catch {
+        revert ProtocolErrors.FeeManagerNotAvailable();
+      }
     }
-    return 25;
+    return FeeLib.DEPOSIT_FEE_BPS;
   }
 
   function getRedeemFeeBps() public view returns (uint256) {
@@ -250,9 +256,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     if (fm != address(0)) {
       try IFeeManager(fm).redeemFeeBps() returns (uint256 feeBps) {
         return feeBps;
-      } catch {}
+      } catch {
+        revert ProtocolErrors.FeeManagerNotAvailable();
+      }
     }
-    return 200;
+    return FeeLib.REDEEM_FEE_BPS;
   }
 
   // --- Orchestrated Live Deposit & Redeem Workflows ---
@@ -320,6 +328,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
         totalAssetsBefore,
         config.decimals
       );
+    }
+
+    if (totalSharesBefore == 0) {
+      if (shares <= DEAD_SHARES) {
+        revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
+      }
+      UVBTCETHToken(_token).mint(address(0x000000000000000000000000000000000000dEaD), DEAD_SHARES);
+      shares -= DEAD_SHARES;
     }
 
     if (shares < minSharesOut) {

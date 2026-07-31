@@ -33,26 +33,27 @@ UnifyVault is engineered around five core security principles:
 
 The protocol implements Role-Based Access Control via OpenZeppelin's `AccessControl`:
 
-| Role Identifier                | Role Hash                      |     Assigned Address (Testnet)     | Granted Capabilities                                                                                |
-| :----------------------------- | :----------------------------- | :--------------------------------: | :-------------------------------------------------------------------------------------------------- |
-| **`DEFAULT_ADMIN_ROLE`**       | `0x00`                         | `0xd905...96DA` (SafePal Hardware) | Grant/revoke roles, update module addresses in `ProtocolDirectory.sol`.                             |
-| **`GOVERNANCE_ROLE`**          | `keccak256('GOVERNANCE_ROLE')` | `0xd905...96DA` (SafePal Hardware) | Unpause protocol (`resume()`), update oracle feed config & target strategy weights.                 |
-| **`GUARDIAN_ROLE`**            | `keccak256('GUARDIAN_ROLE')`   | `0xd905...96DA` (SafePal Hardware) | Execute emergency pause (`emergencyPause()`) during security incidents.                             |
-| **`CONTROLLER_ROLE`**          | `keccak256('CONTROLLER_ROLE')` |       `UnifyVaultController`       | Gated permission allowing `Controller` to mint/burn `$uvBTCETH` shares & withdraw vault collateral. |
-| **`BOT_ROLE` / `KEEPER_ROLE`** | `keccak256('BOT_ROLE')`        |   Keeper Process / Automated Bot   | Execute `StrategyManager.rebalance()` when allocation drift exceeds 5.0%.                           |
+| Role Identifier                | Role Hash                      |     Assigned Address (Testnet)     | Granted Capabilities                                                                                                |
+| :----------------------------- | :----------------------------- | :--------------------------------: | :------------------------------------------------------------------------------------------------------------------ |
+| **`DEFAULT_ADMIN_ROLE`**       | `0x00`                         | `0xd905...96DA` (SafePal Hardware) | Grant/revoke roles, update module addresses in `ProtocolDirectory.sol`.                                             |
+| **`GOVERNANCE_ROLE`**          | `keccak256('GOVERNANCE_ROLE')` | `0xd905...96DA` (SafePal Hardware) | Unpause protocol (`resume()`), update oracle feed config, fee parameters (`FeeManager`), & target strategy weights. |
+| **`GUARDIAN_ROLE`**            | `keccak256('GUARDIAN_ROLE')`   | `0xd905...96DA` (SafePal Hardware) | Execute emergency pause (`emergencyPause()`) during security incidents.                                             |
+| **`CONTROLLER_ROLE`**          | `keccak256('CONTROLLER_ROLE')` |       `UnifyVaultController`       | Gated permission allowing `Controller` to mint/burn `$uvBTCETH` shares & withdraw vault collateral.                 |
+| **`BOT_ROLE` / `KEEPER_ROLE`** | `keccak256('BOT_ROLE')`        |   Keeper Process / Automated Bot   | Execute `StrategyManager.rebalance()` when allocation drift exceeds 5.0%.                                           |
 
 ---
 
 ## 4. Threat-to-Control Mapping
 
-| Threat Vector                        | Primary Protocol Control                                                        |
-| :----------------------------------- | :------------------------------------------------------------------------------ |
-| **Reentrancy Attacks**               | OpenZeppelin `ReentrancyGuard` (`nonReentrant` modifier) + CEI Pattern          |
-| **Oracle Manipulation & Staleness**  | Heartbeat staleness checks + `OracleManager.sol` `try...catch` fallback routing |
-| **Unauthorized Admin Actions**       | OpenZeppelin `AccessControl` RBAC role separation                               |
-| **Emergency Circuit Breaker**        | `UnifyVaultController.emergencyPause()` (gated to `GUARDIAN_ROLE`)              |
-| **First Depositor Inflation Attack** | Genesis `$1.00/share` baseline fallback + zero-deposit explicit revert          |
-| **Rounding Loss & Theft**            | 18-decimal fixed-point BigInt arithmetic (division truncates in favor of vault) |
+| Threat Vector                         | Primary Protocol Control                                                          |
+| :------------------------------------ | :-------------------------------------------------------------------------------- |
+| **Reentrancy Attacks**                | OpenZeppelin `ReentrancyGuard` (`nonReentrant` modifier) + CEI Pattern            |
+| **Oracle Manipulation & Staleness**   | Heartbeat staleness checks + `OracleManager.sol` `try...catch` fallback routing   |
+| **Unauthorized Admin Actions**        | OpenZeppelin `AccessControl` RBAC role separation                                 |
+| **Emergency Circuit Breaker**         | `UnifyVaultController.emergencyPause()` (gated to `GUARDIAN_ROLE`)                |
+| **First Depositor Inflation Attack**  | Genesis `$1.00/share` baseline fallback + `DEAD_SHARES` (1000 wei) permanent mint |
+| **Fee Schedule Configuration Bypass** | Enforced `FeeManager` registration requirement in `ProtocolDirectory`             |
+| **Rounding Loss & Theft**             | 18-decimal fixed-point BigInt arithmetic (division truncates in favor of vault)   |
 
 ---
 

@@ -145,7 +145,29 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
       tokenOut: tokenOut,
       fee: DEFAULT_FEE_TIER,
       recipient: recipient,
-      deadline: block.timestamp + 300,
+      deadline: block.timestamp + 1800,
+      amountIn: amountIn,
+      minAmountOut: minAmountOut,
+      path: ''
+    });
+
+    return _executeSwapExactInput(params, msg.sender);
+  }
+
+  function swap(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn,
+    uint256 minAmountOut,
+    address recipient,
+    uint256 deadline
+  ) external override returns (uint256 amountOut) {
+    ExactInputParams memory params = ExactInputParams({
+      tokenIn: tokenIn,
+      tokenOut: tokenOut,
+      fee: DEFAULT_FEE_TIER,
+      recipient: recipient,
+      deadline: deadline == 0 ? block.timestamp + 1800 : deadline,
       amountIn: amountIn,
       minAmountOut: minAmountOut,
       path: ''

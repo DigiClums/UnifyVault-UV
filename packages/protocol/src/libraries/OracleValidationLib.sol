@@ -30,7 +30,10 @@ library OracleValidationLib {
     uint256 heartbeat,
     address asset
   ) internal view {
-    uint256 age = block.timestamp - timestamp;
+    if (timestamp > block.timestamp + 15) {
+      revert Errors.OraclePriceStale(asset, 0, heartbeat);
+    }
+    uint256 age = block.timestamp > timestamp ? block.timestamp - timestamp : 0;
     if (age > heartbeat) {
       revert Errors.OraclePriceStale(asset, age, heartbeat);
     }

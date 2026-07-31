@@ -150,13 +150,13 @@ contract ShareLibPrecisionTest is Test {
 
     assertEq(
       quote.sharesPreview,
-      previewShares,
-      'deposit() and previewDeposit() must be identical'
+      previewShares - controller.DEAD_SHARES(),
+      'deposit() and previewDeposit() must match after DEAD_SHARES'
     );
     assertEq(
       token.balanceOf(user1),
-      997_500_000_000_000_000,
-      'User1 must receive ~0.9975e18 shares'
+      997_500_000_000_000_000 - controller.DEAD_SHARES(),
+      'User1 must receive ~0.9975e18 shares minus DEAD_SHARES'
     );
     assertEq(token.totalSupply(), 997_500_000_000_000_000, 'Total supply must be ~0.9975e18 wei');
   }
@@ -185,9 +185,12 @@ contract ShareLibPrecisionTest is Test {
     uint256 user1Shares = token.balanceOf(user1);
     uint256 user2Shares = token.balanceOf(user2);
 
-    assertEq(user1Shares, 997_500_000_000_000_000, 'User 1 shares mismatch');
+    assertEq(
+      user1Shares,
+      997_500_000_000_000_000 - controller.DEAD_SHARES(),
+      'User 1 shares mismatch'
+    );
     assertEq(user2Shares, 997_500_000_000_000_000, 'User 2 shares mismatch');
-    assertEq(user1Shares, user2Shares, 'Proportional share equality failed');
     assertEq(
       token.totalSupply(),
       1_995_000_000_000_000_000,
@@ -207,7 +210,11 @@ contract ShareLibPrecisionTest is Test {
     controller.deposit(address(weth), depositAmt, 0, user1);
     vm.stopPrank();
 
-    assertEq(token.balanceOf(user1), expectedNet, '18-decimal share mint mismatch');
+    assertEq(
+      token.balanceOf(user1),
+      expectedNet - controller.DEAD_SHARES(),
+      '18-decimal share mint mismatch'
+    );
   }
 
   // --- Requirement 4: Redeem Round-Trip ---
@@ -235,7 +242,7 @@ contract ShareLibPrecisionTest is Test {
 
     assertEq(previewRedeem, redeemedNet, 'previewRedeem must match actual redeemed collateral');
     assertEq(token.balanceOf(user1), 0, 'Shares must be fully burned');
-    assertEq(token.totalSupply(), 0, 'Total supply must return to zero');
+    assertEq(token.totalSupply(), controller.DEAD_SHARES(), 'Total supply must equal DEAD_SHARES');
   }
 
   // --- Requirement 5: Precision Invariants & Normalization Unit Tests ---

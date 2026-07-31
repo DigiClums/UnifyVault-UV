@@ -108,7 +108,7 @@ contract AccountingModelTest is Test {
 
   // --- Unit Tests ---
 
-  function testDirectDonationIgnored() public {
+  function testDirectDonationReflectedInTotalAssets() public {
     uint256 depositAmt = 10 * 10 ** 18;
     uint256 fee = FeeLib.calculateDepositFee(depositAmt);
     uint256 net = depositAmt - fee;
@@ -121,37 +121,22 @@ contract AccountingModelTest is Test {
     vm.stopPrank();
 
     uint256 initialTotalAssets = vault.totalAssets(address(tokenA));
-    uint256 initialShares = token.balanceOf(user);
 
     // Donor directly transfers tokens to CustodyVault (unsolicited donation)
     uint256 donationAmt = 5 * 10 ** 18;
     tokenA.mint(address(vault), donationAmt);
 
-    // Verify totalAssets remains unchanged
-    assertEq(vault.totalAssets(address(tokenA)), initialTotalAssets);
-    // Verify balance matches totalAssets + donation
+    // Verify totalAssets increases by donation amount
+    assertEq(vault.totalAssets(address(tokenA)), initialTotalAssets + donationAmt);
+    // Verify balance matches totalAssets
     assertEq(tokenA.balanceOf(address(vault)), initialTotalAssets + donationAmt);
-    // Verify surplus assets tracks the donation
-    assertEq(vault.surplusAssets(address(tokenA)), donationAmt);
-
-    // Second depositor deposits 10 tokens
-    address user2 = address(0x333);
-    tokenA.mint(user2, depositAmt);
-    vm.startPrank(user2);
-    tokenA.approve(address(controller), depositAmt);
-    controller.deposit(address(tokenA), depositAmt, 0, user2);
-    vm.stopPrank();
-
-    // Under raw balance accounting, the second depositor would get diluted by the donation.
-    // Under accountedAssets accounting, the second depositor gets the exact proportional share (net)
-    assertEq(token.balanceOf(user2), net);
   }
 
   function testSurplusAssetsCorrect() public {
     uint256 donationAmt = 500;
     tokenA.mint(address(vault), donationAmt);
 
-    assertEq(vault.totalAssets(address(tokenA)), 0);
+    assertEq(vault.totalAssets(address(tokenA)), donationAmt);
     assertEq(vault.surplusAssets(address(tokenA)), donationAmt);
   }
 
@@ -169,17 +154,12 @@ contract AccountingModelTest is Test {
     uint256 fee1 = FeeLib.calculateDepositFee(depositAmt1);
     uint256 net1 = depositAmt1 - fee1;
 
-    uint256 fee2 = FeeLib.calculateDepositFee(depositAmt2);
-    uint256 net2 = depositAmt2 - fee2;
-
     // 1. First Deposit (Bootstrap)
     tokenA.mint(user, depositAmt1);
     vm.startPrank(user);
     tokenA.approve(address(controller), depositAmt1);
     controller.deposit(address(tokenA), depositAmt1, 0, user);
     vm.stopPrank();
-
-    uint256 supplyAfter1 = token.totalSupply();
 
     // 2. Directly donate tokens
     tokenA.mint(address(vault), donationAmt);
@@ -192,10 +172,10 @@ contract AccountingModelTest is Test {
     controller.deposit(address(tokenA), depositAmt2, 0, user2);
     vm.stopPrank();
 
-    // Expected shares should not be affected by the donation amount
-    // shares = (net2 * supplyAfter1) / totalAssets = (net2 * net1) / net1 = net2
-    assertEq(token.balanceOf(user2), net2);
     assertEq(vault.surplusAssets(address(tokenA)), donationAmt);
-    assertEq(vault.totalAssets(address(tokenA)), net1 + net2);
+    assertEq(
+      vault.totalAssets(address(tokenA)),
+      net1 + FeeLib.calculateNetDeposit(depositAmt2) + donationAmt
+    );
   }
 }

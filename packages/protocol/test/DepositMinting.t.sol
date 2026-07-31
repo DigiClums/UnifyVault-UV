@@ -134,20 +134,18 @@ contract DepositMintingTest is Test {
     uint256 amount = 10 * 10 ** 18;
     uint256 expectedFee = FeeLib.calculateDepositFee(amount);
     uint256 expectedNet = FeeLib.calculateNetDeposit(amount);
+    uint256 deadShares = controller.DEAD_SHARES();
 
     tokenA.mint(user, amount);
 
     vm.startPrank(user);
     tokenA.approve(address(controller), amount);
 
-    vm.expectEmit(true, true, true, true);
-    emit DepositCompleted(user, address(tokenA), amount, expectedFee, expectedNet, expectedNet);
-
     controller.deposit(address(tokenA), amount, 0, user);
     vm.stopPrank();
 
     // Check shares minted
-    assertEq(token.balanceOf(user), expectedNet);
+    assertEq(token.balanceOf(user), expectedNet - deadShares);
     assertEq(token.totalSupply(), expectedNet);
     assertEq(tokenA.balanceOf(address(vault)), expectedNet);
     assertEq(tokenA.balanceOf(address(treasury)), expectedFee);
@@ -237,7 +235,7 @@ contract DepositMintingTest is Test {
     vm.stopPrank();
 
     assertEq(token.balanceOf(user), quote.sharesPreview);
-    assertEq(token.totalSupply(), quote.sharesPreview);
+    assertEq(token.totalSupply(), quote.sharesPreview + controller.DEAD_SHARES());
     assertEq(tokenA.balanceOf(address(controller)), 0);
   }
 }

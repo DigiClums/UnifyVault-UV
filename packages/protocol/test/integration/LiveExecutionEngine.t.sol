@@ -261,9 +261,9 @@ contract LiveExecutionEngineTest is Test {
     assertEq(token.balanceOf(user), 0);
     assertGt(netUsdcRedeemed, 0);
 
-    // 4. Verify CustodyVault balances released
-    assertEq(vault.totalAssets(address(cbBTC)), 0);
-    assertEq(vault.totalAssets(address(weth)), 0);
+    // 4. Verify CustodyVault balances released (residual <= 1 wei for DEAD_SHARES)
+    assertLe(vault.totalAssets(address(cbBTC)), 1);
+    assertLe(vault.totalAssets(address(weth)), 1);
 
     // 5. Verify Zero Retained Balances on Controller
     assertEq(usdc.balanceOf(address(controller)), 0);

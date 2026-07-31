@@ -116,7 +116,7 @@ contract DepositValidationTest is Test {
     uint256 amount = 10 * 10 ** 18;
     uint256 expectedFee = (amount * FeeLib.DEPOSIT_FEE_BPS) / FeeLib.BPS_DENOMINATOR;
     uint256 expectedNet = amount - expectedFee;
-    uint256 expectedShares = expectedNet;
+    uint256 expectedShares = expectedNet - controller.DEAD_SHARES();
 
     deal(tokenA, user, amount);
     vm.startPrank(user);

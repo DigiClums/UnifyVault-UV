@@ -13,6 +13,7 @@ import '../src/controller/UnifyVaultController.sol';
 import '../src/strategy/StrategyManager.sol';
 import '../src/strategy/PortfolioManager.sol';
 import '../src/swap/SwapAdapter.sol';
+import '../src/treasury/FeeManager.sol';
 import '../src/libraries/AccessRoles.sol';
 import '../src/constants/ModuleIds.sol';
 import '../src/interfaces/AggregatorV3Interface.sol';
@@ -179,6 +180,7 @@ contract DeployV2Script is Script, Test {
   ITreasuryFull public treasury;
   CustodyVault public vault;
   LiquidityManager public liquidityManager;
+  FeeManager public feeManager;
   UVBTCETHToken public token;
   UnifyVaultController public controller;
   StrategyManager public strategyManager;
@@ -215,6 +217,7 @@ contract DeployV2Script is Script, Test {
 
     address treasuryAddr = deployCode('Treasury');
     treasury = ITreasuryFull(treasuryAddr);
+    feeManager = new FeeManager(address(treasury));
 
     vault = new CustodyVault();
     liquidityManager = new LiquidityManager(deployerAddress, address(directory));
@@ -257,6 +260,7 @@ contract DeployV2Script is Script, Test {
 
     // Register every module in ProtocolDirectory
     directory.registerAddress(ModuleIds.TREASURY, address(treasury));
+    directory.registerAddress(ModuleIds.FEE_MANAGER, address(feeManager));
     directory.registerAddress(ModuleIds.VAULT, address(vault));
     directory.registerAddress(ModuleIds.LIQUIDITY_MANAGER, address(liquidityManager));
     directory.registerAddress(ModuleIds.DEPOSIT_MANAGER, address(controller));
@@ -268,6 +272,10 @@ contract DeployV2Script is Script, Test {
 
     // Verify registrations
     require(directory.getAddress(ModuleIds.TREASURY) == address(treasury), 'Treasury reg failed');
+    require(
+      directory.getAddress(ModuleIds.FEE_MANAGER) == address(feeManager),
+      'FeeManager reg failed'
+    );
     require(directory.getAddress(ModuleIds.VAULT) == address(vault), 'Vault reg failed');
     require(
       directory.getAddress(ModuleIds.LIQUIDITY_MANAGER) == address(liquidityManager),
@@ -293,10 +301,11 @@ contract DeployV2Script is Script, Test {
     );
 
     // --------------------------------------------------
-    // STEP 6: Initialize LiquidityManager
+    // STEP 6: Initialize LiquidityManager & PortfolioManager
     // --------------------------------------------------
     liquidityManager.syncModules();
     require(liquidityManager.custodyVault() == address(vault), 'LiquidityManager sync failed');
+    portfolioManager.syncModules();
 
     // --------------------------------------------------
     // STEP 4: Configure Oracle (ChainlinkOracleProvider)

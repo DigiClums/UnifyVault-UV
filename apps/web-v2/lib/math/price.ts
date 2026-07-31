@@ -13,8 +13,7 @@ export function calculateAssetUSDValue(
   assetDecimals: number,
   normalizedPrice18: bigint,
 ): number {
-  if (balanceRaw === 0n || normalizedPrice18 === 0n) return 0;
-  const balanceNorm = Number(formatUnits(balanceRaw, assetDecimals));
-  const priceNorm = Number(formatUnits(normalizedPrice18, 18));
-  return balanceNorm * priceNorm;
+  if (balanceRaw <= 0n || normalizedPrice18 <= 0n || assetDecimals < 0) return 0;
+  const usdValue18 = (balanceRaw * normalizedPrice18) / 10n ** BigInt(assetDecimals);
+  return Number(usdValue18) / 1e18;
 }

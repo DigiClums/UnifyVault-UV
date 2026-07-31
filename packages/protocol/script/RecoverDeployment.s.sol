@@ -10,6 +10,7 @@ import '../src/swap/SwapAdapter.sol';
 import '../src/controller/UnifyVaultController.sol';
 import '../src/vault/CustodyVault.sol';
 import '../src/token/UVBTCETHToken.sol';
+import '../src/treasury/FeeManager.sol';
 import '../src/constants/ModuleIds.sol';
 
 interface ITestTreasury {
@@ -25,6 +26,7 @@ contract RecoverDeploymentScript is Script {
   address public constant TREASURY = 0x9A81A0917179769B8BaB5058F8a8625fC472e5D9;
   address public constant UVBTC_ETH_TOKEN = 0x7179B73F30ecC0F00cB6D8b1E72a0bB7C197f07e;
   address public constant MOCK_COLLATERAL = 0x9A52913A0CBDDd670B7C492733D21306Ba57416D;
+  // NOTE: DUMMY_ROUTER is a temporary mock address. SwapAdapter router must be updated via setRouter() prior to production swaps.
   address public constant DUMMY_ROUTER = 0x261F2B357410c707010b07590d05C00f5C345719;
 
   function run() external {
@@ -42,8 +44,9 @@ contract RecoverDeploymentScript is Script {
       UVBTC_ETH_TOKEN
     );
 
-    // 2. Deploy missing LiquidityManager
+    // 2. Deploy missing LiquidityManager and FeeManager
     LiquidityManager liquidityManager = new LiquidityManager(deployer, address(directory));
+    FeeManager feeManager = new FeeManager(TREASURY);
 
     // 3. Deploy missing SwapAdapter
     SwapAdapter swapAdapter = new SwapAdapter(deployer, DUMMY_ROUTER);
@@ -76,15 +79,17 @@ contract RecoverDeploymentScript is Script {
     UVBTCETHToken token = UVBTCETHToken(UVBTC_ETH_TOKEN);
     token.grantRole(token.CONTROLLER_ROLE(), address(controller));
 
-    // 7. Update or register all 5 modules in ProtocolDirectory
+    // 7. Update or register modules in ProtocolDirectory
     _registerOrUpdate(directory, ModuleIds.DEPOSIT_MANAGER, address(controller));
+    _registerOrUpdate(directory, ModuleIds.FEE_MANAGER, address(feeManager));
     _registerOrUpdate(directory, ModuleIds.LIQUIDITY_MANAGER, address(liquidityManager));
     _registerOrUpdate(directory, ModuleIds.STRATEGY_MANAGER, address(strategyManager));
     _registerOrUpdate(directory, ModuleIds.PORTFOLIO_MANAGER, address(portfolioManager));
     _registerOrUpdate(directory, ModuleIds.SWAP_ADAPTER, address(swapAdapter));
 
-    // 8. Sync modules on LiquidityManager
+    // 8. Sync modules on LiquidityManager and PortfolioManager
     liquidityManager.syncModules();
+    portfolioManager.syncModules();
 
     vm.stopBroadcast();
   }

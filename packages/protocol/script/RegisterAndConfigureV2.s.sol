@@ -21,6 +21,7 @@ contract RegisterAndConfigureV2Script is Script {
   address public constant CONTROLLER = 0x6cEb36711373ebf585499A2dd5e9084115AA7211;
   address public constant VAULT = 0x54696d5d00b58F27F9d8C358560ff2a7d10d409e;
   address public constant TREASURY = 0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D;
+  address public constant FEE_MANAGER = 0x1234567890123456789012345678901234567890;
   address public constant ORACLE = 0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635;
   address public constant TOKEN = 0xce9e6Cb560aC3EdB9a8164d68205c895265c5ce4;
   address public constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
@@ -35,6 +36,7 @@ contract RegisterAndConfigureV2Script is Script {
 
     console.log('=== REGISTERING CONTRACTS IN PROTOCOL DIRECTORY ===');
     _registerOrUpdate(dir, ModuleIds.TREASURY, TREASURY);
+    _registerOrUpdate(dir, ModuleIds.FEE_MANAGER, FEE_MANAGER);
     _registerOrUpdate(dir, ModuleIds.VAULT, VAULT);
     _registerOrUpdate(dir, ModuleIds.DEPOSIT_MANAGER, CONTROLLER);
     _registerOrUpdate(dir, ModuleIds.ORACLE, ORACLE);

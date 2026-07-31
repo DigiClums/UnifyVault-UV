@@ -37,7 +37,7 @@ contract UVBTCETHToken is ERC20, ERC20Permit, AccessControl, Pausable, IToken {
    * @param to The recipient address
    * @param amount The number of tokens to mint
    */
-  function mint(address to, uint256 amount) external onlyRole(CONTROLLER_ROLE) {
+  function mint(address to, uint256 amount) external onlyRole(CONTROLLER_ROLE) whenNotPaused {
     if (to == address(0)) {
       revert Errors.ZeroAddressDetected();
     }
@@ -53,7 +53,7 @@ contract UVBTCETHToken is ERC20, ERC20Permit, AccessControl, Pausable, IToken {
    * @param from The address whose tokens will be burned
    * @param amount The number of tokens to burn
    */
-  function burn(address from, uint256 amount) external onlyRole(CONTROLLER_ROLE) {
+  function burn(address from, uint256 amount) external onlyRole(CONTROLLER_ROLE) whenNotPaused {
     if (from == address(0)) {
       revert Errors.ZeroAddressDetected();
     }
@@ -61,6 +61,13 @@ contract UVBTCETHToken is ERC20, ERC20Permit, AccessControl, Pausable, IToken {
       revert InvalidAmount();
     }
     _burn(from, amount);
+  }
+
+  /**
+   * @notice Returns 18 decimal places for index share token
+   */
+  function decimals() public pure override returns (uint8) {
+    return 18;
   }
 
   /**

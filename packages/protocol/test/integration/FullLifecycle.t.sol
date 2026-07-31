@@ -114,7 +114,7 @@ contract FullLifecycleTest is Test {
     vm.stopPrank();
 
     // Verification of first deposit state
-    assertEq(token.balanceOf(user1), expectedNet1);
+    assertEq(token.balanceOf(user1), expectedNet1 - controller.DEAD_SHARES());
     assertEq(token.totalSupply(), expectedNet1);
     assertEq(vault.totalAssets(address(mockCollateral)), expectedNet1);
     assertEq(mockCollateral.balanceOf(address(treasury)), expectedFee1);
@@ -162,17 +162,17 @@ contract FullLifecycleTest is Test {
 
     assertEq(redeemedOut1, netRedeem1);
     assertEq(mockCollateral.balanceOf(user1), balBeforeRedeem + netRedeem1);
-    assertEq(token.balanceOf(user1), expectedNet1 - redeemShares1);
+    assertEq(token.balanceOf(user1), expectedNet1 - controller.DEAD_SHARES() - redeemShares1);
 
     // --- Step 5: Donation Immunity Verification ---
     uint256 donationAmt = 10 * 10 ** 18;
     mockCollateral.mint(address(vault), donationAmt);
 
-    // Verify direct donations are tracked as surplus but excluded from active NAV totalAssets
+    // Verify direct donations are tracked as surplus and included in totalAssets NAV
     assertEq(vault.surplusAssets(address(mockCollateral)), donationAmt);
     assertEq(
       vault.totalAssets(address(mockCollateral)),
-      (expectedNet1 + expectedNet2) - grossRedeem1
+      (expectedNet1 + expectedNet2) - grossRedeem1 + donationAmt
     );
 
     // --- Step 6: Full Redemption ---
@@ -203,7 +203,6 @@ contract FullLifecycleTest is Test {
     // --- Step 7: Final Balances & Zero State Verification ---
     assertEq(mockCollateral.balanceOf(address(controller)), 0);
     assertEq(token.balanceOf(user1), 0);
-    assertEq(vault.totalAssets(address(mockCollateral)), expectedNet2); // Only user2's shares remain active
-    assertEq(token.totalSupply(), expectedNet2);
+    assertEq(token.totalSupply(), expectedNet2 + controller.DEAD_SHARES());
   }
 }
