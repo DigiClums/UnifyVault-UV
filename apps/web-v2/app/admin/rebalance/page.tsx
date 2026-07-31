@@ -3,7 +3,11 @@
 import React, { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { PROTOCOL_DIRECTORY_ABI, STRATEGY_MANAGER_ABI } from '../../../lib/contracts';
+import {
+  PROTOCOL_DIRECTORY_ABI,
+  STRATEGY_MANAGER_ABI,
+  CONTROLLER_ABI,
+} from '../../../lib/contracts';
 import { FALLBACK_ADDRESSES, MODULE_IDS } from '../../../constants';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -23,19 +27,18 @@ import {
 export default function AdminRebalancePage() {
   const { holdings } = usePortfolio();
 
-  // 1. Resolve StrategyManager Contract Address from ProtocolDirectory
-  const { data: strategyManagerAddress } = useReadContract({
-    address: FALLBACK_ADDRESSES.DIRECTORY,
-    abi: PROTOCOL_DIRECTORY_ABI,
-    functionName: 'getModuleAddress',
-    args: [MODULE_IDS.STRATEGY_MANAGER],
+  // 1. Resolve StrategyManager Contract Address from Controller or Directory Fallback
+  const { data: controllerStrategyManager } = useReadContract({
+    address: FALLBACK_ADDRESSES.CONTROLLER,
+    abi: CONTROLLER_ABI,
+    functionName: 'strategyManager',
   });
 
   const activeStrategyManager =
-    strategyManagerAddress &&
-    strategyManagerAddress !== '0x0000000000000000000000000000000000000000'
-      ? (strategyManagerAddress as `0x${string}`)
-      : null;
+    (controllerStrategyManager &&
+    controllerStrategyManager !== '0x0000000000000000000000000000000000000000'
+      ? (controllerStrategyManager as `0x${string}`)
+      : FALLBACK_ADDRESSES.STRATEGY_MANAGER) || '0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0';
 
   // 2. Read Target Weights directly from StrategyManager
   const { data: targetWeightsData, refetch: refetchWeights } = useReadContract({
