@@ -55,9 +55,8 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
         <h2 className="text-2xl font-bold text-white tracking-tight">Connect Admin Wallet</h2>
         <p className="text-xs text-slate-400 max-w-md mt-2 mb-6">
           Please connect your Web3 wallet containing{' '}
-          <code className="text-purple-400 font-mono">GOVERNANCE_ROLE</code> or{' '}
-          <code className="text-purple-400 font-mono">DEFAULT_ADMIN_ROLE</code> permissions to
-          access protocol governance controls.
+          <code className="text-purple-400 font-mono">Admin Role</code> permissions to access
+          protocol governance controls.
         </p>
         <ConnectButton />
       </div>
@@ -68,7 +67,7 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
         <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mb-4" />
-        <p className="text-xs text-slate-400">Verifying on-chain governance permissions...</p>
+        <p className="text-xs text-slate-400">Verifying on-chain admin permissions...</p>
       </div>
     );
   }
@@ -83,9 +82,8 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
           <h2 className="text-2xl font-extrabold text-white tracking-tight">Access Denied</h2>
           <p className="text-xs text-slate-400 leading-relaxed">
             Connected account <code className="text-rose-400 font-mono">{address}</code> does not
-            possess <code className="text-purple-400 font-mono">DEFAULT_ADMIN_ROLE</code> or{' '}
-            <code className="text-purple-400 font-mono">GOVERNANCE_ROLE</code> on the protocol
-            contract suite.
+            possess authorized <code className="text-purple-400 font-mono">Admin Role</code>{' '}
+            permissions on the protocol contract suite.
           </p>
         </div>
 

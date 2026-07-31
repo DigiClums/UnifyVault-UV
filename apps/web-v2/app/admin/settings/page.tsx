@@ -374,7 +374,7 @@ export default function AdminSettingsPage() {
           {writeError && (
             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
-              <span>Transaction failed or requires GOVERNANCE_ROLE permission.</span>
+              <span>Transaction failed or requires Admin Role permission.</span>
             </div>
           )}
         </div>

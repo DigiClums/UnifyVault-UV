@@ -384,8 +384,8 @@ export default function TreasuryPage() {
             <span>Treasury Governance</span>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Only accounts with <code className="text-accent-blue font-mono">GOVERNANCE_ROLE</code>{' '}
-            can release fee revenue from Treasury.
+            Only accounts with <code className="text-accent-blue font-mono">Admin Role</code> can
+            release fee revenue from Treasury.
           </p>
 
           <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-3">

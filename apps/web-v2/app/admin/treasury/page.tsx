@@ -264,7 +264,7 @@ export default function AdminTreasuryPage() {
   const getFriendlyErrorMessage = (err: unknown): string => {
     if (!err) return '';
     console.error('[Developer Logs - Treasury Error]:', err);
-    return 'Treasury withdrawal is currently unavailable or requires authorized GOVERNANCE_ROLE permission.';
+    return 'Treasury withdrawal is currently unavailable or requires authorized Admin Role permission.';
   };
 
   return (
@@ -442,7 +442,7 @@ export default function AdminTreasuryPage() {
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">Governance Restricted</span>
               </div>
-              <span className="font-mono text-purple-400 font-bold">GOVERNANCE_ROLE Only</span>
+              <span className="font-mono text-purple-400 font-bold">Admin Role Only</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
