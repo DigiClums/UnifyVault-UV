@@ -24,7 +24,11 @@ contract MigrateGovernanceScript is Script {
     address addr;
   }
 
-  function run() external {
+  function simulate() external {
+    run();
+  }
+
+  function run() public {
     console.log('====================================================');
     console.log('UNIFYVAULT GOVERNANCE MIGRATION & VERIFICATION');
     console.log('New SafePal Admin:', NEW_GOVERNANCE_ADMIN);
@@ -53,6 +57,10 @@ contract MigrateGovernanceScript is Script {
           console.log('     [-] DEFAULT_ADMIN_ROLE grant failed');
         }
         vm.stopBroadcast();
+
+        if (!ac.hasRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN)) {
+          console.log('     [-] Verification failed: DEFAULT_ADMIN_ROLE not set on-chain');
+        }
       } else {
         console.log('  -> [SKIP] DEFAULT_ADMIN_ROLE already granted.');
       }
@@ -67,6 +75,10 @@ contract MigrateGovernanceScript is Script {
           console.log('     [-] GOVERNANCE_ROLE grant failed');
         }
         vm.stopBroadcast();
+
+        if (!ac.hasRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN)) {
+          console.log('     [-] Verification failed: GOVERNANCE_ROLE not set on-chain');
+        }
       } else {
         console.log('  -> [SKIP] GOVERNANCE_ROLE already granted.');
       }
@@ -81,6 +93,10 @@ contract MigrateGovernanceScript is Script {
           console.log('     [-] GUARDIAN_ROLE grant failed');
         }
         vm.stopBroadcast();
+
+        if (!ac.hasRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN)) {
+          console.log('     [-] Verification failed: GUARDIAN_ROLE not set on-chain');
+        }
       } else {
         console.log('  -> [SKIP] GUARDIAN_ROLE already granted.');
       }
