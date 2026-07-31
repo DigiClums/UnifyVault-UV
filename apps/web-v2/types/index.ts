@@ -38,8 +38,10 @@ export interface FormattedDepositQuote {
 
 export interface DashboardMetrics {
   totalPortfolioValueUSD: string;
+  totalVaultNAVUSD: string;
   navPerShareUSD: string;
   sharePriceUSD: string;
+  sharePriceNumber: number;
   investedAssetsUSD: string;
   currentValueUSD: string;
   pnlUSD: string;
@@ -70,6 +72,61 @@ export interface AssetHolding {
   valueUSD: string;
   weightBps: number;
   weightPercent: string;
+  targetWeightPercent?: string;
+  currentWeightPercent?: string;
+}
+
+/**
+ * Strategy target weight configuration metrics from StrategyManager contract.
+ */
+export interface StrategyMetrics {
+  targetBtcBps: number;
+  targetEthBps: number;
+  targetBtcPercent: string;
+  targetEthPercent: string;
+}
+
+/**
+ * Global Protocol Level Metrics (TVL, NAV, Share Price, Total Supply, Strategy Allocation).
+ */
+export interface ProtocolMetrics {
+  totalPortfolioValueUSD: string;
+  totalVaultNAVUSD: string;
+  totalPortfolioValueUSDNumber: number;
+  navPerShareUSD: string;
+  sharePriceUSD: string;
+  sharePriceNumber: number;
+  totalSharesRaw: bigint;
+  totalSharesFormatted: string;
+  targetBtcBps: number;
+  targetEthBps: number;
+  targetBtcPercent: string;
+  targetEthPercent: string;
+  custodyBtcPercent: string;
+  custodyEthPercent: string;
+  protocolHoldings: AssetHolding[];
+}
+
+/**
+ * User Specific Portfolio Metrics (Shares, Ownership, Holdings, PnL, Entry Price).
+ */
+export interface UserPortfolio {
+  userAddress?: `0x${string}`;
+  userSharesRaw: bigint;
+  userSharesBalance: string;
+  userUsdcBalanceRaw: bigint;
+  userUsdcBalanceFormatted: string;
+  investedAssetsUSD: string;
+  rawInvestedAssetsUSD: number;
+  currentValueUSD: string;
+  rawCurrentValueUSD: number;
+  pnlUSD: string;
+  rawPnLUSD: number;
+  pnlPercentage: string;
+  isProfitable: boolean;
+  averageEntryPriceUSD: string;
+  ownershipPercentage: string;
+  userHoldings: AssetHolding[];
 }
 
 export interface HistoricalNavPoint {

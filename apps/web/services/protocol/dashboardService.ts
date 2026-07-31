@@ -225,7 +225,6 @@ function getFallbackDashboardData(): DashboardData {
       portfolioManager: ZERO_ADDRESS as `0x${string}`,
       swapAdapter: ZERO_ADDRESS as `0x${string}`,
       liquidityManager: ZERO_ADDRESS as `0x${string}`,
-      costBasisManager: ZERO_ADDRESS as `0x${string}`,
     },
     TVL: { rawUsd: 0n, formattedUsd: '$0.00', usdValueNumber: 0 },
     NAV: {

@@ -51,7 +51,9 @@ contract MigrateGovernanceScript is Script {
       // 1. DEFAULT_ADMIN_ROLE Check & Grant
       if (!ac.hasRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN)) {
         console.log('  DEFAULT_ADMIN_ROLE: [GRANT] Missing. Broadcasting grantRole...');
-        vm.startBroadcast();
+        console.log('    [Pre-Broadcast] msg.sender:', msg.sender);
+        vm.startBroadcast(OLD_DEPLOYER_ADMIN);
+        console.log('    [Active Broadcast Sender] msg.sender:', msg.sender);
         try ac.grantRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN) {
           console.log('    [+] Executed grantRole(DEFAULT_ADMIN_ROLE)');
         } catch {
@@ -74,7 +76,9 @@ contract MigrateGovernanceScript is Script {
       // 2. GOVERNANCE_ROLE Check & Grant
       if (!ac.hasRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN)) {
         console.log('  GOVERNANCE_ROLE   : [GRANT] Missing. Broadcasting grantRole...');
-        vm.startBroadcast();
+        console.log('    [Pre-Broadcast] msg.sender:', msg.sender);
+        vm.startBroadcast(OLD_DEPLOYER_ADMIN);
+        console.log('    [Active Broadcast Sender] msg.sender:', msg.sender);
         try ac.grantRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN) {
           console.log('    [+] Executed grantRole(GOVERNANCE_ROLE)');
         } catch {
@@ -98,7 +102,9 @@ contract MigrateGovernanceScript is Script {
       if (targets[i].hasGuardianRole) {
         if (!ac.hasRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN)) {
           console.log('  GUARDIAN_ROLE     : [GRANT] Missing. Broadcasting grantRole...');
-          vm.startBroadcast();
+          console.log('    [Pre-Broadcast] msg.sender:', msg.sender);
+          vm.startBroadcast(OLD_DEPLOYER_ADMIN);
+          console.log('    [Active Broadcast Sender] msg.sender:', msg.sender);
           try ac.grantRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN) {
             console.log('    [+] Executed grantRole(GUARDIAN_ROLE)');
           } catch {
@@ -184,13 +190,14 @@ contract MigrateGovernanceScript is Script {
   }
 
   function getTargets() internal pure returns (TargetContract[] memory) {
-    TargetContract[] memory t = new TargetContract[](6);
+    TargetContract[] memory t = new TargetContract[](7);
     t[0] = TargetContract('ProtocolDirectory', 0xB5dd6d766867cB4c299AD2711068455C718EDDbc, false);
     t[1] = TargetContract('UnifyVaultController', 0x7EF5D93f83995228efFc63dbe513367a719f0633, true);
     t[2] = TargetContract('CustodyVault', 0x54696d5d00b58F27F9d8C358560ff2a7d10d409e, true);
     t[3] = TargetContract('Treasury', 0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D, true);
     t[4] = TargetContract('OracleManager', 0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635, false);
     t[5] = TargetContract('UVBTCETHToken', 0xce9e6Cb560aC3EdB9a8164d68205c895265c5ce4, true);
+    t[6] = TargetContract('StrategyManager', 0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0, false);
     return t;
   }
 

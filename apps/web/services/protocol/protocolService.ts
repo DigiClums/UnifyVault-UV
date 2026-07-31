@@ -263,10 +263,13 @@ export const ProtocolService = {
         functionName: 'balanceOf',
         args: [userAddress],
       });
-      if (addresses.costBasisManager && addresses.costBasisManager !== ZERO_ADDRESS) {
+      if (
+        (addresses as any).costBasisManager &&
+        (addresses as any).costBasisManager !== ZERO_ADDRESS
+      ) {
         userCostBasisIndex = batchCalls.length;
         batchCalls.push({
-          address: addresses.costBasisManager,
+          address: (addresses as any).costBasisManager,
           abi: COST_BASIS_MANAGER_ABI,
           functionName: 'costBasis',
           args: [userAddress],

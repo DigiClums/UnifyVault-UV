@@ -33,7 +33,6 @@ const fallbackAddresses: ResolvedProtocolAddresses = {
   portfolioManager: ZERO_ADDRESS as `0x${string}`,
   swapAdapter: ZERO_ADDRESS as `0x${string}`,
   liquidityManager: ZERO_ADDRESS as `0x${string}`,
-  costBasisManager: ZERO_ADDRESS as `0x${string}`,
 };
 
 export default function DashboardPage() {

@@ -32,12 +32,12 @@ export function MetricCards({ metrics }: MetricCardsProps) {
     },
     {
       title: 'Current NAV / Share Price',
-      value: metrics.navPerShareUSD,
-      change: '1 Share = ' + metrics.navPerShareUSD,
+      value: metrics.sharePriceUSD,
+      change: '1 Share = ' + metrics.sharePriceUSD,
       isPositive: true,
       icon: Activity,
       iconBg: 'bg-accent-violet/10 text-accent-violet',
-      source: 'On-chain: PortfolioManager.calculateNAV()',
+      source: 'On-chain: Total Vault NAV / Total Supply',
     },
     {
       title: 'Your Invested Capital',

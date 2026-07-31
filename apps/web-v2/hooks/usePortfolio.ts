@@ -1,223 +1,33 @@
 'use client';
 
-import { useAccount, useReadContracts } from 'wagmi';
-import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI, ERC20_ABI } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
-import { calculateAssetUSDValue, formatUSD, formatUnits } from '../lib/math';
-import { AssetHolding, HistoricalNavPoint } from '../types';
-import { useHistoricalNAV } from './useIndexerData';
+import { useUnifiedProtocolData } from './useUnifiedProtocolData';
 
 /**
- * Strictly Read-Only Protocol Data from Deployed Contracts
- * Provides unified calculations for both User Pro-Rata Share Holdings and Protocol Custody Reserve
+ * Phase 12 Architecture: Wrapper around unified protocol data hook
+ * Eliminates duplicate calculations and enforces 100% data identity with Dashboard.
  */
 export function usePortfolio() {
-  const { address: userAddress } = useAccount();
-
-  const { data, isLoading } = useReadContracts({
-    contracts: [
-      // 0. Vault total WBTC
-      {
-        address: FALLBACK_ADDRESSES.VAULT,
-        abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.WBTC],
-      },
-      // 1. Vault total WETH
-      {
-        address: FALLBACK_ADDRESSES.VAULT,
-        abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.WETH],
-      },
-      // 2. Vault total USDC
-      {
-        address: FALLBACK_ADDRESSES.VAULT,
-        abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.USDC],
-      },
-      // 3. Oracle Price WBTC (from OracleManager)
-      {
-        address: FALLBACK_ADDRESSES.ORACLE,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
-      },
-      // 4. Oracle Price WETH (from OracleManager)
-      {
-        address: FALLBACK_ADDRESSES.ORACLE,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
-      },
-      // 5. Oracle Price USDC (from OracleManager)
-      {
-        address: FALLBACK_ADDRESSES.ORACLE,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.USDC],
-      },
-      // 6. Token Total Supply (Shares)
-      {
-        address: FALLBACK_ADDRESSES.TOKEN,
-        abi: ERC20_ABI,
-        functionName: 'totalSupply',
-      },
-      // 7. Connected User Shares Balance
-      {
-        address: FALLBACK_ADDRESSES.TOKEN,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: userAddress ? [userAddress] : undefined,
-      },
-    ],
-    query: {
-      refetchInterval: 5_000,
-    },
-  });
-
-  const wbtcBal = (data?.[0]?.result as bigint) || 0n;
-  const wethBal = (data?.[1]?.result as bigint) || 0n;
-  const usdcBal = (data?.[2]?.result as bigint) || 0n;
-
-  // Read prices directly from OracleManager contract
-  const priceWBTC = (data?.[3]?.result as bigint) || 0n;
-  const priceWETH = (data?.[4]?.result as bigint) || 0n;
-  const priceUSDC = (data?.[5]?.result as bigint) || 1_000_000_000_000_000_000n; // $1.00
-
-  const totalSharesRaw = (data?.[6]?.result as bigint) || 0n;
-  const userSharesRaw = (data?.[7]?.result as bigint) || 0n;
-
-  const wbtcUSD = calculateAssetUSDValue(wbtcBal, 8, priceWBTC);
-  const wethUSD = calculateAssetUSDValue(wethBal, 18, priceWETH);
-  const usdcUSD = calculateAssetUSDValue(usdcBal, 6, priceUSDC);
-
-  const totalPortfolioUSD = wbtcUSD + wethUSD + usdcUSD;
-  const totalSharesNumber = Number(formatUnits(totalSharesRaw, 18));
-  const userSharesNumber = Number(formatUnits(userSharesRaw, 18));
-
-  // User ownership ratio of protocol pool
-  const userOwnershipRatio =
-    totalSharesNumber > 0 && userSharesNumber > 0 ? userSharesNumber / totalSharesNumber : 0;
-
-  // Pro-rata user underlying asset balances
-  const userWbtcBalRaw = totalSharesRaw > 0n ? (wbtcBal * userSharesRaw) / totalSharesRaw : 0n;
-  const userWethBalRaw = totalSharesRaw > 0n ? (wethBal * userSharesRaw) / totalSharesRaw : 0n;
-  const userUsdcBalRaw = totalSharesRaw > 0n ? (usdcBal * userSharesRaw) / totalSharesRaw : 0n;
-
-  const userWbtcUSD = wbtcUSD * userOwnershipRatio;
-  const userWethUSD = wethUSD * userOwnershipRatio;
-  const userUsdcUSD = usdcUSD * userOwnershipRatio;
-  const userTotalUSD = totalPortfolioUSD * userOwnershipRatio;
-
-  // Dynamic NAV per Share = Total Portfolio USD Value / Total Shares (or Genesis $1.00)
-  const currentNavUSD =
-    totalSharesNumber > 0 && totalPortfolioUSD > 0 ? totalPortfolioUSD / totalSharesNumber : 1.0;
-
-  // Protocol-Wide Custody Vault Holdings (Total Inventory)
-  const holdings: AssetHolding[] = [
-    {
-      symbol: 'BTC',
-      name: 'Wrapped Bitcoin',
-      address: FALLBACK_ADDRESSES.WBTC,
-      decimals: 8,
-      balanceRaw: wbtcBal,
-      balanceFormatted: formatUnits(wbtcBal, 8),
-      priceUSD: formatUSD(Number(formatUnits(priceWBTC, 18))),
-      valueUSD: formatUSD(wbtcUSD),
-      weightBps: totalPortfolioUSD > 0 ? Math.round((wbtcUSD / totalPortfolioUSD) * 10000) : 0,
-      weightPercent:
-        totalPortfolioUSD > 0 ? `${((wbtcUSD / totalPortfolioUSD) * 100).toFixed(1)}%` : '0.0%',
-    },
-    {
-      symbol: 'ETH',
-      name: 'Wrapped Ether',
-      address: FALLBACK_ADDRESSES.WETH,
-      decimals: 18,
-      balanceRaw: wethBal,
-      balanceFormatted: formatUnits(wethBal, 18),
-      priceUSD: formatUSD(Number(formatUnits(priceWETH, 18))),
-      valueUSD: formatUSD(wethUSD),
-      weightBps: totalPortfolioUSD > 0 ? Math.round((wethUSD / totalPortfolioUSD) * 10000) : 0,
-      weightPercent:
-        totalPortfolioUSD > 0 ? `${((wethUSD / totalPortfolioUSD) * 100).toFixed(1)}%` : '0.0%',
-    },
-    {
-      symbol: 'USDC',
-      name: 'USD Coin (Reserve)',
-      address: FALLBACK_ADDRESSES.USDC,
-      decimals: 6,
-      balanceRaw: usdcBal,
-      balanceFormatted: formatUnits(usdcBal, 6),
-      priceUSD: formatUSD(Number(formatUnits(priceUSDC, 18))),
-      valueUSD: formatUSD(usdcUSD),
-      weightBps: totalPortfolioUSD > 0 ? Math.round((usdcUSD / totalPortfolioUSD) * 10000) : 0,
-      weightPercent:
-        totalPortfolioUSD > 0 ? `${((usdcUSD / totalPortfolioUSD) * 100).toFixed(1)}%` : '0.0%',
-    },
-  ];
-
-  // Connected User's Pro-Rata Personal Share Holdings
-  const userHoldings: AssetHolding[] = [
-    {
-      symbol: 'BTC',
-      name: 'Wrapped Bitcoin',
-      address: FALLBACK_ADDRESSES.WBTC,
-      decimals: 8,
-      balanceRaw: userWbtcBalRaw,
-      balanceFormatted: formatUnits(userWbtcBalRaw, 8),
-      priceUSD: formatUSD(Number(formatUnits(priceWBTC, 18))),
-      valueUSD: formatUSD(userWbtcUSD),
-      weightBps: userTotalUSD > 0 ? Math.round((userWbtcUSD / userTotalUSD) * 10000) : 0,
-      weightPercent:
-        userTotalUSD > 0 ? `${((userWbtcUSD / userTotalUSD) * 100).toFixed(1)}%` : '0.0%',
-    },
-    {
-      symbol: 'ETH',
-      name: 'Wrapped Ether',
-      address: FALLBACK_ADDRESSES.WETH,
-      decimals: 18,
-      balanceRaw: userWethBalRaw,
-      balanceFormatted: formatUnits(userWethBalRaw, 18),
-      priceUSD: formatUSD(Number(formatUnits(priceWETH, 18))),
-      valueUSD: formatUSD(userWethUSD),
-      weightBps: userTotalUSD > 0 ? Math.round((userWethUSD / userTotalUSD) * 10000) : 0,
-      weightPercent:
-        userTotalUSD > 0 ? `${((userWethUSD / userTotalUSD) * 100).toFixed(1)}%` : '0.0%',
-    },
-    {
-      symbol: 'USDC',
-      name: 'USD Coin (Reserve)',
-      address: FALLBACK_ADDRESSES.USDC,
-      decimals: 6,
-      balanceRaw: userUsdcBalRaw,
-      balanceFormatted: formatUnits(userUsdcBalRaw, 6),
-      priceUSD: formatUSD(Number(formatUnits(priceUSDC, 18))),
-      valueUSD: formatUSD(userUsdcUSD),
-      weightBps: userTotalUSD > 0 ? Math.round((userUsdcUSD / userTotalUSD) * 10000) : 0,
-      weightPercent:
-        userTotalUSD > 0 ? `${((userUsdcUSD / userTotalUSD) * 100).toFixed(1)}%` : '0.0%',
-    },
-  ];
-
-  const { navHistory } = useHistoricalNAV('ALL');
-  const historicalNAV: HistoricalNavPoint[] = (navHistory || []).map((point) => ({
-    timestamp: point.timestamp,
-    navUSD: point.nav || point.sharePrice || 1.0,
-    portfolioValueUSD: point.totalAssets || 0,
-  }));
+  const data = useUnifiedProtocolData();
 
   return {
-    holdings,
-    userHoldings,
-    totalPortfolioUSD: formatUSD(totalPortfolioUSD),
-    userTotalUSD: formatUSD(userTotalUSD),
-    userSharesRaw,
-    userSharesFormatted: formatUnits(userSharesRaw, 18),
-    navUSD: currentNavUSD,
-    navUSDFormatted: formatUSD(currentNavUSD),
-    historicalNAV,
-    isLoading,
+    holdings: data.protocolHoldings,
+    userHoldings: data.userHoldings,
+    totalPortfolioUSD: data.totalPortfolioValueUSD,
+    userTotalUSD: formatUSDNumber(data.rawCurrentValueUSD),
+    userSharesRaw: data.userSharesRaw,
+    userSharesFormatted: data.userSharesBalance,
+    navUSD: data.sharePriceNumber ?? 1.0,
+    navUSDFormatted: data.navPerShareUSD,
+    historicalNAV: data.historicalNAV,
+    isLoading: data.isLoading,
   };
+}
+
+function formatUSDNumber(val: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(val);
 }

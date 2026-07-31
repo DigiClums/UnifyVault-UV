@@ -141,13 +141,14 @@ export function HoldingsTable() {
               </th>
               <th className="py-3.5 px-3">USD Valuation</th>
               <th className="py-3.5 px-3">Target Weight</th>
+              <th className="py-3.5 px-3">Current Weight</th>
               <th className="py-3.5 px-3 text-right">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle/40 font-mono">
             {isLoading ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <TableSkeleton rows={3} />
                 </td>
               </tr>
@@ -166,7 +167,12 @@ export function HoldingsTable() {
                     {asset.balanceFormatted} {asset.symbol}
                   </td>
                   <td className="py-4 px-3 font-bold text-emerald-400">{asset.valueUSD}</td>
-                  <td className="py-4 px-3 text-accent-blue font-bold">{asset.weightPercent}</td>
+                  <td className="py-4 px-3 text-slate-400 font-semibold">
+                    {asset.targetWeightPercent || '0.0%'}
+                  </td>
+                  <td className="py-4 px-3 text-accent-blue font-bold">
+                    {asset.currentWeightPercent || asset.weightPercent}
+                  </td>
                   <td className="py-4 px-3 text-right font-sans">
                     <StatusBadge
                       status="Healthy"
