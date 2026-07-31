@@ -1,6 +1,6 @@
 'use client';
 
-import { useReadContracts } from 'wagmi';
+import { useAccount, useReadContracts } from 'wagmi';
 import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI, ERC20_ABI } from '../lib/contracts';
 import { FALLBACK_ADDRESSES } from '../constants';
 import { calculateAssetUSDValue, formatUSD, formatUnits } from '../lib/math';
@@ -9,8 +9,11 @@ import { useHistoricalNAV } from './useIndexerData';
 
 /**
  * Strictly Read-Only Protocol Data from Deployed Contracts
+ * Provides unified calculations for both User Pro-Rata Share Holdings and Protocol Custody Reserve
  */
 export function usePortfolio() {
+  const { address: userAddress } = useAccount();
+
   const { data, isLoading } = useReadContracts({
     contracts: [
       // 0. Vault total WBTC
@@ -61,6 +64,13 @@ export function usePortfolio() {
         abi: ERC20_ABI,
         functionName: 'totalSupply',
       },
+      // 7. Connected User Shares Balance
+      {
+        address: FALLBACK_ADDRESSES.TOKEN,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: userAddress ? [userAddress] : undefined,
+      },
     ],
     query: {
       refetchInterval: 5_000,
@@ -77,6 +87,7 @@ export function usePortfolio() {
   const priceUSDC = (data?.[5]?.result as bigint) || 1_000_000_000_000_000_000n; // $1.00
 
   const totalSharesRaw = (data?.[6]?.result as bigint) || 0n;
+  const userSharesRaw = (data?.[7]?.result as bigint) || 0n;
 
   const wbtcUSD = calculateAssetUSDValue(wbtcBal, 8, priceWBTC);
   const wethUSD = calculateAssetUSDValue(wethBal, 18, priceWETH);
@@ -84,11 +95,27 @@ export function usePortfolio() {
 
   const totalPortfolioUSD = wbtcUSD + wethUSD + usdcUSD;
   const totalSharesNumber = Number(formatUnits(totalSharesRaw, 18));
+  const userSharesNumber = Number(formatUnits(userSharesRaw, 18));
+
+  // User ownership ratio of protocol pool
+  const userOwnershipRatio =
+    totalSharesNumber > 0 && userSharesNumber > 0 ? userSharesNumber / totalSharesNumber : 0;
+
+  // Pro-rata user underlying asset balances
+  const userWbtcBalRaw = totalSharesRaw > 0n ? (wbtcBal * userSharesRaw) / totalSharesRaw : 0n;
+  const userWethBalRaw = totalSharesRaw > 0n ? (wethBal * userSharesRaw) / totalSharesRaw : 0n;
+  const userUsdcBalRaw = totalSharesRaw > 0n ? (usdcBal * userSharesRaw) / totalSharesRaw : 0n;
+
+  const userWbtcUSD = wbtcUSD * userOwnershipRatio;
+  const userWethUSD = wethUSD * userOwnershipRatio;
+  const userUsdcUSD = usdcUSD * userOwnershipRatio;
+  const userTotalUSD = totalPortfolioUSD * userOwnershipRatio;
 
   // Dynamic NAV per Share = Total Portfolio USD Value / Total Shares (or Genesis $1.00)
   const currentNavUSD =
     totalSharesNumber > 0 && totalPortfolioUSD > 0 ? totalPortfolioUSD / totalSharesNumber : 1.0;
 
+  // Protocol-Wide Custody Vault Holdings (Total Inventory)
   const holdings: AssetHolding[] = [
     {
       symbol: 'BTC',
@@ -131,6 +158,49 @@ export function usePortfolio() {
     },
   ];
 
+  // Connected User's Pro-Rata Personal Share Holdings
+  const userHoldings: AssetHolding[] = [
+    {
+      symbol: 'BTC',
+      name: 'Wrapped Bitcoin',
+      address: FALLBACK_ADDRESSES.WBTC,
+      decimals: 8,
+      balanceRaw: userWbtcBalRaw,
+      balanceFormatted: formatUnits(userWbtcBalRaw, 8),
+      priceUSD: formatUSD(Number(formatUnits(priceWBTC, 18))),
+      valueUSD: formatUSD(userWbtcUSD),
+      weightBps: userTotalUSD > 0 ? Math.round((userWbtcUSD / userTotalUSD) * 10000) : 0,
+      weightPercent:
+        userTotalUSD > 0 ? `${((userWbtcUSD / userTotalUSD) * 100).toFixed(1)}%` : '0.0%',
+    },
+    {
+      symbol: 'ETH',
+      name: 'Wrapped Ether',
+      address: FALLBACK_ADDRESSES.WETH,
+      decimals: 18,
+      balanceRaw: userWethBalRaw,
+      balanceFormatted: formatUnits(userWethBalRaw, 18),
+      priceUSD: formatUSD(Number(formatUnits(priceWETH, 18))),
+      valueUSD: formatUSD(userWethUSD),
+      weightBps: userTotalUSD > 0 ? Math.round((userWethUSD / userTotalUSD) * 10000) : 0,
+      weightPercent:
+        userTotalUSD > 0 ? `${((userWethUSD / userTotalUSD) * 100).toFixed(1)}%` : '0.0%',
+    },
+    {
+      symbol: 'USDC',
+      name: 'USD Coin (Reserve)',
+      address: FALLBACK_ADDRESSES.USDC,
+      decimals: 6,
+      balanceRaw: userUsdcBalRaw,
+      balanceFormatted: formatUnits(userUsdcBalRaw, 6),
+      priceUSD: formatUSD(Number(formatUnits(priceUSDC, 18))),
+      valueUSD: formatUSD(userUsdcUSD),
+      weightBps: userTotalUSD > 0 ? Math.round((userUsdcUSD / userTotalUSD) * 10000) : 0,
+      weightPercent:
+        userTotalUSD > 0 ? `${((userUsdcUSD / userTotalUSD) * 100).toFixed(1)}%` : '0.0%',
+    },
+  ];
+
   const { navHistory } = useHistoricalNAV('ALL');
   const historicalNAV: HistoricalNavPoint[] = (navHistory || []).map((point) => ({
     timestamp: point.timestamp,
@@ -140,7 +210,11 @@ export function usePortfolio() {
 
   return {
     holdings,
+    userHoldings,
     totalPortfolioUSD: formatUSD(totalPortfolioUSD),
+    userTotalUSD: formatUSD(userTotalUSD),
+    userSharesRaw,
+    userSharesFormatted: formatUnits(userSharesRaw, 18),
     navUSD: currentNavUSD,
     navUSDFormatted: formatUSD(currentNavUSD),
     historicalNAV,
