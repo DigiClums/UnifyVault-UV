@@ -2,6 +2,9 @@ import { baseSepolia, base } from 'viem/chains';
 
 export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base-sepolia';
 
+export const ADMIN_ADDRESS = (process.env.NEXT_PUBLIC_ADMIN_ADDRESS ||
+  '0xd905920c91853039060246Ed5724AA72B91a96DA') as `0x${string}`;
+
 export const APP_DOMAIN = 'https://app.unifyvault.xyz';
 
 export const CHAIN_CONFIG = ACTIVE_CHAIN_NAME === 'base' ? base : baseSepolia;

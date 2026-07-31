@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { TREASURY_ABI } from '../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../constants';
+import { FALLBACK_ADDRESSES, ADMIN_ADDRESS } from '../../constants';
 import { ShieldAlert, Lock, Wallet, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -42,7 +42,7 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
   });
 
   // Check optional env override or rely on on-chain AccessControl role
-  const envAdmin = process.env.NEXT_PUBLIC_ADMIN_ADDRESS?.toLowerCase();
+  const envAdmin = (process.env.NEXT_PUBLIC_ADMIN_ADDRESS || ADMIN_ADDRESS).toLowerCase();
   const isEnvAdmin = !!(address && envAdmin && address.toLowerCase() === envAdmin);
   const isAdmin = (isAdminRole as boolean) || isEnvAdmin;
 
