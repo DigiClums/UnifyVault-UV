@@ -54,7 +54,7 @@ contract RenounceOldAdminScript is Script {
       );
     }
 
-    vm.startBroadcast();
+    vm.startBroadcast(config.oldAdmin);
 
     for (uint256 i = 0; i < config.contracts.length; i++) {
       TargetContract memory item = config.contracts[i];
@@ -71,8 +71,11 @@ contract RenounceOldAdminScript is Script {
           config.oldAdmin
         )
       ) {
-        target.renounceRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, config.oldAdmin);
-        console.log('  [-] Renounced: DEFAULT_ADMIN_ROLE');
+        try target.renounceRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, config.oldAdmin) {
+          console.log('  [-] Renounced: DEFAULT_ADMIN_ROLE');
+        } catch {
+          console.log('  [!] Renounce skipped/failed: DEFAULT_ADMIN_ROLE');
+        }
       }
 
       // Renounce GOVERNANCE_ROLE if held
@@ -83,8 +86,11 @@ contract RenounceOldAdminScript is Script {
           config.oldAdmin
         )
       ) {
-        target.renounceRole(GovernanceMigrationHelper.GOVERNANCE_ROLE, config.oldAdmin);
-        console.log('  [-] Renounced: GOVERNANCE_ROLE');
+        try target.renounceRole(GovernanceMigrationHelper.GOVERNANCE_ROLE, config.oldAdmin) {
+          console.log('  [-] Renounced: GOVERNANCE_ROLE');
+        } catch {
+          console.log('  [!] Renounce skipped/failed: GOVERNANCE_ROLE');
+        }
       }
 
       // Renounce GUARDIAN_ROLE if held
@@ -95,8 +101,41 @@ contract RenounceOldAdminScript is Script {
           config.oldAdmin
         )
       ) {
-        target.renounceRole(GovernanceMigrationHelper.GUARDIAN_ROLE, config.oldAdmin);
-        console.log('  [-] Renounced: GUARDIAN_ROLE');
+        try target.renounceRole(GovernanceMigrationHelper.GUARDIAN_ROLE, config.oldAdmin) {
+          console.log('  [-] Renounced: GUARDIAN_ROLE');
+        } catch {
+          console.log('  [!] Renounce skipped/failed: GUARDIAN_ROLE');
+        }
+      }
+
+      // Renounce CONTROLLER_ROLE if held
+      if (
+        GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.CONTROLLER_ROLE,
+          config.oldAdmin
+        )
+      ) {
+        try target.renounceRole(GovernanceMigrationHelper.CONTROLLER_ROLE, config.oldAdmin) {
+          console.log('  [-] Renounced: CONTROLLER_ROLE');
+        } catch {
+          console.log('  [!] Renounce skipped/failed: CONTROLLER_ROLE');
+        }
+      }
+
+      // Renounce BOT_ROLE if held
+      if (
+        GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.BOT_ROLE,
+          config.oldAdmin
+        )
+      ) {
+        try target.renounceRole(GovernanceMigrationHelper.BOT_ROLE, config.oldAdmin) {
+          console.log('  [-] Renounced: BOT_ROLE');
+        } catch {
+          console.log('  [!] Renounce skipped/failed: BOT_ROLE');
+        }
       }
 
       // Verify old admin has no privileged roles remaining
@@ -113,6 +152,16 @@ contract RenounceOldAdminScript is Script {
       bool oldAdminHasGuardian = GovernanceMigrationHelper.checkRole(
         item.addr,
         GovernanceMigrationHelper.GUARDIAN_ROLE,
+        config.oldAdmin
+      );
+      bool oldAdminHasController = GovernanceMigrationHelper.checkRole(
+        item.addr,
+        GovernanceMigrationHelper.CONTROLLER_ROLE,
+        config.oldAdmin
+      );
+      bool oldAdminHasBot = GovernanceMigrationHelper.checkRole(
+        item.addr,
+        GovernanceMigrationHelper.BOT_ROLE,
         config.oldAdmin
       );
 
@@ -134,6 +183,20 @@ contract RenounceOldAdminScript is Script {
         !oldAdminHasGuardian,
         string.concat(
           'Post-renounce check failed: oldAdmin still holds GUARDIAN_ROLE on ',
+          item.name
+        )
+      );
+      require(
+        !oldAdminHasController,
+        string.concat(
+          'Post-renounce check failed: oldAdmin still holds CONTROLLER_ROLE on ',
+          item.name
+        )
+      );
+      require(
+        !oldAdminHasBot,
+        string.concat(
+          'Post-renounce check failed: oldAdmin still holds BOT_ROLE on ',
           item.name
         )
       );

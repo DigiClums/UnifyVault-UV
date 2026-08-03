@@ -59,4 +59,17 @@ describe('ThemeToggle Component', () => {
 
     expect(mockSetTheme).toHaveBeenCalledWith('dark');
   });
+
+  it('opens theme options menu and selects system mode', async () => {
+    renderWithProviders(<ThemeToggle />);
+    const menuButton = screen.getByRole('button', { name: /theme options menu/i });
+
+    await userEvent.click(menuButton);
+    const systemOption = screen.getByRole('button', { name: /system/i });
+    expect(systemOption).toBeInTheDocument();
+
+    await userEvent.click(systemOption);
+    expect(mockSetTheme).toHaveBeenCalledWith('system');
+  });
 });
+

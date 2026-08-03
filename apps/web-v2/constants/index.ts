@@ -22,7 +22,7 @@ export const PROTOCOL_DIRECTORY_ADDRESS = (
       '0xB5dd6d766867cB4c299AD2711068455C718EDDbc'
 ) as `0x${string}`;
 
-// Deployed Base Sepolia V2 Suite Addresses (Verified Live)
+// Deployed Base Sepolia V2 & Base Mainnet Suite Addresses
 export const FALLBACK_ADDRESSES = {
   DIRECTORY: PROTOCOL_DIRECTORY_ADDRESS,
   CONTROLLER: '0x7EF5D93f83995228efFc63dbe513367a719f0633' as `0x${string}`,
@@ -32,9 +32,15 @@ export const FALLBACK_ADDRESSES = {
   TOKEN: '0xce9e6Cb560aC3EdB9a8164d68205c895265c5ce4' as `0x${string}`,
   COST_BASIS: '0x0000000000000000000000000000000000000000' as `0x${string}`,
   STRATEGY_MANAGER: '0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0' as `0x${string}`,
-  USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as `0x${string}`,
-  WBTC: '0xc83D0A904E1103d8144E9DF93cdb5bC05f7cdee6' as `0x${string}`,
-  WETH: '0xEEAa69Db6046f026d88004d0D6946518071bA15c' as `0x${string}`,
+  USDC: (ACTIVE_CHAIN_NAME === 'base'
+    ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+    : '0x036CbD53842c5426634e7929541eC2318f3dCF7e') as `0x${string}`,
+  WBTC: (ACTIVE_CHAIN_NAME === 'base'
+    ? '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+    : '0xc83D0A904E1103d8144E9DF93cdb5bC05f7cdee6') as `0x${string}`,
+  WETH: (ACTIVE_CHAIN_NAME === 'base'
+    ? '0x4200000000000000000000000000000000000006'
+    : '0xEEAa69Db6046f026d88004d0D6946518071bA15c') as `0x${string}`,
 };
 
 export const MODULE_IDS = {

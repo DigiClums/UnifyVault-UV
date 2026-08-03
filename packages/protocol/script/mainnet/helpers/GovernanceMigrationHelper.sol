@@ -20,6 +20,7 @@ interface VmExt {
     string calldata defaultValue
   ) external view returns (string memory);
   function envOr(string calldata key, bool defaultValue) external view returns (bool);
+  function parseAddress(string calldata stringifiedAddress) external pure returns (address);
 }
 
 struct TargetContract {
@@ -40,6 +41,8 @@ library GovernanceMigrationHelper {
     0x0000000000000000000000000000000000000000000000000000000000000000;
   bytes32 public constant GOVERNANCE_ROLE = keccak256('GOVERNANCE_ROLE');
   bytes32 public constant GUARDIAN_ROLE = keccak256('GUARDIAN_ROLE');
+  bytes32 public constant CONTROLLER_ROLE = keccak256('CONTROLLER_ROLE');
+  bytes32 public constant BOT_ROLE = keccak256('BOT_ROLE');
 
   function loadConfig(address vmAddr) internal view returns (MigrationConfig memory config) {
     VmExt vm = VmExt(vmAddr);
@@ -59,11 +62,12 @@ library GovernanceMigrationHelper {
       }
     } catch {}
 
-    string[10] memory names = [
+    string[11] memory names = [
       'ProtocolDirectory',
       'UnifyVaultController',
       'CustodyVault',
       'Treasury',
+      'FeeManager',
       'OracleManager',
       'UVBTCETHToken',
       'LiquidityManager',

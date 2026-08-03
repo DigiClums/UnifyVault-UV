@@ -115,9 +115,16 @@ contract GovernanceMigrationTest is Test {
   function test_FullScriptMigration() public {
     address broadcaster = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
 
-    // Grant DEFAULT_ADMIN_ROLE to broadcaster on vault and treasury
+    // Grant roles to broadcaster on vault and treasury
     vault.grantRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, broadcaster);
+    vault.grantRole(GovernanceMigrationHelper.GOVERNANCE_ROLE, broadcaster);
+    vault.grantRole(GovernanceMigrationHelper.GUARDIAN_ROLE, broadcaster);
+    vault.grantRole(GovernanceMigrationHelper.CONTROLLER_ROLE, broadcaster);
+
     treasury.grantRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, broadcaster);
+    treasury.grantRole(GovernanceMigrationHelper.GOVERNANCE_ROLE, broadcaster);
+    treasury.grantRole(GovernanceMigrationHelper.GUARDIAN_ROLE, broadcaster);
+    treasury.grantRole(GovernanceMigrationHelper.CONTROLLER_ROLE, broadcaster);
 
     string memory json = string.concat(
       '{"newAdmin":"',
@@ -142,17 +149,25 @@ contract GovernanceMigrationTest is Test {
     GrantAdminRolesScript grantScript = new GrantAdminRolesScript();
     grantScript.run();
 
-    // Step 2: Verify Governance
-    VerifyGovernanceScript verifyScript = new VerifyGovernanceScript();
-    verifyScript.run();
-
-    // Step 3: Renounce Old Admin
+    // Step 2: Renounce Old Admin
     RenounceOldAdminScript renounceScript = new RenounceOldAdminScript();
     renounceScript.run();
 
-    // Verify post-renounce state
+    // Step 3: Verify Governance
+    VerifyGovernanceScript verifyScript = new VerifyGovernanceScript();
+    verifyScript.run();
+
+    // Verify post-renounce state: broadcaster owns ZERO roles
     assertFalse(vault.hasRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, broadcaster));
+    assertFalse(vault.hasRole(GovernanceMigrationHelper.GOVERNANCE_ROLE, broadcaster));
+    assertFalse(vault.hasRole(GovernanceMigrationHelper.GUARDIAN_ROLE, broadcaster));
+    assertFalse(vault.hasRole(GovernanceMigrationHelper.CONTROLLER_ROLE, broadcaster));
+
     assertFalse(treasury.hasRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, broadcaster));
+    assertFalse(treasury.hasRole(GovernanceMigrationHelper.GOVERNANCE_ROLE, broadcaster));
+    assertFalse(treasury.hasRole(GovernanceMigrationHelper.GUARDIAN_ROLE, broadcaster));
+    assertFalse(treasury.hasRole(GovernanceMigrationHelper.CONTROLLER_ROLE, broadcaster));
+
     assertTrue(vault.hasRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, newAdmin));
     assertTrue(treasury.hasRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, newAdmin));
 

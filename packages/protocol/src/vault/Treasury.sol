@@ -9,12 +9,14 @@ import '@openzeppelin/contracts/utils/Address.sol';
 import { Errors as ProtocolErrors } from '../errors/Errors.sol';
 import '../libraries/AccessRoles.sol';
 
+import '../interfaces/ITreasury.sol';
+
 /**
  * @title Treasury
  * @notice Vault for safeguarding protocol-owned assets and fee revenue
  * @dev Separate from CustodyVault. Passive contract that only manages collections, storage, and releases.
  */
-contract Treasury is AccessControl, ReentrancyGuard, Pausable {
+contract Treasury is ITreasury, AccessControl, ReentrancyGuard, Pausable {
   using SafeERC20 for IERC20;
 
   struct AssetConfig {

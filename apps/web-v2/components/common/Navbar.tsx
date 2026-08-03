@@ -57,7 +57,7 @@ export function Navbar() {
     },
   });
 
-  const envAdmin = process.env.NEXT_PUBLIC_ADMIN_ADDRESS?.toLowerCase();
+  const envAdmin = (process.env.NEXT_PUBLIC_ADMIN_ADDRESS || ADMIN_ADDRESS).toLowerCase();
   const isEnvAdmin = !!(address && envAdmin && address.toLowerCase() === envAdmin);
   const isAdmin = isConnected && ((isAdminRole as boolean) || isEnvAdmin);
 

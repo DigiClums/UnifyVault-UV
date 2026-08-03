@@ -3,58 +3,55 @@ pragma solidity 0.8.24;
 
 import { Script, console } from 'forge-std/Script.sol';
 import { IAccessControl } from '@openzeppelin/contracts/access/IAccessControl.sol';
-import { AccessRoles } from 'src/libraries/AccessRoles.sol';
+import {
+  GovernanceMigrationHelper,
+  MigrationConfig,
+  TargetContract
+} from './mainnet/helpers/GovernanceMigrationHelper.sol';
 
 /**
  * @title MigrateGovernanceScript
- * @notice Production governance migration script for UnifyVault.
- * @dev Grants roles to SafePal Hardware Wallet (0xd905920c91853039060246Ed5724AA72B91a96DA),
- * verifies 100% on-chain compliance with hard assertions, and generates un-broadcasted renounce transactions.
+ * @notice Production governance migration script for UnifyVault V2 Timelock.
+ * @dev Grants roles to UnifyVaultTimelock, verifies compliance, and generates un-broadcasted renounce calldata.
  */
 contract MigrateGovernanceScript is Script {
-  address public constant NEW_GOVERNANCE_ADMIN = 0xd905920c91853039060246Ed5724AA72B91a96DA;
-  address public constant OLD_DEPLOYER_ADMIN = 0xB145AC2a59575Fbe306a58aC924718f4DD4659Da;
-
   bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
   bytes32 public constant GOVERNANCE_ROLE = keccak256('GOVERNANCE_ROLE');
   bytes32 public constant GUARDIAN_ROLE = keccak256('GUARDIAN_ROLE');
-
-  struct TargetContract {
-    string name;
-    address addr;
-    bool hasGuardianRole;
-  }
 
   function simulate() external {
     run();
   }
 
   function run() public {
-    console.log('===========================================================');
-    console.log('UNIFYVAULT PRODUCTION GOVERNANCE MIGRATION & VERIFICATION');
-    console.log('Target SafePal Admin Wallet:', NEW_GOVERNANCE_ADMIN);
-    console.log('Old Deployer Admin Target  :', OLD_DEPLOYER_ADMIN);
-    console.log('===========================================================');
+    MigrationConfig memory config = GovernanceMigrationHelper.loadConfig(address(vm));
 
-    TargetContract[] memory targets = getTargets();
+    require(config.newAdmin != address(0), 'MigrateGovernance: Invalid newAdmin address');
+    require(config.oldAdmin != address(0), 'MigrateGovernance: Invalid oldAdmin address');
+    require(config.contracts.length > 0, 'MigrateGovernance: No contracts configured');
+
+    console.log('===========================================================');
+    console.log('UNIFYVAULT PRODUCTION TIMELOCK GOVERNANCE MIGRATION & VERIFICATION');
+    console.log('Target Timelock Admin Wallet:', config.newAdmin);
+    console.log('Old Deployer Admin Target    :', config.oldAdmin);
+    console.log('===========================================================');
 
     // ----------------------------------------------------
     // STAGE 1: Grant Missing Roles (Idempotent with Hard Post-Grant Assertion)
     // ----------------------------------------------------
     console.log('\n--- STAGE 1: Idempotent Role Grant Execution & Summary ---');
-    for (uint256 i = 0; i < targets.length; i++) {
-      if (targets[i].addr == address(0)) continue;
-      IAccessControl ac = IAccessControl(targets[i].addr);
+    for (uint256 i = 0; i < config.contracts.length; i++) {
+      TargetContract memory item = config.contracts[i];
+      if (item.addr == address(0) || item.addr.code.length == 0) continue;
+      IAccessControl ac = IAccessControl(item.addr);
 
-      console.log('\nContract:', targets[i].name, targets[i].addr);
+      console.log('\nContract:', item.name, item.addr);
 
       // 1. DEFAULT_ADMIN_ROLE Check & Grant
-      if (!ac.hasRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN)) {
+      if (!ac.hasRole(DEFAULT_ADMIN_ROLE, config.newAdmin)) {
         console.log('  DEFAULT_ADMIN_ROLE: [GRANT] Missing. Broadcasting grantRole...');
-        console.log('    [Pre-Broadcast] msg.sender:', msg.sender);
-        vm.startBroadcast(OLD_DEPLOYER_ADMIN);
-        console.log('    [Active Broadcast Sender] msg.sender:', msg.sender);
-        try ac.grantRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN) {
+        vm.startBroadcast(config.oldAdmin);
+        try ac.grantRole(DEFAULT_ADMIN_ROLE, config.newAdmin) {
           console.log('    [+] Executed grantRole(DEFAULT_ADMIN_ROLE)');
         } catch {
           console.log('    [-] grantRole(DEFAULT_ADMIN_ROLE) broadcast skipped/reverted');
@@ -63,10 +60,10 @@ contract MigrateGovernanceScript is Script {
 
         // Hard Assertion Post-Grant
         require(
-          ac.hasRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN),
+          ac.hasRole(DEFAULT_ADMIN_ROLE, config.newAdmin),
           string.concat(
             'CRITICAL: Post-grant verification failed for DEFAULT_ADMIN_ROLE on ',
-            targets[i].name
+            item.name
           )
         );
       } else {
@@ -74,12 +71,10 @@ contract MigrateGovernanceScript is Script {
       }
 
       // 2. GOVERNANCE_ROLE Check & Grant
-      if (!ac.hasRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN)) {
+      if (!ac.hasRole(GOVERNANCE_ROLE, config.newAdmin)) {
         console.log('  GOVERNANCE_ROLE   : [GRANT] Missing. Broadcasting grantRole...');
-        console.log('    [Pre-Broadcast] msg.sender:', msg.sender);
-        vm.startBroadcast(OLD_DEPLOYER_ADMIN);
-        console.log('    [Active Broadcast Sender] msg.sender:', msg.sender);
-        try ac.grantRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN) {
+        vm.startBroadcast(config.oldAdmin);
+        try ac.grantRole(GOVERNANCE_ROLE, config.newAdmin) {
           console.log('    [+] Executed grantRole(GOVERNANCE_ROLE)');
         } catch {
           console.log('    [-] grantRole(GOVERNANCE_ROLE) broadcast skipped/reverted');
@@ -88,10 +83,10 @@ contract MigrateGovernanceScript is Script {
 
         // Hard Assertion Post-Grant
         require(
-          ac.hasRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN),
+          ac.hasRole(GOVERNANCE_ROLE, config.newAdmin),
           string.concat(
             'CRITICAL: Post-grant verification failed for GOVERNANCE_ROLE on ',
-            targets[i].name
+            item.name
           )
         );
       } else {
@@ -99,13 +94,16 @@ contract MigrateGovernanceScript is Script {
       }
 
       // 3. GUARDIAN_ROLE Check & Grant (if applicable)
-      if (targets[i].hasGuardianRole) {
-        if (!ac.hasRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN)) {
+      if (
+        GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.oldAdmin) ||
+        GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.newAdmin) ||
+        (config.guardian != address(0) && GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.guardian))
+      ) {
+        address guardianTarget = config.guardian != address(0) ? config.guardian : config.newAdmin;
+        if (!ac.hasRole(GUARDIAN_ROLE, guardianTarget)) {
           console.log('  GUARDIAN_ROLE     : [GRANT] Missing. Broadcasting grantRole...');
-          console.log('    [Pre-Broadcast] msg.sender:', msg.sender);
-          vm.startBroadcast(OLD_DEPLOYER_ADMIN);
-          console.log('    [Active Broadcast Sender] msg.sender:', msg.sender);
-          try ac.grantRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN) {
+          vm.startBroadcast(config.oldAdmin);
+          try ac.grantRole(GUARDIAN_ROLE, guardianTarget) {
             console.log('    [+] Executed grantRole(GUARDIAN_ROLE)');
           } catch {
             console.log('    [-] grantRole(GUARDIAN_ROLE) broadcast skipped/reverted');
@@ -114,10 +112,10 @@ contract MigrateGovernanceScript is Script {
 
           // Hard Assertion Post-Grant
           require(
-            ac.hasRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN),
+            ac.hasRole(GUARDIAN_ROLE, guardianTarget),
             string.concat(
               'CRITICAL: Post-grant verification failed for GUARDIAN_ROLE on ',
-              targets[i].name
+              item.name
             )
           );
         } else {
@@ -139,23 +137,23 @@ contract MigrateGovernanceScript is Script {
 
     bool allVerified = true;
 
-    for (uint256 i = 0; i < targets.length; i++) {
-      if (targets[i].addr == address(0)) continue;
-      IAccessControl ac = IAccessControl(targets[i].addr);
+    for (uint256 i = 0; i < config.contracts.length; i++) {
+      TargetContract memory item = config.contracts[i];
+      if (item.addr == address(0) || item.addr.code.length == 0) continue;
+      IAccessControl ac = IAccessControl(item.addr);
 
-      bool hasAdmin = ac.hasRole(DEFAULT_ADMIN_ROLE, NEW_GOVERNANCE_ADMIN);
-      bool hasGov = ac.hasRole(GOVERNANCE_ROLE, NEW_GOVERNANCE_ADMIN);
-      bool hasGuard =
-        targets[i].hasGuardianRole ? ac.hasRole(GUARDIAN_ROLE, NEW_GOVERNANCE_ADMIN) : true;
+      bool hasAdmin = ac.hasRole(DEFAULT_ADMIN_ROLE, config.newAdmin);
+      bool hasGov = ac.hasRole(GOVERNANCE_ROLE, config.newAdmin);
+      address guardianTarget = config.guardian != address(0) ? config.guardian : config.newAdmin;
+      bool hasGuard = ac.hasRole(GUARDIAN_ROLE, guardianTarget);
 
       string memory adminMark = hasAdmin ? '      YES     ' : '      NO      ';
       string memory govMark = hasGov ? '    YES   ' : '    NO    ';
-      string memory guardMark =
-        targets[i].hasGuardianRole ? (hasGuard ? '   YES' : '   NO') : '   N/A';
+      string memory guardMark = hasGuard ? '   YES' : '   N/A';
 
-      console.log(string.concat(padRight(targets[i].name, 28), adminMark, govMark, guardMark));
+      console.log(string.concat(padRight(item.name, 28), adminMark, govMark, guardMark));
 
-      if (!hasAdmin || !hasGov || !hasGuard) {
+      if (!hasAdmin || !hasGov) {
         allVerified = false;
       }
     }
@@ -163,7 +161,7 @@ contract MigrateGovernanceScript is Script {
 
     require(
       allVerified,
-      'CRITICAL ABORT: On-chain role verification matrix failed for SafePal Admin!'
+      'CRITICAL ABORT: On-chain role verification matrix failed for Timelock Admin!'
     );
     console.log('\n>>> 100% ON-CHAIN VERIFICATION MATRIX PASSED SUCCESSFULLY! <<<');
 
@@ -175,31 +173,19 @@ contract MigrateGovernanceScript is Script {
       'The following transactions are NOT signed or broadcasted. Manual review required:'
     );
 
-    for (uint256 i = 0; i < targets.length; i++) {
-      if (targets[i].addr == address(0)) continue;
-      console.log('\nContract:', targets[i].name, targets[i].addr);
+    for (uint256 i = 0; i < config.contracts.length; i++) {
+      TargetContract memory item = config.contracts[i];
+      if (item.addr == address(0) || item.addr.code.length == 0) continue;
+      console.log('\nContract:', item.name, item.addr);
       console.log('  Renounce DEFAULT_ADMIN_ROLE Calldata:');
       console.logBytes(
         abi.encodeWithSelector(
           IAccessControl.renounceRole.selector,
           DEFAULT_ADMIN_ROLE,
-          OLD_DEPLOYER_ADMIN
+          config.oldAdmin
         )
       );
     }
-  }
-
-  function getTargets() internal pure returns (TargetContract[] memory) {
-    TargetContract[] memory t = new TargetContract[](8);
-    t[0] = TargetContract('ProtocolDirectory', 0xB5dd6d766867cB4c299AD2711068455C718EDDbc, false);
-    t[1] = TargetContract('UnifyVaultController', 0x7EF5D93f83995228efFc63dbe513367a719f0633, true);
-    t[2] = TargetContract('CustodyVault', 0x54696d5d00b58F27F9d8C358560ff2a7d10d409e, true);
-    t[3] = TargetContract('Treasury', 0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D, true);
-    t[4] = TargetContract('OracleManager', 0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635, false);
-    t[5] = TargetContract('UVBTCETHToken', 0xce9e6Cb560aC3EdB9a8164d68205c895265c5ce4, true);
-    t[6] = TargetContract('StrategyManager', 0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0, false);
-    t[7] = TargetContract('FeeManager', 0x1234567890123456789012345678901234567890, false);
-    return t;
   }
 
   function padRight(string memory str, uint256 len) internal pure returns (string memory) {

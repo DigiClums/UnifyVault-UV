@@ -33,7 +33,7 @@ const TOKENS_BY_CHAIN: Record<number, TokenConfig[]> = {
       symbol: 'cbBTC',
       name: 'Coinbase Wrapped BTC',
       decimals: 8,
-      address: '0xcbB7C66D6425AFE9A8804f7a6621967e50c6020',
+      address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
     },
     {
       symbol: 'WETH',

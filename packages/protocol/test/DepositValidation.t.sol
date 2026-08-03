@@ -246,7 +246,13 @@ contract DepositValidationTest is Test {
     vm.prank(gov);
     controller.setMaxDeposit(5 * 10 ** 18);
 
-    vm.expectRevert(abi.encodeWithSelector(ProtocolErrors.MathCalculationOverflow.selector));
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        ProtocolErrors.DepositExceedsTxLimit.selector,
+        6 * 10 ** 18,
+        5 * 10 ** 18
+      )
+    );
     controller.deposit(tokenA, 6 * 10 ** 18, 0, user);
   }
 

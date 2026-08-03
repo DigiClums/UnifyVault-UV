@@ -36,6 +36,7 @@ contract OracleManagerTest is Test {
   event ProviderDisabled(bytes32 indexed assetId, address indexed caller);
 
   function setUp() public {
+    vm.warp(100000);
     manager = new OracleManager();
     manager.grantRole(AccessRoles.GOVERNANCE_ROLE, gov);
 
@@ -84,7 +85,8 @@ contract OracleManagerTest is Test {
     // Set fallback USDC to offline
     fallbackMock.setOffline(TEST_USDC, true);
 
-    vm.expectRevert(abi.encodeWithSelector(Errors.AssetNotSupported.selector, TEST_USDC));
+    address assetAddr = address(uint160(uint256(TEST_USDC)));
+    vm.expectRevert(abi.encodeWithSelector(Errors.UnsafePricing.selector, assetAddr));
     manager.getPrice(TEST_USDC);
   }
 
@@ -97,7 +99,8 @@ contract OracleManagerTest is Test {
     // Warp block timestamp past heartbeat limit
     vm.warp(block.timestamp + 3601);
 
-    vm.expectRevert(abi.encodeWithSelector(Errors.AssetNotSupported.selector, TEST_BTC));
+    address assetAddr = address(uint160(uint256(TEST_BTC)));
+    vm.expectRevert(abi.encodeWithSelector(Errors.UnsafePricing.selector, assetAddr));
     manager.getPrice(TEST_BTC);
   }
 
@@ -105,7 +108,8 @@ contract OracleManagerTest is Test {
     // Price <= 0 is unhealthy
     primaryMock.setPrice(TEST_BTC, 0);
 
-    vm.expectRevert(abi.encodeWithSelector(Errors.AssetNotSupported.selector, TEST_BTC));
+    address assetAddr = address(uint160(uint256(TEST_BTC)));
+    vm.expectRevert(abi.encodeWithSelector(Errors.UnsafePricing.selector, assetAddr));
     manager.getPrice(TEST_BTC);
   }
 
@@ -179,7 +183,8 @@ contract OracleManagerTest is Test {
 
     // 2. updatedAt 20 seconds in future (> 15s grace) -> reverts
     primaryMock.setTimestamp(TEST_BTC, block.timestamp + 20);
-    vm.expectRevert(abi.encodeWithSelector(Errors.AssetNotSupported.selector, TEST_BTC));
+    address assetAddr = address(uint160(uint256(TEST_BTC)));
+    vm.expectRevert(abi.encodeWithSelector(Errors.UnsafePricing.selector, assetAddr));
     manager.getPrice(TEST_BTC);
     assertFalse(manager.isHealthy(TEST_BTC));
   }

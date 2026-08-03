@@ -27,7 +27,7 @@ import '../token/UVBTCETHToken.sol';
  * @notice Central orchestrator and live execution engine for UnifyVault V2
  * @dev Coordinates StrategyManager, PortfolioManager, SwapAdapter, CustodyVault, Treasury,
  * OracleManager, and UVBTCETHToken.
- * Handles atomic live asset swaps, fee collection, share minting, and redemption workflows without retained balances.
+ * Enforces production rate limits, SafeERC20 transfers, and security monitoring events.
  */
 contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   using SafeERC20 for IERC20;
@@ -58,7 +58,21 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   address private immutable _treasury;
   address private immutable _token;
 
-  uint256 private _maxDeposit = type(uint256).max;
+  // Rate Limits Configuration
+  uint256 private _maxDepositPerTx = type(uint256).max;
+  uint256 private _maxRedeemPerTx = type(uint256).max;
+  uint256 private _dailyDepositCap = type(uint256).max;
+  uint256 private _dailyRedeemCap = type(uint256).max;
+
+  uint256 private _currentDepositDay;
+  uint256 private _dailyDepositTotal;
+  uint256 private _currentRedeemDay;
+  uint256 private _dailyRedeemTotal;
+
+  // Monitoring Thresholds
+  uint256 private _largeDepositThreshold = 10_000 * 1e6; // $10,000 default
+  uint256 private _largeRedeemThreshold = 10_000 * 1e18; // 10,000 shares default
+
   uint256 private _swapSlippageBps = 100; // 1% default
 
   uint256 public constant BPS_DENOMINATOR = 10000;
@@ -66,6 +80,13 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   event SwapSlippageUpdated(uint256 oldBps, uint256 newBps, address indexed caller);
   event MaxDepositUpdated(uint256 oldMax, uint256 newMax, address indexed caller);
+  event DepositLimitsUpdated(uint256 maxPerTx, uint256 dailyCap, address indexed caller);
+  event RedeemLimitsUpdated(uint256 maxPerTx, uint256 dailyCap, address indexed caller);
+  event MonitoringThresholdsUpdated(
+    uint256 largeDepositThreshold,
+    uint256 largeRedeemThreshold,
+    address indexed caller
+  );
 
   // Events
   event DepositRequested(
@@ -104,6 +125,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   event FeeCollected(address indexed asset, uint256 amount);
   event EmergencyPaused(address indexed caller);
   event EmergencyResumed(address indexed caller);
+
+  // Task 5 Monitoring Events
+  event LargeDeposit(address indexed user, address indexed asset, uint256 amount, uint256 shares);
+  event LargeRedeem(address indexed user, address indexed asset, uint256 shares, uint256 amount);
+  event EmergencyPause(address indexed actor, string reason);
+  event EmergencyResume(address indexed actor);
 
   // V2 Live Execution Events
   event DepositExecuted(
@@ -160,16 +187,77 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     _grantRole(BOT_ROLE, msg.sender);
   }
 
-  // --- Configurations ---
+  // --- Rate Limit Configurations ---
 
   function setMaxDeposit(uint256 maxDeposit_) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
-    uint256 old = _maxDeposit;
-    _maxDeposit = maxDeposit_;
+    uint256 old = _maxDepositPerTx;
+    _maxDepositPerTx = maxDeposit_;
     emit MaxDepositUpdated(old, maxDeposit_, msg.sender);
   }
 
   function maxDeposit() external view returns (uint256) {
-    return _maxDeposit;
+    return _maxDepositPerTx;
+  }
+
+  function setDepositLimits(
+    uint256 maxPerTx,
+    uint256 dailyCap
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    _maxDepositPerTx = maxPerTx;
+    _dailyDepositCap = dailyCap;
+    emit DepositLimitsUpdated(maxPerTx, dailyCap, msg.sender);
+  }
+
+  function setRedeemLimits(
+    uint256 maxPerTx,
+    uint256 dailyCap
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    _maxRedeemPerTx = maxPerTx;
+    _dailyRedeemCap = dailyCap;
+    emit RedeemLimitsUpdated(maxPerTx, dailyCap, msg.sender);
+  }
+
+  function setMonitoringThresholds(
+    uint256 largeDepositThreshold_,
+    uint256 largeRedeemThreshold_
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    _largeDepositThreshold = largeDepositThreshold_;
+    _largeRedeemThreshold = largeRedeemThreshold_;
+    emit MonitoringThresholdsUpdated(largeDepositThreshold_, largeRedeemThreshold_, msg.sender);
+  }
+
+  function maxDepositPerTx() external view returns (uint256) {
+    return _maxDepositPerTx;
+  }
+
+  function maxRedeemPerTx() external view returns (uint256) {
+    return _maxRedeemPerTx;
+  }
+
+  function dailyDepositCap() external view returns (uint256) {
+    return _dailyDepositCap;
+  }
+
+  function dailyRedeemCap() external view returns (uint256) {
+    return _dailyRedeemCap;
+  }
+
+  function dailyDepositTotal() external view returns (uint256) {
+    if (block.timestamp / 1 days > _currentDepositDay) return 0;
+    return _dailyDepositTotal;
+  }
+
+  function dailyRedeemTotal() external view returns (uint256) {
+    if (block.timestamp / 1 days > _currentRedeemDay) return 0;
+    return _dailyRedeemTotal;
+  }
+
+  function largeDepositThreshold() external view returns (uint256) {
+    return _largeDepositThreshold;
+  }
+
+  function largeRedeemThreshold() external view returns (uint256) {
+    return _largeRedeemThreshold;
   }
 
   function setSwapSlippageBps(uint256 slippageBps_) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
@@ -266,8 +354,8 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Orchestrated Live Deposit & Redeem Workflows ---
 
   /**
-   * @notice Executes live deposit flow: validates inputs, collects USDC collateral, routes fee to Treasury,
-   * executes atomic DEX swaps via SwapAdapter to buy target strategy assets (cbBTC, WETH, etc.),
+   * @notice Executes live deposit flow: validates inputs & rate limits, collects USDC collateral,
+   * routes fee to Treasury, executes atomic DEX swaps via SwapAdapter to buy target strategy assets,
    * custodies purchased assets in CustodyVault, recalculates NAV, and mints UVBTCETH index shares.
    */
   function deposit(
@@ -276,34 +364,33 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 minSharesOut,
     address receiver
   ) external nonReentrant whenNotPaused returns (DepositQuote memory) {
+    // 1. Rate Limits Validation
+    if (amount > _maxDepositPerTx) {
+      revert ProtocolErrors.DepositExceedsTxLimit(amount, _maxDepositPerTx);
+    }
+    uint256 today = block.timestamp / 1 days;
+    if (today > _currentDepositDay) {
+      _currentDepositDay = today;
+      _dailyDepositTotal = 0;
+    }
+    if (_dailyDepositTotal + amount > _dailyDepositCap) {
+      revert ProtocolErrors.DailyDepositCapExceeded(_dailyDepositTotal + amount, _dailyDepositCap);
+    }
+    _dailyDepositTotal += amount;
+
     DepositQuote memory quote = _validateDeposit(asset, amount, minSharesOut, receiver);
 
-    address pm = portfolioManager();
-
-    // Capture total portfolio value, pre-deposit vault assets, and total shares BEFORE deposit / swap
-    uint256 totalSharesBefore = IERC20(_token).totalSupply();
-    uint256 totalPortfolioValueBefore = 0;
-    uint256 totalAssetsBefore = CustodyVault(_vault).totalAssets(asset);
-    if (pm != address(0)) {
-      (totalPortfolioValueBefore, ) = IPortfolioManager(pm).calculateNAV();
-    }
-
-    uint256 treasuryBalanceBefore = IERC20(asset).balanceOf(_treasury);
+    (
+      uint256 totalSharesBefore,
+      uint256 totalPortfolioValueBefore,
+      uint256 totalAssetsBefore
+    ) = _getDepositStateBefore(asset);
 
     // Pull the full deposit amount from the user in a single transferFrom
     IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
     // 1. Route protocol deposit fee to Treasury
-    if (quote.protocolFee > 0) {
-      IERC20(asset).forceApprove(_treasury, quote.protocolFee);
-      ITreasury(_treasury).collectFee(asset, quote.protocolFee);
-      IERC20(asset).forceApprove(_treasury, 0);
-
-      uint256 treasuryReceived = IERC20(asset).balanceOf(_treasury) - treasuryBalanceBefore;
-      if (treasuryReceived != quote.protocolFee) {
-        revert ProtocolErrors.InsufficientReserves(asset, quote.protocolFee, treasuryReceived);
-      }
-    }
+    _collectDepositFee(asset, quote.protocolFee);
 
     // 2. Determine execution path & calculate realized USD value post-swap
     (
@@ -313,70 +400,19 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     ) = _executeSwapsAndCalculateRealizedUSD(asset, quote.netDeposit);
 
     // 3. Realized Value Accounting: calculate final shares from post-swap realized assets
-    uint256 shares;
-    if (pm != address(0)) {
-      if (totalSharesBefore == 0 || totalPortfolioValueBefore == 0) {
-        shares = realizedDepositUSD;
-      } else {
-        shares = (realizedDepositUSD * totalSharesBefore) / totalPortfolioValueBefore;
-      }
-    } else {
-      CustodyVault.AssetConfig memory config = CustodyVault(_vault).assetConfig(asset);
-      shares = ShareLib.calculateShares(
-        quote.netDeposit,
-        totalSharesBefore,
-        totalAssetsBefore,
-        config.decimals
-      );
-    }
-
-    if (totalSharesBefore == 0) {
-      if (shares <= DEAD_SHARES) {
-        revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
-      }
-      UVBTCETHToken(_token).mint(address(0x000000000000000000000000000000000000dEaD), DEAD_SHARES);
-      shares -= DEAD_SHARES;
-    }
-
-    if (shares < minSharesOut) {
-      revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
-    }
-
-    // 4. Recalculate NAV & Mint UVBTCETH shares
-    uint256 navAfter = 1e18;
-    if (pm != address(0)) {
-      (, navAfter) = IPortfolioManager(pm).calculateNAV();
-    }
-
-    UVBTCETHToken(_token).mint(receiver, shares);
-
-    // 5. Assert zero controller balance invariant
-    uint256 controllerBal = IERC20(asset).balanceOf(address(this));
-    if (controllerBal != 0) {
-      revert ProtocolErrors.InsufficientReserves(asset, 0, controllerBal);
-    }
+    (uint256 shares, uint256 navAfter) = _calculateAndMintDepositShares(
+      asset,
+      receiver,
+      minSharesOut,
+      quote.netDeposit,
+      totalSharesBefore,
+      totalPortfolioValueBefore,
+      totalAssetsBefore,
+      realizedDepositUSD
+    );
 
     quote.sharesPreview = shares;
-
-    emit DepositCollateralReceived(
-      asset,
-      msg.sender,
-      receiver,
-      amount,
-      quote.netDeposit,
-      block.timestamp
-    );
-    emit ProtocolFeeCollected(msg.sender, asset, quote.protocolFee);
-    emit DepositCompleted(receiver, asset, amount, quote.protocolFee, quote.netDeposit, shares);
-    emit DepositExecuted(
-      msg.sender,
-      amount,
-      quote.protocolFee,
-      targetAssets,
-      assetsBought,
-      shares,
-      navAfter
-    );
+    _finalizeDeposit(quote, shares, navAfter, targetAssets, assetsBought);
 
     return quote;
   }
@@ -397,53 +433,70 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address sa = swapAdapter();
 
     if (sm != address(0) && sa != address(0)) {
-      uint256[] memory weightsBps;
-      (targetAssets, weightsBps) = IStrategyManager(sm).getTargetWeights();
-      uint256 len = targetAssets.length;
-      assetsBought = new uint256[](len);
-
-      uint256 allocatedSoFar = 0;
-      for (uint256 i = 0; i < len; i++) {
-        address targetToken = targetAssets[i];
-        uint256 allocAmount =
-          (i == len - 1) ? netDeposit - allocatedSoFar : (netDeposit * weightsBps[i]) / 10000;
-        allocatedSoFar += allocAmount;
-
-        if (allocAmount > 0) {
-          (uint256 bought, uint256 valueUSD) = _swapAndDepositTargetAsset(
-            asset,
-            targetToken,
-            allocAmount
-          );
-          assetsBought[i] = bought;
-          realizedDepositUSD += valueUSD;
-        }
-      }
-
-      uint256 residual = IERC20(asset).balanceOf(address(this));
-      if (residual > 0 && CustodyVault(v).isSupported(asset)) {
-        IERC20(asset).forceApprove(v, residual);
-        CustodyVault(v).deposit(asset, address(this), residual);
-        IERC20(asset).forceApprove(v, 0);
-
-        uint256 residualPrice = IOracle(_oracle).getAssetPrice(asset);
-        uint8 residualDecimals = CustodyVault(v).assetConfig(asset).decimals;
-        realizedDepositUSD += (residual * residualPrice) / (10 ** residualDecimals);
-      }
+      (targetAssets, assetsBought, realizedDepositUSD) = _executeMultiAssetSwaps(sm, v, asset, netDeposit);
     } else {
-      IERC20(asset).forceApprove(v, netDeposit);
-      CustodyVault(v).deposit(asset, address(this), netDeposit);
+      (targetAssets, assetsBought, realizedDepositUSD) = _depositSingleAssetFallback(v, asset, netDeposit);
+    }
+  }
+
+  function _executeMultiAssetSwaps(
+    address sm,
+    address v,
+    address asset,
+    uint256 netDeposit
+  ) private returns (address[] memory targetAssets, uint256[] memory assetsBought, uint256 realizedDepositUSD) {
+    uint256[] memory weightsBps;
+    (targetAssets, weightsBps) = IStrategyManager(sm).getTargetWeights();
+    uint256 len = targetAssets.length;
+    assetsBought = new uint256[](len);
+
+    uint256 allocatedSoFar = 0;
+    for (uint256 i = 0; i < len; i++) {
+      address targetToken = targetAssets[i];
+      uint256 allocAmount =
+        (i == len - 1) ? netDeposit - allocatedSoFar : (netDeposit * weightsBps[i]) / 10000;
+      allocatedSoFar += allocAmount;
+
+      if (allocAmount > 0) {
+        (uint256 bought, uint256 valueUSD) = _swapAndDepositTargetAsset(
+          asset,
+          targetToken,
+          allocAmount
+        );
+        assetsBought[i] = bought;
+        realizedDepositUSD += valueUSD;
+      }
+    }
+
+    realizedDepositUSD += _depositResidualAndCalculateUSD(v, asset);
+  }
+
+  function _depositResidualAndCalculateUSD(address v, address asset) private returns (uint256 valueUSD) {
+    uint256 residual = IERC20(asset).balanceOf(address(this));
+    if (residual > 0 && CustodyVault(v).isSupported(asset)) {
+      IERC20(asset).forceApprove(v, residual);
+      CustodyVault(v).deposit(asset, address(this), residual);
       IERC20(asset).forceApprove(v, 0);
 
-      targetAssets = new address[](1);
-      targetAssets[0] = asset;
-      assetsBought = new uint256[](1);
-      assetsBought[0] = netDeposit;
-
-      uint256 assetPrice = IOracle(_oracle).getAssetPrice(asset);
-      uint8 assetDecimals = CustodyVault(v).assetConfig(asset).decimals;
-      realizedDepositUSD = (netDeposit * assetPrice) / (10 ** assetDecimals);
+      uint256 residualPrice = IOracle(_oracle).getAssetPrice(asset);
+      uint8 residualDecimals = CustodyVault(v).assetConfig(asset).decimals;
+      valueUSD = (residual * residualPrice) / (10 ** residualDecimals);
     }
+  }
+
+  function _depositSingleAssetFallback(address v, address asset, uint256 netDeposit) private returns (address[] memory targetAssets, uint256[] memory assetsBought, uint256 realizedDepositUSD) {
+    IERC20(asset).forceApprove(v, netDeposit);
+    CustodyVault(v).deposit(asset, address(this), netDeposit);
+    IERC20(asset).forceApprove(v, 0);
+
+    targetAssets = new address[](1);
+    targetAssets[0] = asset;
+    assetsBought = new uint256[](1);
+    assetsBought[0] = netDeposit;
+
+    uint256 assetPrice = IOracle(_oracle).getAssetPrice(asset);
+    uint8 assetDecimals = CustodyVault(v).assetConfig(asset).decimals;
+    realizedDepositUSD = (netDeposit * assetPrice) / (10 ** assetDecimals);
   }
 
   function _swapAndDepositTargetAsset(
@@ -475,7 +528,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   }
 
   /**
-   * @notice Executes live redemption flow: validates shares, releases proportional multi-asset holdings
+   * @notice Executes live redemption flow: validates shares & rate limits, releases proportional multi-asset holdings
    * from CustodyVault, executes atomic DEX swaps via SwapAdapter back to payout USDC collateral,
    * routes fee to Treasury, burns UVBTCETH shares, recalculates NAV, and transfers USDC to receiver.
    */
@@ -496,6 +549,20 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       revert ProtocolErrors.ZeroAddressDetected();
     }
 
+    // Rate Limits Validation for Redemption
+    if (shares > _maxRedeemPerTx) {
+      revert ProtocolErrors.RedeemExceedsTxLimit(shares, _maxRedeemPerTx);
+    }
+    uint256 today = block.timestamp / 1 days;
+    if (today > _currentRedeemDay) {
+      _currentRedeemDay = today;
+      _dailyRedeemTotal = 0;
+    }
+    if (_dailyRedeemTotal + shares > _dailyRedeemCap) {
+      revert ProtocolErrors.DailyRedeemCapExceeded(_dailyRedeemTotal + shares, _dailyRedeemCap);
+    }
+    _dailyRedeemTotal += shares;
+
     CustodyVault.AssetConfig memory config;
     try CustodyVault(_vault).assetConfig(asset) returns (CustodyVault.AssetConfig memory _config) {
       if (!_config.enabled) {
@@ -508,104 +575,18 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
     address sm = strategyManager();
     address sa = swapAdapter();
-    address pm = portfolioManager();
 
     uint256 grossPayoutCollateral = 0;
     address[] memory targetAssets;
     uint256[] memory assetsSold;
 
     if (sm != address(0) && sa != address(0)) {
-      (targetAssets, ) = IStrategyManager(sm).getTargetWeights();
-      assetsSold = new uint256[](targetAssets.length);
-      uint256 totalShares = IERC20(_token).totalSupply();
-
-      for (uint256 i = 0; i < targetAssets.length; i++) {
-        address strategyToken = targetAssets[i];
-        uint256 vaultBal = CustodyVault(_vault).totalAssets(strategyToken);
-        uint256 propAmount = totalShares > 0 ? (vaultBal * shares) / totalShares : 0;
-
-        if (propAmount > 0) {
-          CustodyVault(_vault).withdraw(strategyToken, address(this), propAmount);
-          assetsSold[i] = propAmount;
-
-          if (strategyToken == asset) {
-            grossPayoutCollateral += propAmount;
-          } else {
-            // Swap strategyToken -> payout collateral (USDC)
-            IERC20(strategyToken).forceApprove(sa, propAmount);
-            uint256 minOut = _computeMinAmountOut(strategyToken, asset, propAmount);
-            uint256 usdcBought = ISwapAdapter(sa).swap(
-              strategyToken,
-              asset,
-              propAmount,
-              minOut,
-              address(this)
-            );
-            IERC20(strategyToken).forceApprove(sa, 0);
-            grossPayoutCollateral += usdcBought;
-          }
-        }
-      }
+      (grossPayoutCollateral, targetAssets, assetsSold) = _executeRedemptionPayout(sm, sa, asset, shares);
     } else {
-      // Legacy single-asset redemption fallback
-      uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
-      uint256 totalSupply = IERC20(_token).totalSupply();
-      grossPayoutCollateral = ShareLib.sharesToAssets(
-        shares,
-        totalSupply,
-        accountedAssets,
-        config.decimals
-      );
-      CustodyVault(_vault).withdraw(asset, address(this), grossPayoutCollateral);
+      grossPayoutCollateral = _executeLegacyRedemption(asset, shares, config.decimals);
     }
 
-    uint256 redFeeBps = getRedeemFeeBps();
-    (uint256 grossOut, uint256 protocolFee, uint256 netOut) = FeeLib.calculateRedemptionFee(
-      grossPayoutCollateral,
-      redFeeBps
-    );
-
-    if (netOut < minAssetsOut) {
-      revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netOut);
-    }
-
-    // 1. Burn shares from msg.sender
-    UVBTCETHToken(_token).burn(msg.sender, shares);
-
-    // 2. Route protocol redemption fee to Treasury
-    if (protocolFee > 0) {
-      IERC20(asset).forceApprove(_treasury, protocolFee);
-      ITreasury(_treasury).collectFee(asset, protocolFee);
-      IERC20(asset).forceApprove(_treasury, 0);
-    }
-
-    // 3. Transfer net collateral to receiver
-    IERC20(asset).safeTransfer(receiver, netOut);
-
-    // 4. Recalculate NAV
-    uint256 navAfter = 1e18;
-    if (pm != address(0)) {
-      (, navAfter) = IPortfolioManager(pm).calculateNAV();
-    }
-
-    // Assert zero controller balance invariant
-    uint256 controllerBal = IERC20(asset).balanceOf(address(this));
-    if (controllerBal != 0) {
-      revert ProtocolErrors.InsufficientReserves(asset, 0, controllerBal);
-    }
-
-    emit RedeemCompleted(msg.sender, receiver, asset, shares, grossOut, protocolFee, netOut);
-    emit RedeemExecuted(
-      msg.sender,
-      shares,
-      targetAssets,
-      assetsSold,
-      protocolFee,
-      netOut,
-      navAfter
-    );
-
-    return netOut;
+    return _finalizeRedemption(asset, receiver, shares, grossPayoutCollateral, minAssetsOut, targetAssets, assetsSold);
   }
 
   // --- Previews & Estimations ---
@@ -680,11 +661,13 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   function emergencyPause() external onlyRole(GUARDIAN_ROLE) {
     _pause();
     emit EmergencyPaused(msg.sender);
+    emit EmergencyPause(msg.sender, "Emergency pause triggered by Guardian");
   }
 
   function resume() external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
     _unpause();
     emit EmergencyResumed(msg.sender);
+    emit EmergencyResume(msg.sender);
   }
 
   // --- Internal Validation Helpers ---
@@ -692,10 +675,6 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   /**
    * @dev Computes the minimum acceptable output amount for a swap leg based on
    * oracle prices and configured slippage tolerance.
-   * @param tokenIn Input token address
-   * @param tokenOut Output token address
-   * @param amountIn Amount of input token (in native decimals)
-   * @return minAmountOut Minimum output amount (in output token native decimals)
    */
   function _computeMinAmountOut(
     address tokenIn,
@@ -713,12 +692,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint8 decimalsIn = cfgIn.decimals;
     uint8 decimalsOut = cfgOut.decimals;
 
-    // expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
     uint256 expectedOut =
       (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
 
     uint256 slippage = _swapSlippageBps;
-    if (slippage == 0) return 0; // no slippage protection when set to 0
+    if (slippage == 0) return 0;
 
     minAmountOut = (expectedOut * (BPS_DENOMINATOR - slippage)) / BPS_DENOMINATOR;
   }
@@ -751,45 +729,20 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       revert ProtocolErrors.ZeroAddressDetected();
     }
 
-    bool healthy = IOracle(_oracle).isPriceFresh(asset);
-    if (!healthy) {
-      revert ProtocolErrors.OraclePriceStale(asset, 3600, 3600);
-    }
-
-    uint256 normalizedPrice = IOracle(_oracle).getAssetPrice(asset);
-    if (normalizedPrice == 0) {
-      revert ProtocolErrors.OraclePriceNegative(asset, 0);
-    }
-
-    bytes32 assetId = bytes32(uint256(uint160(asset)));
-    (address provider, ) = IOracle(_oracle).getFeedMetadata(asset);
-    uint256 rawPrice = IOracleProvider(provider).getLatestRound(assetId).price;
+    (bytes32 assetId, uint256 normalizedPrice, uint256 rawPrice) = _fetchOraclePrices(asset);
 
     uint256 depFeeBps = getDepositFeeBps();
     uint256 protocolFee = FeeLib.calculateDepositFee(amount, depFeeBps);
     uint256 netDeposit = FeeLib.calculateNetDeposit(amount, depFeeBps);
 
-    uint256 shares;
-    address pm = portfolioManager();
-
-    if (pm != address(0)) {
-      IPortfolioManager.DepositPreview memory preview = IPortfolioManager(pm).previewDeposit(
-        asset,
-        netDeposit
-      );
-      shares = preview.sharesToMint;
-    } else {
-      uint256 totalAssets = CustodyVault(_vault).totalAssets(asset);
-      uint256 supply = IERC20(_token).totalSupply();
-      shares = ShareLib.calculateShares(netDeposit, supply, totalAssets, config.decimals);
-    }
+    uint256 shares = _previewShares(asset, netDeposit, config.decimals);
 
     if (shares < minSharesOut) {
       revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
     }
 
-    if (amount > _maxDeposit) {
-      revert ProtocolErrors.MathCalculationOverflow();
+    if (amount > _maxDepositPerTx) {
+      revert ProtocolErrors.DepositExceedsTxLimit(amount, _maxDepositPerTx);
     }
 
     quote = DepositQuote({
@@ -804,5 +757,268 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       netDeposit: netDeposit,
       timestamp: block.timestamp
     });
+  }
+
+  function _fetchOraclePrices(address asset) private view returns (bytes32 assetId, uint256 normalizedPrice, uint256 rawPrice) {
+    if (!IOracle(_oracle).isPriceFresh(asset)) {
+      revert ProtocolErrors.OraclePriceStale(asset, 3600, 3600);
+    }
+    normalizedPrice = IOracle(_oracle).getAssetPrice(asset);
+    if (normalizedPrice == 0) {
+      revert ProtocolErrors.OraclePriceNegative(asset, 0);
+    }
+    assetId = bytes32(uint256(uint160(asset)));
+    (address provider, ) = IOracle(_oracle).getFeedMetadata(asset);
+    rawPrice = IOracleProvider(provider).getLatestRound(assetId).price;
+  }
+
+  function _previewShares(address asset, uint256 netDeposit, uint8 decimals) private view returns (uint256 shares) {
+    address pm = portfolioManager();
+    if (pm != address(0)) {
+      IPortfolioManager.DepositPreview memory preview = IPortfolioManager(pm).previewDeposit(
+        asset,
+        netDeposit
+      );
+      shares = preview.sharesToMint;
+    } else {
+      uint256 totalAssets = CustodyVault(_vault).totalAssets(asset);
+      uint256 supply = IERC20(_token).totalSupply();
+      shares = ShareLib.calculateShares(netDeposit, supply, totalAssets, decimals);
+    }
+  }
+
+  function _collectDepositFee(address asset, uint256 protocolFee) private {
+    if (protocolFee > 0) {
+      uint256 treasuryBalanceBefore = IERC20(asset).balanceOf(_treasury);
+      IERC20(asset).forceApprove(_treasury, protocolFee);
+      ITreasury(_treasury).collectFee(asset, protocolFee);
+      IERC20(asset).forceApprove(_treasury, 0);
+
+      uint256 treasuryReceived = IERC20(asset).balanceOf(_treasury) - treasuryBalanceBefore;
+      if (treasuryReceived != protocolFee) {
+        revert ProtocolErrors.InsufficientReserves(asset, protocolFee, treasuryReceived);
+      }
+    }
+  }
+
+  function _finalizeDeposit(
+    DepositQuote memory quote,
+    uint256 shares,
+    uint256 navAfter,
+    address[] memory targetAssets,
+    uint256[] memory assetsBought
+  ) private {
+    uint256 controllerBal = IERC20(quote.asset).balanceOf(address(this));
+    if (controllerBal != 0) {
+      revert ProtocolErrors.InsufficientReserves(quote.asset, 0, controllerBal);
+    }
+
+    if (quote.depositAmount >= _largeDepositThreshold) {
+      emit LargeDeposit(msg.sender, quote.asset, quote.depositAmount, shares);
+    }
+
+    emit DepositCollateralReceived(
+      quote.asset,
+      msg.sender,
+      quote.receiver,
+      quote.depositAmount,
+      quote.netDeposit,
+      block.timestamp
+    );
+    emit ProtocolFeeCollected(msg.sender, quote.asset, quote.protocolFee);
+    emit DepositCompleted(quote.receiver, quote.asset, quote.depositAmount, quote.protocolFee, quote.netDeposit, shares);
+    emit DepositExecuted(
+      msg.sender,
+      quote.depositAmount,
+      quote.protocolFee,
+      targetAssets,
+      assetsBought,
+      shares,
+      navAfter
+    );
+  }
+
+  function _getDepositStateBefore(
+    address asset
+  ) private view returns (uint256 totalSharesBefore, uint256 totalPortfolioValueBefore, uint256 totalAssetsBefore) {
+    totalSharesBefore = IERC20(_token).totalSupply();
+    totalAssetsBefore = CustodyVault(_vault).totalAssets(asset);
+    address pm = portfolioManager();
+    if (pm != address(0)) {
+      (totalPortfolioValueBefore, ) = IPortfolioManager(pm).calculateNAV();
+    }
+  }
+
+  function _calculateAndMintDepositShares(
+    address asset,
+    address receiver,
+    uint256 minSharesOut,
+    uint256 netDeposit,
+    uint256 totalSharesBefore,
+    uint256 totalPortfolioValueBefore,
+    uint256 totalAssetsBefore,
+    uint256 realizedDepositUSD
+  ) private returns (uint256 shares, uint256 navAfter) {
+    address pm = portfolioManager();
+    if (pm != address(0)) {
+      if (totalSharesBefore == 0 || totalPortfolioValueBefore == 0) {
+        shares = realizedDepositUSD;
+      } else {
+        shares = (realizedDepositUSD * totalSharesBefore) / totalPortfolioValueBefore;
+      }
+    } else {
+      uint8 decimals = CustodyVault(_vault).assetConfig(asset).decimals;
+      shares = ShareLib.calculateShares(
+        netDeposit,
+        totalSharesBefore,
+        totalAssetsBefore,
+        decimals
+      );
+    }
+
+    if (totalSharesBefore == 0) {
+      if (shares <= DEAD_SHARES) {
+        revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
+      }
+      UVBTCETHToken(_token).mint(address(0x000000000000000000000000000000000000dEaD), DEAD_SHARES);
+      shares -= DEAD_SHARES;
+    }
+
+    if (shares < minSharesOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
+    }
+
+    navAfter = 1e18;
+    if (pm != address(0)) {
+      (, navAfter) = IPortfolioManager(pm).calculateNAV();
+    }
+
+    UVBTCETHToken(_token).mint(receiver, shares);
+  }
+
+  function _finalizeRedemption(
+    address asset,
+    address receiver,
+    uint256 shares,
+    uint256 grossPayoutCollateral,
+    uint256 minAssetsOut,
+    address[] memory targetAssets,
+    uint256[] memory assetsSold
+  ) private returns (uint256 netOut) {
+    uint256 redFeeBps = getRedeemFeeBps();
+    uint256 grossOut;
+    uint256 protocolFee;
+    (grossOut, protocolFee, netOut) = FeeLib.calculateRedemptionFee(
+      grossPayoutCollateral,
+      redFeeBps
+    );
+
+    if (netOut < minAssetsOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netOut);
+    }
+
+    // 1. Burn shares from msg.sender
+    UVBTCETHToken(_token).burn(msg.sender, shares);
+
+    // 2. Route protocol redemption fee to Treasury
+    if (protocolFee > 0) {
+      IERC20(asset).forceApprove(_treasury, protocolFee);
+      ITreasury(_treasury).collectFee(asset, protocolFee);
+      IERC20(asset).forceApprove(_treasury, 0);
+    }
+
+    // 3. Transfer net collateral to receiver
+    IERC20(asset).safeTransfer(receiver, netOut);
+
+    // 4. Recalculate NAV
+    uint256 navAfter = 1e18;
+    address pm = portfolioManager();
+    if (pm != address(0)) {
+      (, navAfter) = IPortfolioManager(pm).calculateNAV();
+    }
+
+    // Assert zero controller balance invariant
+    uint256 controllerBal = IERC20(asset).balanceOf(address(this));
+    if (controllerBal != 0) {
+      revert ProtocolErrors.InsufficientReserves(asset, 0, controllerBal);
+    }
+
+    // Check & emit LargeRedeem event for monitoring
+    if (shares >= _largeRedeemThreshold) {
+      emit LargeRedeem(msg.sender, asset, shares, netOut);
+    }
+
+    emit RedeemCompleted(msg.sender, receiver, asset, shares, grossOut, protocolFee, netOut);
+    emit RedeemExecuted(
+      msg.sender,
+      shares,
+      targetAssets,
+      assetsSold,
+      protocolFee,
+      netOut,
+      navAfter
+    );
+  }
+
+  function _executeLegacyRedemption(
+    address asset,
+    uint256 shares,
+    uint8 decimals
+  ) private returns (uint256 grossPayoutCollateral) {
+    uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
+    uint256 totalSupply = IERC20(_token).totalSupply();
+    grossPayoutCollateral = ShareLib.sharesToAssets(
+      shares,
+      totalSupply,
+      accountedAssets,
+      decimals
+    );
+    CustodyVault(_vault).withdraw(asset, address(this), grossPayoutCollateral);
+  }
+
+  function _executeRedemptionPayout(
+    address sm,
+    address sa,
+    address asset,
+    uint256 shares
+  ) private returns (uint256 grossPayoutCollateral, address[] memory targetAssets, uint256[] memory assetsSold) {
+    (targetAssets, ) = IStrategyManager(sm).getTargetWeights();
+    assetsSold = new uint256[](targetAssets.length);
+    uint256 totalShares = IERC20(_token).totalSupply();
+
+    for (uint256 i = 0; i < targetAssets.length; i++) {
+      address strategyToken = targetAssets[i];
+      uint256 vaultBal = CustodyVault(_vault).totalAssets(strategyToken);
+      uint256 propAmount = totalShares > 0 ? (vaultBal * shares) / totalShares : 0;
+
+      if (propAmount > 0) {
+        CustodyVault(_vault).withdraw(strategyToken, address(this), propAmount);
+        assetsSold[i] = propAmount;
+
+        if (strategyToken == asset) {
+          grossPayoutCollateral += propAmount;
+        } else {
+          grossPayoutCollateral += _swapStrategyTokenToCollateral(sa, strategyToken, asset, propAmount);
+        }
+      }
+    }
+  }
+
+  function _swapStrategyTokenToCollateral(
+    address sa,
+    address strategyToken,
+    address asset,
+    uint256 propAmount
+  ) private returns (uint256 usdcBought) {
+    IERC20(strategyToken).forceApprove(sa, propAmount);
+    uint256 minOut = _computeMinAmountOut(strategyToken, asset, propAmount);
+    usdcBought = ISwapAdapter(sa).swap(
+      strategyToken,
+      asset,
+      propAmount,
+      minOut,
+      address(this)
+    );
+    IERC20(strategyToken).forceApprove(sa, 0);
   }
 }

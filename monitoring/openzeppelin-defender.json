@@ -1,0 +1,68 @@
+{
+  "sentinels": [
+    {
+      "name": "Defender-Oracle-Stale-Monitor",
+      "type": "FORTA",
+      "network": "base",
+      "alertId": "UV-ORACLE-STALE",
+      "action": "pause-if-critical",
+      "paused": false
+    },
+    {
+      "name": "Defender-Oracle-Deviation-Monitor",
+      "type": "BLOCK",
+      "network": "base",
+      "event": "OracleFallback(address indexed asset, address indexed fallbackProvider, uint256 price)",
+      "action": "notify-slack",
+      "paused": false
+    },
+    {
+      "name": "Defender-Large-Deposit-Monitor",
+      "type": "BLOCK",
+      "network": "base",
+      "event": "LargeDeposit(address indexed user, address indexed asset, uint256 amount, uint256 shares)",
+      "action": "notify-slack",
+      "paused": false
+    },
+    {
+      "name": "Defender-Large-Withdrawal-Monitor",
+      "type": "BLOCK",
+      "network": "base",
+      "event": "LargeRedeem(address indexed user, address indexed asset, uint256 shares, uint256 amount)",
+      "action": "notify-slack",
+      "paused": false
+    },
+    {
+      "name": "Defender-Emergency-Pause-Monitor",
+      "type": "BLOCK",
+      "network": "base",
+      "event": "EmergencyPause(address indexed actor, string reason)",
+      "action": "page-on-call",
+      "paused": false
+    },
+    {
+      "name": "Defender-Role-Change-Monitor",
+      "type": "BLOCK",
+      "network": "base",
+      "event": "RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)",
+      "action": "notify-governance-slack",
+      "paused": false
+    },
+    {
+      "name": "Defender-Strategy-Drift-Monitor",
+      "type": "BLOCK",
+      "network": "base",
+      "event": "StrategyRebalanced(address indexed caller, address[] assets, uint256[] newWeights)",
+      "action": "notify-ops",
+      "paused": false
+    },
+    {
+      "name": "Defender-TVL-Drop-Monitor",
+      "type": "FORTA",
+      "network": "base",
+      "alertId": "UV-TVL-DROP-10PCT",
+      "action": "page-on-call",
+      "paused": false
+    }
+  ]
+}

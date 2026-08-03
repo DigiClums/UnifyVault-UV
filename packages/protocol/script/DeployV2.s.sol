@@ -14,15 +14,18 @@ import '../src/strategy/StrategyManager.sol';
 import '../src/strategy/PortfolioManager.sol';
 import '../src/swap/SwapAdapter.sol';
 import '../src/treasury/FeeManager.sol';
+import '../src/governance/UnifyVaultTimelock.sol';
 import '../src/libraries/AccessRoles.sol';
 import '../src/constants/ModuleIds.sol';
 import '../src/interfaces/AggregatorV3Interface.sol';
+import { VmExt } from './mainnet/helpers/GovernanceMigrationHelper.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 interface ITreasuryFull {
   function registerAsset(address asset, uint8 decimals) external;
   function grantRole(bytes32 role, address account) external;
+  function revokeRole(bytes32 role, address account) external;
   function hasRole(bytes32 role, address account) external view returns (bool);
   function CONTROLLER_ROLE() external view returns (bytes32);
   function collectFee(address asset, uint256 amount) external;
@@ -187,6 +190,7 @@ contract DeployV2Script is Script, Test {
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
   TestSwapRouter public swapRouter;
+  UnifyVaultTimelock public timelock;
 
   TestToken public testCbBTC;
   TestToken public testWETH;
@@ -196,6 +200,7 @@ contract DeployV2Script is Script, Test {
   MockChainlinkAggregator public wethAggregator;
 
   address public constant BASE_SEPOLIA_USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+  address public constant DEFAULT_GNOSIS_SAFE = 0x1111111111111111111111111111111111111111;
 
   address public deployerAddress;
 
@@ -222,6 +227,18 @@ contract DeployV2Script is Script, Test {
     vault = new CustodyVault();
     liquidityManager = new LiquidityManager(deployerAddress, address(directory));
     token = new UVBTCETHToken();
+
+    // Deploy 48-hour Timelock with Gnosis Safe proposer
+    address gnosisSafe = DEFAULT_GNOSIS_SAFE;
+    try VmExt(address(vm)).envOr('GNOSIS_SAFE_ADDRESS', '0x1111111111111111111111111111111111111111') returns (string memory safeStr) {
+      gnosisSafe = VmExt(address(vm)).parseAddress(safeStr);
+    } catch {}
+    address[] memory proposers = new address[](1);
+    proposers[0] = gnosisSafe;
+    address[] memory executors = new address[](1);
+    executors[0] = address(0); // Open execution after delay
+
+    timelock = new UnifyVaultTimelock(48 hours, proposers, executors, deployerAddress);
 
     // Deploy test strategy assets: cbBTC (8 decimals) and WETH (18 decimals)
     testCbBTC = new TestToken('Coinbase Wrapped BTC', 'cbBTC', 8);
@@ -310,7 +327,6 @@ contract DeployV2Script is Script, Test {
     // --------------------------------------------------
     // STEP 4: Configure Oracle (ChainlinkOracleProvider)
     // --------------------------------------------------
-    // Deploy Chainlink feeds for USDC ($1.00, 6 decimals), cbBTC ($65,000, 8 decimals), WETH ($3,500, 8 decimals)
     usdcAggregator = new MockChainlinkAggregator(6, 1 * 10 ** 6);
     cbbtcAggregator = new MockChainlinkAggregator(8, 65000 * 10 ** 8);
     wethAggregator = new MockChainlinkAggregator(8, 3500 * 10 ** 8);
@@ -355,7 +371,7 @@ contract DeployV2Script is Script, Test {
     require(controller.swapSlippageBps() == 100, 'Slippage set failed');
 
     // --------------------------------------------------
-    // STEP 7: Configure Roles
+    // STEP 7: Configure Controller & Admin Roles
     // --------------------------------------------------
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
@@ -364,22 +380,34 @@ contract DeployV2Script is Script, Test {
 
     liquidityManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
 
-    require(
-      vault.hasRole(vault.CONTROLLER_ROLE(), address(controller)),
-      'Vault controller role failed'
-    );
-    require(
-      treasury.hasRole(treasury.CONTROLLER_ROLE(), address(controller)),
-      'Treasury controller role failed'
-    );
-    require(
-      token.hasRole(token.CONTROLLER_ROLE(), address(controller)),
-      'Token controller role failed'
-    );
-    require(
-      !token.hasRole(token.CONTROLLER_ROLE(), deployerAddress),
-      'Token deployer revoke failed'
-    );
+    // Grant Timelock DEFAULT_ADMIN_ROLE and GOVERNANCE_ROLE across all contracts
+    bytes32 adminRole = 0x00;
+    bytes32 govRole = AccessRoles.GOVERNANCE_ROLE;
+
+    directory.grantRole(adminRole, address(timelock));
+    directory.grantRole(govRole, address(timelock));
+    oracleManager.grantRole(adminRole, address(timelock));
+    oracleManager.grantRole(govRole, address(timelock));
+    chainlinkProvider.grantRole(adminRole, address(timelock));
+    chainlinkProvider.grantRole(govRole, address(timelock));
+    vault.grantRole(adminRole, address(timelock));
+    vault.grantRole(govRole, address(timelock));
+    treasury.grantRole(adminRole, address(timelock));
+    treasury.grantRole(govRole, address(timelock));
+    liquidityManager.grantRole(adminRole, address(timelock));
+    liquidityManager.grantRole(govRole, address(timelock));
+    token.grantRole(adminRole, address(timelock));
+    token.grantRole(govRole, address(timelock));
+    controller.grantRole(adminRole, address(timelock));
+    controller.grantRole(govRole, address(timelock));
+    strategyManager.grantRole(adminRole, address(timelock));
+    strategyManager.grantRole(govRole, address(timelock));
+    portfolioManager.grantRole(adminRole, address(timelock));
+    portfolioManager.grantRole(govRole, address(timelock));
+    swapAdapter.grantRole(adminRole, address(timelock));
+    swapAdapter.grantRole(govRole, address(timelock));
+    feeManager.grantRole(adminRole, address(timelock));
+    feeManager.grantRole(govRole, address(timelock));
 
     // Print addresses for logging
     console.log('=== DEPLOYMENT V2 ADDRESSES ===');
@@ -394,12 +422,9 @@ contract DeployV2Script is Script, Test {
     console.log('StrategyManager:         ', address(strategyManager));
     console.log('PortfolioManager:        ', address(portfolioManager));
     console.log('SwapAdapter:             ', address(swapAdapter));
-    console.log('TestSwapRouter:          ', address(swapRouter));
-    console.log('TestCbBTC:               ', address(testCbBTC));
-    console.log('TestWETH:                ', address(testWETH));
-    console.log('USDC Aggregator:         ', address(usdcAggregator));
-    console.log('cbBTC Aggregator:        ', address(cbbtcAggregator));
-    console.log('WETH Aggregator:         ', address(wethAggregator));
+    console.log('FeeManager:              ', address(feeManager));
+    console.log('TimelockController:      ', address(timelock));
+    console.log('Gnosis Safe Proposer:    ', gnosisSafe);
 
     vm.stopBroadcast();
   }

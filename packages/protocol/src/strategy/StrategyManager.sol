@@ -10,7 +10,7 @@ import '../libraries/AccessRoles.sol';
  * @notice Dedicated portfolio allocation strategy module for the UnifyVault Protocol
  * @dev Governs target asset weights in basis points (BPS) for crypto index portfolios.
  * Enforces strict invariant: total target allocation must equal 10,000 BPS (100.00%).
- * Contains NO fund holding, swap execution, oracle reading, or NAV calculation logic.
+ * Emits StrategyRebalanced for real-time monitoring.
  */
 contract StrategyManager is AccessControl, IStrategyManager {
   uint256 public constant TOTAL_BPS = 10000;
@@ -26,6 +26,8 @@ contract StrategyManager is AccessControl, IStrategyManager {
 
   // 1-based index mapping for O(1) asset array removal
   mapping(address => uint256) private _assetIndex;
+
+  event StrategyRebalanced(address indexed caller, address[] assets, uint256[] newWeights);
 
   /**
    * @notice StrategyManager constructor initializing access roles and optional initial strategy
@@ -81,6 +83,8 @@ contract StrategyManager is AccessControl, IStrategyManager {
     if (total != TOTAL_BPS) revert InvalidTotalAllocation(total, TOTAL_BPS);
 
     emit AssetAdded(asset, weightBps, msg.sender);
+    (address[] memory currentAssets, uint256[] memory currentWeights) = this.getTargetWeights();
+    emit StrategyRebalanced(msg.sender, currentAssets, currentWeights);
   }
 
   /**
@@ -115,6 +119,8 @@ contract StrategyManager is AccessControl, IStrategyManager {
     }
 
     emit AssetRemoved(asset, msg.sender);
+    (address[] memory currentAssets, uint256[] memory currentWeights) = this.getTargetWeights();
+    emit StrategyRebalanced(msg.sender, currentAssets, currentWeights);
   }
 
   /**
@@ -145,6 +151,9 @@ contract StrategyManager is AccessControl, IStrategyManager {
 
     uint256 total = _calculateTotalBps();
     if (total != TOTAL_BPS) revert InvalidTotalAllocation(total, TOTAL_BPS);
+
+    (address[] memory currentAssets, uint256[] memory currentWeights) = this.getTargetWeights();
+    emit StrategyRebalanced(msg.sender, currentAssets, currentWeights);
   }
 
   // --- External View Functions ---
@@ -247,6 +256,7 @@ contract StrategyManager is AccessControl, IStrategyManager {
     if (total != TOTAL_BPS) revert InvalidTotalAllocation(total, TOTAL_BPS);
 
     emit StrategyUpdated(assets, weightsBps, msg.sender);
+    emit StrategyRebalanced(msg.sender, assets, weightsBps);
   }
 
   /**

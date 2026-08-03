@@ -349,7 +349,7 @@ export default function RedeemPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Protocol Redeem Fee (2.00%)</span>
+                <span className="text-muted-foreground">Protocol Redeem Fee (0.25%)</span>
                 <span className="font-mono text-foreground">
                   {isLoadingPreview ? '...' : `$${feeUSD} USDC`}
                 </span>

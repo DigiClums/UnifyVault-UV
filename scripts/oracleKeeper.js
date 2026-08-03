@@ -1,6 +1,7 @@
 /* eslint-disable */
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // Safe, production-compatible .env loading (Node.js 20+ native support with fallback)
 function loadEnv() {
@@ -40,13 +41,44 @@ function loadEnv() {
 loadEnv();
 
 const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-// Mock Chainlink Aggregators on Base Sepolia (Read-Only Monitor)
+// Mock Chainlink Aggregators on Base Sepolia
 const CBBTC_AGGREGATOR = '0x384e9f7f5740fc7c081181cec0a7db945ad8c237';
 const WETH_AGGREGATOR = '0xe0c96e485d8b5e6a2c7fe7b8598a061b52dfc381';
+const HEARTBEAT_MS = 5 * 60 * 1000; // 5 minutes
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-let isMonitoring = false;
+let isRunningCycle = false;
+let keeperAddressCache = null;
+const lastSentPrices = {};
+const lastSentTimestamps = {};
+
+function getKeeperAddress() {
+  if (!PRIVATE_KEY) return null;
+  if (keeperAddressCache) return keeperAddressCache;
+  try {
+    const cmd = `cast wallet address --private-key "$PRIVATE_KEY"`;
+    const output = execSync(cmd, { env: process.env, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    keeperAddressCache = output.trim();
+    return keeperAddressCache;
+  } catch (err) {
+    return null;
+  }
+}
+
+function getPendingNonce() {
+  const addr = getKeeperAddress();
+  if (!addr) return null;
+  try {
+    const cmd = `cast nonce ${addr} --block pending --rpc-url "${RPC_URL}"`;
+    const output = execSync(cmd, { env: process.env, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const parsed = parseInt(output.trim(), 10);
+    return isNaN(parsed) ? null : parsed;
+  } catch (err) {
+    return null;
+  }
+}
 
 async function fetchLivePrices() {
   const fetchOpts = {
@@ -97,15 +129,44 @@ async function fetchLivePrices() {
 
       return { btcPrice, ethPrice };
     } catch (e) {
-      console.error('[OracleMonitor] All price feeds failed:', e.message);
+      console.error('[OracleKeeper] All price feeds failed:', e.message);
       return null;
     }
   }
 }
 
+async function updateAggregator(aggregatorAddress, price, assetName) {
+  const price8Decimals = BigInt(Math.round(price * 1e8)).toString();
+  const now = Date.now();
+
+  const lastPrice = lastSentPrices[aggregatorAddress];
+  const lastTime = lastSentTimestamps[aggregatorAddress] || 0;
+
+  if (lastPrice === price8Decimals && now - lastTime < HEARTBEAT_MS) {
+    console.log(
+      `[OracleKeeper] ${assetName} price unchanged ($${price.toFixed(2)}), skipping submit.`,
+    );
+    return;
+  }
+
+  const nonce = getPendingNonce();
+  const nonceFlag = nonce !== null ? `--nonce ${nonce}` : '';
+  const cmd = `cast send ${aggregatorAddress} "setPrice(int256)" ${price8Decimals} ${nonceFlag} --confirmations 1 --timeout 60 --rpc-url "${RPC_URL}" --private-key "$PRIVATE_KEY"`;
+
+  try {
+    execSync(cmd, { env: process.env, stdio: 'pipe' });
+    lastSentPrices[aggregatorAddress] = price8Decimals;
+    lastSentTimestamps[aggregatorAddress] = now;
+    console.log(
+      `[OracleKeeper] Updated ${assetName} Aggregator (${aggregatorAddress}): $${price.toFixed(2)}`,
+    );
+  } catch (err) {
+    console.error(`[OracleKeeper] Failed to update ${assetName}:`, err.message || err.toString());
+  }
+}
+
 async function checkAggregatorHealth(aggregatorAddress, assetName, livePrice) {
   try {
-    // Read-only JSON-RPC latestRoundData call
     const res = await fetch(RPC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -126,7 +187,6 @@ async function checkAggregatorHealth(aggregatorAddress, assetName, livePrice) {
     const data = await res.json();
     if (data && data.result && data.result !== '0x') {
       const hex = data.result.replace('0x', '');
-      // latestRoundData returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
       const answerHex = hex.slice(64, 128);
       const updatedAtHex = hex.slice(192, 256);
 
@@ -137,7 +197,7 @@ async function checkAggregatorHealth(aggregatorAddress, assetName, livePrice) {
       const ageSeconds = Math.floor(Date.now() / 1000) - updatedAt;
 
       console.log(
-        `[OracleMonitor] ${assetName} Feed: On-Chain $${onChainPrice.toFixed(2)} | Live $${livePrice.toFixed(2)} | Age: ${ageSeconds}s | Status: HEALTHY (Read-Only)`,
+        `[OracleMonitor] ${assetName} Feed: On-Chain $${onChainPrice.toFixed(2)} | Live Spot $${livePrice.toFixed(2)} | Age: ${ageSeconds}s | Status: HEALTHY`,
       );
     } else {
       console.log(
@@ -149,36 +209,52 @@ async function checkAggregatorHealth(aggregatorAddress, assetName, livePrice) {
   }
 }
 
-async function runMonitorCycle() {
-  if (isMonitoring) return;
+async function runCycle() {
+  if (isRunningCycle) return;
 
-  isMonitoring = true;
+  isRunningCycle = true;
   try {
     const prices = await fetchLivePrices();
     if (prices) {
-      await checkAggregatorHealth(CBBTC_AGGREGATOR, 'BTC', prices.btcPrice);
-      await checkAggregatorHealth(WETH_AGGREGATOR, 'ETH', prices.ethPrice);
+      if (PRIVATE_KEY) {
+        console.log(
+          `[OracleKeeper] Live Spot Prices - BTC: $${prices.btcPrice.toFixed(2)}, ETH: $${prices.ethPrice.toFixed(2)}`,
+        );
+        await updateAggregator(CBBTC_AGGREGATOR, prices.btcPrice, 'BTC');
+        await sleep(2000); // 2s delay to allow block inclusion & avoid nonce collision
+        await updateAggregator(WETH_AGGREGATOR, prices.ethPrice, 'ETH');
+      } else {
+        await checkAggregatorHealth(CBBTC_AGGREGATOR, 'BTC', prices.btcPrice);
+        await checkAggregatorHealth(WETH_AGGREGATOR, 'ETH', prices.ethPrice);
+      }
     }
   } catch (err) {
-    console.error('[OracleMonitor] Error in monitor cycle:', err.message);
+    console.error('[OracleKeeper] Error in cycle:', err.message);
   } finally {
-    isMonitoring = false;
+    isRunningCycle = false;
   }
 }
 
 async function main() {
   console.log('===========================================================');
-  console.log('[OracleMonitor] UnifyVault Zero-Signer Oracle Monitor Online');
-  console.log('[OracleMonitor] Architecture: READ-ONLY (No Private Keys)');
+  if (PRIVATE_KEY) {
+    console.log('[OracleKeeper] UnifyVault Live Oracle Keeper Service (Writer Mode Active)');
+    console.log(`[OracleKeeper] Target BTC Aggregator: ${CBBTC_AGGREGATOR}`);
+    console.log(`[OracleKeeper] Target ETH Aggregator: ${WETH_AGGREGATOR}`);
+  } else {
+    console.log('[OracleKeeper] UnifyVault Oracle Monitor Online (Zero-Signer Read-Only Mode)');
+    console.log('[OracleKeeper] Note: Set PRIVATE_KEY in environment to enable live on-chain testnet feed updates.');
+  }
   console.log('===========================================================');
 
   while (true) {
-    await runMonitorCycle();
-    await sleep(30000);
+    await runCycle();
+    await sleep(PRIVATE_KEY ? 15000 : 30000);
   }
 }
 
 main().catch((err) => {
-  console.error('[OracleMonitor] Fatal error:', err.message);
+  console.error('[OracleKeeper] Fatal error:', err.message);
   process.exit(1);
 });
+

@@ -1,5 +1,5 @@
 {
-  "lastBlock": 44877771,
+  "lastBlock": 44999827,
   "deposits": [
     {
       "blockNumber": 44682978,
@@ -349,5 +349,5 @@
     }
   ],
   "users": {},
-  "updatedAt": "2026-07-31T18:50:31.549Z"
+  "updatedAt": "2026-08-03T14:39:02.678Z"
 }

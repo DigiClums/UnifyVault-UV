@@ -11,8 +11,8 @@ import {
 /**
  * @title VerifyGovernanceScript
  * @notice Performs read-only verification of role assignments across all protocol contracts.
- *         Displays contract status, privileged roles, and PASS/FAIL metrics for New Admin,
- *         Old Admin, and Guardian addresses. Reverts if expected roles are missing.
+ *         Verifies Old Deployer owns ZERO roles, New Governance owns expected roles,
+ *         Controller owns required CONTROLLER_ROLE, and Guardian owns guardian permissions.
  */
 contract VerifyGovernanceScript is Script {
   function run() external view {
@@ -31,80 +31,77 @@ contract VerifyGovernanceScript is Script {
     console.log('Guardian Address:          ', config.guardian);
     console.log('--------------------------------------------------');
 
+    address controllerAddr = address(0);
+    for (uint256 i = 0; i < config.contracts.length; i++) {
+      if (keccak256(bytes(config.contracts[i].name)) == keccak256(bytes('UnifyVaultController'))) {
+        controllerAddr = config.contracts[i].addr;
+        break;
+      }
+    }
+
     bool allPassed = true;
 
     for (uint256 i = 0; i < config.contracts.length; i++) {
-      TargetContract memory item = config.contracts[i];
-      console.log('Contract Name:   ', item.name);
-      console.log('Contract Address:', item.addr);
-
-      // Check New Admin Roles
-      bool newAdminHasDefaultAdmin = GovernanceMigrationHelper.checkRole(
-        item.addr,
-        GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE,
-        config.newAdmin
-      );
-      bool newAdminHasGovernance = GovernanceMigrationHelper.checkRole(
-        item.addr,
-        GovernanceMigrationHelper.GOVERNANCE_ROLE,
-        config.newAdmin
-      );
-
-      // Check Guardian Roles
-      bool guardianHasRole = GovernanceMigrationHelper.checkRole(
-        item.addr,
-        GovernanceMigrationHelper.GUARDIAN_ROLE,
-        config.guardian
-      );
-
-      // Check Old Admin Roles
-      bool oldAdminHasDefaultAdmin = GovernanceMigrationHelper.checkRole(
-        item.addr,
-        GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE,
-        config.oldAdmin
-      );
-      bool oldAdminHasGovernance = GovernanceMigrationHelper.checkRole(
-        item.addr,
-        GovernanceMigrationHelper.GOVERNANCE_ROLE,
-        config.oldAdmin
-      );
-      bool oldAdminHasGuardian = GovernanceMigrationHelper.checkRole(
-        item.addr,
-        GovernanceMigrationHelper.GUARDIAN_ROLE,
-        config.oldAdmin
-      );
-
-      bool newAdminPassed = newAdminHasDefaultAdmin && newAdminHasGovernance;
-      bool guardianPassed = guardianHasRole;
-
-      if (!newAdminPassed || !guardianPassed) {
+      if (!_verifyContractItem(config.contracts[i], config, controllerAddr)) {
         allPassed = false;
       }
-
-      console.log('  [+] Role: DEFAULT_ADMIN_ROLE');
-      console.log('      New Admin: ', newAdminHasDefaultAdmin ? 'PASS' : 'FAIL');
-      console.log('      Old Admin: ', oldAdminHasDefaultAdmin ? 'ACTIVE' : 'RENOUNCED');
-
-      console.log('  [+] Role: GOVERNANCE_ROLE');
-      console.log('      New Admin: ', newAdminHasGovernance ? 'PASS' : 'FAIL');
-      console.log('      Old Admin: ', oldAdminHasGovernance ? 'ACTIVE' : 'RENOUNCED');
-
-      console.log('  [+] Role: GUARDIAN_ROLE');
-      console.log('      Guardian:  ', guardianHasRole ? 'PASS' : 'FAIL');
-      console.log('      Old Admin: ', oldAdminHasGuardian ? 'ACTIVE' : 'RENOUNCED');
-
-      console.log('--------------------------------------------------');
     }
 
     if (!allPassed) {
       console.log('==================================================');
-      console.log('  AUDIT FAILED: ONE OR MORE REQUIRED ROLES MISSING');
+      console.log('  AUDIT FAILED: ONE OR MORE REQUIRED ROLES INVALID');
       console.log('==================================================');
-      revert('Governance verification failed: missing expected roles');
+      revert('Governance verification failed: role cleanup verification failed');
     } else {
       console.log('==================================================');
       console.log('  AUDIT PASSED: ALL REQUIRED ROLES VERIFIED OK   ');
       console.log('==================================================');
     }
+  }
+
+  function _verifyContractItem(
+    TargetContract memory item,
+    MigrationConfig memory config,
+    address controllerAddr
+  ) private view returns (bool) {
+    bool oldAdminClean = !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, config.oldAdmin) &&
+      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.GOVERNANCE_ROLE, config.oldAdmin) &&
+      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.GUARDIAN_ROLE, config.oldAdmin) &&
+      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.CONTROLLER_ROLE, config.oldAdmin) &&
+      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.BOT_ROLE, config.oldAdmin);
+
+    bool newAdminPassed = GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, config.newAdmin) &&
+      GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.GOVERNANCE_ROLE, config.newAdmin);
+
+    bool isControllerTarget = (keccak256(bytes(item.name)) == keccak256(bytes('CustodyVault'))) ||
+      (keccak256(bytes(item.name)) == keccak256(bytes('Treasury'))) ||
+      (keccak256(bytes(item.name)) == keccak256(bytes('UVBTCETHToken'))) ||
+      (keccak256(bytes(item.name)) == keccak256(bytes('LiquidityManager')));
+
+    bool controllerPassed = true;
+    if (isControllerTarget && controllerAddr != address(0)) {
+      controllerPassed = GovernanceMigrationHelper.checkRole(
+        item.addr,
+        GovernanceMigrationHelper.CONTROLLER_ROLE,
+        controllerAddr
+      );
+    }
+
+    bool itemPassed = oldAdminClean && newAdminPassed && controllerPassed;
+
+    if (itemPassed) {
+      console.log(string.concat(unicode'  [✓] ', item.name));
+    } else {
+      console.log(string.concat('  [X] ', item.name));
+    }
+    console.log('      Address:    ', item.addr);
+    console.log('      Old Admin:  ', oldAdminClean ? 'CLEAN (0 roles)' : 'FAIL (roles remain)');
+    console.log('      New Admin:  ', newAdminPassed ? 'PASS' : 'FAIL');
+    if (isControllerTarget) {
+      console.log('      Controller: ', controllerPassed ? 'PASS' : 'FAIL');
+    }
+    console.log('--------------------------------------------------');
+
+    return itemPassed;
   }
 }

@@ -1,0 +1,77 @@
+name: UnifyVault-V2-Forta-Alerts
+version: 1.0.0
+description: Production Forta alert configurations for UnifyVault V2 protocol monitoring
+
+subscriptions:
+  - botId: 0x932d4b4a2e2f3d9b1c7a8e9f2a0b1c2d3e4f5a6b
+    alerts:
+      - id: UV-ORACLE-STALE
+        name: Oracle Stale Price Detected
+        severity: HIGH
+        type: DEGRADED
+        description: Oracle price feed timestamp exceeds heartbeat threshold.
+        conditions:
+          event: OracleFailure(address indexed asset, string reason)
+          match:
+            reason: "*stale*"
+
+      - id: UV-ORACLE-DEVIATION
+        name: Oracle High Price Deviation
+        severity: HIGH
+        type: SUSPICIOUS
+        description: Oracle price deviation exceeded configured max deviation BPS.
+        conditions:
+          event: OracleFailure(address indexed asset, string reason)
+          match:
+            reason: "*circuit breaker*"
+
+      - id: UV-LARGE-DEPOSIT
+        name: Large Deposit Executed
+        severity: INFO
+        type: FINANCIAL
+        description: Deposit transaction exceeded large deposit monitoring threshold.
+        conditions:
+          event: LargeDeposit(address indexed user, address indexed asset, uint256 amount, uint256 shares)
+
+      - id: UV-LARGE-WITHDRAWAL
+        name: Large Withdrawal Executed
+        severity: MEDIUM
+        type: FINANCIAL
+        description: Redemption transaction exceeded large redeem monitoring threshold.
+        conditions:
+          event: LargeRedeem(address indexed user, address indexed asset, uint256 shares, uint256 amount)
+
+      - id: UV-EMERGENCY-PAUSE
+        name: Emergency Protocol Pause
+        severity: CRITICAL
+        type: EXPLOIT
+        description: Guardian or Governance triggered an emergency protocol pause.
+        conditions:
+          event: EmergencyPause(address indexed actor, string reason)
+
+      - id: UV-ROLE-CHANGE
+        name: Critical Role Granted or Revoked
+        severity: HIGH
+        type: GOVERNANCE
+        description: AccessControl role granted or revoked on a core protocol contract.
+        conditions:
+          events:
+            - RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+            - RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+
+      - id: UV-STRATEGY-DRIFT
+        name: Strategy Portfolio Rebalanced or Drifted
+        severity: MEDIUM
+        type: SUSPICIOUS
+        description: Portfolio strategy weights updated or rebalanced.
+        conditions:
+          event: StrategyRebalanced(address indexed caller, address[] assets, uint256[] newWeights)
+
+      - id: UV-TVL-DROP-10PCT
+        name: Total Value Locked Drop Exceeds 10%
+        severity: CRITICAL
+        type: FINANCIAL
+        description: Total Portfolio NAV dropped by more than 10% within a rolling 1-hour window.
+        conditions:
+          metric: portfolio_nav_change_1h
+          threshold: -10.0
