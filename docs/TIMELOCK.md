@@ -43,15 +43,15 @@ sequenceDiagram
 
 ## Role Assignment Matrix
 
-| Contract | Admin Role (`0x00`) | Governance Role | Guardian Role | Controller Role |
-| :--- | :--- | :--- | :--- | :--- |
-| `UnifyVaultTimelock` | Timelock Itself | Gnosis Safe | Gnosis Safe | N/A |
-| `UnifyVaultController` | Timelock | Timelock | Guardian Multi-Sig | N/A |
-| `CustodyVault` | Timelock | Timelock | Guardian Multi-Sig | Controller |
-| `Treasury` | Timelock | Timelock | Guardian Multi-Sig | Controller |
-| `OracleManager` | Timelock | Timelock | N/A | N/A |
-| `StrategyManager` | Timelock | Timelock | N/A | N/A |
-| `PortfolioManager` | Timelock | Timelock | N/A | N/A |
-| `SwapAdapter` | Timelock | Timelock | N/A | N/A |
-| `FeeManager` | Timelock | Timelock | N/A | N/A |
-| `UVBTCETHToken` | Timelock | Timelock | Guardian Multi-Sig | Controller |
+| Contract               | Admin Role (`0x00`) | Governance Role | Guardian Role      | Controller Role |
+| :--------------------- | :------------------ | :-------------- | :----------------- | :-------------- |
+| `UnifyVaultTimelock`   | Timelock Itself     | Gnosis Safe     | Gnosis Safe        | N/A             |
+| `UnifyVaultController` | Timelock            | Timelock        | Guardian Multi-Sig | N/A             |
+| `CustodyVault`         | Timelock            | Timelock        | Guardian Multi-Sig | Controller      |
+| `Treasury`             | Timelock            | Timelock        | Guardian Multi-Sig | Controller      |
+| `OracleManager`        | Timelock            | Timelock        | N/A                | N/A             |
+| `StrategyManager`      | Timelock            | Timelock        | N/A                | N/A             |
+| `PortfolioManager`     | Timelock            | Timelock        | N/A                | N/A             |
+| `SwapAdapter`          | Timelock            | Timelock        | N/A                | N/A             |
+| `FeeManager`           | Timelock            | Timelock        | N/A                | N/A             |
+| `UVBTCETHToken`        | Timelock            | Timelock        | Guardian Multi-Sig | Controller      |

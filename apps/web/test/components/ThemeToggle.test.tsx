@@ -72,4 +72,3 @@ describe('ThemeToggle Component', () => {
     expect(mockSetTheme).toHaveBeenCalledWith('system');
   });
 });
-

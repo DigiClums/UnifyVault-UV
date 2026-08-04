@@ -14,7 +14,7 @@ However, it is **not mainnet-ready**. The provided mainnet deployment procedure 
 
 ## Architecture and attack surface
 
-Users deposit a configured ERC-20 into `UnifyVaultController`. The controller collects a fee, swaps into the current `StrategyManager` assets via `SwapAdapter`, deposits received tokens in `CustodyVault`, then mints `UVBTCETH`. Redemptions withdraw the caller's pro-rata balances for the *current* strategy assets, swap to the requested output asset, collect a fee, and burn shares.
+Users deposit a configured ERC-20 into `UnifyVaultController`. The controller collects a fee, swaps into the current `StrategyManager` assets via `SwapAdapter`, deposits received tokens in `CustodyVault`, then mints `UVBTCETH`. Redemptions withdraw the caller's pro-rata balances for the _current_ strategy assets, swap to the requested output asset, collect a fee, and burn shares.
 
 The safety boundary therefore includes all of the following:
 
@@ -43,7 +43,7 @@ vm.prank(deployer); // deployer still has vault.CONTROLLER_ROLE()
 vault.withdraw(USDC, attacker, vault.totalAssets(USDC));
 ```
 
-**Fix:** immediately after granting the controller role, revoke `CONTROLLER_ROLE` from the deployer on *every* contract where it is not strictly needed; assert the complete negative role matrix. Deploy from a multisig/timelock, not an EOA. Ensure the migration script revokes controller roles as well as admin/governance/guardian roles.
+**Fix:** immediately after granting the controller role, revoke `CONTROLLER_ROLE` from the deployer on _every_ contract where it is not strictly needed; assert the complete negative role matrix. Deploy from a multisig/timelock, not an EOA. Ensure the migration script revokes controller roles as well as admin/governance/guardian roles.
 
 **Regression test:** deploy through the production script (or extracted setup), then assert `!vault.hasRole(vault.CONTROLLER_ROLE(), deployer)` and that a prank as deployer cannot withdraw. Assert the controller can still execute a normal redemption.
 

@@ -15,10 +15,10 @@ export default function DashboardPage() {
       {/* Hero Welcome */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-accent-blue/10 via-surface to-accent-violet/10 p-6 rounded-2xl border border-border-subtle shadow-glow">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             UnifyVault V2 Portfolio Dashboard
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Real-time multi-asset index tracking, NAV valuation, and strategy execution engine.
           </p>
         </div>
@@ -32,7 +32,9 @@ export default function DashboardPage() {
       <section className="space-y-4">
         <div className="flex items-center space-x-2 pb-1 border-b border-border-subtle">
           <Layers className="w-4 h-4 text-accent-blue" />
-          <h2 className="text-base font-bold text-white tracking-tight">Protocol Metrics</h2>
+          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+            Protocol Metrics
+          </h2>
         </div>
         <MetricCards metrics={metrics} />
       </section>
@@ -41,7 +43,7 @@ export default function DashboardPage() {
       <section className="space-y-4">
         <div className="flex items-center space-x-2 pb-1 border-b border-border-subtle">
           <Zap className="w-4 h-4 text-accent-blue" />
-          <h2 className="text-base font-bold text-white tracking-tight">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
             Live Strategy Allocation & Actions
           </h2>
         </div>

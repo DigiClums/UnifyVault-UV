@@ -59,7 +59,11 @@ function getKeeperAddress() {
   if (keeperAddressCache) return keeperAddressCache;
   try {
     const cmd = `cast wallet address --private-key "$PRIVATE_KEY"`;
-    const output = execSync(cmd, { env: process.env, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const output = execSync(cmd, {
+      env: process.env,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     keeperAddressCache = output.trim();
     return keeperAddressCache;
   } catch (err) {
@@ -72,7 +76,11 @@ function getPendingNonce() {
   if (!addr) return null;
   try {
     const cmd = `cast nonce ${addr} --block pending --rpc-url "${RPC_URL}"`;
-    const output = execSync(cmd, { env: process.env, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const output = execSync(cmd, {
+      env: process.env,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     const parsed = parseInt(output.trim(), 10);
     return isNaN(parsed) ? null : parsed;
   } catch (err) {
@@ -243,7 +251,9 @@ async function main() {
     console.log(`[OracleKeeper] Target ETH Aggregator: ${WETH_AGGREGATOR}`);
   } else {
     console.log('[OracleKeeper] UnifyVault Oracle Monitor Online (Zero-Signer Read-Only Mode)');
-    console.log('[OracleKeeper] Note: Set PRIVATE_KEY in environment to enable live on-chain testnet feed updates.');
+    console.log(
+      '[OracleKeeper] Note: Set PRIVATE_KEY in environment to enable live on-chain testnet feed updates.',
+    );
   }
   console.log('===========================================================');
 
@@ -257,4 +267,3 @@ main().catch((err) => {
   console.error('[OracleKeeper] Fatal error:', err.message);
   process.exit(1);
 });
-

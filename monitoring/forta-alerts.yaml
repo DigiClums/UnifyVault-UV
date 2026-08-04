@@ -13,7 +13,7 @@ subscriptions:
         conditions:
           event: OracleFailure(address indexed asset, string reason)
           match:
-            reason: "*stale*"
+            reason: '*stale*'
 
       - id: UV-ORACLE-DEVIATION
         name: Oracle High Price Deviation
@@ -23,7 +23,7 @@ subscriptions:
         conditions:
           event: OracleFailure(address indexed asset, string reason)
           match:
-            reason: "*circuit breaker*"
+            reason: '*circuit breaker*'
 
       - id: UV-LARGE-DEPOSIT
         name: Large Deposit Executed

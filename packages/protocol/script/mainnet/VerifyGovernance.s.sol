@@ -64,19 +64,50 @@ contract VerifyGovernanceScript is Script {
     MigrationConfig memory config,
     address controllerAddr
   ) private view returns (bool) {
-    bool oldAdminClean = !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, config.oldAdmin) &&
-      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.GOVERNANCE_ROLE, config.oldAdmin) &&
-      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.GUARDIAN_ROLE, config.oldAdmin) &&
-      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.CONTROLLER_ROLE, config.oldAdmin) &&
-      !GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.BOT_ROLE, config.oldAdmin);
+    bool oldAdminClean =
+      !GovernanceMigrationHelper.checkRole(
+        item.addr,
+        GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE,
+        config.oldAdmin
+      ) &&
+        !GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.GOVERNANCE_ROLE,
+          config.oldAdmin
+        ) &&
+        !GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.GUARDIAN_ROLE,
+          config.oldAdmin
+        ) &&
+        !GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.CONTROLLER_ROLE,
+          config.oldAdmin
+        ) &&
+        !GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.BOT_ROLE,
+          config.oldAdmin
+        );
 
-    bool newAdminPassed = GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, config.newAdmin) &&
-      GovernanceMigrationHelper.checkRole(item.addr, GovernanceMigrationHelper.GOVERNANCE_ROLE, config.newAdmin);
+    bool newAdminPassed =
+      GovernanceMigrationHelper.checkRole(
+        item.addr,
+        GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE,
+        config.newAdmin
+      ) &&
+        GovernanceMigrationHelper.checkRole(
+          item.addr,
+          GovernanceMigrationHelper.GOVERNANCE_ROLE,
+          config.newAdmin
+        );
 
-    bool isControllerTarget = (keccak256(bytes(item.name)) == keccak256(bytes('CustodyVault'))) ||
-      (keccak256(bytes(item.name)) == keccak256(bytes('Treasury'))) ||
-      (keccak256(bytes(item.name)) == keccak256(bytes('UVBTCETHToken'))) ||
-      (keccak256(bytes(item.name)) == keccak256(bytes('LiquidityManager')));
+    bool isControllerTarget =
+      (keccak256(bytes(item.name)) == keccak256(bytes('CustodyVault'))) ||
+        (keccak256(bytes(item.name)) == keccak256(bytes('Treasury'))) ||
+        (keccak256(bytes(item.name)) == keccak256(bytes('UVBTCETHToken'))) ||
+        (keccak256(bytes(item.name)) == keccak256(bytes('LiquidityManager')));
 
     bool controllerPassed = true;
     if (isControllerTarget && controllerAddr != address(0)) {

@@ -46,8 +46,18 @@ contract OracleManager is AccessControl, IOracle {
   );
   event ProviderEnabled(bytes32 indexed assetId, address indexed caller);
   event ProviderDisabled(bytes32 indexed assetId, address indexed caller);
-  event MaxDeviationUpdated(bytes32 indexed assetId, uint256 oldBps, uint256 newBps, address indexed caller);
-  event CircuitBreakerReset(bytes32 indexed assetId, uint256 oldPrice, uint256 newPrice, address indexed caller);
+  event MaxDeviationUpdated(
+    bytes32 indexed assetId,
+    uint256 oldBps,
+    uint256 newBps,
+    address indexed caller
+  );
+  event CircuitBreakerReset(
+    bytes32 indexed assetId,
+    uint256 oldPrice,
+    uint256 newPrice,
+    address indexed caller
+  );
   event OracleFailure(address indexed asset, string reason);
   event OracleFallback(address indexed asset, address indexed fallbackProvider, uint256 price);
 
@@ -172,10 +182,10 @@ contract OracleManager is AccessControl, IOracle {
         _lastValidPrices[assetId] = normalized.price;
         return normalized.price;
       } else {
-        emit OracleFailure(assetAddr, "Primary oracle validation or circuit breaker failed");
+        emit OracleFailure(assetAddr, 'Primary oracle validation or circuit breaker failed');
       }
     } catch {
-      emit OracleFailure(assetAddr, "Primary oracle call reverted");
+      emit OracleFailure(assetAddr, 'Primary oracle call reverted');
     }
 
     // 2. Attempt Fallback Provider call
@@ -189,14 +199,14 @@ contract OracleManager is AccessControl, IOracle {
           emit OracleFallback(assetAddr, config.fallbackProvider, normalized.price);
           return normalized.price;
         } else {
-          emit OracleFailure(assetAddr, "Fallback oracle validation failed");
+          emit OracleFailure(assetAddr, 'Fallback oracle validation failed');
         }
       } catch {
-        emit OracleFailure(assetAddr, "Fallback oracle call reverted");
+        emit OracleFailure(assetAddr, 'Fallback oracle call reverted');
       }
     }
 
-    emit OracleFailure(assetAddr, "All oracle providers failed circuit breaker");
+    emit OracleFailure(assetAddr, 'All oracle providers failed circuit breaker');
     revert Errors.UnsafePricing(assetAddr);
   }
 
@@ -419,9 +429,8 @@ contract OracleManager is AccessControl, IOracle {
     // 3. Max deviation check against lastValidPrice
     if (lastPrice > 0) {
       ProviderPrice memory normalized = _normalizePrice(rawRound);
-      uint256 diff = normalized.price > lastPrice
-        ? normalized.price - lastPrice
-        : lastPrice - normalized.price;
+      uint256 diff =
+        normalized.price > lastPrice ? normalized.price - lastPrice : lastPrice - normalized.price;
       uint256 deviationBps = (diff * BPS_DENOMINATOR) / lastPrice;
       if (deviationBps > maxDevBps) {
         return false;

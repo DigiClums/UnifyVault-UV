@@ -230,7 +230,9 @@ contract DeployV2Script is Script, Test {
 
     // Deploy 48-hour Timelock with Gnosis Safe proposer
     address gnosisSafe = DEFAULT_GNOSIS_SAFE;
-    try VmExt(address(vm)).envOr('GNOSIS_SAFE_ADDRESS', '0x1111111111111111111111111111111111111111') returns (string memory safeStr) {
+    try
+      VmExt(address(vm)).envOr('GNOSIS_SAFE_ADDRESS', '0x1111111111111111111111111111111111111111')
+    returns (string memory safeStr) {
       gnosisSafe = VmExt(address(vm)).parseAddress(safeStr);
     } catch {}
     address[] memory proposers = new address[](1);

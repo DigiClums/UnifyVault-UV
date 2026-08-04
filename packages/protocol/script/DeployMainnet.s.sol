@@ -40,7 +40,8 @@ contract DeployMainnetScript is Script {
   address public constant BASE_MAINNET_ETH_FEED = 0x71041DDdaDB357Cb0061e89ef2399D55986fc000; // ETH/USD
 
   // Base Mainnet Uniswap V3 Swap Router
-  address public constant BASE_MAINNET_UNISWAP_V3_ROUTER = 0x2626664c2603336E57B271c5C0b26F421741e481;
+  address public constant BASE_MAINNET_UNISWAP_V3_ROUTER =
+    0x2626664c2603336E57B271c5C0b26F421741e481;
 
   // Oracle Stale Heartbeat Threshold (24 Hours = 86400 seconds)
   uint32 public constant ORACLE_HEARTBEAT = 86400;
@@ -159,16 +160,46 @@ contract DeployMainnetScript is Script {
     _registerOrUpdate(directory, ModuleIds.SWAP_ADAPTER, address(swapAdapter));
 
     // Hard Assertions for Registration Verification
-    require(directory.getAddress(ModuleIds.TREASURY) == address(treasury), 'Reg Verification Failed: Treasury');
-    require(directory.getAddress(ModuleIds.FEE_MANAGER) == address(feeManager), 'Reg Verification Failed: FeeManager');
-    require(directory.getAddress(ModuleIds.VAULT) == address(vault), 'Reg Verification Failed: CustodyVault');
-    require(directory.getAddress(ModuleIds.LIQUIDITY_MANAGER) == address(liquidityManager), 'Reg Verification Failed: LiquidityManager');
-    require(directory.getAddress(ModuleIds.DEPOSIT_MANAGER) == address(controller), 'Reg Verification Failed: Controller');
-    require(directory.getAddress(ModuleIds.ORACLE) == address(oracleManager), 'Reg Verification Failed: OracleManager');
-    require(directory.getAddress(ModuleIds.TOKEN) == address(token), 'Reg Verification Failed: Token');
-    require(directory.getAddress(ModuleIds.STRATEGY_MANAGER) == address(strategyManager), 'Reg Verification Failed: StrategyManager');
-    require(directory.getAddress(ModuleIds.PORTFOLIO_MANAGER) == address(portfolioManager), 'Reg Verification Failed: PortfolioManager');
-    require(directory.getAddress(ModuleIds.SWAP_ADAPTER) == address(swapAdapter), 'Reg Verification Failed: SwapAdapter');
+    require(
+      directory.getAddress(ModuleIds.TREASURY) == address(treasury),
+      'Reg Verification Failed: Treasury'
+    );
+    require(
+      directory.getAddress(ModuleIds.FEE_MANAGER) == address(feeManager),
+      'Reg Verification Failed: FeeManager'
+    );
+    require(
+      directory.getAddress(ModuleIds.VAULT) == address(vault),
+      'Reg Verification Failed: CustodyVault'
+    );
+    require(
+      directory.getAddress(ModuleIds.LIQUIDITY_MANAGER) == address(liquidityManager),
+      'Reg Verification Failed: LiquidityManager'
+    );
+    require(
+      directory.getAddress(ModuleIds.DEPOSIT_MANAGER) == address(controller),
+      'Reg Verification Failed: Controller'
+    );
+    require(
+      directory.getAddress(ModuleIds.ORACLE) == address(oracleManager),
+      'Reg Verification Failed: OracleManager'
+    );
+    require(
+      directory.getAddress(ModuleIds.TOKEN) == address(token),
+      'Reg Verification Failed: Token'
+    );
+    require(
+      directory.getAddress(ModuleIds.STRATEGY_MANAGER) == address(strategyManager),
+      'Reg Verification Failed: StrategyManager'
+    );
+    require(
+      directory.getAddress(ModuleIds.PORTFOLIO_MANAGER) == address(portfolioManager),
+      'Reg Verification Failed: PortfolioManager'
+    );
+    require(
+      directory.getAddress(ModuleIds.SWAP_ADAPTER) == address(swapAdapter),
+      'Reg Verification Failed: SwapAdapter'
+    );
 
     console.log('[+] All 10 Core Modules Registered & Verified!');
 
@@ -178,7 +209,10 @@ contract DeployMainnetScript is Script {
     console.log('\n--- Step 3: Synchronizing Sub-module Dependencies ---');
 
     liquidityManager.syncModules();
-    require(liquidityManager.custodyVault() == address(vault), 'Sync Failed: LiquidityManager CustodyVault');
+    require(
+      liquidityManager.custodyVault() == address(vault),
+      'Sync Failed: LiquidityManager CustodyVault'
+    );
 
     portfolioManager.syncModules();
 
@@ -197,9 +231,27 @@ contract DeployMainnetScript is Script {
     chainlinkProvider.registerFeed(cbbtcId, BASE_MAINNET_CBBTC_FEED, ORACLE_HEARTBEAT);
     chainlinkProvider.registerFeed(wethId, BASE_MAINNET_ETH_FEED, ORACLE_HEARTBEAT);
 
-    oracleManager.configureAsset(usdcId, address(chainlinkProvider), address(0), ORACLE_HEARTBEAT, true);
-    oracleManager.configureAsset(cbbtcId, address(chainlinkProvider), address(0), ORACLE_HEARTBEAT, true);
-    oracleManager.configureAsset(wethId, address(chainlinkProvider), address(0), ORACLE_HEARTBEAT, true);
+    oracleManager.configureAsset(
+      usdcId,
+      address(chainlinkProvider),
+      address(0),
+      ORACLE_HEARTBEAT,
+      true
+    );
+    oracleManager.configureAsset(
+      cbbtcId,
+      address(chainlinkProvider),
+      address(0),
+      ORACLE_HEARTBEAT,
+      true
+    );
+    oracleManager.configureAsset(
+      wethId,
+      address(chainlinkProvider),
+      address(0),
+      ORACLE_HEARTBEAT,
+      true
+    );
 
     console.log('[+] Chainlink Oracles Configured for USDC, cbBTC, and WETH!');
 
@@ -238,11 +290,26 @@ contract DeployMainnetScript is Script {
     liquidityManager.grantRole(AccessRoles.CONTROLLER_ROLE, address(controller));
 
     // Hard Post-Grant Verification Assertions
-    require(vault.hasRole(vault.CONTROLLER_ROLE(), address(controller)), 'Role Verification Failed: Vault Controller Role');
-    require(treasury.hasRole(treasury.CONTROLLER_ROLE(), address(controller)), 'Role Verification Failed: Treasury Controller Role');
-    require(token.hasRole(token.CONTROLLER_ROLE(), address(controller)), 'Role Verification Failed: Token Controller Role');
-    require(!token.hasRole(token.CONTROLLER_ROLE(), deployer), 'Role Verification Failed: Token Deployer Revocation');
-    require(liquidityManager.hasRole(AccessRoles.CONTROLLER_ROLE, address(controller)), 'Role Verification Failed: LiquidityManager Controller Role');
+    require(
+      vault.hasRole(vault.CONTROLLER_ROLE(), address(controller)),
+      'Role Verification Failed: Vault Controller Role'
+    );
+    require(
+      treasury.hasRole(treasury.CONTROLLER_ROLE(), address(controller)),
+      'Role Verification Failed: Treasury Controller Role'
+    );
+    require(
+      token.hasRole(token.CONTROLLER_ROLE(), address(controller)),
+      'Role Verification Failed: Token Controller Role'
+    );
+    require(
+      !token.hasRole(token.CONTROLLER_ROLE(), deployer),
+      'Role Verification Failed: Token Deployer Revocation'
+    );
+    require(
+      liquidityManager.hasRole(AccessRoles.CONTROLLER_ROLE, address(controller)),
+      'Role Verification Failed: LiquidityManager Controller Role'
+    );
 
     console.log('[+] AccessControl Roles Granted & Verified!');
 

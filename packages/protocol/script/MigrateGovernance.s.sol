@@ -97,7 +97,8 @@ contract MigrateGovernanceScript is Script {
       if (
         GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.oldAdmin) ||
         GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.newAdmin) ||
-        (config.guardian != address(0) && GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.guardian))
+        (config.guardian != address(0) &&
+          GovernanceMigrationHelper.checkRole(item.addr, GUARDIAN_ROLE, config.guardian))
       ) {
         address guardianTarget = config.guardian != address(0) ? config.guardian : config.newAdmin;
         if (!ac.hasRole(GUARDIAN_ROLE, guardianTarget)) {

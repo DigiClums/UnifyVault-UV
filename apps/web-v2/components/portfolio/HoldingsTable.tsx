@@ -123,7 +123,7 @@ export function HoldingsTable() {
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 viewMode === 'table'
                   ? 'bg-accent-blue text-white shadow-glow'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <List className="w-3.5 h-3.5" />
@@ -133,9 +133,9 @@ export function HoldingsTable() {
       >
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-border-subtle text-slate-400 font-semibold">
+            <tr className="border-b border-border-subtle/60 text-muted-foreground font-semibold uppercase tracking-wider">
               <th className="py-3.5 px-3">Asset</th>
-              <th className="py-3.5 px-3">Oracle Price</th>
+              <th className="py-3.5 px-3">Oracle Unit Price</th>
               <th className="py-3.5 px-3">
                 {scope === 'user' ? 'Your Claim Balance' : 'Custody Reserve'}
               </th>
@@ -155,19 +155,23 @@ export function HoldingsTable() {
             ) : (
               activeHoldings.map((asset) => (
                 <tr key={asset.symbol} className="hover:bg-card/40 transition-colors">
-                  <td className="py-4 px-3 font-sans font-bold text-white flex items-center space-x-3">
+                  <td className="py-4 px-3 font-sans font-bold text-foreground flex items-center space-x-3">
                     <TokenIcon symbol={asset.symbol} size={32} />
                     <div>
-                      <div className="font-bold text-white text-sm">{asset.symbol}</div>
-                      <div className="text-[10px] text-slate-400">{asset.name}</div>
+                      <div className="font-bold text-foreground text-sm">{asset.symbol}</div>
+                      <div className="text-[10px] text-muted-foreground">{asset.name}</div>
                     </div>
                   </td>
-                  <td className="py-4 px-3 text-slate-300 font-semibold">{asset.priceUSD}</td>
-                  <td className="py-4 px-3 text-slate-200">
+                  <td className="py-4 px-3 text-muted-foreground font-semibold">
+                    {asset.priceUSD}
+                  </td>
+                  <td className="py-4 px-3 text-foreground">
                     {asset.balanceFormatted} {asset.symbol}
                   </td>
-                  <td className="py-4 px-3 font-bold text-emerald-400">{asset.valueUSD}</td>
-                  <td className="py-4 px-3 text-slate-400 font-semibold">
+                  <td className="py-4 px-3 font-bold text-emerald-700 dark:text-emerald-400">
+                    {asset.valueUSD}
+                  </td>
+                  <td className="py-4 px-3 text-muted-foreground font-semibold">
                     {asset.targetWeightPercent || '0.0%'}
                   </td>
                   <td className="py-4 px-3 text-accent-blue font-bold">

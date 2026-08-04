@@ -72,10 +72,12 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
         <div className="flex items-center space-x-2">
           <ShieldCheck className="w-5 h-5 text-accent-blue" />
-          <h2 className="text-lg font-bold text-white tracking-tight">User Portfolio Analytics</h2>
+          <h2 className="text-lg font-bold text-foreground tracking-tight">
+            User Portfolio Analytics
+          </h2>
         </div>
-        <div className="text-xs text-slate-400 font-mono flex items-center space-x-1 bg-surface px-3 py-1 rounded-xl border border-border-subtle">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="text-xs text-muted-foreground font-mono flex items-center space-x-1 bg-surface px-3 py-1 rounded-xl border border-border-subtle shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Real-time On-Chain Accounting</span>
         </div>
       </div>
@@ -92,34 +94,34 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-slate-400">{item.label}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{item.label}</span>
                   <div className={`p-2 rounded-xl ${item.iconBg}`}>
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-xl font-bold text-white tracking-tight font-mono">
+                  <div className="text-xl font-bold text-foreground tracking-tight font-mono">
                     {metrics.isLoading ? (
-                      <div className="h-7 w-28 bg-slate-800 rounded animate-pulse" />
+                      <div className="h-7 w-28 bg-muted rounded animate-pulse" />
                     ) : (
                       item.value
                     )}
                   </div>
-                  <div className="flex items-center space-x-1 text-[11px] font-semibold text-slate-400">
+                  <div className="flex items-center space-x-1 text-[11px] font-semibold text-muted-foreground">
                     {item.isPositive !== undefined &&
                       (item.isPositive ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 text-accent-emerald inline" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-accent-emerald inline" />
                       ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 text-accent-rose inline" />
+                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-accent-rose inline" />
                       ))}
                     <span
                       className={
                         item.isPositive !== undefined
                           ? item.isPositive
-                            ? 'text-accent-emerald'
-                            : 'text-accent-rose'
-                          : 'text-slate-400'
+                            ? 'text-emerald-700 dark:text-accent-emerald'
+                            : 'text-rose-700 dark:text-accent-rose'
+                          : ''
                       }
                     >
                       {item.subtitle}
@@ -128,14 +130,11 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
                 </div>
               </div>
 
-              {/* Data Source Footnote */}
-              <div className="mt-4 pt-2.5 border-t border-border-subtle/60 flex items-center justify-between text-[10px] text-slate-500">
-                <div className="flex items-center space-x-1">
-                  <Info className="w-3 h-3 text-slate-500" />
-                  <span>Source</span>
-                </div>
-                <span className="font-mono text-[9px] text-slate-400 bg-slate-900/60 px-1.5 py-0.5 rounded border border-border-subtle/80 truncate max-w-[150px]">
-                  {item.source}
+              {/* Data Provenance Footnote */}
+              <div className="mt-4 pt-2.5 border-t border-border-subtle/50 text-[10px] font-mono text-muted-foreground/80 flex items-center justify-between">
+                <span>{item.source}</span>
+                <span className="text-accent-blue/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Verified
                 </span>
               </div>
             </Card>

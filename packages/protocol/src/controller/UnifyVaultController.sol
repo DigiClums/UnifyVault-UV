@@ -433,9 +433,18 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address sa = swapAdapter();
 
     if (sm != address(0) && sa != address(0)) {
-      (targetAssets, assetsBought, realizedDepositUSD) = _executeMultiAssetSwaps(sm, v, asset, netDeposit);
+      (targetAssets, assetsBought, realizedDepositUSD) = _executeMultiAssetSwaps(
+        sm,
+        v,
+        asset,
+        netDeposit
+      );
     } else {
-      (targetAssets, assetsBought, realizedDepositUSD) = _depositSingleAssetFallback(v, asset, netDeposit);
+      (targetAssets, assetsBought, realizedDepositUSD) = _depositSingleAssetFallback(
+        v,
+        asset,
+        netDeposit
+      );
     }
   }
 
@@ -444,7 +453,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address v,
     address asset,
     uint256 netDeposit
-  ) private returns (address[] memory targetAssets, uint256[] memory assetsBought, uint256 realizedDepositUSD) {
+  )
+    private
+    returns (
+      address[] memory targetAssets,
+      uint256[] memory assetsBought,
+      uint256 realizedDepositUSD
+    )
+  {
     uint256[] memory weightsBps;
     (targetAssets, weightsBps) = IStrategyManager(sm).getTargetWeights();
     uint256 len = targetAssets.length;
@@ -471,7 +487,10 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     realizedDepositUSD += _depositResidualAndCalculateUSD(v, asset);
   }
 
-  function _depositResidualAndCalculateUSD(address v, address asset) private returns (uint256 valueUSD) {
+  function _depositResidualAndCalculateUSD(
+    address v,
+    address asset
+  ) private returns (uint256 valueUSD) {
     uint256 residual = IERC20(asset).balanceOf(address(this));
     if (residual > 0 && CustodyVault(v).isSupported(asset)) {
       IERC20(asset).forceApprove(v, residual);
@@ -484,7 +503,18 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     }
   }
 
-  function _depositSingleAssetFallback(address v, address asset, uint256 netDeposit) private returns (address[] memory targetAssets, uint256[] memory assetsBought, uint256 realizedDepositUSD) {
+  function _depositSingleAssetFallback(
+    address v,
+    address asset,
+    uint256 netDeposit
+  )
+    private
+    returns (
+      address[] memory targetAssets,
+      uint256[] memory assetsBought,
+      uint256 realizedDepositUSD
+    )
+  {
     IERC20(asset).forceApprove(v, netDeposit);
     CustodyVault(v).deposit(asset, address(this), netDeposit);
     IERC20(asset).forceApprove(v, 0);
@@ -581,12 +611,26 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256[] memory assetsSold;
 
     if (sm != address(0) && sa != address(0)) {
-      (grossPayoutCollateral, targetAssets, assetsSold) = _executeRedemptionPayout(sm, sa, asset, shares);
+      (grossPayoutCollateral, targetAssets, assetsSold) = _executeRedemptionPayout(
+        sm,
+        sa,
+        asset,
+        shares
+      );
     } else {
       grossPayoutCollateral = _executeLegacyRedemption(asset, shares, config.decimals);
     }
 
-    return _finalizeRedemption(asset, receiver, shares, grossPayoutCollateral, minAssetsOut, targetAssets, assetsSold);
+    return
+      _finalizeRedemption(
+        asset,
+        receiver,
+        shares,
+        grossPayoutCollateral,
+        minAssetsOut,
+        targetAssets,
+        assetsSold
+      );
   }
 
   // --- Previews & Estimations ---
@@ -661,7 +705,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   function emergencyPause() external onlyRole(GUARDIAN_ROLE) {
     _pause();
     emit EmergencyPaused(msg.sender);
-    emit EmergencyPause(msg.sender, "Emergency pause triggered by Guardian");
+    emit EmergencyPause(msg.sender, 'Emergency pause triggered by Guardian');
   }
 
   function resume() external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
@@ -759,7 +803,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     });
   }
 
-  function _fetchOraclePrices(address asset) private view returns (bytes32 assetId, uint256 normalizedPrice, uint256 rawPrice) {
+  function _fetchOraclePrices(
+    address asset
+  ) private view returns (bytes32 assetId, uint256 normalizedPrice, uint256 rawPrice) {
     if (!IOracle(_oracle).isPriceFresh(asset)) {
       revert ProtocolErrors.OraclePriceStale(asset, 3600, 3600);
     }
@@ -772,7 +818,11 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     rawPrice = IOracleProvider(provider).getLatestRound(assetId).price;
   }
 
-  function _previewShares(address asset, uint256 netDeposit, uint8 decimals) private view returns (uint256 shares) {
+  function _previewShares(
+    address asset,
+    uint256 netDeposit,
+    uint8 decimals
+  ) private view returns (uint256 shares) {
     address pm = portfolioManager();
     if (pm != address(0)) {
       IPortfolioManager.DepositPreview memory preview = IPortfolioManager(pm).previewDeposit(
@@ -826,7 +876,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       block.timestamp
     );
     emit ProtocolFeeCollected(msg.sender, quote.asset, quote.protocolFee);
-    emit DepositCompleted(quote.receiver, quote.asset, quote.depositAmount, quote.protocolFee, quote.netDeposit, shares);
+    emit DepositCompleted(
+      quote.receiver,
+      quote.asset,
+      quote.depositAmount,
+      quote.protocolFee,
+      quote.netDeposit,
+      shares
+    );
     emit DepositExecuted(
       msg.sender,
       quote.depositAmount,
@@ -840,7 +897,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   function _getDepositStateBefore(
     address asset
-  ) private view returns (uint256 totalSharesBefore, uint256 totalPortfolioValueBefore, uint256 totalAssetsBefore) {
+  )
+    private
+    view
+    returns (
+      uint256 totalSharesBefore,
+      uint256 totalPortfolioValueBefore,
+      uint256 totalAssetsBefore
+    )
+  {
     totalSharesBefore = IERC20(_token).totalSupply();
     totalAssetsBefore = CustodyVault(_vault).totalAssets(asset);
     address pm = portfolioManager();
@@ -868,12 +933,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       }
     } else {
       uint8 decimals = CustodyVault(_vault).assetConfig(asset).decimals;
-      shares = ShareLib.calculateShares(
-        netDeposit,
-        totalSharesBefore,
-        totalAssetsBefore,
-        decimals
-      );
+      shares = ShareLib.calculateShares(netDeposit, totalSharesBefore, totalAssetsBefore, decimals);
     }
 
     if (totalSharesBefore == 0) {
@@ -967,12 +1027,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) private returns (uint256 grossPayoutCollateral) {
     uint256 accountedAssets = CustodyVault(_vault).totalAssets(asset);
     uint256 totalSupply = IERC20(_token).totalSupply();
-    grossPayoutCollateral = ShareLib.sharesToAssets(
-      shares,
-      totalSupply,
-      accountedAssets,
-      decimals
-    );
+    grossPayoutCollateral = ShareLib.sharesToAssets(shares, totalSupply, accountedAssets, decimals);
     CustodyVault(_vault).withdraw(asset, address(this), grossPayoutCollateral);
   }
 
@@ -981,7 +1036,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address sa,
     address asset,
     uint256 shares
-  ) private returns (uint256 grossPayoutCollateral, address[] memory targetAssets, uint256[] memory assetsSold) {
+  )
+    private
+    returns (
+      uint256 grossPayoutCollateral,
+      address[] memory targetAssets,
+      uint256[] memory assetsSold
+    )
+  {
     (targetAssets, ) = IStrategyManager(sm).getTargetWeights();
     assetsSold = new uint256[](targetAssets.length);
     uint256 totalShares = IERC20(_token).totalSupply();
@@ -998,7 +1060,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
         if (strategyToken == asset) {
           grossPayoutCollateral += propAmount;
         } else {
-          grossPayoutCollateral += _swapStrategyTokenToCollateral(sa, strategyToken, asset, propAmount);
+          grossPayoutCollateral += _swapStrategyTokenToCollateral(
+            sa,
+            strategyToken,
+            asset,
+            propAmount
+          );
         }
       }
     }
@@ -1012,13 +1079,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) private returns (uint256 usdcBought) {
     IERC20(strategyToken).forceApprove(sa, propAmount);
     uint256 minOut = _computeMinAmountOut(strategyToken, asset, propAmount);
-    usdcBought = ISwapAdapter(sa).swap(
-      strategyToken,
-      asset,
-      propAmount,
-      minOut,
-      address(this)
-    );
+    usdcBought = ISwapAdapter(sa).swap(strategyToken, asset, propAmount, minOut, address(this));
     IERC20(strategyToken).forceApprove(sa, 0);
   }
 }

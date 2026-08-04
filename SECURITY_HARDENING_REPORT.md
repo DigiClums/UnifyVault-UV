@@ -3,7 +3,7 @@
 **Role**: Principal Security Architect  
 **Protocol Version**: V2.0  
 **Target Security Posture**: Institutional Grade (9.9/10)  
-**Status**: **SECURITY HARDENING COMPLETE**  
+**Status**: **SECURITY HARDENING COMPLETE**
 
 ---
 
@@ -15,24 +15,25 @@ This report documents the completion of the institutional security hardening pha
 
 ## 2. Hardening Deliverables Summary
 
-| Task | Feature / Hardening Scope | Status | Primary Contracts & Assets |
-| :--- | :--- | :---: | :--- |
-| **Task 1** | **48-Hour Governance Timelock** | **COMPLETED** | `UnifyVaultTimelock.sol`, `DeployV2.s.sol`, `MigrateGovernance.s.sol`, `docs/TIMELOCK.md` |
-| **Task 2** | **Oracle Circuit Breakers** | **COMPLETED** | `OracleManager.sol`, `Errors.sol` |
-| **Task 3** | **Deposit & Redeem Rate Limits** | **COMPLETED** | `UnifyVaultController.sol` |
-| **Task 4** | **SafeERC20 Verification** | **COMPLETED** | `UnifyVaultController.sol`, `CustodyVault.sol`, `Treasury.sol`, `SwapAdapter.sol` |
-| **Task 5** | **Security & Monitoring Events** | **COMPLETED** | `Events.sol`, `UnifyVaultController.sol`, `OracleManager.sol`, `StrategyManager.sol`, `UnifyVaultTimelock.sol` |
-| **Task 6** | **Bug Bounty Documentation** | **COMPLETED** | `docs/BUG_BOUNTY.md` |
-| **Task 7** | **Off-Chain Alert Configuration** | **COMPLETED** | `monitoring/forta-alerts.yaml`, `monitoring/tenderly-alerts.json`, `monitoring/openzeppelin-defender.json` |
-| **Task 8** | **Hardening Regression & Invariant Tests** | **COMPLETED** | `TimelockHardening.t.sol`, `OracleCircuitBreaker.t.sol`, `RateLimits.t.sol`, `SecurityMonitoringEvents.t.sol`, `UVBTCETHTokenInvariant.t.sol` |
-| **Task 9** | **Static Analysis & Linting** | **COMPLETED** | Slither, Solhint (`pnpm lint`), Secret Scan |
-| **Task 10** | **Final Security Report** | **COMPLETED** | `SECURITY_HARDENING_REPORT.md` |
+| Task        | Feature / Hardening Scope                  |    Status     | Primary Contracts & Assets                                                                                                                    |
+| :---------- | :----------------------------------------- | :-----------: | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Task 1**  | **48-Hour Governance Timelock**            | **COMPLETED** | `UnifyVaultTimelock.sol`, `DeployV2.s.sol`, `MigrateGovernance.s.sol`, `docs/TIMELOCK.md`                                                     |
+| **Task 2**  | **Oracle Circuit Breakers**                | **COMPLETED** | `OracleManager.sol`, `Errors.sol`                                                                                                             |
+| **Task 3**  | **Deposit & Redeem Rate Limits**           | **COMPLETED** | `UnifyVaultController.sol`                                                                                                                    |
+| **Task 4**  | **SafeERC20 Verification**                 | **COMPLETED** | `UnifyVaultController.sol`, `CustodyVault.sol`, `Treasury.sol`, `SwapAdapter.sol`                                                             |
+| **Task 5**  | **Security & Monitoring Events**           | **COMPLETED** | `Events.sol`, `UnifyVaultController.sol`, `OracleManager.sol`, `StrategyManager.sol`, `UnifyVaultTimelock.sol`                                |
+| **Task 6**  | **Bug Bounty Documentation**               | **COMPLETED** | `docs/BUG_BOUNTY.md`                                                                                                                          |
+| **Task 7**  | **Off-Chain Alert Configuration**          | **COMPLETED** | `monitoring/forta-alerts.yaml`, `monitoring/tenderly-alerts.json`, `monitoring/openzeppelin-defender.json`                                    |
+| **Task 8**  | **Hardening Regression & Invariant Tests** | **COMPLETED** | `TimelockHardening.t.sol`, `OracleCircuitBreaker.t.sol`, `RateLimits.t.sol`, `SecurityMonitoringEvents.t.sol`, `UVBTCETHTokenInvariant.t.sol` |
+| **Task 9**  | **Static Analysis & Linting**              | **COMPLETED** | Slither, Solhint (`pnpm lint`), Secret Scan                                                                                                   |
+| **Task 10** | **Final Security Report**                  | **COMPLETED** | `SECURITY_HARDENING_REPORT.md`                                                                                                                |
 
 ---
 
 ## 3. Deep Dive into Implementation & Hardening Details
 
 ### Task 1 — Timelock Governance Architecture
+
 - Implemented `UnifyVaultTimelock.sol` extending OpenZeppelin `TimelockController` with a strictly enforced **48-hour delay** (`48 hours`).
 - Assigned **Gnosis Safe** multisig as the sole `PROPOSER_ROLE`.
 - Designated `UnifyVaultTimelock` contract as `EXECUTOR_ROLE` and primary system `DEFAULT_ADMIN_ROLE` / `GOVERNANCE_ROLE`.
@@ -40,6 +41,7 @@ This report documents the completion of the institutional security hardening pha
 - Emits monitoring events `TimelockQueued` and `TimelockExecuted`.
 
 ### Task 2 — Production Oracle Circuit Breaker
+
 - Integrated multi-tiered validation in `OracleManager.getValidatedPrice`:
   1. **Staleness Protection**: Rejects feeds older than configured heartbeat (`block.timestamp - rawRound.updatedAt > heartbeat`).
   2. **Non-Positive Price Check**: Reverts if raw oracle price is `<= 0`.
@@ -48,16 +50,19 @@ This report documents the completion of the institutional security hardening pha
   5. **Fail-Closed Safety**: Reverts with `Errors.UnsafePricing` if both primary and fallback fail validation.
 
 ### Task 3 — Per-Tx and Daily Rolling Rate Limits
+
 - Upgraded `UnifyVaultController.sol` with configurable caps:
   - `maxDepositPerTx` & `maxRedeemPerTx`
   - `dailyDepositCap` & `dailyRedeemCap` (rolling 24-hour UTC window calculated via `block.timestamp / 86400`).
 - Reverts instantly with `DepositExceedsTxLimit`, `DailyDepositCapExceeded`, `RedeemExceedsTxLimit`, or `DailyRedeemCapExceeded` prior to any asset movement.
 
 ### Task 4 — SafeERC20 Audit & Enforcement
+
 - Audit verified 100% of ERC20 interactions (`safeTransfer`, `safeTransferFrom`, `forceApprove`).
 - Eliminated raw `transfer`/`transferFrom`/`approve` calls across `UnifyVaultController`, `CustodyVault`, `Treasury`, and `SwapAdapter`.
 
 ### Task 5 — Standardized Security & Monitoring Event Suite
+
 - Added 11 required security events in `src/events/Events.sol`:
   - `LargeDeposit(address indexed asset, address indexed depositor, uint256 amount, uint256 usdValue)`
   - `LargeRedeem(address indexed redeemer, uint256 shares, uint256 usdValue)`
@@ -72,6 +77,7 @@ This report documents the completion of the institutional security hardening pha
   - `TimelockExecuted(bytes32 indexed id, address indexed target, uint256 value, bytes data)`
 
 ### Task 6 & 7 — Bug Bounty & Monitoring Alerting Suite
+
 - Created `docs/BUG_BOUNTY.md` detailing Immunefi-aligned rewards ($1,000–$100,000), response SLAs, and scope.
 - Configured 8 real-time security alerts across:
   - Forta (`monitoring/forta-alerts.yaml`)
@@ -83,6 +89,7 @@ This report documents the completion of the institutional security hardening pha
 ## 4. Verification & Testing Evidence
 
 ### Automated Test Suite Execution
+
 - **Foundry Hardening Tests**: `forge test` — **100% PASS**
   - `TimelockHardening.t.sol`: PASSED (48h delay, proposer/executor roles, queued execution)
   - `OracleCircuitBreaker.t.sol`: PASSED (Stale feeds, 0-price protection, 10% max deviation trigger, fallback fallback execution, `UnsafePricing` revert)
@@ -93,6 +100,7 @@ This report documents the completion of the institutional security hardening pha
 - **Solhint Linter**: `pnpm --filter @unifyvault/protocol lint` — **0 ERRORS, 0 WARNINGS**
 
 ### Gas Impact Analysis
+
 - **Deposit Overhead**: +~1,150 gas (rolling 24h day calculation & threshold comparison).
 - **Redeem Overhead**: +~1,120 gas.
 - **Oracle Validation**: +~1,850 gas (staleness + deviation math check).

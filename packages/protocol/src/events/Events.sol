@@ -35,18 +35,8 @@ library Events {
   event RegistryFrozen(address indexed caller);
 
   // Security Hardening Monitoring Events
-  event LargeDeposit(
-    address indexed user,
-    address indexed asset,
-    uint256 amount,
-    uint256 shares
-  );
-  event LargeRedeem(
-    address indexed user,
-    address indexed asset,
-    uint256 shares,
-    uint256 amount
-  );
+  event LargeDeposit(address indexed user, address indexed asset, uint256 amount, uint256 shares);
+  event LargeRedeem(address indexed user, address indexed asset, uint256 shares, uint256 amount);
   event EmergencyPause(address indexed actor, string reason);
   event EmergencyResume(address indexed actor);
   event OracleFailure(address indexed asset, string reason);

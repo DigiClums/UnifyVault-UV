@@ -12,20 +12,20 @@ This program is managed in compliance with the **Immunefi Vulnerability Severity
 
 All production smart contracts located under `packages/protocol/src/`:
 
-| Contract | Target Address / Repository Path | Function / Responsibility |
-| :--- | :--- | :--- |
-| `UnifyVaultController.sol` | `src/controller/UnifyVaultController.sol` | Main deposit, redeem, and rate-limiting orchestrator |
-| `CustodyVault.sol` | `src/vault/CustodyVault.sol` | Collateral asset custody vault |
-| `Treasury.sol` | `src/vault/Treasury.sol` | Protocol-owned treasury & fee collection vault |
-| `OracleManager.sol` | `src/oracle/OracleManager.sol` | Pricing coordinator & circuit breaker |
-| `ChainlinkOracleProvider.sol` | `src/oracle/ChainlinkOracleProvider.sol` | Chainlink oracle price adapter |
-| `StrategyManager.sol` | `src/strategy/StrategyManager.sol` | Index portfolio allocation & asset weight manager |
-| `PortfolioManager.sol` | `src/strategy/PortfolioManager.sol` | NAV and portfolio valuation engine |
-| `SwapAdapter.sol` | `src/swap/SwapAdapter.sol` | Stateless DEX router execution adapter |
-| `FeeManager.sol` | `src/treasury/FeeManager.sol` | Fee parameters & caps manager |
-| `UVBTCETHToken.sol` | `src/token/UVBTCETHToken.sol` | ERC-20 index share token |
-| `UnifyVaultTimelock.sol` | `src/governance/UnifyVaultTimelock.sol` | 48-hour governance timelock controller |
-| `ProtocolDirectory.sol` | `src/ProtocolDirectory.sol` | Central module registry |
+| Contract                      | Target Address / Repository Path          | Function / Responsibility                            |
+| :---------------------------- | :---------------------------------------- | :--------------------------------------------------- |
+| `UnifyVaultController.sol`    | `src/controller/UnifyVaultController.sol` | Main deposit, redeem, and rate-limiting orchestrator |
+| `CustodyVault.sol`            | `src/vault/CustodyVault.sol`              | Collateral asset custody vault                       |
+| `Treasury.sol`                | `src/vault/Treasury.sol`                  | Protocol-owned treasury & fee collection vault       |
+| `OracleManager.sol`           | `src/oracle/OracleManager.sol`            | Pricing coordinator & circuit breaker                |
+| `ChainlinkOracleProvider.sol` | `src/oracle/ChainlinkOracleProvider.sol`  | Chainlink oracle price adapter                       |
+| `StrategyManager.sol`         | `src/strategy/StrategyManager.sol`        | Index portfolio allocation & asset weight manager    |
+| `PortfolioManager.sol`        | `src/strategy/PortfolioManager.sol`       | NAV and portfolio valuation engine                   |
+| `SwapAdapter.sol`             | `src/swap/SwapAdapter.sol`                | Stateless DEX router execution adapter               |
+| `FeeManager.sol`              | `src/treasury/FeeManager.sol`             | Fee parameters & caps manager                        |
+| `UVBTCETHToken.sol`           | `src/token/UVBTCETHToken.sol`             | ERC-20 index share token                             |
+| `UnifyVaultTimelock.sol`      | `src/governance/UnifyVaultTimelock.sol`   | 48-hour governance timelock controller               |
+| `ProtocolDirectory.sol`       | `src/ProtocolDirectory.sol`               | Central module registry                              |
 
 ### Out-of-Scope
 
@@ -40,12 +40,12 @@ All production smart contracts located under `packages/protocol/src/`:
 
 Payout amounts are determined based on impact and likelihood using the **Immunefi v2.3 Severity Matrix**:
 
-| Severity Level | Max Reward | Criteria & Examples |
-| :--- | :--- | :--- |
-| **Critical** | **$100,000 USD** | Direct theft of user funds, permanent freezing of vault collateral, sandwich/donation attack causing loss of principal, or oracle manipulation leading to insolvency. |
-| **High** | **$20,000 USD** | Temporary freezing of funds, unauthorized role bypass without total theft, or price manipulation resulting in fee theft. |
-| **Medium** | **$5,000 USD** | Unbounded gas consumption causing denial of service, griefing attacks, or unexpected state desynchronization requiring manual intervention. |
-| **Low** | **$1,000 USD** | Minor logic flaws, event emission bugs, or edge cases with minimal financial impact. |
+| Severity Level | Max Reward       | Criteria & Examples                                                                                                                                                   |
+| :------------- | :--------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Critical**   | **$100,000 USD** | Direct theft of user funds, permanent freezing of vault collateral, sandwich/donation attack causing loss of principal, or oracle manipulation leading to insolvency. |
+| **High**       | **$20,000 USD**  | Temporary freezing of funds, unauthorized role bypass without total theft, or price manipulation resulting in fee theft.                                              |
+| **Medium**     | **$5,000 USD**   | Unbounded gas consumption causing denial of service, griefing attacks, or unexpected state desynchronization requiring manual intervention.                           |
+| **Low**        | **$1,000 USD**   | Minor logic flaws, event emission bugs, or edge cases with minimal financial impact.                                                                                  |
 
 ---
 
@@ -71,4 +71,4 @@ To qualify for a reward under this program:
 
 ---
 
-*UnifyVault Security Team — Preserving Institutional Trust.*
+_UnifyVault Security Team — Preserving Institutional Trust._

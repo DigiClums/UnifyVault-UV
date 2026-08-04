@@ -195,10 +195,7 @@ contract RenounceOldAdminScript is Script {
       );
       require(
         !oldAdminHasBot,
-        string.concat(
-          'Post-renounce check failed: oldAdmin still holds BOT_ROLE on ',
-          item.name
-        )
+        string.concat('Post-renounce check failed: oldAdmin still holds BOT_ROLE on ', item.name)
       );
 
       console.log('  [v] Post-Renounce Verification Passed for ', item.name);

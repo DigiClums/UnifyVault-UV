@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useReadContract } from 'wagmi';
-import { FALLBACK_ADDRESSES } from '../../constants';
+import { FALLBACK_ADDRESSES, ADMIN_ADDRESS } from '../../constants';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -20,6 +20,7 @@ import {
   X,
   BookOpen,
 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
 
 const DEFAULT_ADMIN_ROLE =
@@ -104,14 +105,14 @@ export function Navbar() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5 sm:space-x-2">
-              <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-accent-blue tracking-tight truncate">
+              <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white via-slate-700 dark:via-slate-200 to-accent-blue tracking-tight truncate">
                 UnifyVault
               </span>
               <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 sm:px-2 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
                 V2 Suite
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono tracking-wider hidden sm:block">
+            <span className="text-[10px] text-muted-foreground font-mono tracking-wider hidden sm:block">
               Base Sepolia
             </span>
           </div>
@@ -136,8 +137,8 @@ export function Navbar() {
                   isActive
                     ? 'bg-accent-blue text-white shadow-glow after:absolute after:bottom-0.5 after:left-3 after:right-3 after:h-0.5 after:bg-white/80 after:rounded-full'
                     : link.isAdmin
-                      ? 'text-purple-400 hover:text-white hover:bg-purple-500/10'
-                      : 'text-slate-400 hover:text-white hover:bg-card/60',
+                      ? 'text-purple-600 dark:text-purple-400 hover:text-foreground hover:bg-purple-500/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-card/60',
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -147,15 +148,17 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Right Section: Connect Button & Mobile Toggle */}
+        {/* Right Section: Connect Button, Theme Toggle & Mobile Toggle */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+          <ThemeToggle />
+
           <div className="scale-90 sm:scale-100 origin-right flex items-center shrink">
             <ConnectButton showBalance={false} accountStatus="avatar" chainStatus="full" />
           </div>
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/50 transition-all shrink-0"
+            className="lg:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-surface border border-border-subtle text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent-blue/50 transition-all shrink-0"
             aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
             aria-expanded={mobileMenuOpen}
           >
@@ -170,11 +173,11 @@ export function Navbar() {
 
       {/* Inline Mobile Navigation Dropdown */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-border-subtle/80 bg-[#090d16]/98 backdrop-blur-xl px-4 py-4 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden border-t border-border-subtle/80 bg-background/95 backdrop-blur-xl px-4 py-4 shadow-2xl animate-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col space-y-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
             {/* Primary Mobile Navigation */}
             <div>
-              <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase px-2 mb-2">
+              <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">
                 Navigation Menu
               </div>
               <nav aria-label="Mobile Navigation" className="flex flex-col space-y-1.5">
@@ -194,8 +197,8 @@ export function Navbar() {
                         isActive
                           ? 'bg-accent-blue text-white shadow-glow'
                           : link.isAdmin
-                            ? 'text-purple-400 hover:text-white bg-purple-500/10'
-                            : 'text-slate-300 hover:text-white bg-surface/60 hover:bg-card/60',
+                            ? 'text-purple-600 dark:text-purple-400 hover:text-foreground bg-purple-500/10'
+                            : 'text-muted-foreground hover:text-foreground bg-surface/60 hover:bg-card/60',
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -209,7 +212,7 @@ export function Navbar() {
             {/* Secondary Resources & Tools */}
             {secondaryNavLinks && secondaryNavLinks.length > 0 && (
               <div className="border-t border-border-subtle/80 pt-3">
-                <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase px-2 mb-2">
+                <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">
                   Resources & Tools
                 </div>
                 <div className="flex flex-col space-y-1.5">
@@ -224,13 +227,13 @@ export function Navbar() {
                           target="_blank"
                           rel="noreferrer"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center justify-between px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-surface/60 hover:bg-card/60 transition-all"
+                          className="flex items-center justify-between px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-surface/60 hover:bg-card/60 transition-all"
                         >
                           <div className="flex items-center space-x-3">
-                            <Icon className="w-4 h-4 text-slate-400" />
+                            <Icon className="w-4 h-4 text-muted-foreground" />
                             <span>{link.label}</span>
                           </div>
-                          <span className="text-[10px] text-slate-500">↗</span>
+                          <span className="text-[10px] text-muted-foreground">↗</span>
                         </a>
                       );
                     }
@@ -243,20 +246,26 @@ export function Navbar() {
                           'flex items-center justify-between px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold transition-all',
                           isActive
                             ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
-                            : 'text-slate-300 hover:text-white bg-surface/60 hover:bg-card/60',
+                            : 'text-muted-foreground hover:text-foreground bg-surface/60 hover:bg-card/60',
                         )}
                       >
                         <div className="flex items-center space-x-3">
-                          <Icon className="w-4 h-4 text-slate-400" />
+                          <Icon className="w-4 h-4 text-muted-foreground" />
                           <span>{link.label}</span>
                         </div>
-                        <span className="text-[10px] text-slate-500">→</span>
+                        <span className="text-[10px] text-muted-foreground">→</span>
                       </Link>
                     );
                   })}
                 </div>
               </div>
             )}
+
+            {/* Drawer Actions */}
+            <div className="border-t border-border-subtle/80 pt-3 flex items-center justify-between px-2">
+              <span className="text-xs text-muted-foreground font-medium">Theme Mode</span>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       )}

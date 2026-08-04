@@ -12,7 +12,7 @@ interface StatCardProps {
 export function StatCard({ title, value, change, isPositive, loading, subtitle }: StatCardProps) {
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border bg-card/60 dark:bg-[#111827]/60 p-6 backdrop-blur-md animate-pulse">
+      <div className="rounded-2xl border border-border/80 bg-white/80 dark:bg-[#111827]/60 p-6 backdrop-blur-md animate-pulse shadow-sm">
         <div className="h-4 w-24 rounded bg-muted mb-3" />
         <div className="h-8 w-36 rounded bg-muted mb-2" />
         <div className="h-3 w-20 rounded bg-muted" />
@@ -21,7 +21,7 @@ export function StatCard({ title, value, change, isPositive, loading, subtitle }
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md hover:border-primary/40 transition-all duration-200 hover:scale-[1.01] shadow-sm dark:shadow-none">
+    <div className="rounded-2xl border border-border/80 dark:border-border bg-white/90 dark:bg-[#111827]/60 p-6 backdrop-blur-md hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 shadow-md shadow-indigo-500/5 hover:shadow-lg hover:shadow-indigo-500/10 dark:shadow-none">
       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
         {title}
       </span>
@@ -29,10 +29,10 @@ export function StatCard({ title, value, change, isPositive, loading, subtitle }
         <span className="text-3xl font-extrabold text-foreground tracking-tight">{value}</span>
         {change && (
           <span
-            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+            className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
               isPositive
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                ? 'bg-emerald-500/15 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/20'
+                : 'bg-rose-500/15 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/20'
             }`}
           >
             {isPositive ? '+' : ''}

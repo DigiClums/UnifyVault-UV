@@ -8,7 +8,7 @@ import { ArrowDownRight, ArrowUpRight, Zap } from 'lucide-react';
 export function QuickActions() {
   return (
     <Card glow className="space-y-4">
-      <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+      <h3 className="text-lg font-bold text-foreground flex items-center space-x-2">
         <Zap className="w-5 h-5 text-accent-cyan" />
         <span>Vault Execution Actions</span>
       </h3>
@@ -16,14 +16,14 @@ export function QuickActions() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href="/deposit"
-          className="group relative overflow-hidden rounded-xl p-4 bg-blue-purple-gradient p-0.5 shadow-glow transition-all hover:scale-[1.02]"
+          className="group relative overflow-hidden rounded-xl bg-blue-purple-gradient p-0.5 shadow-md shadow-indigo-500/10 hover:shadow-glow transition-all hover:scale-[1.02]"
         >
           <div className="w-full h-full bg-surface rounded-[10px] p-4 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-sm font-bold text-white block group-hover:text-accent-blue transition-colors">
+              <span className="text-sm font-bold text-foreground block group-hover:text-accent-blue transition-colors">
                 Deposit Collateral
               </span>
-              <span className="text-xs text-slate-400 block">
+              <span className="text-xs text-muted-foreground block">
                 Instant USDC deposit & share minting
               </span>
             </div>
@@ -35,14 +35,16 @@ export function QuickActions() {
 
         <Link
           href="/redeem"
-          className="group relative overflow-hidden rounded-xl p-4 bg-emerald-cyan-gradient p-0.5 shadow-glow-emerald transition-all hover:scale-[1.02]"
+          className="group relative overflow-hidden rounded-xl bg-emerald-cyan-gradient p-0.5 shadow-md shadow-emerald-500/10 hover:shadow-glow-emerald transition-all hover:scale-[1.02]"
         >
           <div className="w-full h-full bg-surface rounded-[10px] p-4 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-sm font-bold text-white block group-hover:text-accent-emerald transition-colors">
+              <span className="text-sm font-bold text-foreground block group-hover:text-emerald-600 dark:group-hover:text-accent-emerald transition-colors">
                 Redeem Shares
               </span>
-              <span className="text-xs text-slate-400 block">Burn UVBTCETH for USDC payout</span>
+              <span className="text-xs text-muted-foreground block">
+                Burn UVBTCETH for USDC payout
+              </span>
             </div>
             <div className="p-2.5 rounded-xl bg-accent-emerald/10 text-accent-emerald group-hover:bg-accent-emerald group-hover:text-white transition-all">
               <ArrowUpRight className="w-5 h-5" />

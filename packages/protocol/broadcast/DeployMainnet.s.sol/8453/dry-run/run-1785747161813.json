@@ -82,9 +82,7 @@
       "contractName": "FeeManager",
       "contractAddress": "0xa8452ec99ce0c64f20701db7dd3abdb607c00496",
       "function": null,
-      "arguments": [
-        "0x90193C961A926261B756D1E5bb255e67ff9498A1"
-      ],
+      "arguments": ["0x90193C961A926261B756D1E5bb255e67ff9498A1"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": null,
@@ -661,10 +659,7 @@
       "contractName": "CustodyVault",
       "contractAddress": "0xbb2180ebd78ce97360503434ed37fcf4a1df61c3",
       "function": "registerAsset(address,uint8)",
-      "arguments": [
-        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "6"
-      ],
+      "arguments": ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "6"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0xbb2180ebd78ce97360503434ed37fcf4a1df61c3",
@@ -683,10 +678,7 @@
       "contractName": "CustodyVault",
       "contractAddress": "0xbb2180ebd78ce97360503434ed37fcf4a1df61c3",
       "function": "registerAsset(address,uint8)",
-      "arguments": [
-        "0xC1c630565b3081dE016DCc756569766D78709320",
-        "8"
-      ],
+      "arguments": ["0xC1c630565b3081dE016DCc756569766D78709320", "8"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0xbb2180ebd78ce97360503434ed37fcf4a1df61c3",
@@ -705,10 +697,7 @@
       "contractName": "CustodyVault",
       "contractAddress": "0xbb2180ebd78ce97360503434ed37fcf4a1df61c3",
       "function": "registerAsset(address,uint8)",
-      "arguments": [
-        "0x4200000000000000000000000000000000000006",
-        "18"
-      ],
+      "arguments": ["0x4200000000000000000000000000000000000006", "18"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0xbb2180ebd78ce97360503434ed37fcf4a1df61c3",
@@ -727,10 +716,7 @@
       "contractName": "Treasury",
       "contractAddress": "0x90193c961a926261b756d1e5bb255e67ff9498a1",
       "function": "registerAsset(address,uint8)",
-      "arguments": [
-        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "6"
-      ],
+      "arguments": ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "6"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0x90193c961a926261b756d1e5bb255e67ff9498a1",
@@ -749,10 +735,7 @@
       "contractName": "Treasury",
       "contractAddress": "0x90193c961a926261b756d1e5bb255e67ff9498a1",
       "function": "registerAsset(address,uint8)",
-      "arguments": [
-        "0xC1c630565b3081dE016DCc756569766D78709320",
-        "8"
-      ],
+      "arguments": ["0xC1c630565b3081dE016DCc756569766D78709320", "8"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0x90193c961a926261b756d1e5bb255e67ff9498a1",
@@ -771,10 +754,7 @@
       "contractName": "Treasury",
       "contractAddress": "0x90193c961a926261b756d1e5bb255e67ff9498a1",
       "function": "registerAsset(address,uint8)",
-      "arguments": [
-        "0x4200000000000000000000000000000000000006",
-        "18"
-      ],
+      "arguments": ["0x4200000000000000000000000000000000000006", "18"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0x90193c961a926261b756d1e5bb255e67ff9498a1",
@@ -793,9 +773,7 @@
       "contractName": "UnifyVaultController",
       "contractAddress": "0x4f559f30f5eb88d635fde1548c4267db8fab0351",
       "function": "setSwapSlippageBps(uint256)",
-      "arguments": [
-        "100"
-      ],
+      "arguments": ["100"],
       "transaction": {
         "from": "0x1804c8ab1f12e6bbf3894d4083f33e07309d1f38",
         "to": "0x4f559f30f5eb88d635fde1548c4267db8fab0351",

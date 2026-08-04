@@ -19,12 +19,7 @@ contract UnifyVaultTimelock is TimelockController {
     bytes data,
     uint256 eta
   );
-  event TimelockExecuted(
-    bytes32 indexed id,
-    address indexed target,
-    uint256 value,
-    bytes data
-  );
+  event TimelockExecuted(bytes32 indexed id, address indexed target, uint256 value, bytes data);
 
   /**
    * @param minDelay Minimum delay in seconds (must be 48 hours = 172800)

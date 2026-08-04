@@ -35,11 +35,14 @@ export function StatCard({
   };
 
   const iconBgStyles = {
-    blue: 'bg-accent-blue/10 text-accent-blue border-accent-blue/20',
-    emerald: 'bg-accent-emerald/10 text-accent-emerald border-accent-emerald/20',
-    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    cyan: 'bg-accent-cyan/10 text-accent-cyan border-accent-cyan/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    blue: 'bg-accent-blue/15 dark:bg-accent-blue/10 text-blue-600 dark:text-accent-blue border-accent-blue/30 dark:border-accent-blue/20',
+    emerald:
+      'bg-emerald-500/15 dark:bg-emerald-500/10 text-emerald-700 dark:text-accent-emerald border-emerald-500/30 dark:border-accent-emerald/20',
+    purple:
+      'bg-purple-500/15 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30 dark:border-purple-500/20',
+    cyan: 'bg-accent-cyan/15 dark:bg-accent-cyan/10 text-cyan-700 dark:text-accent-cyan border-accent-cyan/30 dark:border-accent-cyan/20',
+    amber:
+      'bg-amber-500/15 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/20',
   };
 
   return (
@@ -49,13 +52,13 @@ export function StatCard({
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'p-5 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl transition-all duration-200',
+        'p-5 rounded-2xl bg-surface/90 dark:bg-surface/80 border border-border-subtle/80 backdrop-blur-xl shadow-md shadow-indigo-500/5 dark:shadow-none transition-all duration-200',
         glowStyles[glowColor],
         className,
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
+        <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
           {title}
         </span>
         {Icon && (
@@ -66,7 +69,7 @@ export function StatCard({
       </div>
 
       <div className="mt-3">
-        <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">
+        <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground tracking-tight">
           {value}
         </div>
       </div>
@@ -78,8 +81,8 @@ export function StatCard({
               className={cn(
                 'flex items-center space-x-1 font-semibold px-2 py-0.5 rounded-md border',
                 isPositive
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                  ? 'bg-emerald-500/15 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/20'
+                  : 'bg-rose-500/15 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/20',
               )}
             >
               {isPositive ? (
@@ -90,7 +93,7 @@ export function StatCard({
               <span>{change}</span>
             </div>
           )}
-          {subtitle && <span className="text-slate-400 font-medium">{subtitle}</span>}
+          {subtitle && <span className="text-muted-foreground font-medium">{subtitle}</span>}
         </div>
       )}
     </motion.div>
