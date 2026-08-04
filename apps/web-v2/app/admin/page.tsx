@@ -74,7 +74,23 @@ export default function AdminOverviewPage() {
       </div>
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link
+          href="/admin/custody"
+          className="p-5 rounded-2xl bg-surface/80 border border-border-subtle hover:border-purple-500/40 transition-all space-y-2 group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-purple-400 transition-colors" />
+          </div>
+          <h3 className="text-base font-bold text-white tracking-tight">Custody Vault Release</h3>
+          <p className="text-xs text-slate-400">
+            Withdraw custodied vault reserves directly into authorized admin wallet.
+          </p>
+        </Link>
+
         <Link
           href="/admin/treasury"
           className="p-5 rounded-2xl bg-surface/80 border border-border-subtle hover:border-purple-500/40 transition-all space-y-2 group"

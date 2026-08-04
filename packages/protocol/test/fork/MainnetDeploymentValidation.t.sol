@@ -27,13 +27,14 @@ contract MainnetDeploymentValidationTest is Test {
   address public constant BASE_MAINNET_CBBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
   address public constant BASE_MAINNET_WETH = 0x4200000000000000000000000000000000000006;
   address public constant BASE_MAINNET_USDC_FEED = 0x7e860098F58bBFC8648a4311b374B1D669a2bc6B;
-  address public constant BASE_MAINNET_CBBTC_FEED = 0x07b96265B54d0f09062F81B4D0840C5f2142E0a6;
-  address public constant BASE_MAINNET_ETH_FEED = 0x71041DDdaDB357Cb0061e89ef2399D55986fc000;
+  address public constant BASE_MAINNET_CBBTC_FEED = 0x8C74B2811D2F1aD65517ADB5C65773c1E520ed2f;
+  address public constant BASE_MAINNET_ETH_FEED = 0xe6eb5B9b85cFF2C84Df3De6e7855bC9E76f034d5;
   address public constant BASE_MAINNET_UNISWAP_V3_ROUTER =
     0x2626664c2603336E57B271c5C0b26F421741e481;
   address public constant TARGET_TIMELOCK_SAFE = 0xd905920c91853039060246Ed5724AA72B91a96DA;
 
   function setUp() public {
+    vm.chainId(8453);
     deployScript = new DeployMainnetScript();
     deployScript.run();
   }

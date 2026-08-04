@@ -36,8 +36,8 @@ contract DeployMainnetScript is Script {
 
   // Base Mainnet Chainlink Price Feed Oracles (checksummed)
   address public constant BASE_MAINNET_USDC_FEED = 0x7e860098F58bBFC8648a4311b374B1D669a2bc6B; // USDC/USD
-  address public constant BASE_MAINNET_CBBTC_FEED = 0x07b96265B54d0f09062F81B4D0840C5f2142E0a6; // cbBTC/USD
-  address public constant BASE_MAINNET_ETH_FEED = 0x71041DDdaDB357Cb0061e89ef2399D55986fc000; // ETH/USD
+  address public constant BASE_MAINNET_CBBTC_FEED = 0x8C74B2811D2F1aD65517ADB5C65773c1E520ed2f; // cbBTC/USD
+  address public constant BASE_MAINNET_ETH_FEED = 0xe6eb5B9b85cFF2C84Df3De6e7855bC9E76f034d5; // ETH/USD
 
   // Base Mainnet Uniswap V3 Swap Router
   address public constant BASE_MAINNET_UNISWAP_V3_ROUTER =

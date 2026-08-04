@@ -21,6 +21,7 @@ contract GovernanceMigrationValidationTest is Test {
   bytes32 public constant CONTROLLER_ROLE = keccak256('CONTROLLER_ROLE');
 
   function setUp() public {
+    vm.chainId(8453);
     deployScript = new DeployMainnetScript();
     deployScript.run();
 

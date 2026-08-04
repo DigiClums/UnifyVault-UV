@@ -27,6 +27,7 @@ export function AdminSidebar() {
     {
       title: 'OPERATIONS',
       items: [
+        { href: '/admin/custody', label: 'Custody Vault', icon: ShieldCheck },
         { href: '/admin/treasury', label: 'Treasury & Revenue', icon: Vault },
         { href: '/admin/users', label: 'User Accounting', icon: Users },
         { href: '/admin/transactions', label: 'Live Activity', icon: History },

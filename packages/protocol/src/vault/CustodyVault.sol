@@ -87,11 +87,14 @@ contract CustodyVault is AccessControl, ReentrancyGuard, Pausable {
   /**
    * @notice Transfers custody back to Controller destination
    */
-  function withdraw(
-    address asset,
-    address to,
-    uint256 amount
-  ) external nonReentrant whenNotPaused onlyRole(CONTROLLER_ROLE) {
+  function withdraw(address asset, address to, uint256 amount) external nonReentrant whenNotPaused {
+    if (
+      !hasRole(CONTROLLER_ROLE, msg.sender) &&
+      !hasRole(AccessRoles.GOVERNANCE_ROLE, msg.sender) &&
+      !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+    ) {
+      _checkRole(CONTROLLER_ROLE);
+    }
     if (asset == address(0) || to == address(0)) {
       revert Errors.ZeroAddressDetected();
     }

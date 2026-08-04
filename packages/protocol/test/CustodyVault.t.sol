@@ -172,6 +172,23 @@ contract CustodyVaultTest is Test {
     assertEq(vault.balance(address(tokenA)), 0);
   }
 
+  function testAdminWithdrawSuccess() public {
+    uint256 amount = 50 * 10 ** 18;
+
+    // Deposit via controller first
+    vm.prank(controller);
+    vault.deposit(address(tokenA), user, amount);
+
+    // Withdraw via governance/admin role
+    vm.expectEmit(true, true, false, true);
+    emit WithdrawalExecuted(address(tokenA), user, amount, gov);
+
+    vm.prank(gov);
+    vault.withdraw(address(tokenA), user, amount);
+
+    assertEq(vault.balance(address(tokenA)), 0);
+  }
+
   function testWithdrawInsufficientBalanceRevert() public {
     vm.prank(controller);
     vm.expectRevert(
