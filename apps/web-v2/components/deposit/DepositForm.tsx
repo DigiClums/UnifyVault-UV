@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card } from '../common/Card';
 import { useDeposit } from '../../hooks/useDeposit';
 import { useBalances } from '../../hooks/useBalances';
+import { useStrategyMetrics } from '../../hooks/useStrategyMetrics';
 import { getExplorerBaseUrl } from '../../constants';
 import { formatUnits, formatUSD } from '../../lib/math';
 import {
@@ -79,9 +80,18 @@ export function DepositForm() {
     }
   };
 
+  const {
+    targetBtcBps,
+    targetEthBps,
+    targetBtcPercent,
+    targetEthPercent,
+    isLoading: strategyLoading,
+  } = useStrategyMetrics();
   const depositVal = parseFloat(depositAmountInput || '0') || 0;
   const netDepositVal = depositVal * 0.9975; // 0.25% fee deduction
-  const halfDepositUSD = netDepositVal / 2;
+  // Compute allocations only when on-chain weights are available
+  const btcDepositUSD = targetBtcBps !== undefined ? (netDepositVal * targetBtcBps) / 10000 : 0;
+  const ethDepositUSD = targetEthBps !== undefined ? (netDepositVal * targetEthBps) / 10000 : 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -206,7 +216,7 @@ export function DepositForm() {
           </div>
         </div>
 
-        {/* Live 50/50 Collateral Allocation Visualizer */}
+        {/* Live Collateral Allocation Visualizer */}
         {amountRaw > 0n && (
           <div className="space-y-3 p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-border-subtle/70 text-xs">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2">
@@ -215,7 +225,9 @@ export function DepositForm() {
                 <span>Strategy Allocation Breakdown</span>
               </span>
               <span className="text-[10px] font-mono text-muted-foreground bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                50% BTC / 50% ETH
+                {strategyLoading
+                  ? 'Loading weights...'
+                  : `${targetBtcPercent ?? '...'} BTC / ${targetEthPercent ?? '...'} ETH`}
               </span>
             </div>
 
@@ -225,10 +237,12 @@ export function DepositForm() {
                   <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center space-x-1">
                     <span>🟠 cbBTC Allocation</span>
                   </span>
-                  <span className="font-mono font-bold text-foreground">50%</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {targetBtcPercent ?? '...'}
+                  </span>
                 </div>
                 <div className="text-xs font-mono font-bold text-foreground">
-                  {formatUSD(halfDepositUSD)}
+                  {formatUSD(btcDepositUSD)}
                 </div>
                 <div className="text-[10px] text-muted-foreground">Atomic Uniswap V3 Swap</div>
               </div>
@@ -238,10 +252,12 @@ export function DepositForm() {
                   <span className="font-semibold text-cyan-600 dark:text-cyan-400 flex items-center space-x-1">
                     <span>🔷 WETH Allocation</span>
                   </span>
-                  <span className="font-mono font-bold text-foreground">50%</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {targetEthPercent ?? '...'}
+                  </span>
                 </div>
                 <div className="text-xs font-mono font-bold text-foreground">
-                  {formatUSD(halfDepositUSD)}
+                  {formatUSD(ethDepositUSD)}
                 </div>
                 <div className="text-[10px] text-muted-foreground">Atomic Uniswap V3 Swap</div>
               </div>

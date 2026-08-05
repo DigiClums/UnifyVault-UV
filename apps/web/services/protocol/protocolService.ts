@@ -119,7 +119,8 @@ export const ProtocolService = {
 
     // 2. Fetch Strategy Assets & Target Weights from StrategyManager
     let targetAssets: `0x${string}`[] = getDefaultTargetAssets(chainId);
-    let targetWeightsBps: bigint[] = [0n, 5000n, 5000n];
+    // NO FALLBACK: weights must come from on-chain StrategyManager.getTargetWeights()
+    let targetWeightsBps: bigint[] = [];
 
     if (addresses.strategyManager !== ZERO_ADDRESS) {
       try {

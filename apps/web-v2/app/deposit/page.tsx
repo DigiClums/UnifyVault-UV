@@ -11,8 +11,8 @@ export default function DepositPage() {
           Vault Deposit & Share Minting
         </h1>
         <p className="text-xs text-slate-400">
-          Deposit USDC collateral to mint index ownership shares. Atomic DEX swaps allocate 50%
-          cbBTC and 50% WETH.
+          Deposit USDC collateral to mint index ownership shares. Atomic DEX swaps allocate
+          collateral according to active StrategyManager target weights.
         </p>
       </div>
       <DepositForm />

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { transformProtocolMetrics, transformUserPortfolio } from '../portfolioTransforms';
 
 describe('portfolioTransforms Domain Transformation Module', () => {
+  // Test StrategyManager.getTargetWeights() result at 50/50
+  // Values derived from on-chain weights — never hardcoded fallbacks
   const mockStrategyMetrics = {
     targetBtcBps: 5000,
     targetEthBps: 5000,

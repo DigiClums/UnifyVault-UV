@@ -80,10 +80,17 @@ export function transformProtocolMetrics(
     totalPortfolioValueUSDNumber,
   );
 
+  // When portfolio has no value AND strategy data is available, display target weights.
+  // When strategy data hasn't loaded, show "0.0" — never fabricate.
+  const defaultBtcPercent =
+    strategy.targetBtcBps !== undefined ? (strategy.targetBtcBps / 100).toFixed(1) : '0.0';
+  const defaultEthPercent =
+    strategy.targetEthBps !== undefined ? (strategy.targetEthBps / 100).toFixed(1) : '0.0';
+
   const custodyBtcPercent =
-    totalPortfolioValueUSDNumber > 0 ? custodyBtcPercentNum.toFixed(1) : '50.0';
+    totalPortfolioValueUSDNumber > 0 ? custodyBtcPercentNum.toFixed(1) : defaultBtcPercent;
   const custodyEthPercent =
-    totalPortfolioValueUSDNumber > 0 ? custodyEthPercentNum.toFixed(1) : '50.0';
+    totalPortfolioValueUSDNumber > 0 ? custodyEthPercentNum.toFixed(1) : defaultEthPercent;
   const custodyUsdcPercent =
     totalPortfolioValueUSDNumber > 0 ? custodyUsdcPercentNum.toFixed(1) : '0.0';
 
@@ -100,7 +107,7 @@ export function transformProtocolMetrics(
       weightBps: calculateAllocationBps(wbtcUSDValue, totalPortfolioValueUSDNumber),
       weightPercent: `${custodyBtcPercent}%`,
       currentWeightPercent: `${custodyBtcPercent}%`,
-      targetWeightPercent: strategy.targetBtcPercent,
+      targetWeightPercent: strategy.targetBtcPercent ?? '...',
     },
     {
       symbol: 'ETH',
@@ -114,7 +121,7 @@ export function transformProtocolMetrics(
       weightBps: calculateAllocationBps(wethUSDValue, totalPortfolioValueUSDNumber),
       weightPercent: `${custodyEthPercent}%`,
       currentWeightPercent: `${custodyEthPercent}%`,
-      targetWeightPercent: strategy.targetEthPercent,
+      targetWeightPercent: strategy.targetEthPercent ?? '...',
     },
     {
       symbol: 'USDC',
@@ -235,7 +242,7 @@ export function transformUserPortfolio(
         userTotalUSDNumber > 0
           ? `${calculateAllocationPercent(userWbtcUSD, userTotalUSDNumber).toFixed(1)}%`
           : '0.0%',
-      targetWeightPercent: protocolMetrics.targetBtcPercent,
+      targetWeightPercent: protocolMetrics.targetBtcPercent ?? '...',
     },
     {
       symbol: 'ETH',
@@ -255,7 +262,7 @@ export function transformUserPortfolio(
         userTotalUSDNumber > 0
           ? `${calculateAllocationPercent(userWethUSD, userTotalUSDNumber).toFixed(1)}%`
           : '0.0%',
-      targetWeightPercent: protocolMetrics.targetEthPercent,
+      targetWeightPercent: protocolMetrics.targetEthPercent ?? '...',
     },
     {
       symbol: 'USDC',

@@ -256,6 +256,48 @@ export default function AdminTreasuryPage() {
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
   const totalTreasuryValUSD = usdcUSD + wbtcUSD + wethUSD;
 
+  const selectedAssetSymbol = useMemo(() => {
+    if (!assetAddress) return 'USDC';
+    if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return 'cbBTC';
+    if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return 'WETH';
+    return 'USDC';
+  }, [assetAddress, tokens]);
+
+  const selectedAssetDecimals = useMemo(() => {
+    if (!assetAddress) return 6;
+    if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return 8;
+    if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return 18;
+    return 6;
+  }, [assetAddress, tokens]);
+
+  const selectedAssetBalRaw = useMemo(() => {
+    if (!assetAddress) return usdcBalRaw;
+    if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return wbtcBalRaw;
+    if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return wethBalRaw;
+    return usdcBalRaw;
+  }, [assetAddress, tokens, wbtcBalRaw, wethBalRaw, usdcBalRaw]);
+
+  const selectedAssetBalFormatted = formatUnits(selectedAssetBalRaw, selectedAssetDecimals);
+
+  const selectedAssetPrice = useMemo(() => {
+    if (!assetAddress) return 1.0;
+    if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return btcPrice;
+    if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return ethPrice;
+    return 1.0;
+  }, [assetAddress, tokens, btcPrice, ethPrice]);
+
+  const estimatedWithdrawUSD = useMemo(() => {
+    const amtNum = parseFloat(amount || '0') || 0;
+    return amtNum * selectedAssetPrice;
+  }, [amount, selectedAssetPrice]);
+
+  const handlePercentageSelect = (pct: number) => {
+    const balNum = parseFloat(selectedAssetBalFormatted) || 0;
+    if (balNum <= 0) return;
+    const val = (balNum * (pct / 100)).toFixed(selectedAssetDecimals === 8 ? 8 : 4);
+    setAmount(val);
+  };
+
   const {
     writeContract,
     data: txHash,
@@ -270,8 +312,7 @@ export default function AdminTreasuryPage() {
     e.preventDefault();
     if (!recipient || !amount || parseFloat(amount) <= 0 || !treasury) return;
 
-    const decimals = assetAddress.toLowerCase() === tokens.cbBTC.toLowerCase() ? 8 : 6;
-    const amountRaw = parseUnits(amount, decimals);
+    const amountRaw = parseUnits(amount, selectedAssetDecimals);
 
     writeContract({
       address: treasury,
@@ -336,7 +377,7 @@ export default function AdminTreasuryPage() {
           {formatUSD(totalTreasuryValUSD)}
         </div>
         <p className="text-xs text-slate-400">
-          Combined protocol-owned fee reserves custodied in Treasury on Base Mainnet.
+          Combined protocol-owned fee reserves custodied in Treasury on Base.
         </p>
       </div>
 
@@ -367,77 +408,173 @@ export default function AdminTreasuryPage() {
 
       {/* Withdrawal Form & Safeguards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
-          <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
-            <ArrowUpRight className="w-5 h-5 text-purple-400" />
-            <h3 className="text-base font-bold text-white tracking-tight">
-              Execute Revenue Release
-            </h3>
+        <div className="p-6 rounded-2xl bg-surface/90 border border-border-subtle/80 backdrop-blur-2xl space-y-5 shadow-2xl relative overflow-hidden group">
+          <div className="absolute -right-20 -top-20 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-700 pointer-events-none" />
+
+          <div className="flex items-center justify-between border-b border-border-subtle/50 pb-4">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-xs">
+                <ArrowUpRight className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white tracking-tight flex items-center space-x-2">
+                  <span>Execute Revenue Release</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Disburse collected protocol fee revenue to authorized treasury recipients
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] font-semibold font-mono">
+              <ShieldCheck className="w-3 h-3 text-purple-400" />
+              <span>Governance Restricted</span>
+            </div>
           </div>
 
           <form onSubmit={handleWithdraw} className="space-y-4 text-xs">
-            <div>
-              <label className="block text-slate-400 font-semibold mb-1">Select Fee Asset</label>
-              <select
-                value={assetAddress}
-                onChange={(e) => setAssetAddress(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono"
-              >
-                <option value={tokens.USDC}>USDC (USD Coin - 6 Decimals)</option>
-                <option value={tokens.cbBTC}>cbBTC (Coinbase Wrapped BTC - 8 Decimals)</option>
-                <option value={tokens.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
-              </select>
+            {/* 1. Select Fee Asset */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <label className="text-slate-300 font-bold flex items-center space-x-1.5">
+                  <span>Select Fee Asset</span>
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  Available:{' '}
+                  <span className="font-mono font-bold text-white">
+                    {selectedAssetBalFormatted}
+                  </span>{' '}
+                  {selectedAssetSymbol}
+                </span>
+              </div>
+
+              <div className="relative">
+                <select
+                  value={assetAddress}
+                  onChange={(e) => setAssetAddress(e.target.value)}
+                  className="w-full min-h-[48px] pl-10 pr-10 py-3 rounded-xl bg-slate-950/90 border border-border-subtle text-white focus:outline-none focus:border-purple-500/80 focus:ring-2 focus:ring-purple-500/30 font-mono font-bold text-xs appearance-none transition-all cursor-pointer shadow-inner"
+                >
+                  <option value={tokens.USDC}>USDC (USD Coin — 6 Decimals)</option>
+                  <option value={tokens.cbBTC}>cbBTC (Coinbase Wrapped BTC — 8 Decimals)</option>
+                  <option value={tokens.WETH}>WETH (Wrapped Ether — 18 Decimals)</option>
+                </select>
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-xs">
+                  {selectedAssetSymbol === 'USDC'
+                    ? '💲'
+                    : selectedAssetSymbol === 'cbBTC'
+                      ? '🟠'
+                      : '🔷'}
+                </div>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                  ▼
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-slate-400 font-semibold mb-1">Recipient Address</label>
-              <input
-                type="text"
-                placeholder="0x..."
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-              />
+            {/* 2. Recipient Address */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <label className="text-slate-300 font-bold">Recipient Address</label>
+                {connectedAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setRecipient(connectedAddress)}
+                    className="text-[10px] text-purple-400 hover:text-purple-300 font-mono font-semibold underline decoration-dashed underline-offset-2 transition-colors"
+                  >
+                    Use My Wallet ({connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)})
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  className="w-full min-h-[48px] px-3.5 py-3 rounded-xl bg-slate-950/90 border border-border-subtle text-white font-mono text-xs placeholder:text-slate-600 focus:outline-none focus:border-purple-500/80 focus:ring-2 focus:ring-purple-500/30 transition-all shadow-inner"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-slate-400 font-semibold mb-1">Withdraw Amount</label>
-              <input
-                type="number"
-                step="any"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-              />
+            {/* 3. Withdraw Amount */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <label className="text-slate-300 font-bold">Withdraw Amount</label>
+                <div className="flex items-center space-x-1">
+                  {[25, 50, 75, 100].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => handlePercentageSelect(pct)}
+                      className="px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-purple-500/20 text-[10px] font-mono font-semibold text-slate-300 hover:text-purple-300 border border-slate-700/60 hover:border-purple-500/40 transition-all active:scale-95"
+                    >
+                      {pct === 100 ? 'MAX' : `${pct}%`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative rounded-xl bg-slate-950/90 border border-border-subtle focus-within:border-purple-500/80 focus-within:ring-2 focus-within:ring-purple-500/30 transition-all p-3 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full bg-transparent text-xl font-mono font-extrabold text-white placeholder:text-slate-600 focus:outline-none tracking-tight"
+                  />
+                  <span className="text-xs font-bold text-slate-300 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700/80 shrink-0 font-mono shadow-xs">
+                    {selectedAssetSymbol}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-800/60 font-mono">
+                  <span>≈ {formatUSD(estimatedWithdrawUSD)}</span>
+                  <span>
+                    Reserve: {selectedAssetBalFormatted} {selectedAssetSymbol}
+                  </span>
+                </div>
+              </div>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting || !treasury}
-              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50"
+              disabled={
+                isWritePending ||
+                isTxWaiting ||
+                !treasury ||
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                !recipient
+              }
+              className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.99] font-bold text-white text-xs shadow-glow-purple disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50 mt-2"
             >
-              {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>
-                {isWritePending
-                  ? 'Confirming in Wallet...'
-                  : isTxWaiting
-                    ? 'Broadcasting Tx...'
-                    : 'Execute Revenue Release'}
-              </span>
+              {isWritePending || isTxWaiting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>
+                    {isWritePending ? 'Confirming in Wallet...' : 'Broadcasting Revenue Release...'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ArrowUpRight className="w-4 h-4" />
+                  <span>Execute Revenue Release ({selectedAssetSymbol})</span>
+                </>
+              )}
             </button>
           </form>
 
           {isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Revenue release executed successfully on Base Mainnet!</span>
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center space-x-2 text-xs font-semibold shadow-lg">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>Revenue release executed successfully on Base!</span>
             </div>
           )}
 
           {writeError && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{getFriendlyErrorMessage(writeError)}</span>
             </div>
           )}

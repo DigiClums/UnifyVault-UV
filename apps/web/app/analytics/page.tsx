@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
       ['Protocol Redeem Fees (0.25%)', '0.25% (25 BPS)', 'Fee Analytics'],
       ['Performance Fees (5.0% above HWM)', `$${userPerfFeeUSD.toFixed(2)}`, 'Fee Analytics'],
       ['Total Protocol Fees Paid', `$${totalFeesPaidUSD.toFixed(2)}`, 'Fee Analytics'],
-      ['Strategy Target Allocation', '50% cbBTC / 50% WETH', 'Portfolio Insights'],
+      ['Strategy Target Allocation', '60% cbBTC / 40% WETH', 'Portfolio Insights'],
       ['Rebalance Status', 'Balanced (0.04% Deviation)', 'Portfolio Insights'],
     ];
 
@@ -259,16 +259,26 @@ export default function AnalyticsPage() {
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Risk Level Profile</span>
                 <span className="font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                  Moderate 50/50 Index
+                  Multi-Asset Index
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Strategy Target</span>
-                <span className="font-bold text-foreground">50% cbBTC / 50% WETH</span>
+                <span className="font-bold text-foreground">
+                  {dashboardData
+                    ? `${dashboardData.CustodyAssets.map((a) => `${a.weightPercent.toFixed(1)}% ${a.symbol}`).join(' / ')}`
+                    : 'Loading from chain...'}
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Current Allocation</span>
-                <span className="font-bold text-foreground">50.00% / 50.00%</span>
+                <span className="font-bold text-foreground">
+                  {dashboardData
+                    ? dashboardData.CustodyAssets.map((a) => `${a.weightPercent.toFixed(2)}%`).join(
+                        ' / ',
+                      )
+                    : 'Loading from chain...'}
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 dark:bg-gray-900/40 border border-border">
                 <span className="text-muted-foreground">Target Deviation</span>

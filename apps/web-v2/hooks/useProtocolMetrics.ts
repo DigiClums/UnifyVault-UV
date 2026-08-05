@@ -23,21 +23,21 @@ export function useProtocolMetrics(strategyMetrics: StrategyMetrics): UseProtoco
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
+        functionName: 'totalAssetBalance',
         args: [tokens.cbBTC],
       },
       // 1. CustodyVault total WETH
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
+        functionName: 'totalAssetBalance',
         args: [tokens.WETH],
       },
       // 2. CustodyVault total USDC
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
+        functionName: 'totalAssetBalance',
         args: [tokens.USDC],
       },
       // 3. Oracle Price WBTC (18 decimals)

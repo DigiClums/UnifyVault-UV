@@ -5,7 +5,7 @@
   "description": "UnifyVault Protocol Monorepo",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --filter=@unifyvault/web",
+    "dev": "turbo run dev --filter=@unifyvault/web-v2",
     "dev:v2": "turbo run dev --filter=@unifyvault/web-v2",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

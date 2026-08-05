@@ -78,12 +78,13 @@ export interface AssetHolding {
 
 /**
  * Strategy target weight configuration metrics from StrategyManager contract.
+ * All values are undefined when data hasn't loaded (NO FALLBACKS).
  */
 export interface StrategyMetrics {
-  targetBtcBps: number;
-  targetEthBps: number;
-  targetBtcPercent: string;
-  targetEthPercent: string;
+  targetBtcBps: number | undefined;
+  targetEthBps: number | undefined;
+  targetBtcPercent: string | undefined;
+  targetEthPercent: string | undefined;
 }
 
 /**
@@ -98,10 +99,10 @@ export interface ProtocolMetrics {
   sharePriceNumber: number;
   totalSharesRaw: bigint;
   totalSharesFormatted: string;
-  targetBtcBps: number;
-  targetEthBps: number;
-  targetBtcPercent: string;
-  targetEthPercent: string;
+  targetBtcBps: number | undefined;
+  targetEthBps: number | undefined;
+  targetBtcPercent: string | undefined;
+  targetEthPercent: string | undefined;
   custodyBtcPercent: string;
   custodyEthPercent: string;
   protocolHoldings: AssetHolding[];

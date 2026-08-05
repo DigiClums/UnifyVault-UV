@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card } from '../common/Card';
 import { useRedeem } from '../../hooks/useRedeem';
 import { useBalances } from '../../hooks/useBalances';
+import { useStrategyMetrics } from '../../hooks/useStrategyMetrics';
 import { getExplorerBaseUrl } from '../../constants';
 import { formatUnits, formatShares } from '../../lib/math';
 import {
@@ -25,6 +26,7 @@ export function RedeemForm() {
   const { isConnected, chain } = useAccount();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { sharesBalance, refetch: refetchBalances } = useBalances();
+  const { targetBtcPercent, targetEthPercent, isLoading: strategyLoading } = useStrategyMetrics();
   const {
     sharesInput,
     setSharesInput,
@@ -152,7 +154,9 @@ export function RedeemForm() {
                 <span>Strategy Unwind Breakdown</span>
               </span>
               <span className="text-[10px] font-mono text-muted-foreground bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                50% BTC + 50% ETH → USDC
+                {strategyLoading
+                  ? 'Loading weights...'
+                  : `${targetBtcPercent ?? '...'} BTC + ${targetEthPercent ?? '...'} ETH → USDC`}
               </span>
             </div>
 
@@ -162,7 +166,9 @@ export function RedeemForm() {
                   <span className="font-semibold text-amber-600 dark:text-amber-400">
                     🟠 cbBTC Unwound
                   </span>
-                  <span className="font-mono font-bold text-foreground">50%</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {targetBtcPercent ?? '...'}
+                  </span>
                 </div>
                 <div className="text-[10px] text-muted-foreground">
                   Swapped back to USDC via DEX
@@ -174,7 +180,9 @@ export function RedeemForm() {
                   <span className="font-semibold text-cyan-600 dark:text-cyan-400">
                     🔷 WETH Unwound
                   </span>
-                  <span className="font-mono font-bold text-foreground">50%</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {targetEthPercent ?? '...'}
+                  </span>
                 </div>
                 <div className="text-[10px] text-muted-foreground">
                   Swapped back to USDC via DEX

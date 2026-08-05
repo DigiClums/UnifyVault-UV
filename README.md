@@ -6,6 +6,7 @@ UnifyVault V2 is a non-custodial, multi-asset crypto index vault protocol design
 
 ## 🚀 Key Features & Highlights
 
+- **Engineering Philosophy**: Strictly adherence to [UnifyVault Manifesto v1.0](MANIFESTO.md) — _Blockchain is the Database_. Zero centralized backends, 100% dynamic on-chain state discovery.
 - **Single-Token Index Vault**: Mint and redeem `UVBTCETH` index shares representing a 60% cbBTC / 40% WETH strategy portfolio.
 - **Decoupled Architecture**: Modular design separating directory resolution (`ProtocolDirectory`), deposit/redeem orchestration (`UnifyVaultController`), custody (`CustodyVault`), treasury fee storage (`Treasury`), liquidity accounting (`LiquidityManager`), valuation (`PortfolioManager`), strategy governance (`StrategyManager`), DEX swaps (`SwapAdapter`), and oracle feeds (`OracleManager`).
 - **Separation of Custody & Fee Revenue**: `CustodyVault` manages vault collateral; `Treasury` holds collected protocol fees (0.10% deposit / 0.10% redeem).

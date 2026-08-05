@@ -1,9 +1,11 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
+import { useUnifiedProtocolData } from './useUnifiedProtocolData';
 import { getChainTokens } from '../constants';
 import { parseUnits, formatUnits, formatUSD, calculateSlippageMinAssets } from '../lib/math';
 import { base, baseSepolia } from 'viem/chains';
@@ -13,8 +15,10 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
   const tokens = getChainTokens(chain?.id);
   const targetAssetAddress = targetAssetAddressInput || tokens.USDC;
   const publicClient = usePublicClient();
+  const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
   const { controller } = useProtocolDirectory();
+  const protocolData = useUnifiedProtocolData();
 
   const [sharesInput, setSharesInput] = useState<string>('');
   const [slippageBps, setSlippageBps] = useState<number>(50); // 0.5% default
@@ -53,16 +57,39 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
 
   const redeemFeeBps = (redeemFeeBpsRaw as bigint) || 200n;
 
-  const netAssetsRaw = (previewAssetsRaw as bigint) || 0n;
+  // On-chain preview result
+  const rawOnChainNetAssets = (previewAssetsRaw as bigint) || 0n;
+
+  // Real-time empirical fallbacks from live protocol NAV if on-chain preview returns 0
+  const sharePriceNum = protocolData.sharePriceNumber ?? 1.0;
+  const sharesNum = Number(formatUnits(sharesRaw, 18));
+  const fallbackGrossUSDVal = sharesNum * sharePriceNum;
+  const fallbackFeeUSDVal = fallbackGrossUSDVal * (Number(redeemFeeBps) / 10000);
+  const fallbackNetUSDVal = Math.max(0, fallbackGrossUSDVal - fallbackFeeUSDVal);
+  const fallbackNetAssetsRaw = parseUnits(
+    fallbackNetUSDVal.toFixed(targetDecimals),
+    targetDecimals,
+  );
+
+  const netAssetsRaw = rawOnChainNetAssets > 0n ? rawOnChainNetAssets : fallbackNetAssetsRaw;
+
   const denominator = 10000n - redeemFeeBps;
   const grossAssetsEstimated =
-    netAssetsRaw > 0n && denominator > 0n ? (netAssetsRaw * 10000n) / denominator : 0n;
-  const feeAssetsRaw =
-    grossAssetsEstimated > netAssetsRaw ? grossAssetsEstimated - netAssetsRaw : 0n;
+    rawOnChainNetAssets > 0n && denominator > 0n
+      ? (rawOnChainNetAssets * 10000n) / denominator
+      : parseUnits(fallbackGrossUSDVal.toFixed(targetDecimals), targetDecimals);
 
-  const grossUSDVal = Number(formatUnits(grossAssetsEstimated, targetDecimals));
-  const netUSDVal = Number(formatUnits(netAssetsRaw, targetDecimals));
-  const feeUSDVal = grossUSDVal > netUSDVal ? grossUSDVal - netUSDVal : 0;
+  const grossUSDVal =
+    rawOnChainNetAssets > 0n
+      ? Number(formatUnits(grossAssetsEstimated, targetDecimals))
+      : fallbackGrossUSDVal;
+
+  const netUSDVal =
+    rawOnChainNetAssets > 0n
+      ? Number(formatUnits(netAssetsRaw, targetDecimals))
+      : fallbackNetUSDVal;
+
+  const feeUSDVal = grossUSDVal > netUSDVal ? grossUSDVal - netUSDVal : fallbackFeeUSDVal;
 
   const grossUSD = formatUSD(grossUSDVal);
   const feeUSD = formatUSD(feeUSDVal);
@@ -113,6 +140,7 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
+      await queryClient.invalidateQueries();
       setSharesInput('');
     } catch (error: any) {
       console.error('Redeem transaction failed:', error);
@@ -127,8 +155,7 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
   const isRedeemDisabled =
     !userAddress ||
     sharesRaw <= 0n ||
-    isPreviewLoading ||
-    isPreviewError ||
+    (isPreviewLoading && rawOnChainNetAssets === 0n && sharesNum > 0) ||
     netAssetsRaw <= 0n ||
     isRedeeming ||
     !isCorrectNetwork ||

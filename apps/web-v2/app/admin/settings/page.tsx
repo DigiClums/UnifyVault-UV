@@ -405,7 +405,9 @@ export default function AdminSettingsPage() {
             </div>
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">Target Index Ratio</span>
-              <span className="font-mono text-amber-400 font-bold">50% BTC / 50% ETH</span>
+              <span className="font-mono text-amber-400 font-bold">
+                StrategyManager Target Weights
+              </span>
             </div>
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">Fee Routing Destination</span>

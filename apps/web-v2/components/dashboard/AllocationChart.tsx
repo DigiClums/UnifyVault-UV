@@ -13,54 +13,64 @@ interface AllocationChartProps {
 const COLORS = ['#F7931A', '#627EEA', '#2775CA'];
 
 export function AllocationChart({ metrics }: AllocationChartProps) {
-  const btcVal = parseFloat(metrics.btcAllocationPercent.replace('%', '')) || 50.0;
-  const ethVal = parseFloat(metrics.ethAllocationPercent.replace('%', '')) || 50.0;
+  // Parse on-chain weights — never fabricate fallback percentages
+  const btcPctStr = metrics.btcAllocationPercent?.replace('%', '') ?? '';
+  const ethPctStr = metrics.ethAllocationPercent?.replace('%', '') ?? '';
+  const btcVal = parseFloat(btcPctStr) || 0;
+  const ethVal = parseFloat(ethPctStr) || 0;
+  const hasWeights = btcVal > 0 || ethVal > 0 || btcPctStr !== '';
 
   const data = [
-    { name: 'BTC', value: btcVal },
-    { name: 'ETH', value: ethVal },
+    { name: 'BTC', value: hasWeights ? btcVal : 0 },
+    { name: 'ETH', value: hasWeights ? ethVal : 0 },
   ];
 
+  const subtitle = hasWeights
+    ? `${metrics.btcAllocationPercent} BTC / ${metrics.ethAllocationPercent} ETH Index Target Ratio`
+    : 'Loading strategy weights from chain...';
+
   return (
-    <ChartCard
-      title="Asset Weights & Strategy"
-      subtitle="50% BTC / 50% ETH Index Target Ratio"
-      icon={PieIcon}
-    >
-      <div className="h-44 w-full relative flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={45}
-              outerRadius={70}
-              paddingAngle={4}
-              dataKey="value"
-            >
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#0F172A',
-                borderColor: '#334155',
-                borderRadius: '12px',
-                color: '#FFF',
-              }}
-              formatter={(val: unknown) => [`${Number(val || 0).toFixed(1)}%`, 'Weight']}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-xs font-extrabold text-white">100%</span>
-          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-            Allocated
-          </span>
+    <ChartCard title="Asset Weights & Strategy" subtitle={subtitle} icon={PieIcon}>
+      {metrics.isLoading ? (
+        <div className="h-44 w-full flex items-center justify-center">
+          <div className="w-24 h-24 rounded-full border-4 border-slate-700 border-t-accent-blue animate-spin" />
         </div>
-      </div>
+      ) : (
+        <div className="h-44 w-full relative flex items-center justify-center">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={45}
+                outerRadius={70}
+                paddingAngle={4}
+                dataKey="value"
+              >
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#0F172A',
+                  borderColor: '#334155',
+                  borderRadius: '12px',
+                  color: '#FFF',
+                }}
+                formatter={(val: unknown) => [`${Number(val || 0).toFixed(1)}%`, 'Weight']}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-xs font-extrabold text-white">100%</span>
+            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              Allocated
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4 pt-2">
         {/* BTC Bar */}

@@ -42,7 +42,11 @@ export default function AdminRebalancePage() {
       ? (controllerStrategyManager as `0x${string}`)
       : strategyManager;
 
-  const { data: targetWeightsData, refetch: refetchWeights } = useReadContract({
+  const {
+    data: targetWeightsData,
+    isLoading: weightsLoading,
+    refetch: refetchWeights,
+  } = useReadContract({
     address: activeStrategyManager,
     abi: STRATEGY_MANAGER_ABI,
     functionName: 'getTargetWeights',
@@ -52,15 +56,27 @@ export default function AdminRebalancePage() {
     },
   });
 
-  const targetWeightsBps = (targetWeightsData?.[1] as bigint[]) || [5000n, 5000n];
-  const targetWbtcBpsNum = Number(targetWeightsBps[0] || 5000n);
-  const targetWethBpsNum = Number(targetWeightsBps[1] || 5000n);
+  // NO FALLBACK: weights are null when data hasn't loaded.
+  const targetWeightsBps: bigint[] | null =
+    (targetWeightsData?.[1] as bigint[] | undefined) ?? null;
+  const targetWbtcBpsNum: number | undefined =
+    targetWeightsBps !== null && targetWeightsBps.length > 0
+      ? Number(targetWeightsBps[0])
+      : undefined;
+  const targetWethBpsNum: number | undefined =
+    targetWeightsBps !== null && targetWeightsBps.length > 1
+      ? Number(targetWeightsBps[1])
+      : undefined;
 
-  const targetWbtcPct = targetWbtcBpsNum / 100;
-  const targetWethPct = targetWethBpsNum / 100;
+  const targetWbtcPct = targetWbtcBpsNum !== undefined ? targetWbtcBpsNum / 100 : 0;
+  const targetWethPct = targetWethBpsNum !== undefined ? targetWethBpsNum / 100 : 0;
 
-  const [wbtcBpsInput, setWbtcBpsInput] = useState<string>(targetWbtcBpsNum.toString());
-  const [wethBpsInput, setWethBpsInput] = useState<string>(targetWethBpsNum.toString());
+  const [wbtcBpsInput, setWbtcBpsInput] = useState<string>(
+    targetWbtcBpsNum !== undefined ? targetWbtcBpsNum.toString() : '',
+  );
+  const [wethBpsInput, setWethBpsInput] = useState<string>(
+    targetWethBpsNum !== undefined ? targetWethBpsNum.toString() : '',
+  );
 
   const wbtcBpsVal = parseInt(wbtcBpsInput || '0', 10);
   const wethBpsVal = parseInt(wethBpsInput || '0', 10);
@@ -105,12 +121,8 @@ export default function AdminRebalancePage() {
   const btcHolding = holdings.find((h) => h.symbol === 'BTC');
   const ethHolding = holdings.find((h) => h.symbol === 'ETH');
 
-  const btcWeight = btcHolding
-    ? parseFloat(btcHolding.weightPercent.replace('%', ''))
-    : targetWbtcPct;
-  const ethWeight = ethHolding
-    ? parseFloat(ethHolding.weightPercent.replace('%', ''))
-    : targetWethPct;
+  const btcWeight = btcHolding ? parseFloat(btcHolding.weightPercent.replace('%', '')) : 0;
+  const ethWeight = ethHolding ? parseFloat(ethHolding.weightPercent.replace('%', '')) : 0;
 
   const strategyShort = activeStrategyManager
     ? `${activeStrategyManager.slice(0, 6)}...${activeStrategyManager.slice(-4)}`
@@ -146,15 +158,35 @@ export default function AdminRebalancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Target cbBTC Weight"
-          value={`${targetWbtcPct.toFixed(1)}%`}
-          subtitle={`${targetWbtcBpsNum.toLocaleString()} BPS`}
+          value={
+            weightsLoading
+              ? 'Loading...'
+              : targetWbtcBpsNum !== undefined
+                ? `${targetWbtcPct.toFixed(1)}%`
+                : 'N/A'
+          }
+          subtitle={
+            targetWbtcBpsNum !== undefined
+              ? `${targetWbtcBpsNum.toLocaleString()} BPS`
+              : 'Awaiting on-chain data'
+          }
           icon={PieChart}
           glowColor="amber"
         />
         <StatCard
           title="Target WETH Weight"
-          value={`${targetWethPct.toFixed(1)}%`}
-          subtitle={`${targetWethBpsNum.toLocaleString()} BPS`}
+          value={
+            weightsLoading
+              ? 'Loading...'
+              : targetWethBpsNum !== undefined
+                ? `${targetWethPct.toFixed(1)}%`
+                : 'N/A'
+          }
+          subtitle={
+            targetWethBpsNum !== undefined
+              ? `${targetWethBpsNum.toLocaleString()} BPS`
+              : 'Awaiting on-chain data'
+          }
           icon={PieChart}
           glowColor="blue"
         />
@@ -186,13 +218,13 @@ export default function AdminRebalancePage() {
               </div>
               <input
                 type="number"
-                placeholder="5000"
+                placeholder="Enter BPS..."
                 value={wbtcBpsInput}
                 onChange={(e) => setWbtcBpsInput(e.target.value)}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
-                5000 BPS = 50.00% target allocation
+                Enter basis points (10000 BPS = 100.00%)
               </span>
             </div>
 
@@ -205,13 +237,13 @@ export default function AdminRebalancePage() {
               </div>
               <input
                 type="number"
-                placeholder="5000"
+                placeholder="Enter BPS..."
                 value={wethBpsInput}
                 onChange={(e) => setWethBpsInput(e.target.value)}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
-                5000 BPS = 50.00% target allocation
+                Enter basis points (10000 BPS = 100.00%)
               </span>
             </div>
 
@@ -342,7 +374,11 @@ export default function AdminRebalancePage() {
               </td>
               <td className="py-4 px-3 text-accent-blue font-bold">{btcWeight.toFixed(1)}%</td>
               <td className="py-4 px-3 text-slate-400">
-                {targetWbtcPct.toFixed(1)}% ({targetWbtcBpsNum} BPS)
+                {weightsLoading
+                  ? 'Loading...'
+                  : targetWbtcBpsNum !== undefined
+                    ? `${targetWbtcPct.toFixed(1)}% (${targetWbtcBpsNum.toLocaleString()} BPS)`
+                    : 'N/A'}
               </td>
               <td className="py-4 px-3 text-right font-sans">
                 <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -367,7 +403,11 @@ export default function AdminRebalancePage() {
               </td>
               <td className="py-4 px-3 text-accent-blue font-bold">{ethWeight.toFixed(1)}%</td>
               <td className="py-4 px-3 text-slate-400">
-                {targetWethPct.toFixed(1)}% ({targetWethBpsNum} BPS)
+                {weightsLoading
+                  ? 'Loading...'
+                  : targetWethBpsNum !== undefined
+                    ? `${targetWethPct.toFixed(1)}% (${targetWethBpsNum.toLocaleString()} BPS)`
+                    : 'N/A'}
               </td>
               <td className="py-4 px-3 text-right font-sans">
                 <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

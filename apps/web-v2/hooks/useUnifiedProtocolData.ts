@@ -20,6 +20,7 @@ export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
   historicalNAV: HistoricalNavPoint[];
   isLoading: boolean;
   isError: boolean;
+  refetch: () => void;
 }
 
 export function useUnifiedProtocolData(): UnifiedProtocolData {
@@ -28,27 +29,27 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const activeUser = userAddress || ZERO_ADDRESS;
   const { vault, oracle, token, costBasisManager, strategyManager } = useProtocolDirectory();
 
-  const { data, isLoading, isError } = useReadContracts({
+  const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
       // 0. CustodyVault total WBTC
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
+        functionName: 'totalAssetBalance',
         args: [tokens.cbBTC],
       },
       // 1. CustodyVault total WETH
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
+        functionName: 'totalAssetBalance',
         args: [tokens.WETH],
       },
       // 2. CustodyVault total USDC
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        functionName: 'totalAssets',
+        functionName: 'totalAssetBalance',
         args: [tokens.USDC],
       },
       // 3. Oracle Price WBTC (18 decimals)
@@ -108,7 +109,8 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     ],
     query: {
       enabled: !!vault && !!oracle && !!token,
-      refetchInterval: 5_000,
+      refetchInterval: 3_000,
+      staleTime: 0,
     },
   });
 
@@ -131,15 +133,28 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
 
   const targetWeightsResult = data?.[10]?.result as
     [address: `0x${string}`[], weights: bigint[]] | undefined;
-  const targetWeightsBps = targetWeightsResult?.[1] || [5000n, 5000n];
-  const targetBtcBps = Number(targetWeightsBps[0] || 5000n);
-  const targetEthBps = Number(targetWeightsBps[1] || 5000n);
+
+  // NO FALLBACK: strategy weights are null when data hasn't loaded.
+  // Consumers MUST handle undefined values by showing loading/skeleton states.
+  const targetWeightsBps: bigint[] | null = targetWeightsResult?.[1] ?? null;
+
+  const targetBtcBps: number | undefined =
+    targetWeightsBps !== null && targetWeightsBps.length > 0
+      ? Number(targetWeightsBps[0])
+      : undefined;
+
+  const targetEthBps: number | undefined =
+    targetWeightsBps !== null && targetWeightsBps.length > 1
+      ? Number(targetWeightsBps[1])
+      : undefined;
 
   const strategyMetrics = {
     targetBtcBps,
     targetEthBps,
-    targetBtcPercent: `${(targetBtcBps / 100).toFixed(1)}%`,
-    targetEthPercent: `${(targetEthBps / 100).toFixed(1)}%`,
+    targetBtcPercent:
+      targetBtcBps !== undefined ? `${(targetBtcBps / 100).toFixed(1)}%` : undefined,
+    targetEthPercent:
+      targetEthBps !== undefined ? `${(targetEthBps / 100).toFixed(1)}%` : undefined,
   };
 
   const protocolMetrics = transformProtocolMetrics(rawProtocolData, strategyMetrics);
@@ -158,6 +173,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     historicalNAV,
     isLoading,
     isError,
+    refetch,
   };
 }
 

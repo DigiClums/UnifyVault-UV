@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
@@ -20,6 +21,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
   const tokens = getChainTokens(chain?.id);
   const selectedTokenAddress = selectedTokenAddressInput || tokens.USDC;
   const publicClient = usePublicClient();
+  const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
   const { controller } = useProtocolDirectory();
 
@@ -128,6 +130,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         await publicClient.waitForTransactionReceipt({ hash });
       }
       await refetchAllowance();
+      await queryClient.invalidateQueries();
     } catch (error: any) {
       console.error('Approve transaction failed:', error);
       const msg = error?.shortMessage || error?.message || 'Approval failed';
@@ -185,6 +188,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
+      await queryClient.invalidateQueries();
       setDepositAmountInput('');
     } catch (error: any) {
       console.error('Deposit transaction failed:', error);
