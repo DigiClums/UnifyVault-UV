@@ -1,10 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAccount, useReadContracts } from 'wagmi';
-import { ACCESS_CONTROL_ABI } from '../../lib/contracts/directory';
-import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
-import { DEFAULT_ADMIN_ROLE, GUARDIAN_ROLE, TIMELOCK_ROLE } from '../../constants';
+import { useAdminAccess } from '../../hooks/useAdminAccess';
 import { ShieldAlert, Lock, Wallet, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -14,49 +11,7 @@ interface AdminAccessGateProps {
 }
 
 export function AdminAccessGate({ children }: AdminAccessGateProps) {
-  const { address, isConnected } = useAccount();
-  const { treasury, controller } = useProtocolDirectory();
-
-  // Production AccessControl Role Checks directly from on-chain contracts
-  const { data, isLoading } = useReadContracts({
-    contracts: [
-      {
-        address: treasury,
-        abi: ACCESS_CONTROL_ABI,
-        functionName: 'hasRole',
-        args: address ? [DEFAULT_ADMIN_ROLE, address] : undefined,
-      },
-      {
-        address: treasury,
-        abi: ACCESS_CONTROL_ABI,
-        functionName: 'hasRole',
-        args: address ? [TIMELOCK_ROLE, address] : undefined,
-      },
-      {
-        address: treasury,
-        abi: ACCESS_CONTROL_ABI,
-        functionName: 'hasRole',
-        args: address ? [GUARDIAN_ROLE, address] : undefined,
-      },
-      {
-        address: controller,
-        abi: ACCESS_CONTROL_ABI,
-        functionName: 'isAdmin',
-        args: address ? [address] : undefined,
-      },
-    ],
-    query: {
-      enabled: !!address && (!!treasury || !!controller),
-    },
-  });
-
-  const isAdminRole = Boolean(data?.[0]?.result);
-  const isTimelockRole = Boolean(data?.[1]?.result);
-  const isGuardianRole = Boolean(data?.[2]?.result);
-  const isControllerAdmin = Boolean(data?.[3]?.result);
-
-  // Pure on-chain role verification
-  const isAuthorized = isAdminRole || isTimelockRole || isGuardianRole || isControllerAdmin;
+  const { isAdmin, isLoading, isConnected, address } = useAdminAccess();
 
   if (!isConnected) {
     return (
@@ -64,10 +19,10 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-4">
           <Wallet className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Connect Admin Wallet</h2>
+        <h2 className="text-2xl font-bold text-white tracking-tight">403 — Wallet Required</h2>
         <p className="text-xs text-slate-400 max-w-md mt-2 mb-6">
-          Please connect an authorized Web3 wallet holding an on-chain AccessControl role (Admin,
-          Timelock, or Guardian) to access protocol administration controls.
+          Please connect an authorized Web3 wallet holding on-chain DEFAULT_ADMIN_ROLE permissions
+          to access protocol administration controls.
         </p>
         <ConnectButton />
       </div>
@@ -83,17 +38,23 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
     );
   }
 
-  if (!isAuthorized) {
+  if (!isAdmin) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
         <div className="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 shadow-glow">
           <ShieldAlert className="w-12 h-12" />
         </div>
         <div className="space-y-1 max-w-md">
-          <h2 className="text-2xl font-extrabold text-white tracking-tight">Access Denied</h2>
+          <div className="inline-block px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 font-mono text-xs font-bold mb-2">
+            403 Forbidden
+          </div>
+          <h2 className="text-2xl font-extrabold text-white tracking-tight">
+            403 — Unauthorized Access
+          </h2>
           <p className="text-xs text-slate-400 leading-relaxed">
             Connected wallet <code className="text-rose-400 font-mono">{address}</code> does not
-            hold an active AccessControl role on the Protocol Directory or Treasury.
+            hold an active <code className="text-rose-400 font-mono">DEFAULT_ADMIN_ROLE</code> on
+            the Protocol Directory or Controller smart contracts.
           </p>
         </div>
 
@@ -103,9 +64,7 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
             <span>On-Chain Role Verification Status:</span>
           </div>
           <ul className="list-disc list-inside text-slate-400 space-y-1 text-[11px]">
-            <li>DEFAULT_ADMIN_ROLE: {isAdminRole ? '✅ Granted' : '❌ Not Granted'}</li>
-            <li>TIMELOCK_ROLE: {isTimelockRole ? '✅ Granted' : '❌ Not Granted'}</li>
-            <li>GUARDIAN_ROLE: {isGuardianRole ? '✅ Granted' : '❌ Not Granted'}</li>
+            <li>DEFAULT_ADMIN_ROLE: ❌ Not Granted</li>
           </ul>
         </div>
 

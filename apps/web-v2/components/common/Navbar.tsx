@@ -20,44 +20,23 @@ import {
   Menu,
   X,
   BookOpen,
+  ChevronDown,
+  Globe,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
+import { useAdminAccess } from '../../hooks/useAdminAccess';
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { address, isConnected } = useAccount();
-  const { treasury } = useProtocolDirectory();
+  const { chain } = useAccount();
+  const { isAdmin } = useAdminAccess();
 
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
-
-  // Read admin role dynamically from Treasury AccessControl
-  const { data: isAdminRole } = useReadContract({
-    address: treasury,
-    abi: [
-      {
-        inputs: [
-          { name: 'role', type: 'bytes32' },
-          { name: 'account', type: 'address' },
-        ],
-        name: 'hasRole',
-        outputs: [{ name: '', type: 'bool' }],
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ],
-    functionName: 'hasRole',
-    args: address && treasury ? [DEFAULT_ADMIN_ROLE, address] : undefined,
-    query: {
-      enabled: !!address && !!treasury,
-    },
-  });
-
-  const isAdmin = isConnected && Boolean(isAdminRole);
 
   interface NavItem {
     href: string;
@@ -74,6 +53,7 @@ export function Navbar() {
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/treasury', label: 'Treasury', icon: Vault },
     { href: '/transactions', label: 'Activity', icon: History },
+    { href: '/admin', label: 'Admin', icon: ShieldAlert, isAdmin: true },
   ];
 
   const secondaryNavLinks = [
@@ -81,9 +61,7 @@ export function Navbar() {
     { href: 'https://docs.unifyvault.xyz', label: 'Documentation', icon: BookOpen, external: true },
   ];
 
-  const navLinks: NavItem[] = isAdmin
-    ? [...baseNavLinks, { href: '/admin', label: 'Admin', icon: ShieldAlert, isAdmin: true }]
-    : baseNavLinks;
+  const navLinks: NavItem[] = baseNavLinks.filter((link) => !link.isAdmin || isAdmin);
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border-subtle/80 transition-all">
@@ -109,7 +87,7 @@ export function Navbar() {
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground font-mono tracking-wider hidden sm:block">
-              Base Mainnet
+              {chain?.name || 'Base Mainnet'}
             </span>
           </div>
         </Link>
@@ -149,7 +127,97 @@ export function Navbar() {
           <ThemeToggle />
 
           <div className="scale-90 sm:scale-100 origin-right flex items-center shrink">
-            <ConnectButton showBalance={false} accountStatus="avatar" chainStatus="full" />
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openAccountModal,
+                openChainModal,
+                openConnectModal,
+                mounted,
+              }) => {
+                const ready = mounted;
+                const connected = ready && account && chain;
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      style: {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                    className="flex items-center space-x-2"
+                  >
+                    {/* Network Select Button */}
+                    <button
+                      onClick={openChainModal}
+                      type="button"
+                      aria-label="Select Network"
+                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface/80 hover:bg-card border border-border-subtle/80 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm hover:border-accent-blue/40"
+                    >
+                      {chain?.hasIcon ? (
+                        <div
+                          className="w-4 h-4 rounded-full overflow-hidden shrink-0"
+                          style={{ background: chain.iconBackground }}
+                        >
+                          {chain.iconUrl && (
+                            <img
+                              alt={chain.name ?? 'Chain icon'}
+                              src={chain.iconUrl}
+                              className="w-4 h-4"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <Globe className="w-3.5 h-3.5 text-accent-blue" />
+                      )}
+                      <span>{chain?.name || 'Select Network'}</span>
+                      <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    </button>
+
+                    {/* Connect Wallet / Wallet Account Button */}
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <button
+                            onClick={openConnectModal}
+                            type="button"
+                            className="px-3.5 py-1.5 rounded-xl bg-accent-blue hover:bg-accent-blue/90 text-white text-xs font-semibold shadow-glow transition-all shrink-0 cursor-pointer"
+                          >
+                            Connect Wallet
+                          </button>
+                        );
+                      }
+
+                      if (chain?.unsupported) {
+                        return (
+                          <button
+                            onClick={openChainModal}
+                            type="button"
+                            className="px-3.5 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-all shrink-0 cursor-pointer"
+                          >
+                            Wrong Network
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          onClick={openAccountModal}
+                          type="button"
+                          className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-surface/80 hover:bg-card border border-border-subtle/80 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm"
+                        >
+                          <span>{account.displayName}</span>
+                        </button>
+                      );
+                    })()}
+                  </div>
+                );
+              }}
+            </ConnectButton.Custom>
           </div>
 
           <button
