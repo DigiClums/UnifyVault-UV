@@ -10,9 +10,23 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
-vi.mock('@rainbow-me/rainbowkit', () => ({
-  ConnectButton: () => <button data-testid="connect-button">Connect Wallet</button>,
-}));
+vi.mock('@rainbow-me/rainbowkit', () => {
+  const MockConnectButton = ({ children }: any) => {
+    if (typeof children === 'function') {
+      return children({
+        account: undefined,
+        chain: undefined,
+        openAccountModal: () => {},
+        openChainModal: () => {},
+        openConnectModal: () => {},
+        mounted: true,
+      });
+    }
+    return <button data-testid="connect-button">Connect Wallet</button>;
+  };
+  MockConnectButton.Custom = MockConnectButton;
+  return { ConnectButton: MockConnectButton };
+});
 
 describe('Navbar Component UI/UX', () => {
   beforeEach(() => {
@@ -25,7 +39,8 @@ describe('Navbar Component UI/UX', () => {
 
     expect(screen.getByText('UnifyVault')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument();
-    expect(screen.getByTestId('connect-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select network/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /connect wallet/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /toggle theme/i })).toBeInTheDocument();
   });
 

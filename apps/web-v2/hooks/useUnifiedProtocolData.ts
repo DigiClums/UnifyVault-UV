@@ -8,7 +8,7 @@ import {
   COST_BASIS_MANAGER_ABI,
   STRATEGY_MANAGER_ABI,
 } from '../lib/contracts';
-import { MAINNET_TOKENS } from '../constants';
+import { getChainTokens } from '../constants';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { HistoricalNavPoint, ProtocolMetrics, UserPortfolio } from '../types';
 import { transformProtocolMetrics, transformUserPortfolio } from '../lib/portfolioTransforms';
@@ -23,7 +23,8 @@ export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
 }
 
 export function useUnifiedProtocolData(): UnifiedProtocolData {
-  const { address: userAddress } = useAccount();
+  const { address: userAddress, chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
   const { vault, oracle, token, costBasisManager, strategyManager } = useProtocolDirectory();
 
@@ -34,42 +35,42 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       // 1. CustodyVault total WETH
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       // 2. CustodyVault total USDC
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
       // 3. Oracle Price WBTC (18 decimals)
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       // 4. Oracle Price WETH (18 decimals)
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       // 5. Oracle Price USDC (18 decimals)
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
       // 6. UVBTCETHToken Total Supply
       {
@@ -86,7 +87,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
       },
       // 8. Connected User USDC Balance
       {
-        address: MAINNET_TOKENS.USDC,
+        address: tokens.USDC,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [activeUser],

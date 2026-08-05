@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useReadContracts } from 'wagmi';
-import { createPublicClient, http, formatUnits } from 'viem';
-import { base } from 'viem/chains';
+import { useAccount, useReadContracts, usePublicClient } from 'wagmi';
+import { formatUnits } from 'viem';
 import { TREASURY_ABI, CONTROLLER_ABI, ORACLE_MANAGER_ABI } from '../../lib/contracts';
-import { MAINNET_TOKENS, RPC_URL } from '../../constants';
+import { getChainTokens, getExplorerBaseUrl } from '../../constants';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../lib/math';
 import { StatCard } from '../../components/ui/StatCard';
@@ -22,11 +21,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(RPC_URL),
-});
-
 export interface PublicTreasuryLog {
   id: string;
   blockNumber: bigint;
@@ -39,8 +33,13 @@ export interface PublicTreasuryLog {
   logIndex: number;
 }
 
-export default function TreasuryPage() {
+export default function PublicTreasuryPage() {
+  const { chain } = useAccount();
+  const publicClient = usePublicClient();
+  const tokens = getChainTokens(chain?.id);
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { treasury, controller, oracle } = useProtocolDirectory();
+
   const [treasuryLogs, setTreasuryLogs] = useState<PublicTreasuryLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [isRefreshingLogs, setIsRefreshingLogs] = useState<boolean>(false);
@@ -54,6 +53,7 @@ export default function TreasuryPage() {
         return blockTimeCache.get(blockNumber)!;
       }
       try {
+        if (!publicClient) return Math.floor(Date.now() / 1000);
         const block = await publicClient.getBlock({ blockNumber });
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
@@ -62,11 +62,11 @@ export default function TreasuryPage() {
         return Math.floor(Date.now() / 1000);
       }
     },
-    [blockTimeCache],
+    [blockTimeCache, publicClient],
   );
 
   const fetchTreasuryLogs = useCallback(async () => {
-    if (!treasury) return;
+    if (!treasury || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
       const logs = await publicClient.getContractEvents({
@@ -96,9 +96,9 @@ export default function TreasuryPage() {
 
         const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === MAINNET_TOKENS.cbBTC.toLowerCase()) {
+        if (assetAddr === tokens.cbBTC.toLowerCase()) {
           assetSymbol = 'cbBTC';
-        } else if (assetAddr === MAINNET_TOKENS.WETH.toLowerCase()) {
+        } else if (assetAddr === tokens.WETH.toLowerCase()) {
           assetSymbol = 'WETH';
         } else {
           assetSymbol = 'USDC';
@@ -155,10 +155,10 @@ export default function TreasuryPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [treasury, getBlockTimestamp]);
+  }, [treasury, publicClient, tokens, getBlockTimestamp]);
 
   useEffect(() => {
-    if (!treasury) return;
+    if (!treasury || !publicClient) return;
     fetchTreasuryLogs();
 
     const unwatch = publicClient.watchContractEvent({
@@ -172,7 +172,7 @@ export default function TreasuryPage() {
     return () => {
       unwatch();
     };
-  }, [treasury, fetchTreasuryLogs]);
+  }, [treasury, publicClient, fetchTreasuryLogs]);
 
   const { data, refetch } = useReadContracts({
     contracts: [
@@ -180,19 +180,19 @@ export default function TreasuryPage() {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
       {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       {
         address: controller,
@@ -208,13 +208,13 @@ export default function TreasuryPage() {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
     ],
     query: {
@@ -491,7 +491,7 @@ export default function TreasuryPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {log.recipient !== '0x0000000000000000000000000000000000000000' ? (
                           <a
-                            href={`https://basescan.org/address/${log.recipient}`}
+                            href={`${explorerBaseUrl}/address/${log.recipient}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-accent-blue transition-colors"
@@ -512,7 +512,7 @@ export default function TreasuryPage() {
                       {/* Explorer Link */}
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://basescan.org/tx/${log.transactionHash}`}
+                          href={`${explorerBaseUrl}/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-accent-blue hover:underline"

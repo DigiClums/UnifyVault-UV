@@ -1,8 +1,12 @@
 'use client';
 
+import { useAccount } from 'wagmi';
 import { useTransactionStore } from '../../store/useTransactionStore';
+import { getExplorerBaseUrl } from '../../lib/config/network';
 
 export function TransactionModal() {
+  const { chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { isOpen, step, txHash, errorMessage, closeModal, reset, actionType } =
     useTransactionStore();
 
@@ -166,12 +170,12 @@ export function TransactionModal() {
             </p>
             {txHash && (
               <a
-                href={`https://basescan.org/tx/${txHash}`}
+                href={`${explorerBaseUrl}/tx/${txHash}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs text-primary hover:underline break-all mt-1"
               >
-                View on Basescan: {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                View on Block Explorer: {txHash.slice(0, 10)}...{txHash.slice(-8)}
               </a>
             )}
             <button

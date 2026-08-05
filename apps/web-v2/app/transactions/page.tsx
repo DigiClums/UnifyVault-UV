@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { createPublicClient, http, formatUnits } from 'viem';
-import { base } from 'viem/chains';
+import { useAccount, usePublicClient } from 'wagmi';
+import { formatUnits } from 'viem';
 import { CONTROLLER_ABI } from '../../lib/contracts';
-import { RPC_URL } from '../../constants';
+import { getExplorerBaseUrl } from '../../constants';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { TableCard } from '../../components/ui/TableCard';
 import { StatCard } from '../../components/ui/StatCard';
@@ -22,11 +22,6 @@ import {
 } from 'lucide-react';
 import { useTransactionHistory } from '../../hooks/useIndexerData';
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(RPC_URL),
-});
-
 export interface DisplayEvent {
   id: string;
   blockNumber: number;
@@ -42,6 +37,9 @@ export interface DisplayEvent {
 export default function ActivityPage() {
   const { controller } = useProtocolDirectory();
   const { transactions: indexerTxs, isLoading: isIndexerLoading } = useTransactionHistory();
+  const { chain } = useAccount();
+  const publicClient = usePublicClient();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const [onChainEvents, setOnChainEvents] = useState<DisplayEvent[]>([]);
   const [isOnChainLoading, setIsOnChainLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -55,6 +53,7 @@ export default function ActivityPage() {
         return blockTimeCache.get(blockNumber)!;
       }
       try {
+        if (!publicClient) return Math.floor(Date.now() / 1000);
         const block = await publicClient.getBlock({ blockNumber });
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
@@ -63,11 +62,11 @@ export default function ActivityPage() {
         return Math.floor(Date.now() / 1000);
       }
     },
-    [blockTimeCache],
+    [blockTimeCache, publicClient],
   );
 
   const fetchOnChainEvents = useCallback(async () => {
-    if (!controller) return;
+    if (!controller || !publicClient) return;
     setIsRefreshing(true);
     try {
       const contractEvents = await publicClient.getContractEvents({
@@ -77,69 +76,73 @@ export default function ActivityPage() {
         toBlock: 'latest',
       });
 
-      const parsedPromises = contractEvents.map(async (log) => {
-        if (!log.blockNumber || !log.transactionHash) return null;
-        const ts = await getBlockTimestamp(log.blockNumber);
-        const logIdx = log.logIndex ?? 0;
-        const id = `${log.transactionHash}-${logIdx}`;
+      const parsedPromises: Promise<DisplayEvent | null>[] = contractEvents.map(
+        async (log): Promise<DisplayEvent | null> => {
+          if (!log.blockNumber || !log.transactionHash) return null;
+          const ts = await getBlockTimestamp(log.blockNumber);
+          const logIdx = log.logIndex ?? 0;
+          const id = `${log.transactionHash}-${logIdx}`;
 
-        const eventLog = log as unknown as {
-          eventName: string;
-          args: Record<string, any>;
-        };
+          const eventLog = log as unknown as {
+            eventName: string;
+            args: Record<string, any>;
+          };
 
-        const eventName = eventLog.eventName;
-        const args = eventLog.args || {};
+          const eventName = eventLog.eventName;
+          const args = eventLog.args || {};
 
-        let user = '0x0000...0000';
-        const asset = 'USDC';
-        let amountFormatted = '0.00 USDC';
+          let user = '0x0000...0000';
+          const asset = 'USDC';
+          let amountFormatted = '0.00 USDC';
 
-        switch (eventName) {
-          case 'DepositExecuted':
-          case 'DepositCompleted':
-            user = (args.user as string) || (args.receiver as string) || user;
-            amountFormatted =
-              args.depositAmount || args.grossDeposit
-                ? `${Number(formatUnits((args.depositAmount || args.grossDeposit) as bigint, 6)).toFixed(2)} USDC`
+          switch (eventName) {
+            case 'DepositExecuted':
+            case 'DepositCompleted':
+              user = (args.user as string) || (args.receiver as string) || user;
+              amountFormatted =
+                args.depositAmount || args.grossDeposit
+                  ? `${Number(formatUnits((args.depositAmount || args.grossDeposit) as bigint, 6)).toFixed(2)} USDC`
+                  : '0.00 USDC';
+              break;
+            case 'RedeemExecuted':
+            case 'RedeemCompleted':
+              user = (args.user as string) || (args.owner as string) || user;
+              amountFormatted =
+                args.usdcReturned || args.netAssets
+                  ? `${Number(formatUnits((args.usdcReturned || args.netAssets) as bigint, 6)).toFixed(2)} USDC`
+                  : '0.00 USDC';
+              break;
+            case 'ProtocolFeeCollected':
+              user = (args.payer as string) || user;
+              amountFormatted = args.feeAmount
+                ? `${Number(formatUnits(args.feeAmount as bigint, 6)).toFixed(2)} USDC`
                 : '0.00 USDC';
-            break;
-          case 'RedeemExecuted':
-          case 'RedeemCompleted':
-            user = (args.user as string) || (args.owner as string) || user;
-            amountFormatted =
-              args.usdcReturned || args.netAssets
-                ? `${Number(formatUnits((args.usdcReturned || args.netAssets) as bigint, 6)).toFixed(2)} USDC`
-                : '0.00 USDC';
-            break;
-          case 'ProtocolFeeCollected':
-            user = (args.payer as string) || user;
-            amountFormatted = args.feeAmount
-              ? `${Number(formatUnits(args.feeAmount as bigint, 6)).toFixed(2)} USDC`
-              : '0.00 USDC';
-            break;
-          case 'EmergencyPaused':
-          case 'EmergencyResumed':
-            user = (args.caller as string) || user;
-            amountFormatted = 'N/A';
-            break;
-        }
+              break;
+            case 'EmergencyPaused':
+            case 'EmergencyResumed':
+              user = (args.caller as string) || user;
+              amountFormatted = 'N/A';
+              break;
+            default:
+              return null;
+          }
 
-        return {
-          id,
-          blockNumber: Number(log.blockNumber),
-          timestamp: ts,
-          type: eventName,
-          user,
-          asset,
-          amountFormatted,
-          txHash: log.transactionHash as `0x${string}`,
-          logIndex: logIdx,
-        };
-      });
+          return {
+            id,
+            blockNumber: Number(log.blockNumber),
+            timestamp: ts,
+            type: eventName,
+            user,
+            asset,
+            amountFormatted,
+            txHash: log.transactionHash as `0x${string}`,
+            logIndex: logIdx,
+          };
+        },
+      );
 
-      const rawResults = await Promise.all(parsedPromises);
-      const cleanEvents = rawResults.filter((e): e is DisplayEvent => e !== null);
+      const parsedResults = await Promise.all(parsedPromises);
+      const cleanEvents = parsedResults.filter((e): e is DisplayEvent => e !== null);
 
       cleanEvents.sort((a, b) => {
         if (b.blockNumber !== a.blockNumber) return b.blockNumber - a.blockNumber;
@@ -154,10 +157,10 @@ export default function ActivityPage() {
       setIsOnChainLoading(false);
       setIsRefreshing(false);
     }
-  }, [controller, getBlockTimestamp]);
+  }, [controller, publicClient, getBlockTimestamp]);
 
   useEffect(() => {
-    if (!controller) return;
+    if (!controller || !publicClient) return;
     fetchOnChainEvents();
 
     const unwatch = publicClient.watchContractEvent({
@@ -171,7 +174,7 @@ export default function ActivityPage() {
     return () => {
       unwatch();
     };
-  }, [controller, fetchOnChainEvents]);
+  }, [controller, publicClient, fetchOnChainEvents]);
 
   const displayList: DisplayEvent[] = useMemo(() => {
     if (onChainEvents.length > 0) {
@@ -336,7 +339,7 @@ export default function ActivityPage() {
         {isLoading ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <RefreshCw className="w-8 h-8 animate-spin text-accent-blue" />
-            <p className="text-sm font-medium">Syncing live Base Mainnet event stream...</p>
+            <p className="text-sm font-medium">Syncing live event stream...</p>
           </div>
         ) : displayList.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
@@ -372,7 +375,7 @@ export default function ActivityPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {account !== '-' && account !== '0x0000...0000' ? (
                           <a
-                            href={`https://basescan.org/address/${account}`}
+                            href={`${explorerBaseUrl}/address/${account}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-accent-blue transition-colors inline-flex items-center gap-1"
@@ -388,7 +391,7 @@ export default function ActivityPage() {
                       <td className="py-3 px-4 text-slate-400">#{tx.blockNumber.toString()}</td>
                       <td className="py-3 px-4 text-right font-mono">
                         <a
-                          href={`https://basescan.org/tx/${tx.txHash}`}
+                          href={`${explorerBaseUrl}/tx/${tx.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-accent-blue hover:underline"

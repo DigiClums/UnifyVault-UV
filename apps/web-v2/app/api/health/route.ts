@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
+import { getRpcUrl } from '../../../constants';
 
 const INDEXER_API_URL =
   process.env.INDEXER_API_URL ||
   process.env.NEXT_PUBLIC_INDEXER_API_URL ||
   `http://127.0.0.1:${process.env.INDEXER_PORT || '3006'}`;
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://mainnet.base.org';
+const RPC_URL = getRpcUrl();
 
 export async function GET() {
   try {

@@ -5,7 +5,7 @@
  * domain models (ProtocolMetrics, UserPortfolio, AssetHolding[]).
  */
 
-import { MAINNET_TOKENS } from '../constants';
+import { getChainTokens } from '../constants';
 import { AssetHolding, ProtocolMetrics, StrategyMetrics, UserPortfolio } from '../types';
 import {
   calculateAllocationBps,
@@ -45,7 +45,9 @@ export interface RawUserContractData {
 export function transformProtocolMetrics(
   rawData: RawProtocolContractData,
   strategy: StrategyMetrics,
+  chainId?: number,
 ): ProtocolMetrics {
+  const tokens = getChainTokens(chainId);
   const {
     wbtcTotalAssets,
     wethTotalAssets,
@@ -89,7 +91,7 @@ export function transformProtocolMetrics(
     {
       symbol: 'BTC',
       name: 'Coinbase Wrapped BTC',
-      address: MAINNET_TOKENS.cbBTC,
+      address: tokens.cbBTC,
       decimals: 8,
       balanceRaw: wbtcTotalAssets,
       balanceFormatted: formatUnits(wbtcTotalAssets, 8),
@@ -103,7 +105,7 @@ export function transformProtocolMetrics(
     {
       symbol: 'ETH',
       name: 'Wrapped Ether',
-      address: MAINNET_TOKENS.WETH,
+      address: tokens.WETH,
       decimals: 18,
       balanceRaw: wethTotalAssets,
       balanceFormatted: formatUnits(wethTotalAssets, 18),
@@ -117,7 +119,7 @@ export function transformProtocolMetrics(
     {
       symbol: 'USDC',
       name: 'USD Coin (Reserve)',
-      address: MAINNET_TOKENS.USDC,
+      address: tokens.USDC,
       decimals: 6,
       balanceRaw: usdcTotalAssets,
       balanceFormatted: formatUnits(usdcTotalAssets, 6),
@@ -144,7 +146,6 @@ export function transformProtocolMetrics(
     targetEthBps: strategy.targetEthBps,
     targetBtcPercent: strategy.targetBtcPercent,
     targetEthPercent: strategy.targetEthPercent,
-
     custodyBtcPercent: `${custodyBtcPercent}%`,
     custodyEthPercent: `${custodyEthPercent}%`,
 
@@ -156,7 +157,9 @@ export function transformUserPortfolio(
   rawUserData: RawUserContractData,
   rawProtocolData: RawProtocolContractData,
   protocolMetrics: ProtocolMetrics,
+  chainId?: number,
 ): UserPortfolio {
+  const tokens = getChainTokens(chainId);
   const { userAddress, userSharesRaw, userUsdcRaw, contractInvestedAssetsRaw } = rawUserData;
   const {
     totalSharesRaw,
@@ -217,7 +220,7 @@ export function transformUserPortfolio(
     {
       symbol: 'BTC',
       name: 'Coinbase Wrapped BTC',
-      address: MAINNET_TOKENS.cbBTC,
+      address: tokens.cbBTC,
       decimals: 8,
       balanceRaw: userWbtcBalRaw,
       balanceFormatted: formatUnits(userWbtcBalRaw, 8),
@@ -237,7 +240,7 @@ export function transformUserPortfolio(
     {
       symbol: 'ETH',
       name: 'Wrapped Ether',
-      address: MAINNET_TOKENS.WETH,
+      address: tokens.WETH,
       decimals: 18,
       balanceRaw: userWethBalRaw,
       balanceFormatted: formatUnits(userWethBalRaw, 18),
@@ -257,7 +260,7 @@ export function transformUserPortfolio(
     {
       symbol: 'USDC',
       name: 'USD Coin (Reserve)',
-      address: MAINNET_TOKENS.USDC,
+      address: tokens.USDC,
       decimals: 6,
       balanceRaw: userUsdcBalRaw,
       balanceFormatted: formatUnits(userUsdcBalRaw, 6),

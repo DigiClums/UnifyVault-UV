@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { createPublicClient, http, formatUnits, Log } from 'viem';
-import { base } from 'viem/chains';
+import { useAccount, usePublicClient } from 'wagmi';
+import { formatUnits, Log } from 'viem';
 import { CONTROLLER_ABI } from '../../../lib/contracts';
-import { RPC_URL } from '../../../constants';
+import { getExplorerBaseUrl } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -23,11 +23,6 @@ import {
   Layers,
 } from 'lucide-react';
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(RPC_URL),
-});
-
 export interface ParsedProtocolEvent {
   id: string;
   blockNumber: bigint;
@@ -40,14 +35,17 @@ export interface ParsedProtocolEvent {
     | 'ProtocolFeeCollected'
     | 'EmergencyPaused'
     | 'EmergencyResumed';
-  user: `0x${string}`;
+  user: string;
   asset: string;
   amount: string;
-  transactionHash: `0x${string}`;
+  transactionHash: string;
   logIndex: number;
 }
 
 export default function AdminTransactionsPage() {
+  const { chain } = useAccount();
+  const publicClient = usePublicClient();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { controller } = useProtocolDirectory();
   const [events, setEvents] = useState<ParsedProtocolEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -62,6 +60,7 @@ export default function AdminTransactionsPage() {
         return blockTimeCache.get(blockNumber)!;
       }
       try {
+        if (!publicClient) return Math.floor(Date.now() / 1000);
         const block = await publicClient.getBlock({ blockNumber });
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
@@ -70,7 +69,7 @@ export default function AdminTransactionsPage() {
         return Math.floor(Date.now() / 1000);
       }
     },
-    [blockTimeCache],
+    [blockTimeCache, publicClient],
   );
 
   const parseLog = useCallback(
@@ -104,23 +103,23 @@ export default function AdminTransactionsPage() {
 
         case 'RedeemExecuted':
           user = (args.user as `0x${string}`) || user;
-          asset = 'USDC Multi-Asset';
-          amount = args.usdcReturned
-            ? `$${Number(formatUnits(args.usdcReturned as bigint, 6)).toFixed(2)}`
-            : '$0.00';
+          asset = 'Share Tokens';
+          amount = args.sharesBurned
+            ? `${Number(formatUnits(args.sharesBurned as bigint, 18)).toFixed(4)} Shares`
+            : '0.00 Shares';
           break;
 
         case 'DepositCompleted':
           user = (args.receiver as `0x${string}`) || user;
-          asset = 'Collateral';
-          amount = args.grossDeposit
-            ? `$${Number(formatUnits(args.grossDeposit as bigint, 6)).toFixed(2)}`
+          asset = 'USDC';
+          amount = args.netDeposit
+            ? `$${Number(formatUnits(args.netDeposit as bigint, 6)).toFixed(2)}`
             : '$0.00';
           break;
 
         case 'RedeemCompleted':
-          user = (args.owner as `0x${string}`) || (args.receiver as `0x${string}`) || user;
-          asset = 'Collateral';
+          user = (args.owner as `0x${string}`) || user;
+          asset = 'USDC';
           amount = args.netAssets
             ? `$${Number(formatUnits(args.netAssets as bigint, 6)).toFixed(2)}`
             : '$0.00';
@@ -128,7 +127,7 @@ export default function AdminTransactionsPage() {
 
         case 'ProtocolFeeCollected':
           user = (args.payer as `0x${string}`) || user;
-          asset = 'Collateral';
+          asset = 'Protocol Fee';
           amount = args.feeAmount
             ? `$${Number(formatUnits(args.feeAmount as bigint, 6)).toFixed(2)}`
             : '$0.00';
@@ -137,8 +136,8 @@ export default function AdminTransactionsPage() {
         case 'EmergencyPaused':
         case 'EmergencyResumed':
           user = (args.caller as `0x${string}`) || user;
-          asset = 'N/A';
-          amount = 'N/A';
+          asset = 'System Admin';
+          amount = eventName === 'EmergencyPaused' ? 'PAUSED' : 'RESUMED';
           break;
 
         default:
@@ -161,7 +160,7 @@ export default function AdminTransactionsPage() {
   );
 
   const fetchEvents = useCallback(async () => {
-    if (!controller) return;
+    if (!controller || !publicClient) return;
     setIsRefreshing(true);
     try {
       const contractEvents = await publicClient.getContractEvents({
@@ -190,43 +189,41 @@ export default function AdminTransactionsPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [controller, parseLog]);
+  }, [controller, publicClient, parseLog]);
 
   useEffect(() => {
-    if (!controller) return;
+    if (!controller || !publicClient) return;
     fetchEvents();
 
     const unwatch = publicClient.watchContractEvent({
       address: controller,
       abi: CONTROLLER_ABI,
       onLogs: async (logs) => {
-        const newParsedPromises = logs.map((log) => parseLog(log as unknown as Log));
-        const newParsedResults = await Promise.all(newParsedPromises);
-        const newValidEvents = newParsedResults.filter((e): e is ParsedProtocolEvent => e !== null);
+        const newPromises = logs.map((log) => parseLog(log as unknown as Log));
+        const newEvents = (await Promise.all(newPromises)).filter(
+          (e): e is ParsedProtocolEvent => e !== null,
+        );
 
-        if (newValidEvents.length > 0) {
-          setEvents((prev) => {
-            const combined = [...newValidEvents, ...prev];
-            const uniqueMap = new Map<string, ParsedProtocolEvent>();
-            combined.forEach((ev) => uniqueMap.set(ev.id, ev));
-            const sorted = Array.from(uniqueMap.values());
-            sorted.sort((a, b) => {
-              if (b.blockNumber !== a.blockNumber) {
-                return b.blockNumber > a.blockNumber ? 1 : -1;
-              }
-              return b.logIndex - a.logIndex;
-            });
-            return sorted;
+        setEvents((prev) => {
+          const combined = [...newEvents, ...prev];
+          const map = new Map<string, ParsedProtocolEvent>();
+          combined.forEach((ev) => map.set(ev.id, ev));
+          const deduplicated = Array.from(map.values());
+          deduplicated.sort((a, b) => {
+            if (b.blockNumber !== a.blockNumber) {
+              return b.blockNumber > a.blockNumber ? 1 : -1;
+            }
+            return b.logIndex - a.logIndex;
           });
-          setLastSyncTime(new Date());
-        }
+          return deduplicated;
+        });
       },
     });
 
     return () => {
       unwatch();
     };
-  }, [controller, fetchEvents, parseLog]);
+  }, [controller, publicClient, fetchEvents, parseLog]);
 
   const totalLogsCount = events.length;
   const depositCount = events.filter((e) => e.eventType.includes('Deposit')).length;
@@ -369,7 +366,7 @@ export default function AdminTransactionsPage() {
                       <td className="py-3 px-4 text-right font-bold text-slate-100">{ev.amount}</td>
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://basescan.org/tx/${ev.transactionHash}`}
+                          href={`${explorerBaseUrl}/tx/${ev.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-indigo-400 hover:text-indigo-300 transition-colors hover:underline"

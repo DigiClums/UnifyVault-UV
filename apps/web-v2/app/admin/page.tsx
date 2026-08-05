@@ -1,16 +1,20 @@
 'use client';
 
 import React from 'react';
+import { useAccount } from 'wagmi';
 import { StatCard } from '../../components/ui/StatCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { TableCard } from '../../components/ui/TableCard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
+import { getExplorerBaseUrl } from '../../constants';
 import { ShieldCheck, Vault, Activity, RefreshCw, ArrowUpRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminOverviewPage() {
+  const { chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { totalPortfolioValueUSD, sharePriceUSD } = useDashboard();
   const { controller, vault, treasury, oracle } = useProtocolDirectory();
 
@@ -30,7 +34,7 @@ export default function AdminOverviewPage() {
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
             Central telemetry, contract status, treasury revenue, and operational controls for
-            UnifyVault V2 on Base Mainnet.
+            UnifyVault V2.
           </p>
         </div>
       </div>
@@ -159,12 +163,12 @@ export default function AdminOverviewPage() {
               <td className="py-3.5 px-3 text-right font-sans">
                 {controller ? (
                   <a
-                    href={`https://basescan.org/address/${controller}`}
+                    href={`${explorerBaseUrl}/address/${controller}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-accent-blue hover:underline"
                   >
-                    BaseScan
+                    Block Explorer
                   </a>
                 ) : (
                   <span className="text-slate-500">-</span>
@@ -180,12 +184,12 @@ export default function AdminOverviewPage() {
               <td className="py-3.5 px-3 text-right font-sans">
                 {vault ? (
                   <a
-                    href={`https://basescan.org/address/${vault}`}
+                    href={`${explorerBaseUrl}/address/${vault}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-accent-blue hover:underline"
                   >
-                    BaseScan
+                    Block Explorer
                   </a>
                 ) : (
                   <span className="text-slate-500">-</span>
@@ -201,12 +205,12 @@ export default function AdminOverviewPage() {
               <td className="py-3.5 px-3 text-right font-sans">
                 {treasury ? (
                   <a
-                    href={`https://basescan.org/address/${treasury}`}
+                    href={`${explorerBaseUrl}/address/${treasury}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-accent-blue hover:underline"
                   >
-                    BaseScan
+                    Block Explorer
                   </a>
                 ) : (
                   <span className="text-slate-500">-</span>
@@ -222,12 +226,12 @@ export default function AdminOverviewPage() {
               <td className="py-3.5 px-3 text-right font-sans">
                 {oracle ? (
                   <a
-                    href={`https://basescan.org/address/${oracle}`}
+                    href={`${explorerBaseUrl}/address/${oracle}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-accent-blue hover:underline"
                   >
-                    BaseScan
+                    Block Explorer
                   </a>
                 ) : (
                   <span className="text-slate-500">-</span>

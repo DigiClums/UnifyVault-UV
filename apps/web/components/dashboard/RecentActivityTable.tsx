@@ -1,5 +1,8 @@
 'use client';
 
+import { useAccount } from 'wagmi';
+import { getExplorerBaseUrl } from '../../lib/config/network';
+
 export interface ActivityTx {
   id: string;
   type: 'DEPOSIT' | 'REDEEM';
@@ -15,6 +18,8 @@ interface RecentActivityTableProps {
 }
 
 export function RecentActivityTable({ transactions }: RecentActivityTableProps) {
+  const { chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const list = transactions || [];
 
   if (list.length === 0) {
@@ -70,7 +75,7 @@ export function RecentActivityTable({ transactions }: RecentActivityTableProps) 
                 </td>
                 <td className="py-3 text-right">
                   <a
-                    href={`https://basescan.org/tx/${tx.txHash}`}
+                    href={`${explorerBaseUrl}/tx/${tx.txHash}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-primary hover:underline"

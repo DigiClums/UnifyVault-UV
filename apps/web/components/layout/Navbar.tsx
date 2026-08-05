@@ -18,6 +18,9 @@ import {
   HeartPulse,
   Settings,
   BookOpen,
+  ShieldAlert,
+  ChevronDown,
+  Globe,
 } from 'lucide-react';
 
 export function Navbar() {
@@ -36,6 +39,7 @@ export function Navbar() {
     { href: '/portfolio', label: 'Portfolio', icon: PieChart },
     { href: '/analytics', label: 'Analytics', icon: LineChart },
     { href: '/history', label: 'History', icon: History },
+    { href: '/admin', label: 'Admin', icon: ShieldAlert },
   ];
 
   const secondaryNavLinks = [
@@ -92,7 +96,97 @@ export function Navbar() {
           <ThemeToggle />
 
           <div className="scale-90 sm:scale-100 origin-right min-h-[44px] flex items-center shrink">
-            <ConnectButton chainStatus="icon" showBalance={false} />
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openAccountModal,
+                openChainModal,
+                openConnectModal,
+                mounted,
+              }) => {
+                const ready = mounted;
+                const connected = ready && account && chain;
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      style: {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                    className="flex items-center gap-2"
+                  >
+                    {/* Network Select Button */}
+                    <button
+                      onClick={openChainModal}
+                      type="button"
+                      aria-label="Select Network"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-secondary/80 hover:bg-accent text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm"
+                    >
+                      {chain?.hasIcon ? (
+                        <div
+                          className="w-4 h-4 rounded-full overflow-hidden shrink-0"
+                          style={{ background: chain.iconBackground }}
+                        >
+                          {chain.iconUrl && (
+                            <img
+                              alt={chain.name ?? 'Chain icon'}
+                              src={chain.iconUrl}
+                              className="w-4 h-4"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <Globe className="w-3.5 h-3.5 text-primary" />
+                      )}
+                      <span>{chain?.name || 'Select Network'}</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+
+                    {/* Connect / Account Button */}
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <button
+                            onClick={openConnectModal}
+                            type="button"
+                            className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs transition-all cursor-pointer"
+                          >
+                            Connect Wallet
+                          </button>
+                        );
+                      }
+
+                      if (chain?.unsupported) {
+                        return (
+                          <button
+                            onClick={openChainModal}
+                            type="button"
+                            className="px-3.5 py-1.5 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold transition-all cursor-pointer"
+                          >
+                            Wrong Network
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          onClick={openAccountModal}
+                          type="button"
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-secondary/80 hover:bg-accent text-xs font-semibold text-foreground transition-all cursor-pointer shadow-sm"
+                        >
+                          <span>{account.displayName}</span>
+                        </button>
+                      );
+                    })()}
+                  </div>
+                );
+              }}
+            </ConnectButton.Custom>
           </div>
 
           <button

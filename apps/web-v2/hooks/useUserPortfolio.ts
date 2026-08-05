@@ -2,7 +2,7 @@
 
 import { useAccount, useReadContracts } from 'wagmi';
 import { COST_BASIS_MANAGER_ABI, ERC20_ABI, ORACLE_MANAGER_ABI } from '../lib/contracts';
-import { MAINNET_TOKENS } from '../constants';
+import { getChainTokens } from '../constants';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { ProtocolMetrics, UserPortfolio } from '../types';
 import { transformUserPortfolio } from '../lib/portfolioTransforms';
@@ -15,7 +15,8 @@ export interface UseUserPortfolioResult extends UserPortfolio {
 }
 
 export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortfolioResult {
-  const { address: userAddress } = useAccount();
+  const { address: userAddress, chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
   const { token, costBasisManager, oracle } = useProtocolDirectory();
 
@@ -30,7 +31,7 @@ export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortf
       },
       // 1. Connected User USDC Balance
       {
-        address: MAINNET_TOKENS.USDC,
+        address: tokens.USDC,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [activeUser],
@@ -47,21 +48,21 @@ export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortf
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       // 4. Oracle Price WETH
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       // 5. Oracle Price USDC
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
     ],
     query: {

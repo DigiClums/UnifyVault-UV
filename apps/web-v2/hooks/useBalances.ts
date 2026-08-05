@@ -2,17 +2,18 @@
 
 import { useAccount, useReadContracts } from 'wagmi';
 import { ERC20_ABI } from '../lib/contracts';
-import { MAINNET_TOKENS } from '../constants';
+import { getChainTokens } from '../constants';
 import { useProtocolDirectory } from './useProtocolDirectory';
 
 export function useBalances() {
-  const { address: userAddress } = useAccount();
+  const { address: userAddress, chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
   const { token, controller } = useProtocolDirectory();
 
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
       {
-        address: MAINNET_TOKENS.USDC,
+        address: tokens.USDC,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: userAddress ? [userAddress] : undefined,
@@ -24,7 +25,7 @@ export function useBalances() {
         args: userAddress && token ? [userAddress] : undefined,
       },
       {
-        address: MAINNET_TOKENS.USDC,
+        address: tokens.USDC,
         abi: ERC20_ABI,
         functionName: 'allowance',
         args: userAddress && controller ? [userAddress, controller] : undefined,

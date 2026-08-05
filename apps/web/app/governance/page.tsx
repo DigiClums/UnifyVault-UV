@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useAccount } from 'wagmi';
+import { getExplorerBaseUrl } from '../../lib/config/network';
 import { TransactionModal } from '../../components/modals/TransactionModal';
 import { HealthBadge } from '../../components/ui/HealthBadge';
 import { useGovernance } from '../../hooks/useGovernance';
@@ -17,7 +18,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function GovernancePage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const { roles } = useGovernance();
   const { openModal, setStep, setTxHash, setError } = useTransactionStore();
 
@@ -329,7 +330,7 @@ export default function GovernancePage() {
                       </td>
                       <td className="py-3.5 text-right">
                         <a
-                          href={`https://basescan.org/tx/${log.txHash}`}
+                          href={`${getExplorerBaseUrl(chain?.id)}/tx/${log.txHash}`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center min-h-[44px] text-primary hover:underline"

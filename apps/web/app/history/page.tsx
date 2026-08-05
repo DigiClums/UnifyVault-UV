@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useAccount } from 'wagmi';
+import { getExplorerBaseUrl } from '../../lib/config/network';
 
 export interface ExtendedActivityTx {
   id: string;
@@ -17,6 +19,8 @@ export interface ExtendedActivityTx {
 }
 
 export default function HistoryPage() {
+  const { chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
   const [statusFilter, setStatusFilter] = React.useState<string>('ALL');
 
@@ -246,7 +250,7 @@ export default function HistoryPage() {
                       </td>
                       <td className="py-3.5 text-right">
                         <a
-                          href={`https://basescan.org/tx/${tx.txHash}`}
+                          href={`${explorerBaseUrl}/tx/${tx.txHash}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-primary hover:underline font-semibold"

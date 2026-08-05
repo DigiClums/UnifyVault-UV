@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useAccount } from 'wagmi';
+import { getExplorerBaseUrl } from '../../lib/config/network';
 
 interface RedeemSuccessSummaryCardProps {
   sharesRedeemed: string;
@@ -20,6 +22,8 @@ export function RedeemSuccessSummaryCard({
   txHash,
   onReset,
 }: RedeemSuccessSummaryCardProps) {
+  const { chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
@@ -79,7 +83,7 @@ export function RedeemSuccessSummaryCard({
               {copied ? 'Copied!' : 'Copy'}
             </button>
             <a
-              href={`https://sepolia.basescan.org/tx/${txHash}`}
+              href={`${explorerBaseUrl}/tx/${txHash}`}
               target="_blank"
               rel="noreferrer"
               className="px-2.5 py-1 text-[11px] bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 rounded-lg font-bold transition-colors"

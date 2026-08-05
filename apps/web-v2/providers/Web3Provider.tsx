@@ -10,7 +10,7 @@ import {
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
-import { base } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { createSafeWagmiStorage, setupIndexedDBGuard } from '../lib/utils/storageFallback';
 import '@rainbow-me/rainbowkit/styles.css';
 
@@ -20,7 +20,7 @@ const walletConnectProjectId =
 const config = getDefaultConfig({
   appName: 'UnifyVault',
   projectId: walletConnectProjectId,
-  chains: [base],
+  chains: [base, baseSepolia],
   storage: createSafeWagmiStorage(),
   ssr: true,
 });

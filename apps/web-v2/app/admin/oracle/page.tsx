@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { useReadContracts } from 'wagmi';
+import { useAccount, useReadContracts } from 'wagmi';
 import { ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { MAINNET_TOKENS } from '../../../constants';
+import { getChainTokens } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD, formatUnits } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -12,6 +12,8 @@ import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { Activity, Zap, RefreshCw, Clock, ShieldCheck } from 'lucide-react';
 
 export default function AdminOraclePage() {
+  const { chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
   const { oracle } = useProtocolDirectory();
 
   const { data, refetch } = useReadContracts({
@@ -20,31 +22,31 @@ export default function AdminOraclePage() {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
     ],
     query: {
@@ -150,7 +152,7 @@ export default function AdminOraclePage() {
                 <div>
                   <div className="font-bold">cbBTC / USD</div>
                   <div className="text-[10px] text-slate-400 font-mono">
-                    {shortAddr(MAINNET_TOKENS.cbBTC)}
+                    {shortAddr(tokens.cbBTC)}
                   </div>
                 </div>
               </td>
@@ -176,7 +178,7 @@ export default function AdminOraclePage() {
                 <div>
                   <div className="font-bold">WETH / USD</div>
                   <div className="text-[10px] text-slate-400 font-mono">
-                    {shortAddr(MAINNET_TOKENS.WETH)}
+                    {shortAddr(tokens.WETH)}
                   </div>
                 </div>
               </td>
@@ -202,7 +204,7 @@ export default function AdminOraclePage() {
                 <div>
                   <div className="font-bold">USDC / USD</div>
                   <div className="text-[10px] text-slate-400 font-mono">
-                    {shortAddr(MAINNET_TOKENS.USDC)}
+                    {shortAddr(tokens.USDC)}
                   </div>
                 </div>
               </td>

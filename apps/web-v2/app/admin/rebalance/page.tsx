@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { usePortfolio } from '../../../hooks/usePortfolio';
 import { STRATEGY_MANAGER_ABI, CONTROLLER_ABI } from '../../../lib/contracts';
-import { MAINNET_TOKENS } from '../../../constants';
+import { getChainTokens } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 
 export default function AdminRebalancePage() {
+  const { chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
   const { holdings } = usePortfolio();
   const { controller, strategyManager } = useProtocolDirectory();
 
@@ -85,7 +87,7 @@ export default function AdminRebalancePage() {
       abi: STRATEGY_MANAGER_ABI,
       functionName: 'updateWeights',
       args: [
-        [MAINNET_TOKENS.cbBTC, MAINNET_TOKENS.WETH],
+        [tokens.cbBTC, tokens.WETH],
         [BigInt(wbtcBpsVal), BigInt(wethBpsVal)],
       ],
     });

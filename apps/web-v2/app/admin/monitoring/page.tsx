@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useBlockNumber, useReadContracts } from 'wagmi';
+import { useAccount, useBlockNumber, useReadContracts } from 'wagmi';
 import { ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { MAINNET_TOKENS, RPC_URL } from '../../../constants';
+import { getChainTokens, getRpcUrl, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -29,6 +29,12 @@ const INDEXER_API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_INDEXER_API_URL || '';
 
 export default function AdminMonitoringPage() {
+  const { chain } = useAccount();
+  const activeChainId = chain?.id || getDefaultChainId();
+  const chainName = chain?.name || (activeChainId === 8453 ? 'Base Mainnet' : 'Base Sepolia');
+  const tokens = getChainTokens(activeChainId);
+  const activeRpcUrl = getRpcUrl(activeChainId);
+
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const { oracle, controller, vault, treasury } = useProtocolDirectory();
 
@@ -42,25 +48,25 @@ export default function AdminMonitoringPage() {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
     ],
     query: {
@@ -83,7 +89,7 @@ export default function AdminMonitoringPage() {
     lastIndexedBlock: 0,
     blocksBehind: 0,
     indexerLag: 0,
-    rpcProvider: RPC_URL,
+    rpcProvider: activeRpcUrl,
     rpcErrors: 0,
     lastSuccessfulScan: null,
     uptime: 0,
@@ -110,7 +116,7 @@ export default function AdminMonitoringPage() {
               lastIndexedBlock: data.lastBlock || 0,
               blocksBehind: data.blocksBehind || 0,
               indexerLag: data.indexerLag || 0,
-              rpcProvider: data.rpcProvider || RPC_URL,
+              rpcProvider: data.rpcProvider || activeRpcUrl,
               rpcErrors: data.rpcErrors || 0,
               lastSuccessfulScan: data.lastSuccessfulScan || new Date().toISOString(),
               uptime: data.uptime || 0,
@@ -249,8 +255,8 @@ export default function AdminMonitoringPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Network Status"
-          value="Base Mainnet"
-          subtitle={`Chain ID 8453 | Block ${currentChainBlock ? currentChainBlock.toString() : '...'}`}
+          value={chainName}
+          subtitle={`Chain ID ${activeChainId} | Block ${currentChainBlock ? currentChainBlock.toString() : '...'}`}
           icon={Layers}
           glowColor="blue"
         />

@@ -6,11 +6,11 @@ import {
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
+  usePublicClient,
 } from 'wagmi';
-import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
-import { base } from 'viem/chains';
+import { formatUnits, parseUnits } from 'viem';
 import { TREASURY_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { MAINNET_TOKENS, RPC_URL } from '../../../constants';
+import { getChainTokens, getExplorerBaseUrl } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -31,29 +31,35 @@ import {
   Layers,
 } from 'lucide-react';
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(RPC_URL),
-});
-
 export interface TreasuryEventLog {
   id: string;
   blockNumber: bigint;
   timestamp: number;
   type: 'TreasuryWithdrawal' | 'FeeCollected' | 'NativeWithdrawn';
   asset: string;
-  recipient: `0x${string}`;
+  recipient: string;
   amountFormatted: string;
-  transactionHash: `0x${string}`;
+  caller: string;
+  transactionHash: string;
   logIndex: number;
 }
 
 export default function AdminTreasuryPage() {
+  const { address: connectedAddress, chain } = useAccount();
+  const publicClient = usePublicClient();
+  const tokens = getChainTokens(chain?.id);
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { treasury, oracle } = useProtocolDirectory();
 
   const [recipient, setRecipient] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [assetAddress, setAssetAddress] = useState<string>(MAINNET_TOKENS.USDC);
+  const [assetAddress, setAssetAddress] = useState<string>('');
+
+  useEffect(() => {
+    if (tokens.USDC && !assetAddress) {
+      setAssetAddress(tokens.USDC);
+    }
+  }, [tokens, assetAddress]);
 
   const [treasuryLogs, setTreasuryLogs] = useState<TreasuryEventLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
@@ -68,6 +74,7 @@ export default function AdminTreasuryPage() {
         return blockTimeCache.get(blockNumber)!;
       }
       try {
+        if (!publicClient) return Math.floor(Date.now() / 1000);
         const block = await publicClient.getBlock({ blockNumber });
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
@@ -76,11 +83,11 @@ export default function AdminTreasuryPage() {
         return Math.floor(Date.now() / 1000);
       }
     },
-    [blockTimeCache],
+    [blockTimeCache, publicClient],
   );
 
   const fetchTreasuryLogs = useCallback(async () => {
-    if (!treasury) return;
+    if (!treasury || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
       const logs = await publicClient.getContractEvents({
@@ -90,66 +97,73 @@ export default function AdminTreasuryPage() {
         toBlock: 'latest',
       });
 
-      const parsedPromises = logs.map(async (log) => {
-        if (!log.blockNumber || !log.transactionHash) return null;
-        const ts = await getBlockTimestamp(log.blockNumber);
-        const logIndex = log.logIndex ?? 0;
-        const id = `${log.transactionHash}-${logIndex}`;
+      const parsedPromises: Promise<TreasuryEventLog | null>[] = logs.map(
+        async (log): Promise<TreasuryEventLog | null> => {
+          if (!log.blockNumber || !log.transactionHash) return null;
+          const ts = await getBlockTimestamp(log.blockNumber);
+          const logIndex = log.logIndex ?? 0;
+          const id = `${log.transactionHash}-${logIndex}`;
 
-        const eventLog = log as unknown as {
-          eventName: TreasuryEventLog['type'];
-          args: Record<string, any>;
-        };
+          const eventLog = log as unknown as {
+            eventName: TreasuryEventLog['type'];
+            args: Record<string, any>;
+          };
 
-        const eventName = eventLog.eventName;
-        const args = eventLog.args || {};
+          const eventName = eventLog.eventName;
+          const args = eventLog.args || {};
 
-        let assetSymbol = 'USDC';
-        let amountFormatted = '0.00';
-        let rec: `0x${string}` = '0x0000000000000000000000000000000000000000';
+          let assetSymbol = 'USDC';
+          let amountFormatted = '0.00';
+          let rec: string = '0x0000000000000000000000000000000000000000';
+          const caller: string =
+            (args.caller as string) || '0x0000000000000000000000000000000000000000';
 
-        const assetAddr = (args.asset as string)?.toLowerCase() || '';
+          const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === MAINNET_TOKENS.cbBTC.toLowerCase()) {
-          assetSymbol = 'cbBTC';
-        } else if (assetAddr === MAINNET_TOKENS.WETH.toLowerCase()) {
-          assetSymbol = 'WETH';
-        } else {
-          assetSymbol = 'USDC';
-        }
+          if (assetAddr === tokens.cbBTC.toLowerCase()) {
+            assetSymbol = 'cbBTC';
+          } else if (assetAddr === tokens.WETH.toLowerCase()) {
+            assetSymbol = 'WETH';
+          } else {
+            assetSymbol = 'USDC';
+          }
 
-        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+          const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
 
-        if (eventName === 'TreasuryWithdrawal') {
-          rec = (args.recipient as `0x${string}`) || rec;
-          amountFormatted = args.amount
-            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
-            : `0.00 ${assetSymbol}`;
-        } else if (eventName === 'FeeCollected') {
-          rec = (args.from as `0x${string}`) || rec;
-          amountFormatted = args.amount
-            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
-            : `0.00 ${assetSymbol}`;
-        } else if (eventName === 'NativeWithdrawn') {
-          rec = (args.recipient as `0x${string}`) || rec;
-          assetSymbol = 'ETH';
-          amountFormatted = args.amount
-            ? `${Number(formatUnits(args.amount as bigint, 18)).toFixed(4)} ETH`
-            : '0.00 ETH';
-        }
+          if (eventName === 'TreasuryWithdrawal') {
+            rec = (args.recipient as string) || rec;
+            amountFormatted = args.amount
+              ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+              : `0.00 ${assetSymbol}`;
+          } else if (eventName === 'FeeCollected') {
+            rec = (args.from as string) || rec;
+            amountFormatted = args.amount
+              ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+              : `0.00 ${assetSymbol}`;
+          } else if (eventName === 'NativeWithdrawn') {
+            rec = (args.recipient as string) || rec;
+            assetSymbol = 'ETH';
+            amountFormatted = args.amount
+              ? `${Number(formatUnits(args.amount as bigint, 18)).toFixed(4)} ETH`
+              : '0.00 ETH';
+          } else {
+            return null;
+          }
 
-        return {
-          id,
-          blockNumber: log.blockNumber,
-          timestamp: ts,
-          type: eventName,
-          asset: assetSymbol,
-          recipient: rec,
-          amountFormatted,
-          transactionHash: log.transactionHash,
-          logIndex,
-        };
-      });
+          return {
+            id,
+            blockNumber: log.blockNumber,
+            timestamp: ts,
+            type: eventName,
+            asset: assetSymbol,
+            recipient: rec,
+            amountFormatted,
+            caller,
+            transactionHash: log.transactionHash,
+            logIndex,
+          };
+        },
+      );
 
       const results = await Promise.all(parsedPromises);
       const valid = results.filter((e): e is TreasuryEventLog => e !== null);
@@ -169,10 +183,10 @@ export default function AdminTreasuryPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [treasury, getBlockTimestamp]);
+  }, [treasury, publicClient, tokens, getBlockTimestamp]);
 
   useEffect(() => {
-    if (!treasury) return;
+    if (!treasury || !publicClient) return;
     fetchTreasuryLogs();
 
     const unwatch = publicClient.watchContractEvent({
@@ -186,39 +200,40 @@ export default function AdminTreasuryPage() {
     return () => {
       unwatch();
     };
-  }, [treasury, fetchTreasuryLogs]);
+  }, [treasury, publicClient, fetchTreasuryLogs]);
 
+  // Read Treasury balance & Oracle asset prices
   const { data: treasuryData } = useReadContracts({
     contracts: [
       {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
       {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
     ],
     query: {
@@ -255,7 +270,7 @@ export default function AdminTreasuryPage() {
     e.preventDefault();
     if (!recipient || !amount || parseFloat(amount) <= 0 || !treasury) return;
 
-    const decimals = assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase() ? 8 : 6;
+    const decimals = assetAddress.toLowerCase() === tokens.cbBTC.toLowerCase() ? 8 : 6;
     const amountRaw = parseUnits(amount, decimals);
 
     writeContract({
@@ -368,11 +383,9 @@ export default function AdminTreasuryPage() {
                 onChange={(e) => setAssetAddress(e.target.value)}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono"
               >
-                <option value={MAINNET_TOKENS.USDC}>USDC (USD Coin - 6 Decimals)</option>
-                <option value={MAINNET_TOKENS.cbBTC}>
-                  cbBTC (Coinbase Wrapped BTC - 8 Decimals)
-                </option>
-                <option value={MAINNET_TOKENS.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
+                <option value={tokens.USDC}>USDC (USD Coin - 6 Decimals)</option>
+                <option value={tokens.cbBTC}>cbBTC (Coinbase Wrapped BTC - 8 Decimals)</option>
+                <option value={tokens.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
               </select>
             </div>
 
@@ -543,7 +556,7 @@ export default function AdminTreasuryPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {log.recipient !== '0x0000000000000000000000000000000000000000' ? (
                           <a
-                            href={`https://basescan.org/address/${log.recipient}`}
+                            href={`${explorerBaseUrl}/address/${log.recipient}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-purple-400 transition-colors"
@@ -562,7 +575,7 @@ export default function AdminTreasuryPage() {
 
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://basescan.org/tx/${log.transactionHash}`}
+                          href={`${explorerBaseUrl}/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-purple-400 hover:text-purple-300 transition-colors hover:underline"

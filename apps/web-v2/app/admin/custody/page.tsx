@@ -6,11 +6,11 @@ import {
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
+  usePublicClient,
 } from 'wagmi';
-import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
-import { base } from 'viem/chains';
+import { formatUnits, parseUnits } from 'viem';
 import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { MAINNET_TOKENS, RPC_URL } from '../../../constants';
+import { getChainTokens, getExplorerBaseUrl } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -32,31 +32,35 @@ import {
   Wallet,
 } from 'lucide-react';
 
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(RPC_URL),
-});
-
 export interface CustodyEventLog {
   id: string;
   blockNumber: bigint;
   timestamp: number;
   type: 'WithdrawalExecuted' | 'DepositExecuted';
   asset: string;
-  recipientOrFrom: `0x${string}`;
+  recipientOrFrom: string;
   amountFormatted: string;
-  caller: `0x${string}`;
-  transactionHash: `0x${string}`;
+  caller: string;
+  transactionHash: string;
   logIndex: number;
 }
 
 export default function AdminCustodyPage() {
-  const { address: connectedAddress } = useAccount();
+  const { address: connectedAddress, chain } = useAccount();
+  const publicClient = usePublicClient();
+  const tokens = getChainTokens(chain?.id);
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { vault, oracle } = useProtocolDirectory();
 
   const [recipient, setRecipient] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [assetAddress, setAssetAddress] = useState<string>(MAINNET_TOKENS.USDC);
+  const [assetAddress, setAssetAddress] = useState<string>('');
+
+  useEffect(() => {
+    if (tokens.USDC && !assetAddress) {
+      setAssetAddress(tokens.USDC);
+    }
+  }, [tokens, assetAddress]);
 
   const [custodyLogs, setCustodyLogs] = useState<CustodyEventLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
@@ -71,6 +75,7 @@ export default function AdminCustodyPage() {
         return blockTimeCache.get(blockNumber)!;
       }
       try {
+        if (!publicClient) return Math.floor(Date.now() / 1000);
         const block = await publicClient.getBlock({ blockNumber });
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
@@ -79,11 +84,11 @@ export default function AdminCustodyPage() {
         return Math.floor(Date.now() / 1000);
       }
     },
-    [blockTimeCache],
+    [blockTimeCache, publicClient],
   );
 
   const fetchCustodyLogs = useCallback(async () => {
-    if (!vault) return;
+    if (!vault || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
       const logs = await publicClient.getContractEvents({
@@ -93,63 +98,67 @@ export default function AdminCustodyPage() {
         toBlock: 'latest',
       });
 
-      const parsedPromises = logs.map(async (log) => {
-        if (!log.blockNumber || !log.transactionHash) return null;
-        const ts = await getBlockTimestamp(log.blockNumber);
-        const logIndex = log.logIndex ?? 0;
-        const id = `${log.transactionHash}-${logIndex}`;
+      const parsedPromises: Promise<CustodyEventLog | null>[] = logs.map(
+        async (log): Promise<CustodyEventLog | null> => {
+          if (!log.blockNumber || !log.transactionHash) return null;
+          const ts = await getBlockTimestamp(log.blockNumber);
+          const logIndex = log.logIndex ?? 0;
+          const id = `${log.transactionHash}-${logIndex}`;
 
-        const eventLog = log as unknown as {
-          eventName: CustodyEventLog['type'];
-          args: Record<string, any>;
-        };
+          const eventLog = log as unknown as {
+            eventName: CustodyEventLog['type'];
+            args: Record<string, any>;
+          };
 
-        const eventName = eventLog.eventName;
-        const args = eventLog.args || {};
+          const eventName = eventLog.eventName;
+          const args = eventLog.args || {};
 
-        let assetSymbol = 'USDC';
-        let amountFormatted = '0.00';
-        let recOrFrom: `0x${string}` = '0x0000000000000000000000000000000000000000';
-        const caller: `0x${string}` =
-          (args.caller as `0x${string}`) || '0x0000000000000000000000000000000000000000';
+          let assetSymbol = 'USDC';
+          let amountFormatted = '0.00';
+          let recOrFrom: string = '0x0000000000000000000000000000000000000000';
+          const caller: string =
+            (args.caller as string) || '0x0000000000000000000000000000000000000000';
 
-        const assetAddr = (args.asset as string)?.toLowerCase() || '';
+          const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === MAINNET_TOKENS.cbBTC.toLowerCase()) {
-          assetSymbol = 'cbBTC';
-        } else if (assetAddr === MAINNET_TOKENS.WETH.toLowerCase()) {
-          assetSymbol = 'WETH';
-        } else {
-          assetSymbol = 'USDC';
-        }
+          if (assetAddr === tokens.cbBTC.toLowerCase()) {
+            assetSymbol = 'cbBTC';
+          } else if (assetAddr === tokens.WETH.toLowerCase()) {
+            assetSymbol = 'WETH';
+          } else {
+            assetSymbol = 'USDC';
+          }
 
-        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+          const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
 
-        if (eventName === 'WithdrawalExecuted') {
-          recOrFrom = (args.to as `0x${string}`) || recOrFrom;
-          amountFormatted = args.amount
-            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
-            : `0.00 ${assetSymbol}`;
-        } else if (eventName === 'DepositExecuted') {
-          recOrFrom = (args.from as `0x${string}`) || recOrFrom;
-          amountFormatted = args.amount
-            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
-            : `0.00 ${assetSymbol}`;
-        }
+          if (eventName === 'WithdrawalExecuted') {
+            recOrFrom = (args.to as string) || recOrFrom;
+            amountFormatted = args.amount
+              ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+              : `0.00 ${assetSymbol}`;
+          } else if (eventName === 'DepositExecuted') {
+            recOrFrom = (args.from as string) || recOrFrom;
+            amountFormatted = args.amount
+              ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+              : `0.00 ${assetSymbol}`;
+          } else {
+            return null;
+          }
 
-        return {
-          id,
-          blockNumber: log.blockNumber,
-          timestamp: ts,
-          type: eventName,
-          asset: assetSymbol,
-          recipientOrFrom: recOrFrom,
-          amountFormatted,
-          caller,
-          transactionHash: log.transactionHash,
-          logIndex,
-        };
-      });
+          return {
+            id,
+            blockNumber: log.blockNumber,
+            timestamp: ts,
+            type: eventName,
+            asset: assetSymbol,
+            recipientOrFrom: recOrFrom,
+            amountFormatted,
+            caller,
+            transactionHash: log.transactionHash,
+            logIndex,
+          };
+        },
+      );
 
       const results = await Promise.all(parsedPromises);
       const valid = results.filter((e): e is CustodyEventLog => e !== null);
@@ -169,10 +178,10 @@ export default function AdminCustodyPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [vault, getBlockTimestamp]);
+  }, [vault, publicClient, tokens, getBlockTimestamp]);
 
   useEffect(() => {
-    if (!vault) return;
+    if (!vault || !publicClient) return;
     fetchCustodyLogs();
 
     const unwatch = publicClient.watchContractEvent({
@@ -186,7 +195,7 @@ export default function AdminCustodyPage() {
     return () => {
       unwatch();
     };
-  }, [vault, fetchCustodyLogs]);
+  }, [vault, publicClient, fetchCustodyLogs]);
 
   // Read CustodyVault collateral balances & Oracle asset prices
   const { data: vaultData } = useReadContracts({
@@ -195,31 +204,31 @@ export default function AdminCustodyPage() {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.USDC],
+        args: [tokens.USDC],
       },
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssetBalance',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.cbBTC],
+        args: [tokens.cbBTC],
       },
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [MAINNET_TOKENS.WETH],
+        args: [tokens.WETH],
       },
     ],
     query: {
@@ -243,22 +252,22 @@ export default function AdminCustodyPage() {
   const totalCustodyValUSD = usdcUSD + wbtcUSD + wethUSD;
 
   const selectedAssetDecimals = useMemo(() => {
-    if (assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase()) return 8;
-    if (assetAddress.toLowerCase() === MAINNET_TOKENS.WETH.toLowerCase()) return 18;
+    if (assetAddress.toLowerCase() === tokens.cbBTC.toLowerCase()) return 8;
+    if (assetAddress.toLowerCase() === tokens.WETH.toLowerCase()) return 18;
     return 6;
-  }, [assetAddress]);
+  }, [assetAddress, tokens]);
 
   const selectedAssetBalanceRaw = useMemo(() => {
-    if (assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase()) return wbtcBalRaw;
-    if (assetAddress.toLowerCase() === MAINNET_TOKENS.WETH.toLowerCase()) return wethBalRaw;
+    if (assetAddress.toLowerCase() === tokens.cbBTC.toLowerCase()) return wbtcBalRaw;
+    if (assetAddress.toLowerCase() === tokens.WETH.toLowerCase()) return wethBalRaw;
     return usdcBalRaw;
-  }, [assetAddress, wbtcBalRaw, wethBalRaw, usdcBalRaw]);
+  }, [assetAddress, tokens, wbtcBalRaw, wethBalRaw, usdcBalRaw]);
 
   const selectedAssetSymbol = useMemo(() => {
-    if (assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase()) return 'cbBTC';
-    if (assetAddress.toLowerCase() === MAINNET_TOKENS.WETH.toLowerCase()) return 'WETH';
+    if (assetAddress.toLowerCase() === tokens.cbBTC.toLowerCase()) return 'cbBTC';
+    if (assetAddress.toLowerCase() === tokens.WETH.toLowerCase()) return 'WETH';
     return 'USDC';
-  }, [assetAddress]);
+  }, [assetAddress, tokens]);
 
   const {
     writeContract,
@@ -403,11 +412,9 @@ export default function AdminCustodyPage() {
                 onChange={(e) => setAssetAddress(e.target.value)}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono"
               >
-                <option value={MAINNET_TOKENS.USDC}>USDC (USD Coin - 6 Decimals)</option>
-                <option value={MAINNET_TOKENS.cbBTC}>
-                  cbBTC (Coinbase Wrapped BTC - 8 Decimals)
-                </option>
-                <option value={MAINNET_TOKENS.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
+                <option value={tokens.USDC}>USDC (USD Coin - 6 Decimals)</option>
+                <option value={tokens.cbBTC}>cbBTC (Coinbase Wrapped BTC - 8 Decimals)</option>
+                <option value={tokens.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
               </select>
             </div>
 
@@ -604,7 +611,7 @@ export default function AdminCustodyPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {log.recipientOrFrom !== '0x0000000000000000000000000000000000000000' ? (
                           <a
-                            href={`https://basescan.org/address/${log.recipientOrFrom}`}
+                            href={`${explorerBaseUrl}/address/${log.recipientOrFrom}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-purple-400 transition-colors"
@@ -625,7 +632,7 @@ export default function AdminCustodyPage() {
                       {/* Explorer Link */}
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://basescan.org/tx/${log.transactionHash}`}
+                          href={`${explorerBaseUrl}/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-purple-400 hover:text-purple-300 transition-colors hover:underline"
