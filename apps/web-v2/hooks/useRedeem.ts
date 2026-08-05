@@ -4,15 +4,14 @@ import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { MAINNET_TOKENS } from '../constants';
+import { getChainTokens } from '../constants';
 import { parseUnits, formatUnits, formatUSD, calculateSlippageMinAssets } from '../lib/math';
-import { base } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 
-export function useRedeem(
-  targetAssetAddress: `0x${string}` = MAINNET_TOKENS.USDC,
-  targetDecimals: number = 6,
-) {
+export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimals: number = 6) {
   const { address: userAddress, chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
+  const targetAssetAddress = targetAssetAddressInput || tokens.USDC;
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const { controller } = useProtocolDirectory();
@@ -23,7 +22,7 @@ export function useRedeem(
   const [txError, setTxError] = useState<string | null>(null);
 
   const sharesRaw = parseUnits(sharesInput, 18);
-  const isCorrectNetwork = chain?.id === base.id;
+  const isCorrectNetwork = chain?.id === base.id || chain?.id === baseSepolia.id;
   const targetController = controller;
 
   const {
@@ -42,21 +41,40 @@ export function useRedeem(
     },
   });
 
-  const grossAssetsEstimated = (previewAssetsRaw as bigint) || 0n;
-  const netAssetsRaw = grossAssetsEstimated;
+  const { data: redeemFeeBpsRaw } = useReadContract({
+    address: targetController,
+    abi: CONTROLLER_ABI,
+    functionName: 'getRedeemFeeBps',
+    query: {
+      enabled: !!targetController && isCorrectNetwork,
+    },
+  });
 
-  const grossUSD = formatUSD(Number(formatUnits(grossAssetsEstimated, targetDecimals)));
-  const feeUSD = formatUSD(
-    Number(formatUnits((grossAssetsEstimated * 200n) / 10000n, targetDecimals)),
-  );
-  const netUSD = formatUSD(Number(formatUnits(netAssetsRaw, targetDecimals)));
+  const redeemFeeBps = (redeemFeeBpsRaw as bigint) || 200n;
+
+  const netAssetsRaw = (previewAssetsRaw as bigint) || 0n;
+  const denominator = 10000n - redeemFeeBps;
+  const grossAssetsEstimated =
+    netAssetsRaw > 0n && denominator > 0n ? (netAssetsRaw * 10000n) / denominator : 0n;
+  const feeAssetsRaw =
+    grossAssetsEstimated > netAssetsRaw ? grossAssetsEstimated - netAssetsRaw : 0n;
+
+  const grossUSDVal = Number(formatUnits(grossAssetsEstimated, targetDecimals));
+  const netUSDVal = Number(formatUnits(netAssetsRaw, targetDecimals));
+  const feeUSDVal = grossUSDVal > netUSDVal ? grossUSDVal - netUSDVal : 0;
+
+  const grossUSD = formatUSD(grossUSDVal);
+  const feeUSD = formatUSD(feeUSDVal);
+  const netUSD = formatUSD(netUSDVal);
 
   const executeRedeem = async () => {
     if (!userAddress || sharesRaw <= 0n || !targetController || netAssetsRaw <= 0n) {
       throw new Error('Cannot execute redeem: Valid on-chain preview or quote is missing.');
     }
     if (!isCorrectNetwork) {
-      throw new Error('Wrong network: Please switch to Base Mainnet (Chain ID 8453)');
+      throw new Error(
+        'Wrong network: Please switch to a supported network (Base Mainnet or Base Sepolia)',
+      );
     }
     setIsRedeeming(true);
     setTxError(null);
