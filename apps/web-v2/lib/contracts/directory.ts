@@ -1,13 +1,6 @@
 export const PROTOCOL_DIRECTORY_ABI = [
   {
-    inputs: [{ name: 'moduleId', type: 'bytes32' }],
-    name: 'getModuleAddress',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'key', type: 'bytes32' }],
+    inputs: [{ name: 'name', type: 'bytes32' }],
     name: 'getAddress',
     outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',

@@ -1,8 +1,8 @@
 'use client';
 
-import { useReadContracts } from 'wagmi';
+import { useAccount, useReadContracts } from 'wagmi';
 import { PROTOCOL_DIRECTORY_ABI } from '../lib/contracts/directory';
-import { PROTOCOL_DIRECTORY_ADDRESS, MODULE_IDS } from '../constants';
+import { getProtocolDirectoryAddress, getDefaultChainId, MODULE_IDS } from '../constants';
 
 export interface ProtocolAddresses {
   directory: `0x${string}`;
@@ -20,7 +20,9 @@ export interface ProtocolAddresses {
 }
 
 export function useProtocolDirectory(): ProtocolAddresses {
-  const directoryAddress = PROTOCOL_DIRECTORY_ADDRESS;
+  const { chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const directoryAddress = getProtocolDirectoryAddress(chainId);
   const isZeroAddress =
     !directoryAddress || directoryAddress === '0x0000000000000000000000000000000000000000';
 
@@ -38,8 +40,9 @@ export function useProtocolDirectory(): ProtocolAddresses {
   const contracts = moduleKeys.map((item) => ({
     address: directoryAddress,
     abi: PROTOCOL_DIRECTORY_ABI,
-    functionName: 'getModuleAddress' as const,
+    functionName: 'getAddress' as const,
     args: [item.moduleId] as const,
+    chainId,
   }));
 
   const { data, isLoading, isError, error } = useReadContracts({

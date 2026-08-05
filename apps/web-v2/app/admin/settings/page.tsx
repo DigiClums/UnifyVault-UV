@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
   const { data: feeManagerAddress } = useReadContract({
     address: directory,
     abi: PROTOCOL_DIRECTORY_ABI,
-    functionName: 'getModuleAddress',
+    functionName: 'getAddress',
     args: [MODULE_IDS.FEE_MANAGER],
     query: {
       enabled: !!directory && directory !== '0x0000000000000000000000000000000000000000',
