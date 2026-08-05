@@ -3,9 +3,9 @@ import { base, baseSepolia } from 'viem/chains';
 /**
  * Base Chain Configuration for Mainnet and Testnet
  */
-export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base';
+export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base-sepolia';
 
-export const CHAIN_CONFIG = base;
+export const CHAIN_CONFIG = getDefaultChainId() === base.id ? base : baseSepolia;
 
 export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'https://app.unifyvault.xyz';
 
@@ -24,13 +24,13 @@ export const RPC_URL = getRpcUrl();
 export function getRpcUrl(chainId?: number): string {
   const targetChain = chainId || getDefaultChainId();
   if (targetChain === base.id) {
-    return (
-      process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET ||
-      process.env.NEXT_PUBLIC_RPC_URL ||
-      'https://mainnet.base.org'
-    );
+    return process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET || 'https://mainnet.base.org';
   }
-  return process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA || 'https://sepolia.base.org';
+  return (
+    process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA ||
+    process.env.NEXT_PUBLIC_RPC_URL ||
+    'https://sepolia.base.org'
+  );
 }
 
 export const DIRECTORY_ADDRESS_MAINNET = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET ||
