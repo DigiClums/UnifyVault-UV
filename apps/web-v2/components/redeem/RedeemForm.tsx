@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card } from '../common/Card';
 import { useRedeem } from '../../hooks/useRedeem';
 import { useBalances } from '../../hooks/useBalances';
+import { getExplorerBaseUrl } from '../../constants';
 import { formatUnits, formatShares } from '../../lib/math';
 import {
   ArrowUpRight,
@@ -21,7 +22,8 @@ import {
 } from 'lucide-react';
 
 export function RedeemForm() {
-  const { isConnected } = useAccount();
+  const { isConnected, chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { sharesBalance, refetch: refetchBalances } = useBalances();
   const {
     sharesInput,
@@ -34,6 +36,7 @@ export function RedeemForm() {
     netUSD,
     isPreviewLoading,
     isRedeeming,
+    lastTxHash,
     executeRedeem,
   } = useRedeem();
 
@@ -56,11 +59,14 @@ export function RedeemForm() {
       await executeRedeem();
       setTxSuccess(true);
       refetchBalances();
-    } catch (err: unknown) {
-      const error = err as { shortMessage?: string; message?: string };
-      setErrorMessage(error?.shortMessage || error?.message || 'Redemption failed');
+    } catch (error: any) {
+      console.error('Redeem submission error:', error);
+      const msg = error?.shortMessage || error?.message || 'Redemption execution failed';
+      setErrorMessage(msg);
     }
   };
+
+  const explorerTxUrl = lastTxHash ? `${explorerBaseUrl}/tx/${lastTxHash}` : explorerBaseUrl;
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -271,12 +277,12 @@ export function RedeemForm() {
 
             <div className="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row gap-2">
               <a
-                href="https://basescan.org"
+                href={explorerTxUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-2.5 px-3 rounded-xl bg-surface border border-border-subtle text-foreground hover:text-accent-emerald font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors text-xs shadow-xs"
               >
-                <span>View on BaseScan</span>
+                <span>View on Explorer</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <Link

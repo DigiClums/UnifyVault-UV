@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { MAINNET_TOKENS } from '../constants';
+import { getChainTokens } from '../constants';
 import {
   parseUnits,
   formatUnits,
@@ -13,13 +13,12 @@ import {
   formatShares,
 } from '../lib/math';
 import { DepositQuoteData, FormattedDepositQuote } from '../types';
-import { base } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 
-export function useDeposit(
-  selectedTokenAddress: `0x${string}` = MAINNET_TOKENS.USDC,
-  decimals: number = 6,
-) {
+export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: number = 6) {
   const { address: userAddress, chain } = useAccount();
+  const tokens = getChainTokens(chain?.id);
+  const selectedTokenAddress = selectedTokenAddressInput || tokens.USDC;
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const { controller } = useProtocolDirectory();
@@ -29,9 +28,10 @@ export function useDeposit(
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [isDepositing, setIsDepositing] = useState<boolean>(false);
   const [txError, setTxError] = useState<string | null>(null);
+  const [lastTxHash, setLastTxHash] = useState<`0x${string}` | null>(null);
 
   const amountRaw = parseUnits(depositAmountInput, decimals);
-  const isCorrectNetwork = chain?.id === base.id;
+  const isCorrectNetwork = chain?.id === base.id || chain?.id === baseSepolia.id;
 
   const targetController = controller;
 
@@ -93,7 +93,9 @@ export function useDeposit(
       throw new Error('Missing target contract or invalid deposit amount');
     }
     if (!isCorrectNetwork) {
-      throw new Error('Wrong network: Please switch to Base Mainnet (Chain ID 8453)');
+      throw new Error(
+        'Wrong network: Please switch to a supported network (Base Mainnet or Base Sepolia)',
+      );
     }
     setIsApproving(true);
     setTxError(null);
@@ -142,7 +144,9 @@ export function useDeposit(
       throw new Error('Cannot execute deposit: On-chain quote is missing or invalid.');
     }
     if (!isCorrectNetwork) {
-      throw new Error('Wrong network: Please switch to Base Mainnet (Chain ID 8453)');
+      throw new Error(
+        'Wrong network: Please switch to a supported network (Base Mainnet or Base Sepolia)',
+      );
     }
     setIsDepositing(true);
     setTxError(null);
@@ -174,6 +178,8 @@ export function useDeposit(
         args: [selectedTokenAddress, amountRaw, minSharesOut, userAddress],
         ...(gasEstimate ? { gas: gasEstimate } : {}),
       });
+
+      setLastTxHash(hash);
 
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
@@ -216,6 +222,7 @@ export function useDeposit(
     isDepositDisabled,
     isCorrectNetwork,
     txError,
+    lastTxHash,
     approve,
     executeDeposit,
   };

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card } from '../common/Card';
 import { useDeposit } from '../../hooks/useDeposit';
 import { useBalances } from '../../hooks/useBalances';
+import { getExplorerBaseUrl } from '../../constants';
 import { formatUnits, formatUSD } from '../../lib/math';
 import {
   ArrowDownRight,
@@ -22,7 +23,8 @@ import {
 } from 'lucide-react';
 
 export function DepositForm() {
-  const { isConnected } = useAccount();
+  const { isConnected, chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { usdcBalance, refetch: refetchBalances } = useBalances();
   const {
     depositAmountInput,
@@ -35,12 +37,15 @@ export function DepositForm() {
     isDepositing,
     isQuoteLoading,
     formattedQuote,
+    lastTxHash,
     approve,
     executeDeposit,
   } = useDeposit();
 
   const [txSuccess, setTxSuccess] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const explorerTxUrl = lastTxHash ? `${explorerBaseUrl}/tx/${lastTxHash}` : explorerBaseUrl;
 
   const usdcBalNum = parseFloat(formatUnits(usdcBalance, 6)) || 0;
   const usdcBalFormatted = formatUnits(usdcBalance, 6);
@@ -336,12 +341,12 @@ export function DepositForm() {
 
             <div className="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row gap-2">
               <a
-                href="https://basescan.org"
+                href={explorerTxUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-2.5 px-3 rounded-xl bg-surface border border-border-subtle text-foreground hover:text-accent-blue font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors text-xs shadow-xs"
               >
-                <span>View on BaseScan</span>
+                <span>View on Explorer</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <Link

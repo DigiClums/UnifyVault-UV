@@ -20,6 +20,7 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
   const [slippageBps, setSlippageBps] = useState<number>(50); // 0.5% default
   const [isRedeeming, setIsRedeeming] = useState<boolean>(false);
   const [txError, setTxError] = useState<string | null>(null);
+  const [lastTxHash, setLastTxHash] = useState<`0x${string}` | null>(null);
 
   const sharesRaw = parseUnits(sharesInput, 18);
   const isCorrectNetwork = chain?.id === base.id || chain?.id === baseSepolia.id;
@@ -107,6 +108,8 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
         ...(gasEstimate ? { gas: gasEstimate } : {}),
       });
 
+      setLastTxHash(hash);
+
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
@@ -149,6 +152,7 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
     isRedeemDisabled,
     isCorrectNetwork,
     txError,
+    lastTxHash,
     executeRedeem,
   };
 }
