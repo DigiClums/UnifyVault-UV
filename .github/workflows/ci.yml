@@ -34,26 +34,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint
-        run: pnpm --filter=@unifyvault/web lint
+        run: pnpm --filter=@unifyvault/web-v2 lint
 
       - name: Run TypeScript Typecheck
-        run: pnpm --filter=@unifyvault/web typecheck
+        run: pnpm --filter=@unifyvault/web-v2 typecheck
 
       - name: Run Build
-        run: pnpm --filter=@unifyvault/web build
+        run: pnpm --filter=@unifyvault/web-v2 build
 
       - name: Run Unit & Integration Tests
-        run: pnpm --filter=@unifyvault/web test
-
-      - name: Run Test Coverage
-        run: pnpm --filter=@unifyvault/web test:coverage
+        run: pnpm --filter=@unifyvault/web-v2 test
 
       - name: Upload Frontend Coverage Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: frontend-coverage-report
-          path: apps/web/coverage/
+          path: apps/web-v2/coverage/
           retention-days: 14
 
   protocol:

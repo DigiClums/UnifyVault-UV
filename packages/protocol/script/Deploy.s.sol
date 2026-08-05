@@ -104,16 +104,19 @@ contract DeployScript is Script, Test {
 
   function run() external {
     vm.startBroadcast();
+    _deployPhase1();
+    _configurePhase2();
+    vm.stopBroadcast();
 
-    // --------------------------------------------------
-    // Phase 1: Deployments
-    // --------------------------------------------------
+    _verifyPhase3();
+  }
+
+  function _deployPhase1() internal {
     directory = new ProtocolDirectory();
     oracleManager = new OracleManager();
     oracleProvider = new MockOracleProvider();
     chainlinkProvider = new ChainlinkOracleProvider();
 
-    // Deploy Treasury via bytecode to avoid namespace collision
     address treasuryAddr = deployCode('Treasury');
     treasury = ITestTreasury(treasuryAddr);
 
@@ -122,7 +125,6 @@ contract DeployScript is Script, Test {
     token = new UVBTCETHToken();
     mockCollateral = new MockERC20();
 
-    // Dummy router for local testing environment
     address dummyRouter = address(0x261F2B357410c707010b07590d05C00f5C345719);
     swapAdapter = new SwapAdapter(deployerAddress, dummyRouter);
 
@@ -149,11 +151,9 @@ contract DeployScript is Script, Test {
       address(treasury),
       address(token)
     );
+  }
 
-    // --------------------------------------------------
-    // Phase 2: Configuration & Registry
-    // --------------------------------------------------
-    // Protocol Directory registrations
+  function _configurePhase2() internal {
     directory.registerAddress(ModuleIds.TREASURY, address(treasury));
     directory.registerAddress(ModuleIds.VAULT, address(vault));
     directory.registerAddress(ModuleIds.LIQUIDITY_MANAGER, address(liquidityManager));
@@ -166,41 +166,31 @@ contract DeployScript is Script, Test {
 
     liquidityManager.syncModules();
 
-    // Setup Mock Collateral for local testing
     bytes32 assetId = bytes32(uint256(uint160(address(mockCollateral))));
     oracleProvider.registerAsset(assetId, 1 * 10 ** 18, 18, block.timestamp, 1);
     oracleManager.configureAsset(assetId, address(oracleProvider), address(0), 3600, true);
 
-    // Setup Official Base Sepolia USDC using ChainlinkOracleProvider (6 decimals)
     address usdc = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
     bytes32 usdcAssetId = bytes32(uint256(uint160(usdc)));
 
-    // Deploy Chainlink Aggregator for USDC ($1.00 USD = 1 * 10^6, 6 decimals)
     usdcAggregator = new MockChainlinkAggregator(6, 1 * 10 ** 6);
     chainlinkProvider.registerFeed(usdcAssetId, address(usdcAggregator), 86400);
     oracleManager.configureAsset(usdcAssetId, address(chainlinkProvider), address(0), 86400, true);
 
-    // Setup Vault Configurations
     vault.registerAsset(address(mockCollateral), 18);
     vault.registerAsset(usdc, 6);
 
-    // Setup Treasury Configurations
     treasury.registerAsset(address(mockCollateral), 18);
     treasury.registerAsset(usdc, 6);
 
-    // Grant Roles to Controller
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
     token.grantRole(token.CONTROLLER_ROLE(), address(controller));
 
-    // Revoke deployer control from token controller role to conform to production standards
     token.revokeRole(token.CONTROLLER_ROLE(), deployerAddress);
+  }
 
-    vm.stopBroadcast();
-
-    // --------------------------------------------------
-    // Phase 3: Integration Tests Verification
-    // --------------------------------------------------
+  function _verifyPhase3() internal {
     address tester = address(0x999);
     uint256 depositAmt = 100 * 10 ** 18;
     uint256 fee = FeeLib.calculateDepositFee(depositAmt);
@@ -208,43 +198,38 @@ contract DeployScript is Script, Test {
 
     mockCollateral.mint(tester, depositAmt * 2);
 
-    // 1. Initial Deposit
+    _testDeposits(tester, depositAmt, net, fee);
+    _testRedemptions(tester, net);
+    _testDonationImmunity();
+  }
+
+  function _testDeposits(address tester, uint256 depositAmt, uint256 net, uint256 fee) internal {
     vm.startPrank(tester);
     mockCollateral.approve(address(controller), depositAmt);
-    UnifyVaultController.DepositQuote memory quote1 = controller.deposit(
-      address(mockCollateral),
-      depositAmt,
-      0,
-      tester
-    );
+    controller.deposit(address(mockCollateral), depositAmt, 0, tester);
     vm.stopPrank();
 
     require(token.balanceOf(tester) == net, 'Initial shares mismatch');
     require(vault.totalAssets(address(mockCollateral)) == net, 'Vault total assets mismatch');
     require(mockCollateral.balanceOf(address(treasury)) == fee, 'Treasury fee mismatch');
 
-    // 2. Second Deposit (Proportional check)
     vm.startPrank(tester);
     mockCollateral.approve(address(controller), depositAmt);
-    UnifyVaultController.DepositQuote memory quote2 = controller.deposit(
-      address(mockCollateral),
-      depositAmt,
-      0,
-      tester
-    );
+    controller.deposit(address(mockCollateral), depositAmt, 0, tester);
     vm.stopPrank();
 
     require(token.balanceOf(tester) == net * 2, 'Second deposit shares mismatch');
+  }
 
-    // 3. Partial Redemption
-    uint256 redeemShares = net; // Redeem half the shares
+  function _testRedemptions(address tester, uint256 net) internal {
+    uint256 redeemShares = net;
     uint256 grossRedeemAssets = ShareLib.sharesToAssets(
       redeemShares,
       token.totalSupply(),
       vault.totalAssets(address(mockCollateral)),
       18
     );
-    (, uint256 redeemFee, uint256 netRedeemOut) = FeeLib.calculateRedemptionFee(grossRedeemAssets);
+    (, , uint256 netRedeemOut) = FeeLib.calculateRedemptionFee(grossRedeemAssets);
 
     vm.startPrank(tester);
     uint256 netAssetsOut = controller.redeem(
@@ -259,7 +244,6 @@ contract DeployScript is Script, Test {
     require(netAssetsOut == netRedeemOut, 'Redemption net assets mismatch');
     require(token.balanceOf(tester) == net, 'Remaining shares mismatch');
 
-    // 4. Full Redemption
     uint256 remainingShares = token.balanceOf(tester);
     vm.startPrank(tester);
     controller.redeem(address(mockCollateral), remainingShares, 0, tester, block.timestamp + 100);
@@ -268,8 +252,9 @@ contract DeployScript is Script, Test {
     require(token.balanceOf(tester) == 0, 'Shares not fully burned');
     require(vault.totalAssets(address(mockCollateral)) == 0, 'Vault assets not zero');
     require(mockCollateral.balanceOf(address(controller)) == 0, 'Controller balance not zero');
+  }
 
-    // 5. Donation Immunity Test
+  function _testDonationImmunity() internal {
     mockCollateral.mint(address(vault), 10 * 10 ** 18);
     require(vault.surplusAssets(address(mockCollateral)) == 10 * 10 ** 18, 'Surplus not tracked');
     require(

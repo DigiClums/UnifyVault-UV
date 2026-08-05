@@ -24,48 +24,31 @@ contract TestLiveFlowScript is Script {
 
   function run() external {
     vm.startBroadcast();
-
-    address user = msg.sender;
-    ProtocolDirectory directory = ProtocolDirectory(PROTOCOL_DIRECTORY);
-    address controllerAddr = directory.getAddress(ModuleIds.DEPOSIT_MANAGER);
-
-    IERC20 mockCollateral = IERC20(MOCK_COLLATERAL);
-    UnifyVaultController controller = UnifyVaultController(controllerAddr);
-    UVBTCETHToken token = UVBTCETHToken(UVBTC_ETH_TOKEN);
-    MockOracleProvider oracleProvider = MockOracleProvider(ORACLE_PROVIDER);
-
-    // 0. Update Mock Oracle Price timestamp to avoid OraclePriceStale error
-    bytes32 assetId = bytes32(uint256(uint160(MOCK_COLLATERAL)));
-    oracleProvider.setTimestamp(assetId, block.timestamp);
-
-    uint256 depositAmount = 10 * 10 ** 18; // 10 MCOL
-
-    // 1. Mint test collateral
-    IMockMint(MOCK_COLLATERAL).mint(user, depositAmount);
-
-    // 2. Approve controller
-    mockCollateral.approve(address(controller), depositAmount);
-
-    // 3. Execute deposit
-    UnifyVaultController.DepositQuote memory quote = controller.deposit(
-      MOCK_COLLATERAL,
-      depositAmount,
-      0,
-      user
-    );
-
-    uint256 sharesMinted = token.balanceOf(user);
-
-    // 4. Redeem half shares
-    uint256 redeemShares = sharesMinted / 2;
-    uint256 netAssetsOut = controller.redeem(
-      MOCK_COLLATERAL,
-      redeemShares,
-      0,
-      user,
-      block.timestamp + 300
-    );
-
+    _executeFlow(msg.sender);
     vm.stopBroadcast();
+  }
+
+  function _executeFlow(address user) internal {
+    ProtocolDirectory directory = ProtocolDirectory(PROTOCOL_DIRECTORY);
+    UnifyVaultController controller = UnifyVaultController(
+      directory.getAddress(ModuleIds.DEPOSIT_MANAGER)
+    );
+    UVBTCETHToken token = UVBTCETHToken(UVBTC_ETH_TOKEN);
+
+    _updateOracle();
+
+    uint256 depositAmount = 10 * 10 ** 18;
+    IMockMint(MOCK_COLLATERAL).mint(user, depositAmount);
+    IERC20(MOCK_COLLATERAL).approve(address(controller), depositAmount);
+
+    controller.deposit(MOCK_COLLATERAL, depositAmount, 0, user);
+
+    uint256 redeemShares = token.balanceOf(user) / 2;
+    controller.redeem(MOCK_COLLATERAL, redeemShares, 0, user, block.timestamp + 300);
+  }
+
+  function _updateOracle() internal {
+    bytes32 assetId = bytes32(uint256(uint160(MOCK_COLLATERAL)));
+    MockOracleProvider(ORACLE_PROVIDER).setTimestamp(assetId, block.timestamp);
   }
 }

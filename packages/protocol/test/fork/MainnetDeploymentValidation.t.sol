@@ -18,8 +18,14 @@ import { FeeManager } from '../../src/treasury/FeeManager.sol';
 import { UnifyVaultTimelock } from '../../src/governance/UnifyVaultTimelock.sol';
 import { ModuleIds } from '../../src/constants/ModuleIds.sol';
 import { AccessRoles } from '../../src/libraries/AccessRoles.sol';
+import { AggregatorV3Interface } from '../../src/interfaces/AggregatorV3Interface.sol';
+
+interface VmExt {
+  function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+}
 
 contract MainnetDeploymentValidationTest is Test {
+  VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
   DeployMainnetScript public deployScript;
 
   // Expected Addresses
@@ -34,9 +40,29 @@ contract MainnetDeploymentValidationTest is Test {
   address public constant TARGET_TIMELOCK_SAFE = 0xd905920c91853039060246Ed5724AA72B91a96DA;
 
   function setUp() public {
-    vm.chainId(8453);
+    try this.initFork() {
+      // Mainnet RPC fork connected successfully
+    } catch {
+      vm.chainId(8453);
+      _etchMockFeeds();
+    }
     deployScript = new DeployMainnetScript();
     deployScript.run();
+  }
+
+  function initFork() external returns (uint256) {
+    return vmExt.createSelectFork('https://mainnet.base.org');
+  }
+
+  function _etchMockFeeds() internal {
+    // Deploy mock aggregator instances and etch them at mainnet feed addresses for offline test runs
+    address usdcMock = address(new MockValidationAggregator(8, 100000000, block.timestamp, 1));
+    address cbbtcMock = address(new MockValidationAggregator(8, 6000000000000, block.timestamp, 1));
+    address ethMock = address(new MockValidationAggregator(8, 300000000000, block.timestamp, 1));
+
+    vm.etch(BASE_MAINNET_USDC_FEED, usdcMock.code);
+    vm.etch(BASE_MAINNET_CBBTC_FEED, cbbtcMock.code);
+    vm.etch(BASE_MAINNET_ETH_FEED, ethMock.code);
   }
 
   function test_ValidateFullMainnetDeployment() public {
@@ -135,5 +161,63 @@ contract MainnetDeploymentValidationTest is Test {
     FeeManager feeMgr = deployScript.feeManager();
     assertEq(feeMgr.treasury(), address(treasury));
     console.log('[PASS] Task 12: FeeManager correctly configured with Treasury target');
+  }
+}
+
+contract MockValidationAggregator is AggregatorV3Interface {
+  uint8 private immutable _decimals;
+  int256 private immutable _price;
+  uint256 private immutable _updatedAt;
+  uint80 private immutable _roundId;
+
+  constructor(uint8 decimals_, int256 price_, uint256 updatedAt_, uint80 roundId_) {
+    _decimals = decimals_;
+    _price = price_;
+    _updatedAt = updatedAt_;
+    _roundId = roundId_;
+  }
+
+  function decimals() external view override returns (uint8) {
+    return _decimals;
+  }
+
+  function description() external pure override returns (string memory) {
+    return 'Mock';
+  }
+
+  function version() external pure override returns (uint256) {
+    return 1;
+  }
+
+  function getRoundData(
+    uint80 _round
+  )
+    external
+    view
+    override
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    )
+  {
+    return (_round, _price, _updatedAt, _updatedAt, _round);
+  }
+
+  function latestRoundData()
+    external
+    view
+    override
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    )
+  {
+    return (_roundId, _price, _updatedAt, _updatedAt, _roundId);
   }
 }

@@ -3,7 +3,7 @@ module.exports = {
   extends: ['@unifyvault/eslint-config'],
   settings: {
     next: {
-      rootDir: ['apps/web/'],
+      rootDir: ['apps/web-v2/'],
     },
   },
 };

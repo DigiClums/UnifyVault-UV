@@ -59,52 +59,36 @@ contract LiveSimTest is Test {
     }
 
     address user = address(0x1234567890123456789012345678901234567890);
-    ProtocolDirectory directory = ProtocolDirectory(PROTOCOL_DIRECTORY);
-
-    address controllerAddr = directory.getAddress(ModuleIds.DEPOSIT_MANAGER);
-    address vaultAddr = directory.getAddress(ModuleIds.VAULT);
-    address tokenAddr = directory.getAddress(ModuleIds.TOKEN);
-    address strategyAddr = directory.getAddress(ModuleIds.STRATEGY_MANAGER);
-    address portfolioAddr = directory.getAddress(ModuleIds.PORTFOLIO_MANAGER);
-
-    UnifyVaultController controller = UnifyVaultController(controllerAddr);
-    CustodyVault vault = CustodyVault(vaultAddr);
-    UVBTCETHToken token = UVBTCETHToken(tokenAddr);
-    IERC20 usdc = IERC20(BASE_SEPOLIA_USDC);
-
-    uint256 depositAmount = 10_000_000; // 10 USDC
-
-    // Give user 10 USDC on fork
+    uint256 depositAmount = 10_000_000;
     deal(BASE_SEPOLIA_USDC, user, depositAmount);
 
-    vm.startPrank(user);
+    _executeLiveSim(user, depositAmount);
+  }
 
-    // 1. Approve controller
-    usdc.approve(address(controller), depositAmount);
-
-    // 2. Deposit
-    UnifyVaultController.DepositQuote memory quote = controller.deposit(
-      BASE_SEPOLIA_USDC,
-      depositAmount,
-      0,
-      user
+  function _executeLiveSim(address user, uint256 depositAmount) internal {
+    ProtocolDirectory directory = ProtocolDirectory(PROTOCOL_DIRECTORY);
+    UnifyVaultController controller = UnifyVaultController(
+      directory.getAddress(ModuleIds.DEPOSIT_MANAGER)
     );
+    UVBTCETHToken token = UVBTCETHToken(directory.getAddress(ModuleIds.TOKEN));
+    IERC20 usdc = IERC20(BASE_SEPOLIA_USDC);
 
-    uint256 sharesMinted = token.balanceOf(user);
-    assertGt(sharesMinted, 0, 'Shares should be minted');
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmount);
+    controller.deposit(BASE_SEPOLIA_USDC, depositAmount, 0, user);
 
-    // 3. Redeem
+    uint256 shares = token.balanceOf(user);
+    assertGt(shares, 0, 'Shares should be minted');
+
     uint256 netAssetsOut = controller.redeem(
       BASE_SEPOLIA_USDC,
-      sharesMinted,
+      shares,
       0,
       user,
       block.timestamp + 300
     );
-
     assertGt(netAssetsOut, 0, 'Net assets out should be > 0');
     assertEq(token.balanceOf(user), 0, 'Shares should be burned');
-
     vm.stopPrank();
   }
 }

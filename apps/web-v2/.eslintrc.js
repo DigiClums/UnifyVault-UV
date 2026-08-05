@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ['next/core-web-vitals'],
+  extends: ['@unifyvault/eslint-config'],
   rules: {
     'prettier/prettier': 'off',
     '@typescript-eslint/no-unused-vars': 'off',

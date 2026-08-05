@@ -137,15 +137,15 @@ export interface HistoricalNavPoint {
 }
 
 export interface NavSnapshot {
-  blockNumber: number;
-  blockHash: string;
+  blockNumber?: number;
+  blockHash?: string;
   timestamp: string;
   nav: number;
   totalAssets: number;
-  totalSupply: number;
-  btcPrice: number;
-  ethPrice: number;
-  btcWeight: number;
-  ethWeight: number;
-  sharePrice: number;
+  totalSupply?: number;
+  btcPrice?: number;
+  ethPrice?: number;
+  btcWeight?: number;
+  ethWeight?: number;
+  sharePrice?: number;
 }
