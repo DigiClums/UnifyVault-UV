@@ -44,11 +44,11 @@ export default function AnalyticsPage() {
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Historical NAV trajectory, asset allocation weights, and protocol fee telemetry on Base
-            Sepolia.
+            Mainnet.
           </p>
         </div>
         <span className="px-3 py-1 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-xs font-semibold self-start md:self-auto">
-          Base Sepolia Live Sync
+          Base Mainnet Live Sync
         </span>
       </div>
 

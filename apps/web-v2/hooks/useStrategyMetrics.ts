@@ -2,7 +2,7 @@
 
 import { useReadContract } from 'wagmi';
 import { STRATEGY_MANAGER_ABI } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
 import { StrategyMetrics } from '../types';
 
 export interface UseStrategyMetricsResult extends StrategyMetrics {
@@ -10,25 +10,18 @@ export interface UseStrategyMetricsResult extends StrategyMetrics {
   isError: boolean;
 }
 
-/**
- * Hook to fetch and format target strategy asset allocation weights from StrategyManager.
- *
- * @param strategyManagerAddress - Optional StrategyManager contract address override.
- * @returns StrategyMetrics along with query loading and error states.
- */
 export function useStrategyMetrics(
-  strategyManagerAddress?: `0x${string}`,
+  strategyManagerAddressOverride?: `0x${string}`,
 ): UseStrategyMetricsResult {
-  const activeStrategyManager =
-    strategyManagerAddress ||
-    (FALLBACK_ADDRESSES.STRATEGY_MANAGER as `0x${string}`) ||
-    '0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0';
+  const { strategyManager } = useProtocolDirectory();
+  const activeStrategyManager = strategyManagerAddressOverride || strategyManager;
 
   const { data, isLoading, isError } = useReadContract({
     address: activeStrategyManager,
     abi: STRATEGY_MANAGER_ABI,
     functionName: 'getTargetWeights',
     query: {
+      enabled: !!activeStrategyManager,
       refetchInterval: 5_000,
     },
   });

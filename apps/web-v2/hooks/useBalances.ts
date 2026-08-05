@@ -1,31 +1,33 @@
 'use client';
 
-import { useAccount, useReadContract, useReadContracts } from 'wagmi';
+import { useAccount, useReadContracts } from 'wagmi';
 import { ERC20_ABI } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
+import { MAINNET_TOKENS } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
 
 export function useBalances() {
   const { address: userAddress } = useAccount();
+  const { token, controller } = useProtocolDirectory();
 
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.USDC,
+        address: MAINNET_TOKENS.USDC,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: userAddress ? [userAddress] : undefined,
       },
       {
-        address: FALLBACK_ADDRESSES.TOKEN,
+        address: token,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
-        args: userAddress ? [userAddress] : undefined,
+        args: userAddress && token ? [userAddress] : undefined,
       },
       {
-        address: FALLBACK_ADDRESSES.USDC,
+        address: MAINNET_TOKENS.USDC,
         abi: ERC20_ABI,
         functionName: 'allowance',
-        args: userAddress ? [userAddress, FALLBACK_ADDRESSES.CONTROLLER] : undefined,
+        args: userAddress && controller ? [userAddress, controller] : undefined,
       },
     ],
     query: {

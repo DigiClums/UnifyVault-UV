@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useReadContract } from 'wagmi';
-import { FALLBACK_ADDRESSES, ADMIN_ADDRESS } from '../../constants';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
+import { DEFAULT_ADMIN_ROLE } from '../../constants';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -23,22 +24,20 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
 
-const DEFAULT_ADMIN_ROLE =
-  '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
-
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { address, isConnected } = useAccount();
+  const { treasury } = useProtocolDirectory();
 
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Read admin role for Task 5 Role-Based Nav Visibility
+  // Read admin role dynamically from Treasury AccessControl
   const { data: isAdminRole } = useReadContract({
-    address: FALLBACK_ADDRESSES.TREASURY,
+    address: treasury,
     abi: [
       {
         inputs: [
@@ -52,15 +51,13 @@ export function Navbar() {
       },
     ],
     functionName: 'hasRole',
-    args: address ? [DEFAULT_ADMIN_ROLE, address] : undefined,
+    args: address && treasury ? [DEFAULT_ADMIN_ROLE, address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && !!treasury,
     },
   });
 
-  const envAdmin = (process.env.NEXT_PUBLIC_ADMIN_ADDRESS || ADMIN_ADDRESS).toLowerCase();
-  const isEnvAdmin = !!(address && envAdmin && address.toLowerCase() === envAdmin);
-  const isAdmin = isConnected && ((isAdminRole as boolean) || isEnvAdmin);
+  const isAdmin = isConnected && Boolean(isAdminRole);
 
   interface NavItem {
     href: string;
@@ -84,7 +81,6 @@ export function Navbar() {
     { href: 'https://docs.unifyvault.xyz', label: 'Documentation', icon: BookOpen, external: true },
   ];
 
-  // Task 5: Only include Admin link if connected wallet possesses admin role
   const navLinks: NavItem[] = isAdmin
     ? [...baseNavLinks, { href: '/admin', label: 'Admin', icon: ShieldAlert, isAdmin: true }]
     : baseNavLinks;
@@ -113,7 +109,7 @@ export function Navbar() {
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground font-mono tracking-wider hidden sm:block">
-              Base Sepolia
+              Base Mainnet
             </span>
           </div>
         </Link>

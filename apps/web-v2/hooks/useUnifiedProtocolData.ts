@@ -8,7 +8,8 @@ import {
   COST_BASIS_MANAGER_ABI,
   STRATEGY_MANAGER_ABI,
 } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
+import { MAINNET_TOKENS } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
 import { HistoricalNavPoint, ProtocolMetrics, UserPortfolio } from '../types';
 import { transformProtocolMetrics, transformUserPortfolio } from '../lib/portfolioTransforms';
 import { useHistoricalNAV } from './useIndexerData';
@@ -16,112 +17,100 @@ import { useHistoricalNAV } from './useIndexerData';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
-  // Historical NAV Telemetry
   historicalNAV: HistoricalNavPoint[];
-
-  // Global Query States
   isLoading: boolean;
   isError: boolean;
 }
 
-/**
- * CANONICAL PUBLIC API HOOK
- * Executes a single atomic multi-call query batch across all protocol contracts to eliminate
- * data divergence and supply consistent real-time figures to Dashboard, Portfolio, Analytics, and Admin views.
- *
- * @returns UnifiedProtocolData object containing all protocol and user metrics.
- */
 export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress } = useAccount();
   const activeUser = userAddress || ZERO_ADDRESS;
-
-  const activeStrategyManager =
-    FALLBACK_ADDRESSES.STRATEGY_MANAGER || '0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0';
+  const { vault, oracle, token, costBasisManager, strategyManager } = useProtocolDirectory();
 
   const { data, isLoading, isError } = useReadContracts({
     contracts: [
       // 0. CustodyVault total WBTC
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       // 1. CustodyVault total WETH
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       // 2. CustodyVault total USDC
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       // 3. Oracle Price WBTC (18 decimals)
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       // 4. Oracle Price WETH (18 decimals)
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       // 5. Oracle Price USDC (18 decimals)
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       // 6. UVBTCETHToken Total Supply
       {
-        address: FALLBACK_ADDRESSES.TOKEN,
+        address: token,
         abi: ERC20_ABI,
         functionName: 'totalSupply',
       },
       // 7. Connected User Shares Balance
       {
-        address: FALLBACK_ADDRESSES.TOKEN,
+        address: token,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [activeUser],
       },
       // 8. Connected User USDC Balance
       {
-        address: FALLBACK_ADDRESSES.USDC,
+        address: MAINNET_TOKENS.USDC,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [activeUser],
       },
       // 9. CostBasisManager Invested Capital
       {
-        address: FALLBACK_ADDRESSES.COST_BASIS,
+        address: costBasisManager,
         abi: COST_BASIS_MANAGER_ABI,
         functionName: 'investedAssets',
         args: [activeUser],
       },
       // 10. StrategyManager Target Weights
       {
-        address: activeStrategyManager,
+        address: strategyManager,
         abi: STRATEGY_MANAGER_ABI,
         functionName: 'getTargetWeights',
       },
     ],
     query: {
+      enabled: !!vault && !!oracle && !!token,
       refetchInterval: 5_000,
     },
   });
 
-  // Extract Raw Contract Multi-Call Results
   const rawProtocolData = {
     wbtcTotalAssets: (data?.[0]?.result as bigint) || 0n,
     wethTotalAssets: (data?.[1]?.result as bigint) || 0n,
@@ -152,7 +141,6 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     targetEthPercent: `${(targetEthBps / 100).toFixed(1)}%`,
   };
 
-  // Evaluate Domain Models with Complete Oracle Prices & Balances
   const protocolMetrics = transformProtocolMetrics(rawProtocolData, strategyMetrics);
   const userPortfolio = transformUserPortfolio(rawUserData, rawProtocolData, protocolMetrics);
 

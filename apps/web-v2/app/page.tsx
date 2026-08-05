@@ -5,7 +5,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import { MetricCards } from '../components/dashboard/MetricCards';
 import { AllocationChart } from '../components/dashboard/AllocationChart';
 import { QuickActions } from '../components/dashboard/QuickActions';
-import { Layers, Activity, Zap } from 'lucide-react';
+import { Layers, Zap } from 'lucide-react';
 
 export default function DashboardPage() {
   const metrics = useDashboard();
@@ -24,7 +24,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
           <span className="w-2 h-2 rounded-full bg-accent-blue animate-pulse" />
-          <span>Base Sepolia Live Sync</span>
+          <span>Base Mainnet Live Sync</span>
         </div>
       </div>
 

@@ -7,10 +7,11 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from 'wagmi';
-import { createPublicClient, http, formatUnits, parseUnits, Log } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
+import { base } from 'viem/chains';
 import { TREASURY_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES, RPC_URL } from '../../../constants';
+import { MAINNET_TOKENS, RPC_URL } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
@@ -27,12 +28,11 @@ import {
   History,
   RefreshCw,
   ExternalLink,
-  ArrowDownLeft,
   Layers,
 } from 'lucide-react';
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(RPC_URL),
 });
 
@@ -49,9 +49,11 @@ export interface TreasuryEventLog {
 }
 
 export default function AdminTreasuryPage() {
+  const { treasury, oracle } = useProtocolDirectory();
+
   const [recipient, setRecipient] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [assetAddress, setAssetAddress] = useState<string>(FALLBACK_ADDRESSES.USDC);
+  const [assetAddress, setAssetAddress] = useState<string>(MAINNET_TOKENS.USDC);
 
   const [treasuryLogs, setTreasuryLogs] = useState<TreasuryEventLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
@@ -70,7 +72,7 @@ export default function AdminTreasuryPage() {
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
         return ts;
-      } catch (err) {
+      } catch {
         return Math.floor(Date.now() / 1000);
       }
     },
@@ -78,12 +80,13 @@ export default function AdminTreasuryPage() {
   );
 
   const fetchTreasuryLogs = useCallback(async () => {
+    if (!treasury) return;
     setIsRefreshingLogs(true);
     try {
       const logs = await publicClient.getContractEvents({
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
-        fromBlock: 0n,
+        fromBlock: 'earliest',
         toBlock: 'latest',
       });
 
@@ -107,15 +110,15 @@ export default function AdminTreasuryPage() {
 
         const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === FALLBACK_ADDRESSES.WBTC.toLowerCase()) {
-          assetSymbol = 'WBTC';
-        } else if (assetAddr === FALLBACK_ADDRESSES.WETH.toLowerCase()) {
+        if (assetAddr === MAINNET_TOKENS.cbBTC.toLowerCase()) {
+          assetSymbol = 'cbBTC';
+        } else if (assetAddr === MAINNET_TOKENS.WETH.toLowerCase()) {
           assetSymbol = 'WETH';
         } else {
           assetSymbol = 'USDC';
         }
 
-        const decimals = assetSymbol === 'WBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
 
         if (eventName === 'TreasuryWithdrawal') {
           rec = (args.recipient as `0x${string}`) || rec;
@@ -166,13 +169,14 @@ export default function AdminTreasuryPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [getBlockTimestamp]);
+  }, [treasury, getBlockTimestamp]);
 
   useEffect(() => {
+    if (!treasury) return;
     fetchTreasuryLogs();
 
     const unwatch = publicClient.watchContractEvent({
-      address: FALLBACK_ADDRESSES.TREASURY,
+      address: treasury,
       abi: TREASURY_ABI,
       onLogs: () => {
         fetchTreasuryLogs();
@@ -182,42 +186,43 @@ export default function AdminTreasuryPage() {
     return () => {
       unwatch();
     };
-  }, [fetchTreasuryLogs]);
+  }, [treasury, fetchTreasuryLogs]);
 
   const { data: treasuryData } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
     ],
     query: {
+      enabled: !!treasury && !!oracle,
       refetchInterval: 5_000,
     },
   });
@@ -248,13 +253,13 @@ export default function AdminTreasuryPage() {
 
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recipient || !amount || parseFloat(amount) <= 0) return;
+    if (!recipient || !amount || parseFloat(amount) <= 0 || !treasury) return;
 
-    const decimals = assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WBTC.toLowerCase() ? 8 : 6;
+    const decimals = assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase() ? 8 : 6;
     const amountRaw = parseUnits(amount, decimals);
 
     writeContract({
-      address: FALLBACK_ADDRESSES.TREASURY,
+      address: treasury,
       abi: TREASURY_ABI,
       functionName: 'withdraw',
       args: [assetAddress as `0x${string}`, recipient as `0x${string}`, amountRaw],
@@ -266,6 +271,10 @@ export default function AdminTreasuryPage() {
     console.error('[Developer Logs - Treasury Error]:', err);
     return 'Treasury withdrawal is currently unavailable or requires authorized Admin Role permission.';
   };
+
+  const treasuryShort = treasury
+    ? `${treasury.slice(0, 6)}...${treasury.slice(-4)}`
+    : 'Connecting...';
 
   return (
     <div className="space-y-6">
@@ -292,7 +301,7 @@ export default function AdminTreasuryPage() {
           )}
           <button
             onClick={fetchTreasuryLogs}
-            disabled={isRefreshingLogs}
+            disabled={isRefreshingLogs || !treasury}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all disabled:opacity-50"
           >
             <RefreshCw
@@ -312,7 +321,7 @@ export default function AdminTreasuryPage() {
           {formatUSD(totalTreasuryValUSD)}
         </div>
         <p className="text-xs text-slate-400">
-          Combined protocol-owned fee reserves custodied in Treasury on Base Sepolia.
+          Combined protocol-owned fee reserves custodied in Treasury on Base Mainnet.
         </p>
       </div>
 
@@ -326,7 +335,7 @@ export default function AdminTreasuryPage() {
           glowColor="blue"
         />
         <StatCard
-          title="WBTC Reserves"
+          title="cbBTC Reserves"
           value={`${formatUnits(wbtcBalRaw, 8)} BTC`}
           subtitle={`≈ ${formatUSD(wbtcUSD)}`}
           icon={DollarSign}
@@ -359,9 +368,11 @@ export default function AdminTreasuryPage() {
                 onChange={(e) => setAssetAddress(e.target.value)}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono"
               >
-                <option value={FALLBACK_ADDRESSES.USDC}>USDC (USD Coin - 6 Decimals)</option>
-                <option value={FALLBACK_ADDRESSES.WBTC}>WBTC (Wrapped BTC - 8 Decimals)</option>
-                <option value={FALLBACK_ADDRESSES.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
+                <option value={MAINNET_TOKENS.USDC}>USDC (USD Coin - 6 Decimals)</option>
+                <option value={MAINNET_TOKENS.cbBTC}>
+                  cbBTC (Coinbase Wrapped BTC - 8 Decimals)
+                </option>
+                <option value={MAINNET_TOKENS.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
               </select>
             </div>
 
@@ -390,7 +401,7 @@ export default function AdminTreasuryPage() {
 
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting}
+              disabled={isWritePending || isTxWaiting || !treasury}
               className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50"
             >
               {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -407,7 +418,7 @@ export default function AdminTreasuryPage() {
           {isTxSuccess && (
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Revenue release executed successfully on Base Sepolia!</span>
+              <span>Revenue release executed successfully on Base Mainnet!</span>
             </div>
           )}
 
@@ -432,9 +443,7 @@ export default function AdminTreasuryPage() {
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">Treasury Contract</span>
               </div>
-              <span className="font-mono text-accent-blue font-bold">
-                {FALLBACK_ADDRESSES.TREASURY.slice(0, 6)}...{FALLBACK_ADDRESSES.TREASURY.slice(-4)}
-              </span>
+              <span className="font-mono text-accent-blue font-bold">{treasuryShort}</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
@@ -458,7 +467,7 @@ export default function AdminTreasuryPage() {
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">Live On-Chain Network</span>
               </div>
-              <span className="font-mono text-slate-300 font-bold">Base Sepolia L2</span>
+              <span className="font-mono text-slate-300 font-bold">Base Mainnet L2</span>
             </div>
           </div>
         </div>
@@ -510,13 +519,11 @@ export default function AdminTreasuryPage() {
 
                   return (
                     <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
-                      {/* Block Number */}
                       <td className="py-3 px-4 text-slate-300">
                         #{log.blockNumber.toString()}
                         <div className="text-[10px] text-slate-500 font-sans">{dateStr}</div>
                       </td>
 
-                      {/* Event Type Badge */}
                       <td className="py-3 px-4 font-sans">
                         {isWithdrawal ? (
                           <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -531,14 +538,12 @@ export default function AdminTreasuryPage() {
                         )}
                       </td>
 
-                      {/* Asset */}
                       <td className="py-3 px-4 font-bold text-white">{log.asset}</td>
 
-                      {/* Recipient */}
                       <td className="py-3 px-4 text-slate-300">
                         {log.recipient !== '0x0000000000000000000000000000000000000000' ? (
                           <a
-                            href={`https://sepolia.basescan.org/address/${log.recipient}`}
+                            href={`https://basescan.org/address/${log.recipient}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-purple-400 transition-colors"
@@ -551,15 +556,13 @@ export default function AdminTreasuryPage() {
                         )}
                       </td>
 
-                      {/* Amount */}
                       <td className="py-3 px-4 text-right font-bold text-slate-100">
                         {log.amountFormatted}
                       </td>
 
-                      {/* Explorer Link */}
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://sepolia.basescan.org/tx/${log.transactionHash}`}
+                          href={`https://basescan.org/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-purple-400 hover:text-purple-300 transition-colors hover:underline"

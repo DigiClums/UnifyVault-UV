@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useBlockNumber, useReadContracts } from 'wagmi';
 import { ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../../constants';
+import { MAINNET_TOKENS, RPC_URL } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
@@ -22,13 +23,15 @@ interface IndexerTelemetry {
   status: 'ONLINE' | 'SYNCING' | 'DEGRADED' | 'OFFLINE';
 }
 
-const DEPLOY_BLOCK = 44682885;
+const DEPLOY_BLOCK = 18000000;
 
 const INDEXER_API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_INDEXER_API_URL || '';
 
 export default function AdminMonitoringPage() {
   const { data: blockNumber } = useBlockNumber({ watch: true });
+  const { oracle, controller, vault, treasury } = useProtocolDirectory();
+
   const {
     data: contractReads,
     isError: isReadError,
@@ -36,31 +39,32 @@ export default function AdminMonitoringPage() {
   } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
     ],
     query: {
+      enabled: !!oracle,
       refetchInterval: 5_000,
     },
   });
@@ -79,7 +83,7 @@ export default function AdminMonitoringPage() {
     lastIndexedBlock: 0,
     blocksBehind: 0,
     indexerLag: 0,
-    rpcProvider: 'https://sepolia.base.org',
+    rpcProvider: RPC_URL,
     rpcErrors: 0,
     lastSuccessfulScan: null,
     uptime: 0,
@@ -98,7 +102,6 @@ export default function AdminMonitoringPage() {
           const data: IndexerTelemetry = await res.json();
           setIndexerState(data);
         } else {
-          // Fallback to stats endpoint
           const statsRes = await fetch(`${INDEXER_API_BASE}/api/indexer/stats`).catch(() => null);
           if (statsRes && statsRes.ok) {
             const data = await statsRes.json();
@@ -107,7 +110,7 @@ export default function AdminMonitoringPage() {
               lastIndexedBlock: data.lastBlock || 0,
               blocksBehind: data.blocksBehind || 0,
               indexerLag: data.indexerLag || 0,
-              rpcProvider: data.rpcProvider || 'https://sepolia.base.org',
+              rpcProvider: data.rpcProvider || RPC_URL,
               rpcErrors: data.rpcErrors || 0,
               lastSuccessfulScan: data.lastSuccessfulScan || new Date().toISOString(),
               uptime: data.uptime || 0,
@@ -117,7 +120,7 @@ export default function AdminMonitoringPage() {
             setIndexerState((prev) => ({ ...prev, status: 'OFFLINE' }));
           }
         }
-      } catch (err) {
+      } catch {
         setIndexerState((prev) => ({ ...prev, status: 'OFFLINE' }));
       }
     }
@@ -144,6 +147,9 @@ export default function AdminMonitoringPage() {
       : Math.min(100, Math.max(0, Number(((syncedBlocks / totalBlocksToSync) * 100).toFixed(2))));
 
   const gasGwei = '0.001 Gwei';
+
+  const shortAddr = (addr?: string) =>
+    addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Connecting...';
 
   return (
     <div className="space-y-6">
@@ -243,8 +249,8 @@ export default function AdminMonitoringPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Network Status"
-          value="Base Sepolia"
-          subtitle={`Chain ID 84532 | Block ${currentChainBlock ? currentChainBlock.toString() : '...'}`}
+          value="Base Mainnet"
+          subtitle={`Chain ID 8453 | Block ${currentChainBlock ? currentChainBlock.toString() : '...'}`}
           icon={Layers}
           glowColor="blue"
         />
@@ -258,7 +264,7 @@ export default function AdminMonitoringPage() {
         <StatCard
           title="Price Feed Sync"
           value={keeperLabel}
-          subtitle={isOracleHealthy ? 'Automated Coinbase Sync' : 'STALE OR UNRESPONSIVE'}
+          subtitle={isOracleHealthy ? 'Automated Price Feed Sync' : 'STALE OR UNRESPONSIVE'}
           icon={Zap}
           glowColor={isOracleHealthy ? 'purple' : 'amber'}
         />
@@ -342,7 +348,7 @@ export default function AdminMonitoringPage() {
                 <Zap className="w-4 h-4 text-purple-400" />
                 <span>Price Feed Synchronization</span>
               </td>
-              <td className="py-3.5 px-3 text-slate-300">Coinbase Price Feed</td>
+              <td className="py-3.5 px-3 text-slate-300">Oracle Price Feed</td>
               <td className="py-3.5 px-3 text-slate-400">Every 15s</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status={keeperStatus} label={keeperLabel} />
@@ -357,9 +363,7 @@ export default function AdminMonitoringPage() {
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>UnifyVaultController</span>
               </td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0x7EF5D93f83995228efFc63dbe513367a719f0633
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(controller)}</td>
               <td className="py-3.5 px-3 text-slate-400">On-Chain</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Healthy" label="ACTIVE" />
@@ -374,9 +378,7 @@ export default function AdminMonitoringPage() {
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>CustodyVault</span>
               </td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0x54696d5d00b58F27F9d8C358560ff2a7d10d409e
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(vault)}</td>
               <td className="py-3.5 px-3 text-slate-400">On-Chain</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Healthy" label="ACTIVE" />
@@ -391,9 +393,7 @@ export default function AdminMonitoringPage() {
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>Treasury</span>
               </td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(treasury)}</td>
               <td className="py-3.5 px-3 text-slate-400">On-Chain</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Healthy" label="ACTIVE" />
@@ -408,9 +408,7 @@ export default function AdminMonitoringPage() {
                 <Activity className="w-4 h-4 text-amber-400" />
                 <span>OracleManager</span>
               </td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(oracle)}</td>
               <td className="py-3.5 px-3 text-slate-400">86400s Timeout</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge

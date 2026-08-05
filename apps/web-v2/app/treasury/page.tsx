@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useReadContracts } from 'wagmi';
 import { createPublicClient, http, formatUnits } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import { TREASURY_ABI, CONTROLLER_ABI, ORACLE_MANAGER_ABI } from '../../lib/contracts';
-import { FALLBACK_ADDRESSES, RPC_URL } from '../../constants';
+import { MAINNET_TOKENS, RPC_URL } from '../../constants';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../lib/math';
 import { StatCard } from '../../components/ui/StatCard';
 import { TableCard } from '../../components/ui/TableCard';
@@ -19,11 +20,10 @@ import {
   History,
   RefreshCw,
   ExternalLink,
-  Layers,
 } from 'lucide-react';
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(RPC_URL),
 });
 
@@ -40,6 +40,7 @@ export interface PublicTreasuryLog {
 }
 
 export default function TreasuryPage() {
+  const { treasury, controller, oracle } = useProtocolDirectory();
   const [treasuryLogs, setTreasuryLogs] = useState<PublicTreasuryLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [isRefreshingLogs, setIsRefreshingLogs] = useState<boolean>(false);
@@ -57,7 +58,7 @@ export default function TreasuryPage() {
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
         return ts;
-      } catch (err) {
+      } catch {
         return Math.floor(Date.now() / 1000);
       }
     },
@@ -65,12 +66,13 @@ export default function TreasuryPage() {
   );
 
   const fetchTreasuryLogs = useCallback(async () => {
+    if (!treasury) return;
     setIsRefreshingLogs(true);
     try {
       const logs = await publicClient.getContractEvents({
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
-        fromBlock: 0n,
+        fromBlock: 'earliest',
         toBlock: 'latest',
       });
 
@@ -94,15 +96,15 @@ export default function TreasuryPage() {
 
         const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === FALLBACK_ADDRESSES.WBTC.toLowerCase()) {
-          assetSymbol = 'WBTC';
-        } else if (assetAddr === FALLBACK_ADDRESSES.WETH.toLowerCase()) {
+        if (assetAddr === MAINNET_TOKENS.cbBTC.toLowerCase()) {
+          assetSymbol = 'cbBTC';
+        } else if (assetAddr === MAINNET_TOKENS.WETH.toLowerCase()) {
           assetSymbol = 'WETH';
         } else {
           assetSymbol = 'USDC';
         }
 
-        const decimals = assetSymbol === 'WBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
 
         if (eventName === 'TreasuryWithdrawal') {
           rec = (args.recipient as `0x${string}`) || rec;
@@ -153,13 +155,14 @@ export default function TreasuryPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [getBlockTimestamp]);
+  }, [treasury, getBlockTimestamp]);
 
   useEffect(() => {
+    if (!treasury) return;
     fetchTreasuryLogs();
 
     const unwatch = publicClient.watchContractEvent({
-      address: FALLBACK_ADDRESSES.TREASURY,
+      address: treasury,
       abi: TREASURY_ABI,
       onLogs: () => {
         fetchTreasuryLogs();
@@ -169,52 +172,53 @@ export default function TreasuryPage() {
     return () => {
       unwatch();
     };
-  }, [fetchTreasuryLogs]);
+  }, [treasury, fetchTreasuryLogs]);
 
   const { data, refetch } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       {
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
         functionName: 'getDepositFeeBps',
       },
       {
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
         functionName: 'getRedeemFeeBps',
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
     ],
     query: {
+      enabled: !!treasury && !!controller && !!oracle,
       refetchInterval: 5_000,
     },
   });
@@ -238,6 +242,10 @@ export default function TreasuryPage() {
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
   const totalTreasuryUSD = usdcUSD + wbtcUSD + wethUSD;
 
+  const treasuryShort = treasury
+    ? `${treasury.slice(0, 6)}...${treasury.slice(-4)}`
+    : 'Connecting...';
+
   return (
     <div className="space-y-8 py-6">
       {/* Header */}
@@ -251,7 +259,7 @@ export default function TreasuryPage() {
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Safeguarding protocol-owned fee reserves custodied inside Treasury contract (
-            {FALLBACK_ADDRESSES.TREASURY.slice(0, 6)}...{FALLBACK_ADDRESSES.TREASURY.slice(-4)}).
+            {treasuryShort}).
           </p>
         </div>
 
@@ -266,7 +274,7 @@ export default function TreasuryPage() {
               refetch();
               fetchTreasuryLogs();
             }}
-            disabled={isRefreshingLogs}
+            disabled={isRefreshingLogs || !treasury}
             className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold transition-colors disabled:opacity-50"
           >
             <RefreshCw
@@ -347,11 +355,11 @@ export default function TreasuryPage() {
                     <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-extrabold text-[10px]">
                       BTC
                     </div>
-                    <span>WBTC</span>
+                    <span>cbBTC</span>
                   </td>
                   <td className="py-3.5 px-3 text-slate-400">{wbtcBalRaw.toString()}</td>
                   <td className="py-3.5 px-3 text-slate-200 font-bold">
-                    {formatUnits(wbtcBalRaw, 8)} WBTC
+                    {formatUnits(wbtcBalRaw, 8)} cbBTC
                   </td>
                   <td className="py-3.5 px-3 text-right text-emerald-400 font-bold">
                     {formatUSD(wbtcUSD)}
@@ -395,9 +403,7 @@ export default function TreasuryPage() {
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-slate-400">Treasury Contract</span>
-              <span className="font-mono text-accent-blue text-[11px]">
-                {FALLBACK_ADDRESSES.TREASURY.slice(0, 6)}...{FALLBACK_ADDRESSES.TREASURY.slice(-4)}
-              </span>
+              <span className="font-mono text-accent-blue text-[11px]">{treasuryShort}</span>
             </div>
           </div>
 
@@ -422,7 +428,7 @@ export default function TreasuryPage() {
         {isLogsLoading ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <RefreshCw className="w-8 h-8 animate-spin text-accent-blue" />
-            <p className="text-sm font-medium">Syncing Treasury log events from Base Sepolia...</p>
+            <p className="text-sm font-medium">Syncing Treasury log events from Base Mainnet...</p>
           </div>
         ) : treasuryLogs.length === 0 ? (
           <EmptyState
@@ -485,7 +491,7 @@ export default function TreasuryPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {log.recipient !== '0x0000000000000000000000000000000000000000' ? (
                           <a
-                            href={`https://sepolia.basescan.org/address/${log.recipient}`}
+                            href={`https://basescan.org/address/${log.recipient}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-accent-blue transition-colors"
@@ -506,7 +512,7 @@ export default function TreasuryPage() {
                       {/* Explorer Link */}
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://sepolia.basescan.org/tx/${log.transactionHash}`}
+                          href={`https://basescan.org/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-accent-blue hover:underline"

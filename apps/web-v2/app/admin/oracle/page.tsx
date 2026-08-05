@@ -3,7 +3,8 @@
 import React from 'react';
 import { useReadContracts } from 'wagmi';
 import { ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../../constants';
+import { MAINNET_TOKENS } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD, formatUnits } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -11,40 +12,43 @@ import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { Activity, Zap, RefreshCw, Clock, ShieldCheck } from 'lucide-react';
 
 export default function AdminOraclePage() {
+  const { oracle } = useProtocolDirectory();
+
   const { data, refetch } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
     ],
     query: {
+      enabled: !!oracle,
       refetchInterval: 5_000,
     },
   });
@@ -59,6 +63,8 @@ export default function AdminOraclePage() {
   const btcPriceUSD = formatUSD(Number(formatUnits(btcPriceRaw, 18)));
   const ethPriceUSD = formatUSD(Number(formatUnits(ethPriceRaw, 18)));
   const usdcPriceUSD = formatUSD(Number(formatUnits(usdcPriceRaw, 18)));
+
+  const shortAddr = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   return (
     <div className="space-y-6">
@@ -78,7 +84,8 @@ export default function AdminOraclePage() {
 
         <button
           onClick={() => refetch()}
-          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold self-start sm:self-auto transition-colors"
+          disabled={!oracle}
+          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh Feeds</span>
@@ -90,28 +97,28 @@ export default function AdminOraclePage() {
         <StatCard
           title="BTC Price Feed"
           value={btcPriceUSD}
-          subtitle="Chainlink Aggregator"
+          subtitle="Chainlink / Pyth Aggregator"
           icon={Activity}
           glowColor="amber"
         />
         <StatCard
           title="ETH Price Feed"
           value={ethPriceUSD}
-          subtitle="Chainlink Aggregator"
+          subtitle="Chainlink / Pyth Aggregator"
           icon={Activity}
           glowColor="blue"
         />
         <StatCard
           title="USDC Price Feed"
           value={usdcPriceUSD}
-          subtitle="Chainlink Aggregator"
+          subtitle="Chainlink / Pyth Aggregator"
           icon={ShieldCheck}
           glowColor="emerald"
         />
         <StatCard
           title="Market Price Sync"
           value="ACTIVE"
-          subtitle="Automated Coinbase Feed"
+          subtitle="Automated Feed Sync"
           icon={Zap}
           glowColor="purple"
         />
@@ -141,11 +148,15 @@ export default function AdminOraclePage() {
                   BTC
                 </div>
                 <div>
-                  <div className="font-bold">WBTC / USD</div>
-                  <div className="text-[10px] text-slate-400 font-mono">0xc83D0A...dee6</div>
+                  <div className="font-bold">cbBTC / USD</div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {shortAddr(MAINNET_TOKENS.cbBTC)}
+                  </div>
                 </div>
               </td>
-              <td className="py-4 px-3 text-slate-300 font-semibold">Chainlink Oracle Feed</td>
+              <td className="py-4 px-3 text-slate-300 font-semibold">
+                Chainlink / Pyth Oracle Feed
+              </td>
               <td className="py-4 px-3 font-mono font-bold text-emerald-400">{btcPriceUSD}</td>
               <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
               <td className="py-4 px-3">
@@ -164,10 +175,14 @@ export default function AdminOraclePage() {
                 </div>
                 <div>
                   <div className="font-bold">WETH / USD</div>
-                  <div className="text-[10px] text-slate-400 font-mono">0xEEAa69...A15c</div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {shortAddr(MAINNET_TOKENS.WETH)}
+                  </div>
                 </div>
               </td>
-              <td className="py-4 px-3 text-slate-300 font-semibold">Chainlink Oracle Feed</td>
+              <td className="py-4 px-3 text-slate-300 font-semibold">
+                Chainlink / Pyth Oracle Feed
+              </td>
               <td className="py-4 px-3 font-mono font-bold text-emerald-400">{ethPriceUSD}</td>
               <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
               <td className="py-4 px-3">
@@ -186,10 +201,14 @@ export default function AdminOraclePage() {
                 </div>
                 <div>
                   <div className="font-bold">USDC / USD</div>
-                  <div className="text-[10px] text-slate-400 font-mono">0x036CbD...CF7e</div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {shortAddr(MAINNET_TOKENS.USDC)}
+                  </div>
                 </div>
               </td>
-              <td className="py-4 px-3 text-slate-300 font-semibold">Chainlink Oracle Feed</td>
+              <td className="py-4 px-3 text-slate-300 font-semibold">
+                Chainlink / Pyth Oracle Feed
+              </td>
               <td className="py-4 px-3 font-mono font-bold text-emerald-400">$1.0000</td>
               <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
               <td className="py-4 px-3">

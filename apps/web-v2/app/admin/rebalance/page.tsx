@@ -3,12 +3,9 @@
 import React, { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import {
-  PROTOCOL_DIRECTORY_ABI,
-  STRATEGY_MANAGER_ABI,
-  CONTROLLER_ABI,
-} from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES, MODULE_IDS } from '../../../constants';
+import { STRATEGY_MANAGER_ABI, CONTROLLER_ABI } from '../../../lib/contracts';
+import { MAINNET_TOKENS } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
@@ -26,23 +23,25 @@ import {
 
 export default function AdminRebalancePage() {
   const { holdings } = usePortfolio();
+  const { controller, strategyManager } = useProtocolDirectory();
 
-  // 1. Resolve StrategyManager Contract Address from Controller or Directory Fallback
   const { data: controllerStrategyManager } = useReadContract({
-    address: FALLBACK_ADDRESSES.CONTROLLER,
+    address: controller,
     abi: CONTROLLER_ABI,
     functionName: 'strategyManager',
+    query: {
+      enabled: !!controller,
+    },
   });
 
   const activeStrategyManager =
-    (controllerStrategyManager &&
+    controllerStrategyManager &&
     controllerStrategyManager !== '0x0000000000000000000000000000000000000000'
       ? (controllerStrategyManager as `0x${string}`)
-      : FALLBACK_ADDRESSES.STRATEGY_MANAGER) || '0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0';
+      : strategyManager;
 
-  // 2. Read Target Weights directly from StrategyManager
   const { data: targetWeightsData, refetch: refetchWeights } = useReadContract({
-    address: activeStrategyManager || undefined,
+    address: activeStrategyManager,
     abi: STRATEGY_MANAGER_ABI,
     functionName: 'getTargetWeights',
     query: {
@@ -51,7 +50,6 @@ export default function AdminRebalancePage() {
     },
   });
 
-  // Target weights array [WBTC_BPS, WETH_BPS]
   const targetWeightsBps = (targetWeightsData?.[1] as bigint[]) || [5000n, 5000n];
   const targetWbtcBpsNum = Number(targetWeightsBps[0] || 5000n);
   const targetWethBpsNum = Number(targetWeightsBps[1] || 5000n);
@@ -59,7 +57,6 @@ export default function AdminRebalancePage() {
   const targetWbtcPct = targetWbtcBpsNum / 100;
   const targetWethPct = targetWethBpsNum / 100;
 
-  // Form State for Admin Target Weight Configuration
   const [wbtcBpsInput, setWbtcBpsInput] = useState<string>(targetWbtcBpsNum.toString());
   const [wethBpsInput, setWethBpsInput] = useState<string>(targetWethBpsNum.toString());
 
@@ -68,7 +65,6 @@ export default function AdminRebalancePage() {
   const totalBpsVal = wbtcBpsVal + wethBpsVal;
   const isValidBps = totalBpsVal === 10000;
 
-  // 3. Write Contract Hook for updateWeights
   const {
     writeContract,
     data: txHash,
@@ -89,7 +85,7 @@ export default function AdminRebalancePage() {
       abi: STRATEGY_MANAGER_ABI,
       functionName: 'updateWeights',
       args: [
-        [FALLBACK_ADDRESSES.WBTC, FALLBACK_ADDRESSES.WETH],
+        [MAINNET_TOKENS.cbBTC, MAINNET_TOKENS.WETH],
         [BigInt(wbtcBpsVal), BigInt(wethBpsVal)],
       ],
     });
@@ -104,7 +100,6 @@ export default function AdminRebalancePage() {
     return 'Strategy weight update failed. Please check your wallet connection and permissions.';
   };
 
-  // Live Custody Holdings
   const btcHolding = holdings.find((h) => h.symbol === 'BTC');
   const ethHolding = holdings.find((h) => h.symbol === 'ETH');
 
@@ -115,8 +110,9 @@ export default function AdminRebalancePage() {
     ? parseFloat(ethHolding.weightPercent.replace('%', ''))
     : targetWethPct;
 
-  const btcDev = Math.abs(btcWeight - targetWbtcPct);
-  const ethDev = Math.abs(ethWeight - targetWethPct);
+  const strategyShort = activeStrategyManager
+    ? `${activeStrategyManager.slice(0, 6)}...${activeStrategyManager.slice(-4)}`
+    : 'Resolving...';
 
   return (
     <div className="space-y-6">
@@ -136,7 +132,8 @@ export default function AdminRebalancePage() {
 
         <button
           onClick={() => refetchWeights()}
-          className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all self-start sm:self-auto"
+          disabled={!activeStrategyManager}
+          className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all self-start sm:self-auto disabled:opacity-50"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh Weights</span>
@@ -146,7 +143,7 @@ export default function AdminRebalancePage() {
       {/* On-Chain Target Weight Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Target WBTC Weight"
+          title="Target cbBTC Weight"
           value={`${targetWbtcPct.toFixed(1)}%`}
           subtitle={`${targetWbtcBpsNum.toLocaleString()} BPS`}
           icon={PieChart}
@@ -182,7 +179,7 @@ export default function AdminRebalancePage() {
           <form onSubmit={handleUpdateWeights} className="space-y-4 text-xs">
             <div>
               <div className="flex justify-between items-center mb-1 font-semibold text-slate-300">
-                <label>WBTC Target Weight (in BPS)</label>
+                <label>cbBTC Target Weight (in BPS)</label>
                 <span className="font-mono text-amber-400">{(wbtcBpsVal / 100).toFixed(2)}%</span>
               </div>
               <input
@@ -200,7 +197,9 @@ export default function AdminRebalancePage() {
             <div>
               <div className="flex justify-between items-center mb-1 font-semibold text-slate-300">
                 <label>WETH Target Weight (in BPS)</label>
-                <span className="font-mono text-cyan-400">{(wethBpsVal / 100).toFixed(2)}%</span>
+                <span className="font-mono text-cyan-400 font-bold">
+                  {(wethBpsVal / 100).toFixed(2)}%
+                </span>
               </div>
               <input
                 type="number"
@@ -278,11 +277,7 @@ export default function AdminRebalancePage() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">StrategyManager Module</span>
               </div>
-              <span className="font-mono text-accent-blue font-bold">
-                {activeStrategyManager
-                  ? `${activeStrategyManager.slice(0, 6)}...${activeStrategyManager.slice(-4)}`
-                  : 'Resolving...'}
-              </span>
+              <span className="font-mono text-accent-blue font-bold">{strategyShort}</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
@@ -306,7 +301,7 @@ export default function AdminRebalancePage() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">Execution Network</span>
               </div>
-              <span className="font-mono text-slate-300 font-bold">Base Sepolia L2</span>
+              <span className="font-mono text-slate-300 font-bold">Base Mainnet L2</span>
             </div>
           </div>
         </div>

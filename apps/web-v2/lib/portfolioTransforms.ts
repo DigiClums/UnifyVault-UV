@@ -3,13 +3,9 @@
  *
  * Transforms raw on-chain multi-call data and mathematical computations into structured
  * domain models (ProtocolMetrics, UserPortfolio, AssetHolding[]).
- *
- * Fixes Holdings Table labeling by explicitly populating:
- * - Target Weight  -> StrategyManager target allocations
- * - Current Weight -> CustodyVault actual allocations
  */
 
-import { FALLBACK_ADDRESSES } from '../constants';
+import { MAINNET_TOKENS } from '../constants';
 import { AssetHolding, ProtocolMetrics, StrategyMetrics, UserPortfolio } from '../types';
 import {
   calculateAllocationBps,
@@ -46,14 +42,6 @@ export interface RawUserContractData {
   contractInvestedAssetsRaw: bigint;
 }
 
-/**
- * Builds the ProtocolMetrics model containing TVL, NAV, Share Price, Total Supply,
- * Target Strategy Allocations, Current Custody Allocations, and Protocol Reserves Inventory.
- *
- * @param rawData - Raw protocol multi-call contract responses.
- * @param strategy - Target strategy weight metrics from StrategyManager.
- * @returns Structured ProtocolMetrics object.
- */
 export function transformProtocolMetrics(
   rawData: RawProtocolContractData,
   strategy: StrategyMetrics,
@@ -68,19 +56,15 @@ export function transformProtocolMetrics(
     totalSharesRaw,
   } = rawData;
 
-  // Calculate individual asset USD values
   const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC);
   const wethUSDValue = calculateAssetUSDValue(wethTotalAssets, 18, priceWETH);
   const usdcUSDValue = calculateAssetUSDValue(usdcTotalAssets, 6, priceUSDC);
 
-  // Total Portfolio Value (TVL)
   const totalPortfolioValueUSDNumber = calculateTVLUSD([wbtcUSDValue, wethUSDValue, usdcUSDValue]);
 
-  // NAV and Share Price
   const sharePriceUSD = calculateSharePriceUSD(totalPortfolioValueUSDNumber, totalSharesRaw);
   const totalVaultNAVUSD = calculateTotalVaultNAVUSD(totalPortfolioValueUSDNumber);
 
-  // Actual Custody Allocation Percentages
   const custodyBtcPercentNum = calculateAllocationPercent(
     wbtcUSDValue,
     totalPortfolioValueUSDNumber,
@@ -101,12 +85,11 @@ export function transformProtocolMetrics(
   const custodyUsdcPercent =
     totalPortfolioValueUSDNumber > 0 ? custodyUsdcPercentNum.toFixed(1) : '0.0';
 
-  // Construct Protocol-Wide Asset Holdings Inventory
   const protocolHoldings: AssetHolding[] = [
     {
       symbol: 'BTC',
-      name: 'Wrapped Bitcoin',
-      address: FALLBACK_ADDRESSES.WBTC,
+      name: 'Coinbase Wrapped BTC',
+      address: MAINNET_TOKENS.cbBTC,
       decimals: 8,
       balanceRaw: wbtcTotalAssets,
       balanceFormatted: formatUnits(wbtcTotalAssets, 8),
@@ -120,7 +103,7 @@ export function transformProtocolMetrics(
     {
       symbol: 'ETH',
       name: 'Wrapped Ether',
-      address: FALLBACK_ADDRESSES.WETH,
+      address: MAINNET_TOKENS.WETH,
       decimals: 18,
       balanceRaw: wethTotalAssets,
       balanceFormatted: formatUnits(wethTotalAssets, 18),
@@ -134,7 +117,7 @@ export function transformProtocolMetrics(
     {
       symbol: 'USDC',
       name: 'USD Coin (Reserve)',
-      address: FALLBACK_ADDRESSES.USDC,
+      address: MAINNET_TOKENS.USDC,
       decimals: 6,
       balanceRaw: usdcTotalAssets,
       balanceFormatted: formatUnits(usdcTotalAssets, 6),
@@ -169,15 +152,6 @@ export function transformProtocolMetrics(
   };
 }
 
-/**
- * Builds the UserPortfolio model containing user shares, USDC balance, ownership ratio,
- * invested assets, current portfolio value, PnL metrics, average entry price, and pro-rata holdings.
- *
- * @param rawUserData - User specific on-chain multi-call contract responses.
- * @param rawProtocolData - Protocol raw contract responses for pro-rata asset allocation.
- * @param protocolMetrics - Evaluated ProtocolMetrics for share pricing and target allocations.
- * @returns Structured UserPortfolio object.
- */
 export function transformUserPortfolio(
   rawUserData: RawUserContractData,
   rawProtocolData: RawProtocolContractData,
@@ -194,14 +168,11 @@ export function transformUserPortfolio(
     priceUSDC,
   } = rawProtocolData;
 
-  // Use raw unrounded numeric share price directly from protocol metrics
   const sharePriceNum = protocolMetrics.sharePriceNumber ?? 1.0;
 
-  // Calculate user ownership ratio
   const ownershipRatio = calculateOwnershipRatio(userSharesRaw, totalSharesRaw);
   const ownershipPercentage = calculateOwnershipPercentage(ownershipRatio);
 
-  // User pro-rata raw asset balances
   const userWbtcBalRaw = calculateUserProRataBalance(
     wbtcTotalAssets,
     userSharesRaw,
@@ -218,7 +189,6 @@ export function transformUserPortfolio(
     totalSharesRaw,
   );
 
-  // User pro-rata USD values
   const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC);
   const wethUSDValue = calculateAssetUSDValue(wethTotalAssets, 18, priceWETH);
   const usdcUSDValue = calculateAssetUSDValue(usdcTotalAssets, 6, priceUSDC);
@@ -228,30 +198,26 @@ export function transformUserPortfolio(
   const userUsdcUSD = calculateUserProRataUSD(usdcUSDValue, ownershipRatio);
   const userTotalUSDNumber = userWbtcUSD + userWethUSD + userUsdcUSD;
 
-  // Derive cost basis & invested assets
   const investedAssetsUSD = calculateCostBasis(
     contractInvestedAssetsRaw,
     userSharesRaw,
     userAddress,
   );
 
-  // Calculate current user value and PnL
   const currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
   const { pnlUSD, pnlPercent, isProfitable } = calculatePnL(currentValueUSD, investedAssetsUSD);
 
-  // Average Entry Price
   const averageEntryPriceUSDNum = calculateAverageEntryPrice(
     userSharesRaw,
     investedAssetsUSD,
     sharePriceNum,
   );
 
-  // Construct Connected User Pro-Rata Share Holdings
   const userHoldings: AssetHolding[] = [
     {
       symbol: 'BTC',
-      name: 'Wrapped Bitcoin',
-      address: FALLBACK_ADDRESSES.WBTC,
+      name: 'Coinbase Wrapped BTC',
+      address: MAINNET_TOKENS.cbBTC,
       decimals: 8,
       balanceRaw: userWbtcBalRaw,
       balanceFormatted: formatUnits(userWbtcBalRaw, 8),
@@ -271,7 +237,7 @@ export function transformUserPortfolio(
     {
       symbol: 'ETH',
       name: 'Wrapped Ether',
-      address: FALLBACK_ADDRESSES.WETH,
+      address: MAINNET_TOKENS.WETH,
       decimals: 18,
       balanceRaw: userWethBalRaw,
       balanceFormatted: formatUnits(userWethBalRaw, 18),
@@ -291,7 +257,7 @@ export function transformUserPortfolio(
     {
       symbol: 'USDC',
       name: 'USD Coin (Reserve)',
-      address: FALLBACK_ADDRESSES.USDC,
+      address: MAINNET_TOKENS.USDC,
       decimals: 6,
       balanceRaw: userUsdcBalRaw,
       balanceFormatted: formatUnits(userUsdcBalRaw, 6),

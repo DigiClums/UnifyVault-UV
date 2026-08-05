@@ -2,7 +2,8 @@
 
 import { useReadContracts } from 'wagmi';
 import { CUSTODY_VAULT_ABI, ERC20_ABI, ORACLE_MANAGER_ABI } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
+import { MAINNET_TOKENS } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
 import { ProtocolMetrics, StrategyMetrics } from '../types';
 import { transformProtocolMetrics } from '../lib/portfolioTransforms';
 
@@ -11,66 +12,62 @@ export interface UseProtocolMetricsResult extends ProtocolMetrics {
   isError: boolean;
 }
 
-/**
- * Hook to fetch protocol-wide reserve balances, oracle asset prices, and share token supply,
- * returning structured ProtocolMetrics (TVL, NAV, Share Price, Custody Allocations, Reserve Inventory).
- *
- * @param strategyMetrics - Strategy target weights from useStrategyMetrics.
- * @returns ProtocolMetrics along with loading and error flags.
- */
 export function useProtocolMetrics(strategyMetrics: StrategyMetrics): UseProtocolMetricsResult {
+  const { vault, oracle, token } = useProtocolDirectory();
+
   const { data, isLoading, isError } = useReadContracts({
     contracts: [
       // 0. CustodyVault total WBTC
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       // 1. CustodyVault total WETH
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       // 2. CustodyVault total USDC
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssets',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       // 3. Oracle Price WBTC (18 decimals)
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       // 4. Oracle Price WETH (18 decimals)
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       // 5. Oracle Price USDC (18 decimals)
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       // 6. UVBTCETHToken Total Supply
       {
-        address: FALLBACK_ADDRESSES.TOKEN,
+        address: token,
         abi: ERC20_ABI,
         functionName: 'totalSupply',
       },
     ],
     query: {
+      enabled: !!vault && !!oracle && !!token,
       refetchInterval: 5_000,
     },
   });

@@ -1,48 +1,61 @@
-import { baseSepolia, base } from 'viem/chains';
+import { base } from 'viem/chains';
 
-export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base-sepolia';
+/**
+ * Base Mainnet Production Chain Configuration
+ * Enforces fail-fast validation for production mainnet deployments.
+ */
+export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base';
 
-export const ADMIN_ADDRESS = (process.env.NEXT_PUBLIC_ADMIN_ADDRESS ||
-  '0xd905920c91853039060246Ed5724AA72B91a96DA') as `0x${string}`;
+if (ACTIVE_CHAIN_NAME !== 'base' && ACTIVE_CHAIN_NAME !== '8453') {
+  throw new Error(
+    `[PRODUCTION CONFIGURATION ERROR] Invalid NEXT_PUBLIC_ACTIVE_CHAIN: "${ACTIVE_CHAIN_NAME}". ` +
+      `Base Mainnet production builds must set NEXT_PUBLIC_ACTIVE_CHAIN to "base" or "8453".`,
+  );
+}
 
-export const APP_DOMAIN = 'https://app.unifyvault.xyz';
+export const CHAIN_CONFIG = base;
 
-export const CHAIN_CONFIG = ACTIVE_CHAIN_NAME === 'base' ? base : baseSepolia;
+export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'https://app.unifyvault.xyz';
 
 export const RPC_URL =
-  ACTIVE_CHAIN_NAME === 'base'
-    ? process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET || 'https://mainnet.base.org'
-    : process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA || 'https://sepolia.base.org';
+  process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET ||
+  process.env.NEXT_PUBLIC_RPC_URL ||
+  'https://mainnet.base.org';
 
-export const PROTOCOL_DIRECTORY_ADDRESS = (
-  ACTIVE_CHAIN_NAME === 'base'
-    ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET ||
-      '0x0000000000000000000000000000000000000000'
-    : process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA ||
-      '0xB5dd6d766867cB4c299AD2711068455C718EDDbc'
-) as `0x${string}`;
+const rawDirectoryAddress =
+  process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET ||
+  process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS ||
+  '';
 
-// Deployed Base Sepolia V2 & Base Mainnet Suite Addresses
-export const FALLBACK_ADDRESSES = {
-  DIRECTORY: PROTOCOL_DIRECTORY_ADDRESS,
-  CONTROLLER: '0x7EF5D93f83995228efFc63dbe513367a719f0633' as `0x${string}`,
-  VAULT: '0x54696d5d00b58F27F9d8C358560ff2a7d10d409e' as `0x${string}`,
-  TREASURY: '0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D' as `0x${string}`,
-  ORACLE: '0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635' as `0x${string}`,
-  TOKEN: '0xce9e6Cb560aC3EdB9a8164d68205c895265c5ce4' as `0x${string}`,
-  COST_BASIS: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-  STRATEGY_MANAGER: '0x36b02ef54B06527c2fE6028C51A3DF7e4EF7b9b0' as `0x${string}`,
-  USDC: (ACTIVE_CHAIN_NAME === 'base'
-    ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-    : '0x036CbD53842c5426634e7929541eC2318f3dCF7e') as `0x${string}`,
-  WBTC: (ACTIVE_CHAIN_NAME === 'base'
-    ? '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
-    : '0xc83D0A904E1103d8144E9DF93cdb5bC05f7cdee6') as `0x${string}`,
-  WETH: (ACTIVE_CHAIN_NAME === 'base'
-    ? '0x4200000000000000000000000000000000000006'
-    : '0xEEAa69Db6046f026d88004d0D6946518071bA15c') as `0x${string}`,
+export const PROTOCOL_DIRECTORY_ADDRESS = ((): `0x${string}` => {
+  if (
+    !rawDirectoryAddress ||
+    rawDirectoryAddress === '0x0000000000000000000000000000000000000000' ||
+    !/^0x[a-fA-F0-9]{40}$/.test(rawDirectoryAddress)
+  ) {
+    // In build/test environment where env vars are mocked, fallback gracefully or throw when executing
+    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[PRODUCTION WARNING] NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET is not set. Dynamic module resolution requires a valid deployed ProtocolDirectory address.',
+      );
+    }
+    return (rawDirectoryAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+  }
+  return rawDirectoryAddress as `0x${string}`;
+})();
+
+/**
+ * Base Mainnet Core ERC20 Tokens
+ */
+export const MAINNET_TOKENS = {
+  USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`,
+  cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' as `0x${string}`,
+  WETH: '0x4200000000000000000000000000000000000006' as `0x${string}`,
 };
 
+/**
+ * Standard Protocol Module Keys (bytes32 keccak256 identifiers)
+ */
 export const MODULE_IDS = {
   ORACLE: '0x3b1ee6ca4eeb9c6ad6673eb8932bf5a92a549d443c7b643a6d9b925b6a715f5d' as `0x${string}`,
   VAULT: '0x15ee1728eb7c4f4efb70fa67f13b632007e2a4a3bc6c3b6bf11b0e3532f7a08b' as `0x${string}`,
@@ -58,4 +71,12 @@ export const MODULE_IDS = {
     '0xb386ebf492bf5541e21b8c638202d0cfceb3a0e67611e9f1a0e1c07153a5df65' as `0x${string}`,
   COST_BASIS_MANAGER:
     '0xb4e1b8b7e2dfa9a3b8d4c38d8d75e47854bc67c00e6c46698650f00f074d2847' as `0x${string}`,
+  CONTROLLER: '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
 };
+
+export const DEFAULT_ADMIN_ROLE =
+  '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
+export const GUARDIAN_ROLE =
+  '0x5543555f475541524449414e5f524f4c45000000000000000000000000000000' as `0x${string}`;
+export const TIMELOCK_ROLE =
+  '0x5543555f54494d454c4f434b5f524f4c45000000000000000000000000000000' as `0x${string}`;

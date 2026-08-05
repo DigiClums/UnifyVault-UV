@@ -8,9 +8,10 @@ import {
   useWaitForTransactionReceipt,
 } from 'wagmi';
 import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES, RPC_URL } from '../../../constants';
+import { MAINNET_TOKENS, RPC_URL } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
@@ -32,7 +33,7 @@ import {
 } from 'lucide-react';
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(RPC_URL),
 });
 
@@ -51,10 +52,11 @@ export interface CustodyEventLog {
 
 export default function AdminCustodyPage() {
   const { address: connectedAddress } = useAccount();
+  const { vault, oracle } = useProtocolDirectory();
 
   const [recipient, setRecipient] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [assetAddress, setAssetAddress] = useState<string>(FALLBACK_ADDRESSES.USDC);
+  const [assetAddress, setAssetAddress] = useState<string>(MAINNET_TOKENS.USDC);
 
   const [custodyLogs, setCustodyLogs] = useState<CustodyEventLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
@@ -81,12 +83,13 @@ export default function AdminCustodyPage() {
   );
 
   const fetchCustodyLogs = useCallback(async () => {
+    if (!vault) return;
     setIsRefreshingLogs(true);
     try {
       const logs = await publicClient.getContractEvents({
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
-        fromBlock: 0n,
+        fromBlock: 'earliest',
         toBlock: 'latest',
       });
 
@@ -112,15 +115,15 @@ export default function AdminCustodyPage() {
 
         const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === FALLBACK_ADDRESSES.WBTC.toLowerCase()) {
-          assetSymbol = 'WBTC';
-        } else if (assetAddr === FALLBACK_ADDRESSES.WETH.toLowerCase()) {
+        if (assetAddr === MAINNET_TOKENS.cbBTC.toLowerCase()) {
+          assetSymbol = 'cbBTC';
+        } else if (assetAddr === MAINNET_TOKENS.WETH.toLowerCase()) {
           assetSymbol = 'WETH';
         } else {
           assetSymbol = 'USDC';
         }
 
-        const decimals = assetSymbol === 'WBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
 
         if (eventName === 'WithdrawalExecuted') {
           recOrFrom = (args.to as `0x${string}`) || recOrFrom;
@@ -166,13 +169,14 @@ export default function AdminCustodyPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [getBlockTimestamp]);
+  }, [vault, getBlockTimestamp]);
 
   useEffect(() => {
+    if (!vault) return;
     fetchCustodyLogs();
 
     const unwatch = publicClient.watchContractEvent({
-      address: FALLBACK_ADDRESSES.VAULT,
+      address: vault,
       abi: CUSTODY_VAULT_ABI,
       onLogs: () => {
         fetchCustodyLogs();
@@ -182,43 +186,44 @@ export default function AdminCustodyPage() {
     return () => {
       unwatch();
     };
-  }, [fetchCustodyLogs]);
+  }, [vault, fetchCustodyLogs]);
 
   // Read CustodyVault collateral balances & Oracle asset prices
   const { data: vaultData } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.VAULT,
+        address: vault,
         abi: CUSTODY_VAULT_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
     ],
     query: {
+      enabled: !!vault && !!oracle,
       refetchInterval: 5_000,
     },
   });
@@ -237,22 +242,21 @@ export default function AdminCustodyPage() {
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
   const totalCustodyValUSD = usdcUSD + wbtcUSD + wethUSD;
 
-  // Selected asset balance helper
   const selectedAssetDecimals = useMemo(() => {
-    if (assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WBTC.toLowerCase()) return 8;
-    if (assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WETH.toLowerCase()) return 18;
+    if (assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase()) return 8;
+    if (assetAddress.toLowerCase() === MAINNET_TOKENS.WETH.toLowerCase()) return 18;
     return 6;
   }, [assetAddress]);
 
   const selectedAssetBalanceRaw = useMemo(() => {
-    if (assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WBTC.toLowerCase()) return wbtcBalRaw;
-    if (assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WETH.toLowerCase()) return wethBalRaw;
+    if (assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase()) return wbtcBalRaw;
+    if (assetAddress.toLowerCase() === MAINNET_TOKENS.WETH.toLowerCase()) return wethBalRaw;
     return usdcBalRaw;
   }, [assetAddress, wbtcBalRaw, wethBalRaw, usdcBalRaw]);
 
   const selectedAssetSymbol = useMemo(() => {
-    if (assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WBTC.toLowerCase()) return 'WBTC';
-    if (assetAddress.toLowerCase() === FALLBACK_ADDRESSES.WETH.toLowerCase()) return 'WETH';
+    if (assetAddress.toLowerCase() === MAINNET_TOKENS.cbBTC.toLowerCase()) return 'cbBTC';
+    if (assetAddress.toLowerCase() === MAINNET_TOKENS.WETH.toLowerCase()) return 'WETH';
     return 'USDC';
   }, [assetAddress]);
 
@@ -268,12 +272,12 @@ export default function AdminCustodyPage() {
 
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recipient || !amount || parseFloat(amount) <= 0) return;
+    if (!recipient || !amount || parseFloat(amount) <= 0 || !vault) return;
 
     const amountRaw = parseUnits(amount, selectedAssetDecimals);
 
     writeContract({
-      address: FALLBACK_ADDRESSES.VAULT,
+      address: vault,
       abi: CUSTODY_VAULT_ABI,
       functionName: 'withdraw',
       args: [assetAddress as `0x${string}`, recipient as `0x${string}`, amountRaw],
@@ -296,6 +300,8 @@ export default function AdminCustodyPage() {
     console.error('[Developer Logs - CustodyVault Error]:', err);
     return 'CustodyVault withdrawal failed. Ensure connected account holds authorized Admin/Governance Role and contract reserves are sufficient.';
   };
+
+  const vaultShort = vault ? `${vault.slice(0, 6)}...${vault.slice(-4)}` : 'Connecting...';
 
   return (
     <div className="space-y-6">
@@ -322,7 +328,7 @@ export default function AdminCustodyPage() {
           )}
           <button
             onClick={fetchCustodyLogs}
-            disabled={isRefreshingLogs}
+            disabled={isRefreshingLogs || !vault}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all disabled:opacity-50"
           >
             <RefreshCw
@@ -342,8 +348,8 @@ export default function AdminCustodyPage() {
           {formatUSD(totalCustodyValUSD)}
         </div>
         <p className="text-xs text-slate-400">
-          Aggregated collateral asset reserves held inside CustodyVault (`0x5469...409e`) on Base
-          Sepolia.
+          Aggregated collateral asset reserves held inside CustodyVault ({vaultShort}) on Base
+          Mainnet.
         </p>
       </div>
 
@@ -357,7 +363,7 @@ export default function AdminCustodyPage() {
           glowColor="blue"
         />
         <StatCard
-          title="WBTC Collateral Balance"
+          title="cbBTC Collateral Balance"
           value={`${formatUnits(wbtcBalRaw, 8)} BTC`}
           subtitle={`≈ ${formatUSD(wbtcUSD)}`}
           icon={DollarSign}
@@ -397,9 +403,11 @@ export default function AdminCustodyPage() {
                 onChange={(e) => setAssetAddress(e.target.value)}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono"
               >
-                <option value={FALLBACK_ADDRESSES.USDC}>USDC (USD Coin - 6 Decimals)</option>
-                <option value={FALLBACK_ADDRESSES.WBTC}>WBTC (Wrapped BTC - 8 Decimals)</option>
-                <option value={FALLBACK_ADDRESSES.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
+                <option value={MAINNET_TOKENS.USDC}>USDC (USD Coin - 6 Decimals)</option>
+                <option value={MAINNET_TOKENS.cbBTC}>
+                  cbBTC (Coinbase Wrapped BTC - 8 Decimals)
+                </option>
+                <option value={MAINNET_TOKENS.WETH}>WETH (Wrapped ETH - 18 Decimals)</option>
               </select>
             </div>
 
@@ -451,7 +459,7 @@ export default function AdminCustodyPage() {
 
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting}
+              disabled={isWritePending || isTxWaiting || !vault}
               className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50"
             >
               {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -468,7 +476,7 @@ export default function AdminCustodyPage() {
           {isTxSuccess && (
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>CustodyVault funds successfully withdrawn to wallet on Base Sepolia!</span>
+              <span>CustodyVault funds successfully withdrawn to wallet on Base Mainnet!</span>
             </div>
           )}
 
@@ -493,9 +501,7 @@ export default function AdminCustodyPage() {
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">CustodyVault Contract</span>
               </div>
-              <span className="font-mono text-accent-blue font-bold">
-                {FALLBACK_ADDRESSES.VAULT.slice(0, 6)}...{FALLBACK_ADDRESSES.VAULT.slice(-4)}
-              </span>
+              <span className="font-mono text-accent-blue font-bold">{vaultShort}</span>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
@@ -519,7 +525,7 @@ export default function AdminCustodyPage() {
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold text-slate-200">Network Environment</span>
               </div>
-              <span className="font-mono text-slate-300 font-bold">Base Sepolia L2</span>
+              <span className="font-mono text-slate-300 font-bold">Base Mainnet L2</span>
             </div>
           </div>
         </div>
@@ -598,7 +604,7 @@ export default function AdminCustodyPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {log.recipientOrFrom !== '0x0000000000000000000000000000000000000000' ? (
                           <a
-                            href={`https://sepolia.basescan.org/address/${log.recipientOrFrom}`}
+                            href={`https://basescan.org/address/${log.recipientOrFrom}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-purple-400 transition-colors"
@@ -619,7 +625,7 @@ export default function AdminCustodyPage() {
                       {/* Explorer Link */}
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://sepolia.basescan.org/tx/${log.transactionHash}`}
+                          href={`https://basescan.org/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-purple-400 hover:text-purple-300 transition-colors hover:underline"

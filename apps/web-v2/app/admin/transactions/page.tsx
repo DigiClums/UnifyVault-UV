@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { createPublicClient, http, formatUnits, Log } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import { CONTROLLER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES, RPC_URL } from '../../../constants';
+import { RPC_URL } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
@@ -22,9 +23,8 @@ import {
   Layers,
 } from 'lucide-react';
 
-// Create dedicated Viem public client for Base Sepolia
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(RPC_URL),
 });
 
@@ -48,12 +48,12 @@ export interface ParsedProtocolEvent {
 }
 
 export default function AdminTransactionsPage() {
+  const { controller } = useProtocolDirectory();
   const [events, setEvents] = useState<ParsedProtocolEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
-  // Cache block timestamps to avoid redundant RPC getBlock calls
   const blockTimeCache = useMemo(() => new Map<bigint, number>(), []);
 
   const getBlockTimestamp = useCallback(
@@ -66,14 +66,13 @@ export default function AdminTransactionsPage() {
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
         return ts;
-      } catch (err) {
+      } catch {
         return Math.floor(Date.now() / 1000);
       }
     },
     [blockTimeCache],
   );
 
-  // Helper to parse individual logs into uniform event objects
   const parseLog = useCallback(
     async (log: Log): Promise<ParsedProtocolEvent | null> => {
       if (!log.blockNumber || !log.transactionHash) return null;
@@ -82,8 +81,6 @@ export default function AdminTransactionsPage() {
       const logIndex = log.logIndex ?? 0;
       const id = `${log.transactionHash}-${logIndex}`;
 
-      // Match event by topics / args
-      // Using viem contract event decoding via getContractEvents returns decoded args
       const eventLog = log as unknown as {
         eventName: ParsedProtocolEvent['eventType'];
         args: Record<string, any>;
@@ -115,7 +112,7 @@ export default function AdminTransactionsPage() {
 
         case 'DepositCompleted':
           user = (args.receiver as `0x${string}`) || user;
-          asset = (args.asset as string) === FALLBACK_ADDRESSES.USDC ? 'USDC' : 'Collateral';
+          asset = 'Collateral';
           amount = args.grossDeposit
             ? `$${Number(formatUnits(args.grossDeposit as bigint, 6)).toFixed(2)}`
             : '$0.00';
@@ -123,7 +120,7 @@ export default function AdminTransactionsPage() {
 
         case 'RedeemCompleted':
           user = (args.owner as `0x${string}`) || (args.receiver as `0x${string}`) || user;
-          asset = (args.asset as string) === FALLBACK_ADDRESSES.USDC ? 'USDC' : 'Collateral';
+          asset = 'Collateral';
           amount = args.netAssets
             ? `$${Number(formatUnits(args.netAssets as bigint, 6)).toFixed(2)}`
             : '$0.00';
@@ -131,7 +128,7 @@ export default function AdminTransactionsPage() {
 
         case 'ProtocolFeeCollected':
           user = (args.payer as `0x${string}`) || user;
-          asset = (args.asset as string) === FALLBACK_ADDRESSES.USDC ? 'USDC' : 'Collateral';
+          asset = 'Collateral';
           amount = args.feeAmount
             ? `$${Number(formatUnits(args.feeAmount as bigint, 6)).toFixed(2)}`
             : '$0.00';
@@ -163,15 +160,14 @@ export default function AdminTransactionsPage() {
     [getBlockTimestamp],
   );
 
-  // Fetch all historical events
   const fetchEvents = useCallback(async () => {
+    if (!controller) return;
     setIsRefreshing(true);
     try {
-      // Query events directly via getContractEvents
       const contractEvents = await publicClient.getContractEvents({
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
-        fromBlock: 0n, // Scan from genesis / deployment block
+        fromBlock: 'earliest',
         toBlock: 'latest',
       });
 
@@ -179,7 +175,6 @@ export default function AdminTransactionsPage() {
       const parsedResults = await Promise.all(parsedPromises);
       const validEvents = parsedResults.filter((e): e is ParsedProtocolEvent => e !== null);
 
-      // Sort newest events first (highest blockNumber, highest logIndex)
       validEvents.sort((a, b) => {
         if (b.blockNumber !== a.blockNumber) {
           return b.blockNumber > a.blockNumber ? 1 : -1;
@@ -195,15 +190,14 @@ export default function AdminTransactionsPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [parseLog]);
+  }, [controller, parseLog]);
 
-  // Initial load & real-time watcher setup
   useEffect(() => {
+    if (!controller) return;
     fetchEvents();
 
-    // Subscribe to new incoming contract events in real-time using watchContractEvent
     const unwatch = publicClient.watchContractEvent({
-      address: FALLBACK_ADDRESSES.CONTROLLER,
+      address: controller,
       abi: CONTROLLER_ABI,
       onLogs: async (logs) => {
         const newParsedPromises = logs.map((log) => parseLog(log as unknown as Log));
@@ -213,7 +207,6 @@ export default function AdminTransactionsPage() {
         if (newValidEvents.length > 0) {
           setEvents((prev) => {
             const combined = [...newValidEvents, ...prev];
-            // Remove duplicates by ID
             const uniqueMap = new Map<string, ParsedProtocolEvent>();
             combined.forEach((ev) => uniqueMap.set(ev.id, ev));
             const sorted = Array.from(uniqueMap.values());
@@ -233,9 +226,8 @@ export default function AdminTransactionsPage() {
     return () => {
       unwatch();
     };
-  }, [fetchEvents, parseLog]);
+  }, [controller, fetchEvents, parseLog]);
 
-  // Stats calculation
   const totalLogsCount = events.length;
   const depositCount = events.filter((e) => e.eventType.includes('Deposit')).length;
   const redeemCount = events.filter((e) => e.eventType.includes('Redeem')).length;
@@ -253,7 +245,7 @@ export default function AdminTransactionsPage() {
             <StatusBadge status="Admin" label="GOVERNANCE" />
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time on-chain event stream from UnifyVaultController on Base Sepolia.
+            Real-time on-chain event stream from UnifyVaultController on Base Mainnet.
           </p>
         </div>
 
@@ -265,7 +257,7 @@ export default function AdminTransactionsPage() {
           )}
           <button
             onClick={fetchEvents}
-            disabled={isRefreshing}
+            disabled={isRefreshing || !controller}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all disabled:opacity-50"
             title="Refresh On-Chain Events"
           >
@@ -312,14 +304,14 @@ export default function AdminTransactionsPage() {
       {/* Event Table Card */}
       <TableCard
         title="Auditable Protocol Transaction Feed"
-        subtitle="Live event logs queried via viem from UnifyVaultController on Base Sepolia"
+        subtitle="Live event logs queried via viem from UnifyVaultController on Base Mainnet"
         icon={History}
       >
         {isLoading ? (
           <div className="py-16 text-center flex flex-col items-center justify-center space-y-3">
             <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
             <p className="text-sm text-slate-400 font-medium">
-              Syncing live Base Sepolia event logs...
+              Syncing live Base Mainnet event logs...
             </p>
           </div>
         ) : events.length === 0 ? (
@@ -327,7 +319,7 @@ export default function AdminTransactionsPage() {
             <Layers className="w-10 h-10 text-slate-500" />
             <h3 className="text-base font-bold text-white">No transactions yet</h3>
             <p className="text-xs text-slate-400 max-w-sm">
-              No on-chain events have been emitted by UnifyVaultController on Base Sepolia yet. New
+              No on-chain events have been emitted by UnifyVaultController on Base Mainnet yet. New
               transactions will appear automatically.
             </p>
           </div>
@@ -357,20 +349,13 @@ export default function AdminTransactionsPage() {
 
                   return (
                     <tr key={ev.id} className="hover:bg-slate-800/40 transition-colors">
-                      {/* Block Number */}
                       <td className="py-3 px-4 text-slate-300 font-medium">
                         #{ev.blockNumber.toString()}
                       </td>
-
-                      {/* Timestamp */}
                       <td className="py-3 px-4 text-slate-400">{dateStr}</td>
-
-                      {/* Event Type Badge */}
                       <td className="py-3 px-4">
                         <EventBadge eventType={ev.eventType} />
                       </td>
-
-                      {/* User Address */}
                       <td className="py-3 px-4 text-slate-200">
                         {ev.user !== '0x0000000000000000000000000000000000000000' ? (
                           <span title={ev.user}>
@@ -380,17 +365,11 @@ export default function AdminTransactionsPage() {
                           <span className="text-slate-500">-</span>
                         )}
                       </td>
-
-                      {/* Asset */}
                       <td className="py-3 px-4 text-slate-300 font-medium">{ev.asset}</td>
-
-                      {/* Amount */}
                       <td className="py-3 px-4 text-right font-bold text-slate-100">{ev.amount}</td>
-
-                      {/* Explorer Link */}
                       <td className="py-3 px-4 text-right">
                         <a
-                          href={`https://sepolia.basescan.org/tx/${ev.transactionHash}`}
+                          href={`https://basescan.org/tx/${ev.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center space-x-1 text-indigo-400 hover:text-indigo-300 transition-colors hover:underline"

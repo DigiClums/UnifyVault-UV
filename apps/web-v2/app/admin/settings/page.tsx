@@ -8,7 +8,8 @@ import {
   useWaitForTransactionReceipt,
 } from 'wagmi';
 import { CONTROLLER_ABI, FEE_MANAGER_ABI, PROTOCOL_DIRECTORY_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES, MODULE_IDS, PROTOCOL_DIRECTORY_ADDRESS } from '../../../constants';
+import { MODULE_IDS } from '../../../constants';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
@@ -17,14 +18,18 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Percent,
-  Sliders,
-  DollarSign,
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
+  const {
+    directory,
+    controller,
+    treasury,
+    feeManager: directoryFeeManager,
+  } = useProtocolDirectory();
+
   const [depositFeeInput, setDepositFeeInput] = useState<string>('25');
   const [redeemFeeInput, setRedeemFeeInput] = useState<string>('200');
   const [slippageBps, setSlippageBps] = useState<string>('100');
@@ -33,42 +38,43 @@ export default function AdminSettingsPage() {
     null,
   );
 
-  // Read FeeManager contract address from ProtocolDirectory
   const { data: feeManagerAddress } = useReadContract({
-    address: PROTOCOL_DIRECTORY_ADDRESS,
+    address: directory,
     abi: PROTOCOL_DIRECTORY_ABI,
     functionName: 'getModuleAddress',
     args: [MODULE_IDS.FEE_MANAGER],
+    query: {
+      enabled: !!directory && directory !== '0x0000000000000000000000000000000000000000',
+    },
   });
 
-  const targetFeeManager =
-    (feeManagerAddress as `0x${string}`) || '0x0000000000000000000000000000000000000000';
+  const targetFeeManager = (feeManagerAddress as `0x${string}`) || directoryFeeManager;
 
-  // Read current protocol parameters
   const { data: controllerSettings } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
         functionName: 'getDepositFeeBps',
       },
       {
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
         functionName: 'getRedeemFeeBps',
       },
       {
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
         functionName: 'swapSlippageBps',
       },
       {
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
         functionName: 'paused',
       },
     ],
     query: {
+      enabled: !!controller,
       refetchInterval: 5_000,
     },
   });
@@ -89,11 +95,10 @@ export default function AdminSettingsPage() {
     hash: txHash,
   });
 
-  // Handler: Update Deposit Fee (FeeManager)
   const handleUpdateDepositFee = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(depositFeeInput);
-    if (isNaN(parsed) || parsed < 0 || parsed > 500) return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 500 || !targetFeeManager) return;
 
     setActiveAction('depositFee');
     writeContract({
@@ -104,11 +109,10 @@ export default function AdminSettingsPage() {
     });
   };
 
-  // Handler: Update Redeem Fee (FeeManager)
   const handleUpdateRedeemFee = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(redeemFeeInput);
-    if (isNaN(parsed) || parsed < 0 || parsed > 500) return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 500 || !targetFeeManager) return;
 
     setActiveAction('redeemFee');
     writeContract({
@@ -119,20 +123,26 @@ export default function AdminSettingsPage() {
     });
   };
 
-  // Handler: Update Swap Slippage (UnifyVaultController)
   const handleUpdateSlippage = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(slippageBps);
-    if (isNaN(parsed) || parsed < 0 || parsed > 10000) return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 10000 || !controller) return;
 
     setActiveAction('slippage');
     writeContract({
-      address: FALLBACK_ADDRESSES.CONTROLLER,
+      address: controller,
       abi: CONTROLLER_ABI,
       functionName: 'setSwapSlippageBps',
       args: [BigInt(parsed)],
     });
   };
+
+  const treasuryShort = treasury
+    ? `${treasury.slice(0, 6)}...${treasury.slice(-4)}`
+    : 'Connecting...';
+  const feeManagerShort = targetFeeManager
+    ? `${targetFeeManager.slice(0, 6)}...${targetFeeManager.slice(-4)}`
+    : 'Connecting...';
 
   return (
     <div className="space-y-6">
@@ -222,7 +232,7 @@ export default function AdminSettingsPage() {
 
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting}
+              disabled={isWritePending || isTxWaiting || !targetFeeManager}
               className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-emerald-500/50"
             >
               {activeAction === 'depositFee' && (isWritePending || isTxWaiting) && (
@@ -286,7 +296,7 @@ export default function AdminSettingsPage() {
 
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting}
+              disabled={isWritePending || isTxWaiting || !targetFeeManager}
               className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50"
             >
               {activeAction === 'redeemFee' && (isWritePending || isTxWaiting) && (
@@ -348,7 +358,7 @@ export default function AdminSettingsPage() {
 
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting}
+              disabled={isWritePending || isTxWaiting || !controller}
               className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-accent-blue hover:bg-blue-600 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-accent-blue/50"
             >
               {activeAction === 'slippage' && (isWritePending || isTxWaiting) && (
@@ -391,11 +401,7 @@ export default function AdminSettingsPage() {
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">FeeManager Contract</span>
-              <span className="font-mono text-emerald-400 font-bold">
-                {targetFeeManager !== '0x0000000000000000000000000000000000000000'
-                  ? `${targetFeeManager.slice(0, 6)}...${targetFeeManager.slice(-4)}`
-                  : 'Resolving...'}
-              </span>
+              <span className="font-mono text-emerald-400 font-bold">{feeManagerShort}</span>
             </div>
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">Target Index Ratio</span>
@@ -404,8 +410,7 @@ export default function AdminSettingsPage() {
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">
               <span className="text-slate-400">Fee Routing Destination</span>
               <span className="font-mono text-accent-blue font-bold">
-                Treasury ({FALLBACK_ADDRESSES.TREASURY.slice(0, 6)}...
-                {FALLBACK_ADDRESSES.TREASURY.slice(-4)})
+                Treasury ({treasuryShort})
               </span>
             </div>
             <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle flex justify-between">

@@ -10,27 +10,42 @@ import {
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
-import { baseSepolia, base } from 'viem/chains';
+import { base } from 'viem/chains';
 import { createSafeWagmiStorage, setupIndexedDBGuard } from '../lib/utils/storageFallback';
 import '@rainbow-me/rainbowkit/styles.css';
 
+const walletConnectProjectId =
+  process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '146781145b65a1c63ffcd7d6eaf03bd1';
+
 const config = getDefaultConfig({
-  appName: 'UnifyVault V2',
-  projectId:
-    process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '146781145b65a1c63ffcd7d6eaf03bd1',
-  chains: [baseSepolia, base],
+  appName: 'UnifyVault',
+  projectId: walletConnectProjectId,
+  chains: [base],
   storage: createSafeWagmiStorage(),
   ssr: true,
 });
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchInterval: 10_000,
-      staleTime: 5_000,
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchInterval: 10_000,
+        staleTime: 5_000,
+      },
     },
-  },
-});
+  });
+}
+
+let browserQueryClient: QueryClient | undefined = undefined;
+
+function getQueryClient() {
+  if (typeof window === 'undefined') {
+    return makeQueryClient();
+  } else {
+    if (!browserQueryClient) browserQueryClient = makeQueryClient();
+    return browserQueryClient;
+  }
+}
 
 function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
@@ -43,7 +58,7 @@ function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) 
   const rkTheme = React.useMemo(() => {
     const isDark = !mounted || resolvedTheme === 'dark';
     const themeOptions = {
-      accentColor: '#3B82F6',
+      accentColor: 'hsl(250, 89%, 60%)',
       accentColorForeground: 'white',
       borderRadius: 'medium' as const,
       overlayBlur: 'small' as const,
@@ -55,6 +70,8 @@ function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) 
 }
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
+  const queryClient = getQueryClient();
+
   React.useEffect(() => {
     setupIndexedDBGuard();
   }, []);

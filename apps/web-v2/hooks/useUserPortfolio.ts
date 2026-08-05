@@ -2,7 +2,8 @@
 
 import { useAccount, useReadContracts } from 'wagmi';
 import { COST_BASIS_MANAGER_ABI, ERC20_ABI, ORACLE_MANAGER_ABI } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
+import { MAINNET_TOKENS } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
 import { ProtocolMetrics, UserPortfolio } from '../types';
 import { transformUserPortfolio } from '../lib/portfolioTransforms';
 
@@ -13,63 +14,58 @@ export interface UseUserPortfolioResult extends UserPortfolio {
   isError: boolean;
 }
 
-/**
- * Hook to fetch connected user share balance, USDC balance, cost basis, and oracle prices,
- * returning structured UserPortfolio metrics (Shares, Ownership, Invested Capital, PnL, Entry Price, User Holdings).
- *
- * @param protocolMetrics - Evaluated protocol metrics from useProtocolMetrics.
- * @returns UserPortfolio object along with query loading and error states.
- */
 export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortfolioResult {
   const { address: userAddress } = useAccount();
   const activeUser = userAddress || ZERO_ADDRESS;
+  const { token, costBasisManager, oracle } = useProtocolDirectory();
 
   const { data, isLoading, isError } = useReadContracts({
     contracts: [
       // 0. Connected User Shares Balance
       {
-        address: FALLBACK_ADDRESSES.TOKEN,
+        address: token,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [activeUser],
       },
       // 1. Connected User USDC Balance
       {
-        address: FALLBACK_ADDRESSES.USDC,
+        address: MAINNET_TOKENS.USDC,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [activeUser],
       },
       // 2. CostBasisManager Invested Capital
       {
-        address: FALLBACK_ADDRESSES.COST_BASIS,
+        address: costBasisManager,
         abi: COST_BASIS_MANAGER_ABI,
         functionName: 'investedAssets',
         args: [activeUser],
       },
       // 3. Oracle Price WBTC
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       // 4. Oracle Price WETH
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       // 5. Oracle Price USDC
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
     ],
     query: {
+      enabled: !!token && !!oracle,
       refetchInterval: 5_000,
     },
   });

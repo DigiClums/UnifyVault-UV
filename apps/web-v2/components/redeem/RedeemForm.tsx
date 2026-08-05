@@ -18,7 +18,6 @@ import {
   ArrowRight,
   PieChart,
   Sliders,
-  DollarSign,
 } from 'lucide-react';
 
 export function RedeemForm() {
@@ -62,8 +61,6 @@ export function RedeemForm() {
       setErrorMessage(error?.shortMessage || error?.message || 'Redemption failed');
     }
   };
-
-  const sharesVal = parseFloat(sharesInput || '0') || 0;
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -274,7 +271,7 @@ export function RedeemForm() {
 
             <div className="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row gap-2">
               <a
-                href="https://sepolia.basescan.org"
+                href="https://basescan.org"
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-2.5 px-3 rounded-xl bg-surface border border-border-subtle text-foreground hover:text-accent-emerald font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors text-xs shadow-xs"

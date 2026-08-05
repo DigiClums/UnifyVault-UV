@@ -3,38 +3,46 @@
 import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
+import { MAINNET_TOKENS } from '../constants';
 import {
   parseUnits,
   formatUnits,
   formatUSD,
-  calculateDepositFee,
-  calculateNetDeposit,
   calculateSlippageMinShares,
   formatShares,
 } from '../lib/math';
 import { DepositQuoteData, FormattedDepositQuote } from '../types';
+import { base } from 'viem/chains';
 
-export function useDeposit() {
-  const { address: userAddress } = useAccount();
+export function useDeposit(
+  selectedTokenAddress: `0x${string}` = MAINNET_TOKENS.USDC,
+  decimals: number = 6,
+) {
+  const { address: userAddress, chain } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
+  const { controller } = useProtocolDirectory();
 
   const [depositAmountInput, setDepositAmountInput] = useState<string>('');
   const [slippageBps, setSlippageBps] = useState<number>(50); // 0.5% default
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [isDepositing, setIsDepositing] = useState<boolean>(false);
+  const [txError, setTxError] = useState<string | null>(null);
 
-  const amountRaw = parseUnits(depositAmountInput, 6); // USDC = 6 decimals
+  const amountRaw = parseUnits(depositAmountInput, decimals);
+  const isCorrectNetwork = chain?.id === base.id;
+
+  const targetController = controller;
 
   // Fetch allowance
   const { data: allowanceRaw, refetch: refetchAllowance } = useReadContract({
-    address: FALLBACK_ADDRESSES.USDC,
+    address: selectedTokenAddress,
     abi: ERC20_ABI,
     functionName: 'allowance',
-    args: userAddress ? [userAddress, FALLBACK_ADDRESSES.CONTROLLER] : undefined,
+    args: userAddress && targetController ? [userAddress, targetController] : undefined,
     query: {
-      enabled: !!userAddress,
+      enabled: !!userAddress && !!targetController && isCorrectNetwork,
       refetchInterval: 5_000,
     },
   });
@@ -42,17 +50,22 @@ export function useDeposit() {
   const allowance = (allowanceRaw as bigint) || 0n;
   const isApproved = amountRaw > 0n && allowance >= amountRaw;
 
-  // Fetch on-chain Quote
-  const { data: quoteResult, isLoading: isQuoteLoading } = useReadContract({
-    address: FALLBACK_ADDRESSES.CONTROLLER,
+  // Fetch on-chain Quote directly from Controller contract
+  const {
+    data: quoteResult,
+    isLoading: isQuoteLoading,
+    isError: isQuoteError,
+    error: quoteFetchError,
+  } = useReadContract({
+    address: targetController,
     abi: CONTROLLER_ABI,
     functionName: 'getDepositQuote',
     args:
-      userAddress && amountRaw > 0n
-        ? [FALLBACK_ADDRESSES.USDC, amountRaw, 0n, userAddress]
+      userAddress && targetController && amountRaw > 0n
+        ? [selectedTokenAddress, amountRaw, 0n, userAddress]
         : undefined,
     query: {
-      enabled: !!userAddress && amountRaw > 0n,
+      enabled: !!userAddress && !!targetController && amountRaw > 0n && isCorrectNetwork,
       refetchInterval: 5_000,
     },
   });
@@ -61,59 +74,62 @@ export function useDeposit() {
 
   let formattedQuote: FormattedDepositQuote | null = null;
 
-  if (rawQuote) {
+  // Production requirement: NEVER estimate financial values locally using mock math fallbacks.
+  if (rawQuote && rawQuote.sharesPreview > 0n) {
     formattedQuote = {
-      grossDepositUSD: formatUSD(Number(formatUnits(rawQuote.depositAmount, 6))),
-      protocolFeeUSD: formatUSD(Number(formatUnits(rawQuote.protocolFee, 6))),
-      netDepositUSD: formatUSD(Number(formatUnits(rawQuote.netDeposit, 6))),
+      grossDepositUSD: formatUSD(Number(formatUnits(rawQuote.depositAmount, decimals))),
+      protocolFeeUSD: formatUSD(Number(formatUnits(rawQuote.protocolFee, decimals))),
+      netDepositUSD: formatUSD(Number(formatUnits(rawQuote.netDeposit, decimals))),
       sharesToMintFormatted: formatShares(rawQuote.sharesPreview),
-      protocolFeeFormatted: formatUnits(rawQuote.protocolFee, 6),
-      netDepositFormatted: formatUnits(rawQuote.netDeposit, 6),
+      protocolFeeFormatted: formatUnits(rawQuote.protocolFee, decimals),
+      netDepositFormatted: formatUnits(rawQuote.netDeposit, decimals),
       rawQuote,
-    };
-  } else if (amountRaw > 0n) {
-    // Fallback math estimation engine
-    const fee = calculateDepositFee(amountRaw, 25n);
-    const net = calculateNetDeposit(amountRaw, 25n);
-    formattedQuote = {
-      grossDepositUSD: formatUSD(Number(formatUnits(amountRaw, 6))),
-      protocolFeeUSD: formatUSD(Number(formatUnits(fee, 6))),
-      netDepositUSD: formatUSD(Number(formatUnits(net, 6))),
-      sharesToMintFormatted: formatShares(net * 10n ** 12n), // 1:1 initial estimate
-      protocolFeeFormatted: formatUnits(fee, 6),
-      netDepositFormatted: formatUnits(net, 6),
-      rawQuote: {
-        assetId: '0x' as `0x${string}`,
-        asset: FALLBACK_ADDRESSES.USDC,
-        receiver: userAddress || '0x',
-        depositAmount: amountRaw,
-        rawPrice: 100000000n,
-        normalizedPrice: 1000000000000000000n,
-        sharesPreview: net * 10n ** 12n,
-        protocolFee: fee,
-        netDeposit: net,
-        timestamp: BigInt(Math.floor(Date.now() / 1000)),
-      },
     };
   }
 
   // Approve action
   const approve = async () => {
-    if (!userAddress || amountRaw <= 0n) return;
+    if (!userAddress || amountRaw <= 0n || !targetController) {
+      throw new Error('Missing target contract or invalid deposit amount');
+    }
+    if (!isCorrectNetwork) {
+      throw new Error('Wrong network: Please switch to Base Mainnet (Chain ID 8453)');
+    }
     setIsApproving(true);
+    setTxError(null);
     try {
+      let gasEstimate: bigint | undefined = undefined;
+      if (publicClient) {
+        try {
+          const est = await publicClient.estimateContractGas({
+            address: selectedTokenAddress,
+            abi: ERC20_ABI,
+            functionName: 'approve',
+            args: [targetController, amountRaw],
+            account: userAddress,
+          });
+          gasEstimate = (est * 120n) / 100n; // 20% gas buffer
+        } catch {
+          // Fallback to wallet estimation if simulation fails
+        }
+      }
+
       const hash = await writeContractAsync({
-        address: FALLBACK_ADDRESSES.USDC,
+        address: selectedTokenAddress,
         abi: ERC20_ABI,
         functionName: 'approve',
-        args: [FALLBACK_ADDRESSES.CONTROLLER, amountRaw],
+        args: [targetController, amountRaw],
+        ...(gasEstimate ? { gas: gasEstimate } : {}),
       });
+
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
       await refetchAllowance();
-    } catch (error) {
-      console.error('Approve failed:', error);
+    } catch (error: any) {
+      console.error('Approve transaction failed:', error);
+      const msg = error?.shortMessage || error?.message || 'Approval failed';
+      setTxError(msg);
       throw error;
     } finally {
       setIsApproving(false);
@@ -122,43 +138,67 @@ export function useDeposit() {
 
   // Deposit action
   const executeDeposit = async () => {
-    if (!userAddress || amountRaw <= 0n) return;
+    if (!userAddress || amountRaw <= 0n || !targetController || !formattedQuote) {
+      throw new Error('Cannot execute deposit: On-chain quote is missing or invalid.');
+    }
+    if (!isCorrectNetwork) {
+      throw new Error('Wrong network: Please switch to Base Mainnet (Chain ID 8453)');
+    }
     setIsDepositing(true);
+    setTxError(null);
 
     try {
-      const estimatedShares = formattedQuote?.rawQuote.sharesPreview || amountRaw * 10n ** 12n;
+      const estimatedShares = formattedQuote.rawQuote.sharesPreview;
       const minSharesOut = calculateSlippageMinShares(estimatedShares, slippageBps / 100);
 
+      let gasEstimate: bigint | undefined = undefined;
+      if (publicClient) {
+        try {
+          const est = await publicClient.estimateContractGas({
+            address: targetController,
+            abi: CONTROLLER_ABI,
+            functionName: 'deposit',
+            args: [selectedTokenAddress, amountRaw, minSharesOut, userAddress],
+            account: userAddress,
+          });
+          gasEstimate = (est * 120n) / 100n; // 20% gas limit buffer for production safety
+        } catch {
+          // fallback
+        }
+      }
+
       const hash = await writeContractAsync({
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: targetController,
         abi: CONTROLLER_ABI,
         functionName: 'deposit',
-        args: [FALLBACK_ADDRESSES.USDC, amountRaw, minSharesOut, userAddress],
+        args: [selectedTokenAddress, amountRaw, minSharesOut, userAddress],
+        ...(gasEstimate ? { gas: gasEstimate } : {}),
       });
 
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
-      if (userAddress) {
-        try {
-          const key = `unifyvault_invested_assets_${userAddress.toLowerCase()}`;
-          const currentInvested = Number(localStorage.getItem(key) || '0');
-          const netAdded = Number(formatUnits(formattedQuote?.rawQuote.netDeposit || amountRaw, 6));
-          localStorage.setItem(key, String(currentInvested + netAdded));
-        } catch {
-          // ignore localStorage errors
-        }
-      }
-
       setDepositAmountInput('');
-    } catch (error) {
-      console.error('Deposit failed:', error);
+    } catch (error: any) {
+      console.error('Deposit transaction failed:', error);
+      const msg = error?.shortMessage || error?.message || 'Deposit failed';
+      setTxError(msg);
       throw error;
     } finally {
       setIsDepositing(false);
     }
   };
+
+  const isDepositDisabled =
+    !userAddress ||
+    amountRaw <= 0n ||
+    !isApproved ||
+    isQuoteLoading ||
+    !formattedQuote ||
+    isDepositing ||
+    !isCorrectNetwork ||
+    !targetController;
 
   return {
     depositAmountInput,
@@ -170,7 +210,12 @@ export function useDeposit() {
     isApproving,
     isDepositing,
     isQuoteLoading,
+    isQuoteError,
+    quoteFetchError,
     formattedQuote,
+    isDepositDisabled,
+    isCorrectNetwork,
+    txError,
     approve,
     executeDeposit,
   };

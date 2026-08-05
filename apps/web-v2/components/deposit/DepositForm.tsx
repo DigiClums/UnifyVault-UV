@@ -17,7 +17,6 @@ import {
   ExternalLink,
   ArrowRight,
   Check,
-  Zap,
   PieChart,
   Sliders,
 } from 'lucide-react';
@@ -337,7 +336,7 @@ export function DepositForm() {
 
             <div className="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row gap-2">
               <a
-                href="https://sepolia.basescan.org"
+                href="https://basescan.org"
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-2.5 px-3 rounded-xl bg-surface border border-border-subtle text-foreground hover:text-accent-blue font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors text-xs shadow-xs"

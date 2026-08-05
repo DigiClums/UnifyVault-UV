@@ -1,17 +1,21 @@
 'use client';
 
 import React from 'react';
-import { useAccount, useReadContract } from 'wagmi';
-import { CONTROLLER_ABI } from '../../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../../constants';
+import { useAccount } from 'wagmi';
+import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import { Users, DollarSign, ShieldCheck } from 'lucide-react';
+import { Users, ShieldCheck } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const { address: userAddress } = useAccount();
+  const { controller } = useProtocolDirectory();
+
+  const controllerShort = controller
+    ? `${controller.slice(0, 6)}...${controller.slice(-4)}`
+    : 'Connecting...';
 
   return (
     <div className="space-y-6">
@@ -34,8 +38,8 @@ export default function AdminUsersPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard
           title="UnifyVaultController"
-          value="Active"
-          subtitle="V2 Live Execution Engine"
+          value={controllerShort}
+          subtitle="Base Mainnet Execution Engine"
           icon={ShieldCheck}
           glowColor="emerald"
         />
@@ -70,7 +74,9 @@ export default function AdminUsersPage() {
                 <td className="py-3 px-4">
                   <StatusBadge status="Admin" label="GOVERNANCE OPERATOR" />
                 </td>
-                <td className="py-3 px-4 text-right text-emerald-400">UnifyVault V2</td>
+                <td className="py-3 px-4 text-right text-emerald-400">
+                  UnifyVault V2 (Base Mainnet)
+                </td>
               </tr>
             </tbody>
           </table>

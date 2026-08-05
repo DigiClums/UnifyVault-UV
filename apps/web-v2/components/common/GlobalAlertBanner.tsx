@@ -3,36 +3,39 @@
 import React from 'react';
 import { useAccount, useReadContracts } from 'wagmi';
 import { ORACLE_MANAGER_ABI, TREASURY_ABI } from '../../lib/contracts';
-import { FALLBACK_ADDRESSES } from '../../constants';
+import { MAINNET_TOKENS } from '../../constants';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { AlertTriangle, Wallet, WifiOff } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function GlobalAlertBanner() {
   const pathname = usePathname();
   const { isConnected } = useAccount();
+  const { oracle, treasury } = useProtocolDirectory();
 
   const { data, isError } = useReadContracts({
     contracts: [
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [FALLBACK_ADDRESSES.WBTC],
+        args: [MAINNET_TOKENS.cbBTC],
       },
       {
-        address: FALLBACK_ADDRESSES.ORACLE,
+        address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
-        args: [FALLBACK_ADDRESSES.WETH],
+        args: [MAINNET_TOKENS.WETH],
       },
       {
-        address: FALLBACK_ADDRESSES.TREASURY,
+        address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
-        args: [FALLBACK_ADDRESSES.USDC],
+        args: [MAINNET_TOKENS.USDC],
       },
     ],
     query: {
+      enabled: !!oracle && !!treasury,
       refetchInterval: 10_000,
     },
   });

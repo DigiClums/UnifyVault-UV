@@ -6,22 +6,16 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { TableCard } from '../../components/ui/TableCard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { usePortfolio } from '../../hooks/usePortfolio';
-import {
-  ShieldCheck,
-  Vault,
-  Activity,
-  RefreshCw,
-  Settings,
-  Users,
-  ArrowUpRight,
-  Zap,
-} from 'lucide-react';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
+import { ShieldCheck, Vault, Activity, RefreshCw, ArrowUpRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminOverviewPage() {
-  const { totalPortfolioValueUSD, sharePriceUSD, btcAllocationPercent, ethAllocationPercent } =
-    useDashboard();
-  const { holdings } = usePortfolio();
+  const { totalPortfolioValueUSD, sharePriceUSD } = useDashboard();
+  const { controller, vault, treasury, oracle } = useProtocolDirectory();
+
+  const shortAddr = (addr?: string) =>
+    addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Connecting...';
 
   return (
     <div className="space-y-6">
@@ -36,7 +30,7 @@ export default function AdminOverviewPage() {
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
             Central telemetry, contract status, treasury revenue, and operational controls for
-            UnifyVault V2.
+            UnifyVault V2 on Base Mainnet.
           </p>
         </div>
       </div>
@@ -67,7 +61,7 @@ export default function AdminOverviewPage() {
         <StatCard
           title="Market Price Sync"
           value="ACTIVE"
-          subtitle="Automated Coinbase Feed"
+          subtitle="Automated Feed Sync"
           icon={RefreshCw}
           glowColor="cyan"
         />
@@ -119,7 +113,7 @@ export default function AdminOverviewPage() {
           </div>
           <h3 className="text-base font-bold text-white tracking-tight">Oracle Telemetry</h3>
           <p className="text-xs text-slate-400">
-            Monitor BTC, ETH, USDC feed prices, staleness, and keeper state.
+            Monitor cbBTC, WETH, USDC feed prices, staleness, and keeper state.
           </p>
         </Link>
 
@@ -143,7 +137,7 @@ export default function AdminOverviewPage() {
       {/* System Contract Registry Table */}
       <TableCard
         title="Deployed Protocol Module Directory"
-        subtitle="Canonical module registrations on Base Sepolia"
+        subtitle="Canonical module registrations on Base Mainnet"
         icon={ShieldCheck}
       >
         <table className="w-full text-left text-xs">
@@ -158,78 +152,86 @@ export default function AdminOverviewPage() {
           <tbody className="divide-y divide-border-subtle/40 font-mono">
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white">UnifyVaultController</td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0x7EF5D93f83995228efFc63dbe513367a719f0633
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(controller)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
               <td className="py-3.5 px-3 text-right font-sans">
-                <a
-                  href="https://sepolia.basescan.org/address/0x7EF5D93f83995228efFc63dbe513367a719f0633"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent-blue hover:underline"
-                >
-                  BaseScan
-                </a>
+                {controller ? (
+                  <a
+                    href={`https://basescan.org/address/${controller}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-blue hover:underline"
+                  >
+                    BaseScan
+                  </a>
+                ) : (
+                  <span className="text-slate-500">-</span>
+                )}
               </td>
             </tr>
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white">CustodyVault</td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0x54696d5d00b58F27F9d8C358560ff2a7d10d409e
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(vault)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
               <td className="py-3.5 px-3 text-right font-sans">
-                <a
-                  href="https://sepolia.basescan.org/address/0x54696d5d00b58F27F9d8C358560ff2a7d10d409e"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent-blue hover:underline"
-                >
-                  BaseScan
-                </a>
+                {vault ? (
+                  <a
+                    href={`https://basescan.org/address/${vault}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-blue hover:underline"
+                  >
+                    BaseScan
+                  </a>
+                ) : (
+                  <span className="text-slate-500">-</span>
+                )}
               </td>
             </tr>
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white">Treasury</td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(treasury)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
               <td className="py-3.5 px-3 text-right font-sans">
-                <a
-                  href="https://sepolia.basescan.org/address/0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent-blue hover:underline"
-                >
-                  BaseScan
-                </a>
+                {treasury ? (
+                  <a
+                    href={`https://basescan.org/address/${treasury}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-blue hover:underline"
+                  >
+                    BaseScan
+                  </a>
+                ) : (
+                  <span className="text-slate-500">-</span>
+                )}
               </td>
             </tr>
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white">OracleManager</td>
-              <td className="py-3.5 px-3 text-slate-300">
-                0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635
-              </td>
+              <td className="py-3.5 px-3 text-slate-300">{shortAddr(oracle)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
               <td className="py-3.5 px-3 text-right font-sans">
-                <a
-                  href="https://sepolia.basescan.org/address/0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent-blue hover:underline"
-                >
-                  BaseScan
-                </a>
+                {oracle ? (
+                  <a
+                    href={`https://basescan.org/address/${oracle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-blue hover:underline"
+                  >
+                    BaseScan
+                  </a>
+                ) : (
+                  <span className="text-slate-500">-</span>
+                )}
               </td>
             </tr>
           </tbody>

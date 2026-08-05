@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { createPublicClient, http, formatUnits, Log } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { createPublicClient, http, formatUnits } from 'viem';
+import { base } from 'viem/chains';
 import { CONTROLLER_ABI } from '../../lib/contracts';
-import { FALLBACK_ADDRESSES, RPC_URL } from '../../constants';
+import { RPC_URL } from '../../constants';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { TableCard } from '../../components/ui/TableCard';
 import { StatCard } from '../../components/ui/StatCard';
 import {
@@ -19,10 +20,10 @@ import {
   CheckCircle2,
   Activity,
 } from 'lucide-react';
-import { useTransactionHistory, IndexedEvent } from '../../hooks/useIndexerData';
+import { useTransactionHistory } from '../../hooks/useIndexerData';
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(RPC_URL),
 });
 
@@ -39,6 +40,7 @@ export interface DisplayEvent {
 }
 
 export default function ActivityPage() {
+  const { controller } = useProtocolDirectory();
   const { transactions: indexerTxs, isLoading: isIndexerLoading } = useTransactionHistory();
   const [onChainEvents, setOnChainEvents] = useState<DisplayEvent[]>([]);
   const [isOnChainLoading, setIsOnChainLoading] = useState<boolean>(true);
@@ -57,7 +59,7 @@ export default function ActivityPage() {
         const ts = Number(block.timestamp);
         blockTimeCache.set(blockNumber, ts);
         return ts;
-      } catch (err) {
+      } catch {
         return Math.floor(Date.now() / 1000);
       }
     },
@@ -65,12 +67,13 @@ export default function ActivityPage() {
   );
 
   const fetchOnChainEvents = useCallback(async () => {
+    if (!controller) return;
     setIsRefreshing(true);
     try {
       const contractEvents = await publicClient.getContractEvents({
-        address: FALLBACK_ADDRESSES.CONTROLLER,
+        address: controller,
         abi: CONTROLLER_ABI,
-        fromBlock: 0n,
+        fromBlock: 'earliest',
         toBlock: 'latest',
       });
 
@@ -146,18 +149,19 @@ export default function ActivityPage() {
       setOnChainEvents(cleanEvents);
       setLastSynced(new Date());
     } catch (err) {
-      console.warn('Viem event fetch error:', err);
+      console.warn('Viem event fetch warning:', err);
     } finally {
       setIsOnChainLoading(false);
       setIsRefreshing(false);
     }
-  }, [getBlockTimestamp]);
+  }, [controller, getBlockTimestamp]);
 
   useEffect(() => {
+    if (!controller) return;
     fetchOnChainEvents();
 
     const unwatch = publicClient.watchContractEvent({
-      address: FALLBACK_ADDRESSES.CONTROLLER,
+      address: controller,
       abi: CONTROLLER_ABI,
       onLogs: () => {
         fetchOnChainEvents();
@@ -167,15 +171,13 @@ export default function ActivityPage() {
     return () => {
       unwatch();
     };
-  }, [fetchOnChainEvents]);
+  }, [controller, fetchOnChainEvents]);
 
-  // Combine on-chain events with indexer fallback if on-chain returns 0
   const displayList: DisplayEvent[] = useMemo(() => {
     if (onChainEvents.length > 0) {
       return onChainEvents;
     }
 
-    // Convert indexerTxs to DisplayEvent
     return indexerTxs
       .map((tx, idx) => {
         const blockNum = tx.blockNumber || 0;
@@ -257,6 +259,10 @@ export default function ActivityPage() {
     }
   }
 
+  const controllerShort = controller
+    ? `${controller.slice(0, 6)}...${controller.slice(-4)}`
+    : 'Connecting...';
+
   return (
     <div className="space-y-6 py-4">
       {/* Header */}
@@ -268,7 +274,7 @@ export default function ActivityPage() {
               <span>Live Protocol Event Timeline</span>
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-xs font-semibold">
-              Base Sepolia
+              Base Mainnet
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
@@ -285,7 +291,7 @@ export default function ActivityPage() {
           )}
           <button
             onClick={fetchOnChainEvents}
-            disabled={isRefreshing}
+            disabled={isRefreshing || !controller}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all disabled:opacity-50"
           >
             <RefreshCw
@@ -300,8 +306,8 @@ export default function ActivityPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Network Connection"
-          value="Base Sepolia"
-          subtitle="Chain ID 84532"
+          value="Base Mainnet"
+          subtitle="Chain ID 8453"
           icon={History}
           glowColor="blue"
         />
@@ -314,8 +320,8 @@ export default function ActivityPage() {
         />
         <StatCard
           title="Controller Contract"
-          value="0x7EF5...0633"
-          subtitle="Live Execution Engine"
+          value={controllerShort}
+          subtitle="Dynamic Directory Address"
           icon={CheckCircle2}
           glowColor="purple"
         />
@@ -330,7 +336,7 @@ export default function ActivityPage() {
         {isLoading ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <RefreshCw className="w-8 h-8 animate-spin text-accent-blue" />
-            <p className="text-sm font-medium">Syncing live Base Sepolia event stream...</p>
+            <p className="text-sm font-medium">Syncing live Base Mainnet event stream...</p>
           </div>
         ) : displayList.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
@@ -366,7 +372,7 @@ export default function ActivityPage() {
                       <td className="py-3 px-4 text-slate-300">
                         {account !== '-' && account !== '0x0000...0000' ? (
                           <a
-                            href={`https://sepolia.basescan.org/address/${account}`}
+                            href={`https://basescan.org/address/${account}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-accent-blue transition-colors inline-flex items-center gap-1"
@@ -382,7 +388,7 @@ export default function ActivityPage() {
                       <td className="py-3 px-4 text-slate-400">#{tx.blockNumber.toString()}</td>
                       <td className="py-3 px-4 text-right font-mono">
                         <a
-                          href={`https://sepolia.basescan.org/tx/${tx.txHash}`}
+                          href={`https://basescan.org/tx/${tx.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-accent-blue hover:underline"
