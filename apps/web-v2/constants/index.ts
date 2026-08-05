@@ -38,7 +38,7 @@ export const DIRECTORY_ADDRESS_MAINNET = (process.env.NEXT_PUBLIC_DIRECTORY_ADDR
   '0x7EF5D93f83995228efFc63dbe513367a719f0633') as `0x${string}`;
 
 export const DIRECTORY_ADDRESS_SEPOLIA = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA ||
-  '0xDd29e54f91b86f3e4609AA2e279e04E98dcAb722') as `0x${string}`;
+  '0xb5dd6d766867cb4c299ad2711068455c718eddbc') as `0x${string}`;
 
 export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
   const targetChain = chainId || getDefaultChainId();
