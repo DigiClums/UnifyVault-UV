@@ -69,10 +69,13 @@ export default function PublicTreasuryPage() {
     if (!treasury || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
+      const latestBlock = await publicClient.getBlockNumber();
+      const fromBlock = latestBlock > 10_000n ? latestBlock - 10_000n : 0n;
+
       const logs = await publicClient.getContractEvents({
         address: treasury,
         abi: TREASURY_ABI,
-        fromBlock: 'earliest',
+        fromBlock,
         toBlock: 'latest',
       });
 
