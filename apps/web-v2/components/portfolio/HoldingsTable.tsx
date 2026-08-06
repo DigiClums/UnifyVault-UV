@@ -8,6 +8,7 @@ import { TokenIcon } from '../ui/TokenIcon';
 import { TableSkeleton } from '../ui/Skeleton';
 import { StatusBadge } from '../ui/StatusBadge';
 import { ShieldCheck, UserCheck, LayoutGrid, List } from 'lucide-react';
+import { PriceSyncBadge } from '../common/PriceSyncBadge';
 
 export function HoldingsTable() {
   const { holdings, userHoldings, userSharesRaw, isLoading } = usePortfolio();
@@ -135,7 +136,12 @@ export function HoldingsTable() {
           <thead>
             <tr className="border-b border-border-subtle/60 text-muted-foreground font-semibold uppercase tracking-wider">
               <th className="py-3.5 px-3">Asset</th>
-              <th className="py-3.5 px-3">Oracle Unit Price</th>
+              <th className="py-3.5 px-3 whitespace-nowrap">
+                <div className="flex items-center space-x-1.5">
+                  <span>Oracle Unit Price</span>
+                  <PriceSyncBadge intervalSeconds={30} showCountdown />
+                </div>
+              </th>
               <th className="py-3.5 px-3">
                 {scope === 'user' ? 'Your Claim Balance' : 'Custody Reserve'}
               </th>

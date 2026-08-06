@@ -10,6 +10,8 @@ import { getDefaultChainId } from '../constants';
 import { base } from 'viem/chains';
 import { Layers, Zap } from 'lucide-react';
 
+import { PriceSyncBadge } from '../components/common/PriceSyncBadge';
+
 export default function DashboardPage() {
   const metrics = useDashboard();
   const { chain } = useAccount();
@@ -28,9 +30,12 @@ export default function DashboardPage() {
             Real-time multi-asset index tracking, NAV valuation, and strategy execution engine.
           </p>
         </div>
-        <div className="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
-          <span className="w-2 h-2 rounded-full bg-accent-blue animate-pulse" />
-          <span>{networkName} Live Sync</span>
+        <div className="flex items-center space-x-3">
+          <PriceSyncBadge showCountdown intervalSeconds={30} />
+          <div className="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
+            <span className="w-2 h-2 rounded-full bg-accent-blue animate-pulse" />
+            <span>{networkName}</span>
+          </div>
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import {
   ArrowDownRight,
   Info,
 } from 'lucide-react';
+import { PriceSyncBadge } from '../common/PriceSyncBadge';
 import { Card } from '../common/Card';
 import { DashboardMetrics } from '../../types';
 
@@ -29,6 +30,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: DollarSign,
       iconBg: 'bg-accent-blue/10 text-accent-blue',
       source: 'On-chain: PortfolioManager.calculatePortfolioValue()',
+      showLiveSync: true,
     },
     {
       title: 'Current NAV / Share Price',
@@ -38,6 +40,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: Activity,
       iconBg: 'bg-accent-violet/10 text-accent-violet',
       source: 'On-chain: Total Vault NAV / Total Supply',
+      showLiveSync: true,
     },
     {
       title: 'Your Invested Capital',
@@ -86,16 +89,19 @@ export function MetricCards({ metrics }: MetricCardsProps) {
         return (
           <Card key={idx} glow className="relative group overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                {card.title}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {card.title}
+                </span>
+                {card.showLiveSync && <PriceSyncBadge intervalSeconds={30} showCountdown />}
+              </div>
               <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
                 <Icon className="w-5 h-5" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-between">
                 {metrics.isLoading ? (
                   <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                 ) : (
