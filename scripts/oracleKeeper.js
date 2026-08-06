@@ -1,89 +1,88 @@
 /**
- * UnifyVault V2 — Oracle Keeper Daemon (Zero-Dependency)
- * Periodically polls and validates live Chainlink oracle prices on Base Sepolia.
+ * UnifyVault V2 — Real-Time Live Oracle Keeper Daemon
+ * Fetches real-time market spot prices from Coinbase/CoinGecko APIs
+ * and submits on-chain setPrice() transactions to Base Sepolia MockChainlinkAggregators.
  */
 
+/* eslint-disable @typescript-eslint/no-var-requires */
+const { execSync } = require('child_process');
+
 const RPC_URL = process.env.RPC_URL || 'https://sepolia.base.org';
-const PROTOCOL_DIRECTORY_ADDRESS = '0x61572e7207057A0394Ec087995cA337556b95D5c';
+const PRIVATE_KEY =
+  process.env.KEEPER_PRIVATE_KEY ||
+  '0xcda08c38c9fae447665aef7828d82e1862577dcffd1dbd6c07b332e576e9c8f8';
 
-const MODULE_IDS = {
-  ORACLE: '0x2e30c16253629c211949dfd3fde5e2a3de47827f45371d8ef81f41a881d12a04',
+const AGGREGATORS = {
+  cbBTC: { address: '0xd0efdebe1a6c77552ea17495cdeb4d57153a2f4d', decimals: 8 },
+  WETH: { address: '0xb502c86bf6ebb3b4c7c441971788088f21e29be9', decimals: 8 },
+  USDC: { address: '0x5426c9b6f7867af4d3447bde7652e20aa73dcc6d', decimals: 6 },
 };
 
-const ASSETS = {
-  USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-  cbBTC: '0xD3eBa4947b8e2e33CE1B428F617aE90De70f5bD9',
-  WETH: '0x5ab31FD7c54E2E915A84E13Fa1310E2C96F7F5Ae',
-};
-
-async function rpcCall(method, params = []) {
-  const response = await fetch(RPC_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method,
-      params,
-    }),
-  });
-  const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error.message || 'RPC Call Failed');
+async function fetchLiveMarketPrices() {
+  try {
+    const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=USD', {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    const json = await res.json();
+    const rates = json?.data?.rates;
+    if (rates && rates.BTC && rates.ETH) {
+      const btcUSD = 1 / parseFloat(rates.BTC);
+      const ethUSD = 1 / parseFloat(rates.ETH);
+      const usdcUSD = rates.USDC ? 1 / parseFloat(rates.USDC) : 1.0;
+      return { cbBTC: btcUSD, WETH: ethUSD, USDC: usdcUSD };
+    }
+  } catch {
+    // Fallback to CoinGecko
+    try {
+      const cgRes = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,usd-coin&vs_currencies=usd',
+      );
+      const cgData = await cgRes.json();
+      if (cgData?.bitcoin?.usd && cgData?.ethereum?.usd) {
+        return {
+          cbBTC: cgData.bitcoin.usd,
+          WETH: cgData.ethereum.usd,
+          USDC: cgData['usd-coin']?.usd || 1.0,
+        };
+      }
+    } catch (e) {
+      console.warn('⚠️ Market price APIs failed:', e);
+    }
   }
-  return data.result;
+  return null;
 }
-
-// Function selector: getAddress(bytes32) -> 0x21f8a721
-// Function selector: getAssetPrice(address) -> 0xb3596f07
-// Function selector: isPriceFresh(address) -> 0x0af1a39f
 
 async function runKeeperDaemon() {
-  console.log('🤖 Starting UnifyVault V2 Oracle Keeper Daemon...');
-  console.log(`🌐 Connected to Network: Base Sepolia (${RPC_URL})`);
-  console.log(`📜 ProtocolDirectory: ${PROTOCOL_DIRECTORY_ADDRESS}`);
+  console.log('🤖 Starting UnifyVault Real-Time Oracle Keeper...');
+  console.log(`🌐 Connected to Base Sepolia (${RPC_URL})`);
 
-  try {
-    // 1. Get OracleManager address from ProtocolDirectory
-    const dirCallData = '0x21f8a721' + MODULE_IDS.ORACLE.slice(2);
-    const rawOracleAddr = await rpcCall('eth_call', [
-      { to: PROTOCOL_DIRECTORY_ADDRESS, data: dirCallData },
-      'latest',
-    ]);
+  const livePrices = await fetchLiveMarketPrices();
+  if (!livePrices) {
+    console.log('⚠️ Could not fetch live spot prices. Skipping update round.');
+    return;
+  }
 
-    const oracleManagerAddress = '0x' + rawOracleAddr.slice(-40);
-    console.log(`🔮 Resolved OracleManager Address: ${oracleManagerAddress}`);
+  console.log(
+    `📈 Real-Time Spot Prices: BTC = $${livePrices.cbBTC.toFixed(2)} | ETH = $${livePrices.WETH.toFixed(2)} | USDC = $${livePrices.USDC.toFixed(4)}`,
+  );
 
-    for (const [symbol, tokenAddress] of Object.entries(ASSETS)) {
-      const paddedToken = tokenAddress.slice(2).padStart(64, '0');
+  for (const [symbol, config] of Object.entries(AGGREGATORS)) {
+    const targetPrice = livePrices[symbol];
+    if (!targetPrice) continue;
 
-      // getAssetPrice(address)
-      const priceCallData = '0xb3596f07' + paddedToken;
-      const priceHex = await rpcCall('eth_call', [
-        { to: oracleManagerAddress, data: priceCallData },
-        'latest',
-      ]);
-      const priceRaw = BigInt(priceHex);
-      const priceUSD = (Number(priceRaw) / 1e18).toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      });
+    const priceScaled = Math.round(targetPrice * 10 ** config.decimals);
 
-      // isPriceFresh(address)
-      const freshCallData = '0x0af1a39f' + paddedToken;
-      const freshHex = await rpcCall('eth_call', [
-        { to: oracleManagerAddress, data: freshCallData },
-        'latest',
-      ]);
-      const isFresh = BigInt(freshHex) === 1n;
-
-      console.log(`✅ [${symbol}] Price: ${priceUSD} | Fresh: ${isFresh ? 'YES 🟢' : 'STALE 🔴'}`);
+    try {
+      const cmd = `cast send ${config.address} "setPrice(int256)" ${priceScaled} --private-key ${PRIVATE_KEY} --rpc-url ${RPC_URL}`;
+      execSync(cmd, { stdio: 'pipe' });
+      console.log(`✅ Updated On-Chain ${symbol} Oracle Feed -> $${targetPrice.toFixed(2)}`);
+    } catch (err) {
+      console.error(`❌ Failed to update ${symbol} feed:`, err);
     }
-  } catch (error) {
-    console.error('❌ Oracle Keeper Daemon Error:', error.message || error);
+    // Sleep 3 seconds between transactions to avoid nonce collisions
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
   }
 }
 
-// Run immediately, then repeat every 30 seconds
 runKeeperDaemon();
 setInterval(runKeeperDaemon, 30_000);
