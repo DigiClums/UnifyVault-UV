@@ -1,0 +1,14 @@
+graph TD
+    User([User / Web3 Wallet]) -->|1. deposit / redeem| Controller[UnifyVaultController]
+    Controller -->|2. mint / burn| Token[UVBTCETHToken]
+    Controller -->|3. query price| Oracle[OracleManager]
+    Controller -->|4. deduct fee| Fee[FeeManager]
+    Controller -->|5. transfer collateral| Vault[CustodyVault]
+    Fee -->|6. route protocol fee| Treasury[Treasury]
+    Oracle -->|7. fetch feed data| Chainlink[ChainlinkOracleProvider]
+    Vault -->|8. rebalance funds| Portfolio[PortfolioManager]
+    Portfolio -->|9. execute swap| Swap[SwapAdapter]
+    
+    Timelock[UnifyVaultTimelock] -->|Governance Admin| ProtocolDirectory[ProtocolDirectory]
+    ProtocolDirectory -->|Lookup Addresses| Controller
+    ProtocolDirectory -->|Lookup Addresses| Vault

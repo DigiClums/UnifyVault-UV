@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant Controller as UnifyVaultController
+    participant Oracle as OracleManager
+    participant Vault as CustodyVault
+    participant Token as UVBTCETHToken
+    participant Treasury as Treasury
+
+    User->>Controller: deposit(USDC, 1000)
+    Controller->>Oracle: getAssetPrice(USDC)
+    Oracle-->>Controller: $1.00
+    Controller->>Vault: depositAsset(USDC, 990)
+    Controller->>Treasury: collectFee(USDC, 10)
+    Controller->>Token: mint(User, 990 shares)
+    Token-->>User: Transfer 990 UVBTCETHToken
