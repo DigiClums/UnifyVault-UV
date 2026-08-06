@@ -36,28 +36,21 @@ export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortf
         functionName: 'balanceOf',
         args: [activeUser],
       },
-      // 2. CostBasisManager Invested Capital
-      {
-        address: costBasisManager,
-        abi: COST_BASIS_MANAGER_ABI,
-        functionName: 'investedAssets',
-        args: [activeUser],
-      },
-      // 3. Oracle Price WBTC
+      // 2. Oracle Price WBTC
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
         args: [tokens.cbBTC],
       },
-      // 4. Oracle Price WETH
+      // 3. Oracle Price WETH
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
         functionName: 'getAssetPrice',
         args: [tokens.WETH],
       },
-      // 5. Oracle Price USDC
+      // 4. Oracle Price USDC
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
@@ -75,7 +68,7 @@ export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortf
     userAddress,
     userSharesRaw: userAddress ? (data?.[0]?.result as bigint) || 0n : 0n,
     userUsdcRaw: userAddress ? (data?.[1]?.result as bigint) || 0n : 0n,
-    contractInvestedAssetsRaw: userAddress ? (data?.[2]?.result as bigint) || 0n : 0n,
+    contractInvestedAssetsRaw: 0n,
   };
 
   const rawProtocolData = {
@@ -85,9 +78,9 @@ export function useUserPortfolio(protocolMetrics: ProtocolMetrics): UseUserPortf
       protocolMetrics.protocolHoldings.find((h) => h.symbol === 'ETH')?.balanceRaw || 0n,
     usdcTotalAssets:
       protocolMetrics.protocolHoldings.find((h) => h.symbol === 'USDC')?.balanceRaw || 0n,
-    priceWBTC: (data?.[3]?.result as bigint) || 0n,
-    priceWETH: (data?.[4]?.result as bigint) || 0n,
-    priceUSDC: (data?.[5]?.result as bigint) || 1_000_000_000_000_000_000n,
+    priceWBTC: (data?.[2]?.result as bigint) || 0n,
+    priceWETH: (data?.[3]?.result as bigint) || 0n,
+    priceUSDC: (data?.[4]?.result as bigint) || 1_000_000_000_000_000_000n,
     totalSharesRaw: protocolMetrics.totalSharesRaw,
   };
 

@@ -93,14 +93,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         functionName: 'balanceOf',
         args: [activeUser],
       },
-      // 9. CostBasisManager Invested Capital
-      {
-        address: costBasisManager,
-        abi: COST_BASIS_MANAGER_ABI,
-        functionName: 'investedAssets',
-        args: [activeUser],
-      },
-      // 10. StrategyManager Target Weights
+      // 9. StrategyManager Target Weights
       {
         address: strategyManager,
         abi: STRATEGY_MANAGER_ABI,
@@ -128,10 +121,10 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     userAddress,
     userSharesRaw: userAddress ? (data?.[7]?.result as bigint) || 0n : 0n,
     userUsdcRaw: userAddress ? (data?.[8]?.result as bigint) || 0n : 0n,
-    contractInvestedAssetsRaw: userAddress ? (data?.[9]?.result as bigint) || 0n : 0n,
+    contractInvestedAssetsRaw: 0n,
   };
 
-  const targetWeightsResult = data?.[10]?.result as
+  const targetWeightsResult = data?.[9]?.result as
     [address: `0x${string}`[], weights: bigint[]] | undefined;
 
   // NO FALLBACK: strategy weights are null when data hasn't loaded.

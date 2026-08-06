@@ -34,7 +34,6 @@ export function useProtocolDirectory(): ProtocolAddresses {
     { key: 'token', moduleId: MODULE_IDS.TOKEN },
     { key: 'strategyManager', moduleId: MODULE_IDS.STRATEGY_MANAGER },
     { key: 'feeManager', moduleId: MODULE_IDS.FEE_MANAGER },
-    { key: 'costBasisManager', moduleId: MODULE_IDS.COST_BASIS_MANAGER },
   ];
 
   const contracts = moduleKeys.map((item) => ({
@@ -76,7 +75,7 @@ export function useProtocolDirectory(): ProtocolAddresses {
     token: getResult(4),
     strategyManager: getResult(5),
     feeManager: getResult(6),
-    costBasisManager: getResult(7),
+    costBasisManager: undefined,
     isLoading: !isZeroAddress && isLoading,
     isError,
     error: error as Error | null,

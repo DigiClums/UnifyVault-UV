@@ -38,7 +38,7 @@ export const DIRECTORY_ADDRESS_MAINNET = (process.env.NEXT_PUBLIC_DIRECTORY_ADDR
   '0x7EF5D93f83995228efFc63dbe513367a719f0633') as `0x${string}`;
 
 export const DIRECTORY_ADDRESS_SEPOLIA = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA ||
-  '0xb5dd6d766867cb4c299ad2711068455c718eddbc') as `0x${string}`;
+  '0x61572e7207057A0394Ec087995cA337556b95D5c') as `0x${string}`;
 
 export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
   const targetChain = chainId || getDefaultChainId();
@@ -64,8 +64,8 @@ export const TOKENS_BY_CHAIN: Record<
   },
   [baseSepolia.id]: {
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    cbBTC: '0xc83D0A904E1103d8144E9DF93cdb5bC05f7cdee6',
-    WETH: '0xEEAa69Db6046f026d88004d0D6946518071bA15c',
+    cbBTC: '0xD3eBa4947b8e2e33CE1B428F617aE90De70f5bD9',
+    WETH: '0x5ab31FD7c54E2E915A84E13Fa1310E2C96F7F5Ae',
   },
 };
 
