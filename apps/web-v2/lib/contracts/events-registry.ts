@@ -274,12 +274,21 @@ export const EVENT_DISPLAY_ORDER: Record<EventSignature, number> = {
 export type ProtocolActionType = 'deposit' | 'redeem' | 'fee' | 'admin' | 'unknown';
 
 export function classifyTransaction(eventNames: string[]): ProtocolActionType {
-  for (const name of eventNames) {
-    if (name === 'DepositExecuted' || name === 'DepositCompleted') return 'deposit';
-    if (name === 'RedeemExecuted' || name === 'RedeemCompleted') return 'redeem';
-    if (name === 'ProtocolFeeCollected' || name === 'FeeCollected') return 'fee';
-    if (name === 'EmergencyPaused' || name === 'EmergencyResumed' || name === 'StrategyRebalanced')
-      return 'admin';
+  if (eventNames.some((n) => n === 'DepositExecuted' || n === 'DepositCompleted')) {
+    return 'deposit';
+  }
+  if (eventNames.some((n) => n === 'RedeemExecuted' || n === 'RedeemCompleted')) {
+    return 'redeem';
+  }
+  if (
+    eventNames.some(
+      (n) => n === 'EmergencyPaused' || n === 'EmergencyResumed' || n === 'StrategyRebalanced',
+    )
+  ) {
+    return 'admin';
+  }
+  if (eventNames.some((n) => n === 'ProtocolFeeCollected' || n === 'FeeCollected')) {
+    return 'fee';
   }
   return 'unknown';
 }

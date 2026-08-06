@@ -81,19 +81,26 @@ export default function ProtocolExplorerPage() {
       total: transactions.length,
     };
     for (const tx of transactions) {
-      switch (tx.actionType) {
-        case 'deposit':
-          counts.deposits++;
-          break;
-        case 'redeem':
-          counts.redeems++;
-          break;
-        case 'fee':
-          counts.fees++;
-          break;
-        case 'admin':
-          counts.admin++;
-          break;
+      const eventNames = tx.events.map((e) => e.eventName);
+      if (eventNames.some((n) => n === 'DepositExecuted' || n === 'DepositCompleted')) {
+        counts.deposits++;
+      }
+      if (eventNames.some((n) => n === 'RedeemExecuted' || n === 'RedeemCompleted')) {
+        counts.redeems++;
+      }
+      if (
+        eventNames.some(
+          (n) => n === 'ProtocolFeeCollected' || n === 'FeeCollected' || n === 'FeeSentToTreasury',
+        )
+      ) {
+        counts.fees++;
+      }
+      if (
+        eventNames.some(
+          (n) => n === 'EmergencyPaused' || n === 'EmergencyResumed' || n === 'StrategyRebalanced',
+        )
+      ) {
+        counts.admin++;
       }
     }
     return counts;
