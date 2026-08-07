@@ -8,7 +8,7 @@ import { TableCard } from '../../components/ui/TableCard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
-import { getExplorerBaseUrl } from '../../constants';
+import { getExplorerBaseUrl, getProtocolDirectoryAddress, DIRECTORY_ADDRESS_SEPOLIA } from '../../constants';
 import { ShieldCheck, Vault, Activity, RefreshCw, ArrowUpRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 
@@ -141,7 +141,7 @@ export default function AdminOverviewPage() {
       {/* System Contract Registry Table */}
       <TableCard
         title="Deployed Protocol Module Directory"
-        subtitle="Canonical module registrations on Base Mainnet"
+        subtitle={`Canonical module registrations on ${chain?.name || (getProtocolDirectoryAddress(chain?.id) === DIRECTORY_ADDRESS_SEPOLIA ? 'Base Sepolia' : 'Base Mainnet')}`}
         icon={ShieldCheck}
       >
         <table className="w-full text-left text-xs">

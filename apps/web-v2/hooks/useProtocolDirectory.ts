@@ -1,8 +1,14 @@
 'use client';
 
 import { useAccount, useReadContracts } from 'wagmi';
+import { baseSepolia } from 'viem/chains';
 import { PROTOCOL_DIRECTORY_ABI } from '../lib/contracts/directory';
-import { getProtocolDirectoryAddress, getDefaultChainId, MODULE_IDS } from '../constants';
+import {
+  getProtocolDirectoryAddress,
+  getDefaultChainId,
+  MODULE_IDS,
+  DEPLOYED_CONTRACTS_SEPOLIA,
+} from '../constants';
 
 export interface ProtocolAddresses {
   directory: `0x${string}`;
@@ -29,6 +35,9 @@ export function useProtocolDirectory(): ProtocolAddresses {
   const directoryAddress = getProtocolDirectoryAddress(chainId);
   const isZeroAddress =
     !directoryAddress || directoryAddress === '0x0000000000000000000000000000000000000000';
+
+  const isSepolia = chainId === baseSepolia.id;
+  const fallback = isSepolia ? DEPLOYED_CONTRACTS_SEPOLIA : undefined;
 
   const moduleKeys = [
     { key: 'controller', moduleId: MODULE_IDS.CONTROLLER },
@@ -77,17 +86,17 @@ export function useProtocolDirectory(): ProtocolAddresses {
 
   return {
     directory: directoryAddress,
-    controller: getResult(0),
-    vault: getResult(1),
-    treasury: getResult(2),
-    oracle: getResult(3),
-    token: getResult(4),
-    strategyManager: getResult(5),
-    portfolioManager: getResult(6),
-    swapAdapter: getResult(7),
-    liquidityManager: getResult(8),
-    feeManager: getResult(9),
-    costBasisManager: getResult(10),
+    controller: getResult(0) || fallback?.UnifyVaultController,
+    vault: getResult(1) || fallback?.CustodyVault,
+    treasury: getResult(2) || fallback?.Treasury,
+    oracle: getResult(3) || fallback?.OracleManager,
+    token: getResult(4) || fallback?.UVBTCETHToken,
+    strategyManager: getResult(5) || fallback?.StrategyManager,
+    portfolioManager: getResult(6) || fallback?.PortfolioManager,
+    swapAdapter: getResult(7) || fallback?.SwapAdapter,
+    liquidityManager: getResult(8) || fallback?.LiquidityManager,
+    feeManager: getResult(9) || fallback?.FeeManager,
+    costBasisManager: getResult(10) || fallback?.CostBasisManager,
     performanceManager: getResult(11),
     isLoading: !isZeroAddress && isLoading,
     isError,
