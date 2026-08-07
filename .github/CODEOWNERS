@@ -1,0 +1,15 @@
+# Global Code Owners
+*                       @unifyvault/core-maintainers
+
+# Smart Contracts / Protocol Layer
+/packages/protocol/     @unifyvault/protocol-leads
+
+# Backend Services Layer
+/services/              @unifyvault/backend-leads
+
+# Frontend Client Layer
+/apps/                  @unifyvault/frontend-leads
+
+# Infrastructure Configurations
+/infra/                 @unifyvault/devops-leads
+/.github/workflows/     @unifyvault/devops-leads

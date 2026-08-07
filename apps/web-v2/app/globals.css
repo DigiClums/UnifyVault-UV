@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 218 30% 98.5%;
+    --foreground: 222.2 84% 4.9%;
+    --surface: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-hover: 214.3 31.8% 96%;
+    --muted: 214.3 31.8% 95%;
+    --muted-foreground: 215.4 20% 38%;
+    --border-subtle: rgba(15, 23, 42, 0.12);
+    --glass-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
+    --card-glow: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.1), transparent 70%);
+    --shadow-glass: 0 10px 30px -5px rgba(99, 102, 241, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+  }
+
+  .dark {
+    --background: 222 50% 6%;
+    --foreground: 210 40% 98%;
+    --surface: 222 47% 11%;
+    --card: 222 39% 14%;
+    --card-hover: 217 33% 18%;
+    --muted: 222 47% 15%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --glass-gradient: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+    --card-glow: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15), transparent 70%);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-accent-blue selection:text-white transition-colors duration-200;
+  }
+}
+
+/* Glassmorphism scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1E293B;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3B82F6;
+}
+
+
