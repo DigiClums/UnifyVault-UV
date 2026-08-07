@@ -132,9 +132,9 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
 
   /**
    * @notice Calculates aggregate USD value of all assets held across strategy in CustodyVault (18 decimals)
-   * @return totalPortfolioValueUSD Aggregate USD valuation of vault assets
+   * @return portfolioValUSD Aggregate USD valuation of vault assets
    */
-  function calculatePortfolioValue() public view override returns (uint256 totalPortfolioValueUSD) {
+  function calculatePortfolioValue() public view override returns (uint256 portfolioValUSD) {
     address sm = strategyManager;
     address cv = custodyVault;
     address om = oracleManager;
@@ -152,7 +152,7 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
 
         uint8 decimals = IERC20Metadata(asset).decimals();
         uint256 valUSD = (balance * price) / (10 ** decimals);
-        totalPortfolioValueUSD += valUSD;
+        portfolioValUSD += valUSD;
       }
     }
   }
@@ -206,23 +206,23 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
 
   /**
    * @notice Calculates current Net Asset Value (NAV) per index share (18 decimals)
-   * @return totalPortfolioValueUSD Aggregate USD value of all vault assets
+   * @return portfolioValUSD Aggregate USD value of all vault assets
    * @return navPerShare Net Asset Value per share in USD (18 decimals)
    */
   function calculateNAV()
     public
     view
     override
-    returns (uint256 totalPortfolioValueUSD, uint256 navPerShare)
+    returns (uint256 portfolioValUSD, uint256 navPerShare)
   {
-    totalPortfolioValueUSD = calculatePortfolioValue();
+    portfolioValUSD = calculatePortfolioValue();
     uint256 totalShares = IERC20(indexToken).totalSupply();
 
     if (totalShares == 0) {
       // Genesis case: $1.00 USD per initial share
       navPerShare = INITIAL_NAV_PER_SHARE;
     } else {
-      navPerShare = (totalPortfolioValueUSD * 1e18) / totalShares;
+      navPerShare = (portfolioValUSD * 1e18) / totalShares;
     }
   }
 
@@ -246,15 +246,15 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     uint8 depositDecimals = IERC20Metadata(depositAsset).decimals();
     uint256 depositValueUSD = (depositAmount * depositPrice) / (10 ** depositDecimals);
 
-    (uint256 totalPortfolioValueUSD, ) = calculateNAV();
+    (uint256 portfolioValUSD, ) = calculateNAV();
     uint256 totalShares = IERC20(indexToken).totalSupply();
 
     uint256 sharesToMint;
-    if (totalShares == 0 || totalPortfolioValueUSD == 0) {
+    if (totalShares == 0 || portfolioValUSD == 0) {
       // Initial mint: 1 Share per 1.00 USD value
       sharesToMint = depositValueUSD;
     } else {
-      sharesToMint = (depositValueUSD * totalShares) / totalPortfolioValueUSD;
+      sharesToMint = (depositValueUSD * totalShares) / portfolioValUSD;
     }
 
     (address[] memory targetAssets, uint256[] memory allocationAmounts) = this.calculateAllocation(
@@ -287,8 +287,8 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     uint256 totalShares = IERC20(indexToken).totalSupply();
     if (totalShares == 0) return RedeemPreview(0, 0);
 
-    (uint256 totalPortfolioValueUSD, ) = calculateNAV();
-    uint256 userShareUSDValue = (sharesToBurn * totalPortfolioValueUSD) / totalShares;
+    (uint256 portfolioValUSD, ) = calculateNAV();
+    uint256 userShareUSDValue = (sharesToBurn * portfolioValUSD) / totalShares;
 
     uint256 payoutPrice = IOracle(oracleManager).getAssetPrice(payoutAsset);
     if (payoutPrice == 0) revert AssetNotSupportedByOracle(payoutAsset);

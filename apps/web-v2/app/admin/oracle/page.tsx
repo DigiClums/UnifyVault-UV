@@ -48,19 +48,27 @@ export default function AdminOraclePage() {
         functionName: 'isPriceFresh',
         args: [tokens.WETH],
       },
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'isPriceFresh',
+        args: [tokens.USDC],
+      },
     ],
     query: {
       enabled: !!oracle,
-      refetchInterval: 5_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 
   const btcPriceRaw = (data?.[0]?.result as bigint) || 0n;
   const ethPriceRaw = (data?.[1]?.result as bigint) || 0n;
-  const usdcPriceRaw = (data?.[2]?.result as bigint) || 1_000_000_000_000_000_000n;
+  const usdcPriceRaw = (data?.[2]?.result as bigint) || 0n;
 
   const btcFresh = (data?.[3]?.result as boolean) ?? true;
   const ethFresh = (data?.[4]?.result as boolean) ?? true;
+  const usdcFresh = (data?.[5]?.result as boolean) ?? true;
 
   const btcPriceUSD = formatUSD(Number(formatUnits(btcPriceRaw, 18)));
   const ethPriceUSD = formatUSD(Number(formatUnits(ethPriceRaw, 18)));
@@ -211,12 +219,15 @@ export default function AdminOraclePage() {
               <td className="py-4 px-3 text-slate-300 font-semibold">
                 Chainlink / Pyth Oracle Feed
               </td>
-              <td className="py-4 px-3 font-mono font-bold text-emerald-400">$1.0000</td>
+              <td className="py-4 px-3 font-mono font-bold text-emerald-400">{usdcPriceUSD}</td>
               <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
               <td className="py-4 px-3">
-                <StatusBadge status="Healthy" label="FRESH" />
+                <StatusBadge
+                  status={usdcFresh ? 'Healthy' : 'Warning'}
+                  label={usdcFresh ? 'FRESH' : 'STALE'}
+                />
               </td>
-              <td className="py-4 px-3 text-right font-mono text-slate-400">Pegged $1.00</td>
+              <td className="py-4 px-3 text-right font-mono text-slate-400">Live Sync Active</td>
             </tr>
           </tbody>
         </table>

@@ -50,6 +50,25 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 timestamp;
   }
 
+  struct FinalizeRedeemParams {
+    address asset;
+    address receiver;
+    uint256 shares;
+    uint256 grossPayoutCollateral;
+    uint256 minAssetsOut;
+  }
+
+  struct RedeemLogParams {
+    address owner;
+    address receiver;
+    address asset;
+    uint256 shares;
+    uint256 grossOut;
+    uint256 protocolFee;
+    uint256 netOut;
+    uint256 navAfter;
+  }
+
   bytes32 public constant GUARDIAN_ROLE = keccak256('GUARDIAN_ROLE');
   bytes32 public constant BOT_ROLE = keccak256('BOT_ROLE');
 
@@ -420,6 +439,18 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       uint256 realizedDepositUSD
     ) = _executeSwapsAndCalculateRealizedUSD(asset, quote.netDeposit);
 
+    // Validate realized USD output against slippage threshold before minting shares
+    uint256 expectedDepositUSD = (quote.netDeposit * quote.normalizedPrice) /
+      (10 ** CustodyVault(_vault).assetConfig(asset).decimals);
+    uint256 minAllowedUSD = (expectedDepositUSD * (10000 - _swapSlippageBps)) / 10000;
+    if (realizedDepositUSD < minAllowedUSD) {
+      revert ProtocolErrors.InsufficientSwapOutput(
+        expectedDepositUSD,
+        realizedDepositUSD,
+        minAllowedUSD
+      );
+    }
+
     // 3. Realized Value Accounting: calculate final shares from post-swap realized assets
     (uint256 shares, uint256 navAfter) = _calculateAndMintDepositShares(
       asset,
@@ -644,11 +675,13 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
     return
       _finalizeRedemption(
-        asset,
-        receiver,
-        shares,
-        grossPayoutCollateral,
-        minAssetsOut,
+        FinalizeRedeemParams({
+          asset: asset,
+          receiver: receiver,
+          shares: shares,
+          grossPayoutCollateral: grossPayoutCollateral,
+          minAssetsOut: minAssetsOut
+        }),
         targetAssets,
         assetsSold
       );
@@ -986,77 +1019,90 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   }
 
   function _finalizeRedemption(
-    address asset,
-    address receiver,
-    uint256 shares,
-    uint256 grossPayoutCollateral,
-    uint256 minAssetsOut,
+    FinalizeRedeemParams memory p,
     address[] memory targetAssets,
     uint256[] memory assetsSold
   ) private returns (uint256 netOut) {
-    uint256 redFeeBps = getRedeemFeeBps();
-    uint256 grossOut;
-    uint256 protocolFee;
-    (grossOut, protocolFee, netOut) = FeeLib.calculateRedemptionFee(
-      grossPayoutCollateral,
-      redFeeBps
+    (uint256 grossOut, uint256 protocolFee, uint256 netAssets) = FeeLib.calculateRedemptionFee(
+      p.grossPayoutCollateral,
+      getRedeemFeeBps()
     );
+    netOut = netAssets;
 
-    if (netOut < minAssetsOut) {
-      revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netOut);
+    if (netOut < p.minAssetsOut) {
+      revert ProtocolErrors.SlippageLimitExceeded(p.minAssetsOut, netOut);
     }
 
     uint256 userSharesBefore = IERC20(_token).balanceOf(msg.sender);
 
     // 1. Burn shares from msg.sender
-    UVBTCETHToken(_token).burn(msg.sender, shares);
+    UVBTCETHToken(_token).burn(msg.sender, p.shares);
 
     // 2. Route protocol redemption fee to Treasury
     if (protocolFee > 0) {
-      IERC20(asset).forceApprove(_treasury, protocolFee);
-      ITreasury(_treasury).collectFee(asset, protocolFee);
-      IERC20(asset).forceApprove(_treasury, 0);
+      IERC20(p.asset).forceApprove(_treasury, protocolFee);
+      ITreasury(_treasury).collectFee(p.asset, protocolFee);
+      IERC20(p.asset).forceApprove(_treasury, 0);
     }
 
     // 3. Transfer net collateral to receiver
-    IERC20(asset).safeTransfer(receiver, netOut);
+    IERC20(p.asset).safeTransfer(p.receiver, netOut);
 
-    address cbm = costBasisManager();
-    if (cbm != address(0)) {
-      uint256 payoutPrice = IOracle(_oracle).getAssetPrice(asset);
-      uint8 payoutDecimals = CustodyVault(_vault).assetConfig(asset).decimals;
-      uint256 payoutUSD = (netOut * payoutPrice) / (10 ** payoutDecimals);
-      try ICostBasisManager(cbm).recordRedeem(msg.sender, userSharesBefore, shares, payoutUSD) {} catch {}
-    }
+    _recordCostBasisRedeem(p.asset, msg.sender, userSharesBefore, p.shares, netOut);
 
-    // 4. Recalculate NAV
+    _postRedeemCleanup(msg.sender, p, grossOut, protocolFee, netOut, targetAssets, assetsSold);
+  }
+
+  function _postRedeemCleanup(
+    address owner,
+    FinalizeRedeemParams memory p,
+    uint256 grossOut,
+    uint256 protocolFee,
+    uint256 netOut,
+    address[] memory targetAssets,
+    uint256[] memory assetsSold
+  ) private {
     uint256 navAfter = 1e18;
     address pm = portfolioManager();
     if (pm != address(0)) {
       (, navAfter) = IPortfolioManager(pm).calculateNAV();
     }
 
-    // Assert zero controller balance invariant
-    uint256 controllerBal = IERC20(asset).balanceOf(address(this));
+    uint256 controllerBal = IERC20(p.asset).balanceOf(address(this));
     if (controllerBal != 0) {
-      revert ProtocolErrors.InsufficientReserves(asset, 0, controllerBal);
+      revert ProtocolErrors.InsufficientReserves(p.asset, 0, controllerBal);
     }
 
-    // Check & emit LargeRedeem event for monitoring
-    if (shares >= _largeRedeemThreshold) {
-      emit LargeRedeem(msg.sender, asset, shares, netOut);
+    if (p.shares >= _largeRedeemThreshold) {
+      emit LargeRedeem(owner, p.asset, p.shares, netOut);
     }
 
-    emit RedeemCompleted(msg.sender, receiver, asset, shares, grossOut, protocolFee, netOut);
+    emit RedeemCompleted(owner, p.receiver, p.asset, p.shares, grossOut, protocolFee, netOut);
     emit RedeemExecuted(
-      msg.sender,
-      shares,
+      owner,
+      p.shares,
       targetAssets,
       assetsSold,
       protocolFee,
       netOut,
       navAfter
     );
+  }
+
+  function _recordCostBasisRedeem(
+    address asset,
+    address user,
+    uint256 userSharesBefore,
+    uint256 shares,
+    uint256 netOut
+  ) private {
+    address cbm = costBasisManager();
+    if (cbm != address(0)) {
+      uint256 payoutPrice = IOracle(_oracle).getAssetPrice(asset);
+      uint8 payoutDecimals = CustodyVault(_vault).assetConfig(asset).decimals;
+      uint256 payoutUSD = (netOut * payoutPrice) / (10 ** payoutDecimals);
+      try ICostBasisManager(cbm).recordRedeem(user, userSharesBefore, shares, payoutUSD) {} catch {}
+    }
   }
 
   function _executeLegacyRedemption(

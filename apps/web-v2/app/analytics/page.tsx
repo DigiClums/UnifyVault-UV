@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
         />
         <StatCard
           title="NAV Per Index Share"
-          value={sharePriceUSD || '$1.000'}
+          value={sharePriceUSD}
           subtitle="Net Asset Value valuation"
           icon={TrendingUp}
           glowColor="emerald"

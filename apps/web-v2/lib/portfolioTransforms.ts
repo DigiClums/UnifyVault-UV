@@ -54,7 +54,10 @@ export interface RawUserContractData {
   userSharesRaw: bigint;
   userUsdcRaw: bigint;
   contractInvestedAssetsRaw: bigint;
-  onChainPerformance?: PerformanceStruct | readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint];
+  onChainPerformance?:
+    | PerformanceStruct
+    | readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint]
+    | readonly [bigint, bigint, bigint, bigint];
 }
 
 export function transformProtocolMetrics(

@@ -243,7 +243,9 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     // 2. Approve DEX router
     IERC20(params.tokenIn).forceApprove(router, params.amountIn);
 
-    // 3. Execute swap on router
+    // 3. Track balance before swap and execute swap on router
+    uint256 recipientBalBefore = IERC20(params.tokenOut).balanceOf(recipient);
+
     if (params.path.length > 0) {
       amountOut = IUniswapV3Router(router).exactInput(
         IUniswapV3Router.ExactInputParams({
@@ -270,10 +272,14 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
       );
     }
 
-    // 4. Validate slippage limit
-    if (amountOut < params.minAmountOut) {
-      revert SlippageLimitExceeded(params.minAmountOut, amountOut);
+    uint256 recipientBalAfter = IERC20(params.tokenOut).balanceOf(recipient);
+    uint256 actualReceived = recipientBalAfter - recipientBalBefore;
+
+    // 4. Validate slippage limit against actual received balance
+    if (actualReceived < params.minAmountOut) {
+      revert SlippageLimitExceeded(params.minAmountOut, actualReceived);
     }
+    amountOut = actualReceived;
 
     // 5. Reset router approval
     IERC20(params.tokenIn).forceApprove(router, 0);

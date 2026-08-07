@@ -52,7 +52,8 @@ export default function AdminRebalancePage() {
     functionName: 'getTargetWeights',
     query: {
       enabled: !!activeStrategyManager,
-      refetchInterval: 5_000,
+      staleTime: 60_000,
+      gcTime: 5 * 60 * 1000,
     },
   });
 

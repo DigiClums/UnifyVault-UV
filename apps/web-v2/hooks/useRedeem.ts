@@ -8,6 +8,7 @@ import { useProtocolDirectory } from './useProtocolDirectory';
 import { useUnifiedProtocolData } from './useUnifiedProtocolData';
 import { getChainTokens } from '../constants';
 import { parseUnits, formatUnits, formatUSD, calculateSlippageMinAssets } from '../lib/math';
+import { invalidateProtocolQueries } from '../lib/utils/cacheInvalidation';
 import { base, baseSepolia } from 'viem/chains';
 
 export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimals: number = 6) {
@@ -42,7 +43,8 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
     args: sharesRaw > 0n && targetController ? [targetAssetAddress, sharesRaw] : undefined,
     query: {
       enabled: sharesRaw > 0n && !!targetController && isCorrectNetwork,
-      refetchInterval: 5_000,
+      staleTime: 10_000,
+      gcTime: 60_000,
     },
   });
 
@@ -52,6 +54,8 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
     functionName: 'getRedeemFeeBps',
     query: {
       enabled: !!targetController && isCorrectNetwork,
+      staleTime: 60_000,
+      gcTime: 300_000,
     },
   });
 
@@ -140,10 +144,18 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
-      await queryClient.invalidateQueries();
+
+      await invalidateProtocolQueries(queryClient);
+
+      // Secondary refresh after block propagation
+      setTimeout(async () => {
+        await invalidateProtocolQueries(queryClient);
+      }, 1000);
+
       setSharesInput('');
-    } catch (error: any) {
-      console.error('Redeem transaction failed:', error);
+    } catch (err: unknown) {
+      console.error('Redeem transaction failed:', err);
+      const error = err as { shortMessage?: string; message?: string };
       const msg = error?.shortMessage || error?.message || 'Redemption failed';
       setTxError(msg);
       throw error;

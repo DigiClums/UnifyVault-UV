@@ -61,8 +61,9 @@ export function RedeemForm() {
       await executeRedeem();
       setTxSuccess(true);
       refetchBalances();
-    } catch (error: any) {
-      console.error('Redeem submission error:', error);
+    } catch (err: unknown) {
+      console.error('Redeem submission error:', err);
+      const error = err as { shortMessage?: string; message?: string };
       const msg = error?.shortMessage || error?.message || 'Redemption execution failed';
       setErrorMessage(msg);
     }

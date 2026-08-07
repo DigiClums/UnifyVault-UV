@@ -13,6 +13,7 @@ import {
   calculateSlippageMinShares,
   formatShares,
 } from '../lib/math';
+import { invalidateProtocolQueries } from '../lib/utils/cacheInvalidation';
 import { DepositQuoteData, FormattedDepositQuote } from '../types';
 import { base, baseSepolia } from 'viem/chains';
 
@@ -45,7 +46,8 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     args: userAddress && targetController ? [userAddress, targetController] : undefined,
     query: {
       enabled: !!userAddress && !!targetController && isCorrectNetwork,
-      refetchInterval: 5_000,
+      staleTime: 10_000,
+      gcTime: 60_000,
     },
   });
 
@@ -68,7 +70,8 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         : undefined,
     query: {
       enabled: !!userAddress && !!targetController && amountRaw > 0n && isCorrectNetwork,
-      refetchInterval: 5_000,
+      staleTime: 10_000,
+      gcTime: 60_000,
     },
   });
 
@@ -130,9 +133,11 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         await publicClient.waitForTransactionReceipt({ hash });
       }
       await refetchAllowance();
-      await queryClient.invalidateQueries();
-    } catch (error: any) {
-      console.error('Approve transaction failed:', error);
+      await queryClient.invalidateQueries({ type: 'all', refetchType: 'all' });
+      await queryClient.refetchQueries({ type: 'active' });
+    } catch (err: unknown) {
+      console.error('Approve transaction failed:', err);
+      const error = err as { shortMessage?: string; message?: string };
       const msg = error?.shortMessage || error?.message || 'Approval failed';
       setTxError(msg);
       throw error;
@@ -188,10 +193,17 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
-      await queryClient.invalidateQueries();
+      await invalidateProtocolQueries(queryClient);
+
+      // Secondary refresh after block propagation
+      setTimeout(async () => {
+        await invalidateProtocolQueries(queryClient);
+      }, 1000);
+
       setDepositAmountInput('');
-    } catch (error: any) {
-      console.error('Deposit transaction failed:', error);
+    } catch (err: unknown) {
+      console.error('Deposit transaction failed:', err);
+      const error = err as { shortMessage?: string; message?: string };
       const msg = error?.shortMessage || error?.message || 'Deposit failed';
       setTxError(msg);
       throw error;
@@ -200,15 +212,21 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     }
   };
 
-  const isDepositDisabled =
-    !userAddress ||
-    amountRaw <= 0n ||
-    !isApproved ||
-    isQuoteLoading ||
-    !formattedQuote ||
-    isDepositing ||
-    !isCorrectNetwork ||
-    !targetController;
+  const getDepositDisabledReason = (): string | null => {
+    if (!userAddress) return 'Please connect your wallet';
+    if (!isCorrectNetwork) return 'Switch to Base Mainnet or Base Sepolia';
+    if (!targetController) return 'Protocol Controller unavailable';
+    if (amountRaw <= 0n) return 'Enter a deposit amount';
+    if (slippageBps > 500) return 'Slippage exceeds 5.0% safety limit';
+    if (isQuoteLoading) return 'Calculating DEX quote...';
+    if (!formattedQuote) return 'Unable to fetch DEX quote from Controller';
+    if (!isApproved) return 'Step 1: Approve USDC Allowance required';
+    if (isDepositing) return 'Deposit transaction executing...';
+    return null;
+  };
+
+  const depositDisabledReason = getDepositDisabledReason();
+  const isDepositDisabled = depositDisabledReason !== null;
 
   return {
     depositAmountInput,
@@ -224,6 +242,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     quoteFetchError,
     formattedQuote,
     isDepositDisabled,
+    depositDisabledReason,
     isCorrectNetwork,
     txError,
     lastTxHash,

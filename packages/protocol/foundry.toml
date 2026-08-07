@@ -22,5 +22,6 @@ runs = 64
 depth = 15
 
 [profile.ci]
+via_ir = true
 fuzz = { runs = 1000 }
 invariant = { runs = 256, depth = 30 }

@@ -90,11 +90,14 @@ export default function AdminTreasuryPage() {
     if (!treasury || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
+      const latestBlock = await publicClient.getBlockNumber();
+      const fromBlock = latestBlock >= 2000n ? latestBlock - 2000n : 0n;
+
       const logs = await publicClient.getContractEvents({
         address: treasury,
         abi: TREASURY_ABI,
-        fromBlock: 'earliest',
-        toBlock: 'latest',
+        fromBlock,
+        toBlock: latestBlock,
       });
 
       const parsedPromises: Promise<TreasuryEventLog | null>[] = logs.map(
@@ -106,7 +109,7 @@ export default function AdminTreasuryPage() {
 
           const eventLog = log as unknown as {
             eventName: TreasuryEventLog['type'];
-            args: Record<string, any>;
+            args: Record<string, unknown>;
           };
 
           const eventName = eventLog.eventName;
@@ -235,10 +238,17 @@ export default function AdminTreasuryPage() {
         functionName: 'getAssetPrice',
         args: [tokens.WETH],
       },
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'getAssetPrice',
+        args: [tokens.USDC],
+      },
     ],
     query: {
       enabled: !!treasury && !!oracle,
-      refetchInterval: 5_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 
@@ -247,11 +257,13 @@ export default function AdminTreasuryPage() {
   const wethBalRaw = (treasuryData?.[2]?.result as bigint) || 0n;
   const btcPriceRaw = (treasuryData?.[3]?.result as bigint) || 0n;
   const ethPriceRaw = (treasuryData?.[4]?.result as bigint) || 0n;
+  const usdcPriceRaw = (treasuryData?.[5]?.result as bigint) || 0n;
 
-  const usdcUSD = Number(formatUnits(usdcBalRaw, 6));
   const btcPrice = Number(formatUnits(btcPriceRaw, 18));
   const ethPrice = Number(formatUnits(ethPriceRaw, 18));
+  const usdcPrice = Number(formatUnits(usdcPriceRaw, 18));
 
+  const usdcUSD = Number(formatUnits(usdcBalRaw, 6)) * usdcPrice;
   const wbtcUSD = Number(formatUnits(wbtcBalRaw, 8)) * btcPrice;
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
   const totalTreasuryValUSD = usdcUSD + wbtcUSD + wethUSD;
@@ -280,11 +292,11 @@ export default function AdminTreasuryPage() {
   const selectedAssetBalFormatted = formatUnits(selectedAssetBalRaw, selectedAssetDecimals);
 
   const selectedAssetPrice = useMemo(() => {
-    if (!assetAddress) return 1.0;
+    if (!assetAddress) return usdcPrice;
     if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return btcPrice;
     if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return ethPrice;
-    return 1.0;
-  }, [assetAddress, tokens, btcPrice, ethPrice]);
+    return usdcPrice;
+  }, [assetAddress, tokens, btcPrice, ethPrice, usdcPrice]);
 
   const estimatedWithdrawUSD = useMemo(() => {
     const amtNum = parseFloat(amount || '0') || 0;

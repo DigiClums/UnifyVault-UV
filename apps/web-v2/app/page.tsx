@@ -15,7 +15,6 @@ import { useUnifiedProtocolData } from '../hooks/useUnifiedProtocolData';
 
 export default function DashboardPage() {
   const metrics = useDashboard();
-  const unifiedData = useUnifiedProtocolData();
   const { chain } = useAccount();
   const currentChainId = chain?.id || getDefaultChainId();
   const networkName = currentChainId === base.id ? 'Base Mainnet' : 'Base Sepolia';
@@ -68,7 +67,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <NavDebugLogger data={unifiedData} />
+      <NavDebugLogger data={metrics} />
     </div>
   );
 }

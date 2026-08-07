@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { UnifiedProtocolData } from '../../hooks/useUnifiedProtocolData';
 
 interface NavDebugLoggerProps {
-  data: UnifiedProtocolData;
+  data: Partial<UnifiedProtocolData>;
 }
 
 export function NavDebugLogger({ data }: NavDebugLoggerProps) {
@@ -14,14 +14,14 @@ export function NavDebugLogger({ data }: NavDebugLoggerProps) {
     if (process.env.NODE_ENV === 'development' || typeof window !== 'undefined') {
       const debugTelemetry = {
         timestamp: new Date().toISOString(),
-        holdings: data.protocolHoldings.map((h) => ({
+        holdings: (data.protocolHoldings || []).map((h) => ({
           symbol: h.symbol,
-          rawBalance: h.balanceRaw.toString(),
+          rawBalance: h.balanceRaw?.toString(),
           formattedBalance: h.balanceFormatted,
           priceUSD: h.priceUSD,
           valueUSD: h.valueUSD,
         })),
-        totalSharesRaw: data.totalSharesRaw.toString(),
+        totalSharesRaw: data.totalSharesRaw?.toString(),
         totalSharesFormatted: data.totalSharesFormatted,
         totalPortfolioValueUSD: data.totalPortfolioValueUSD,
         totalVaultNAVUSD: data.totalVaultNAVUSD,
@@ -66,7 +66,7 @@ export function NavDebugLogger({ data }: NavDebugLoggerProps) {
 
       <div className="border-t border-gray-800 pt-2 space-y-1">
         <span className="text-gray-500 font-bold block mb-1">Underlying Vault Assets:</span>
-        {data.protocolHoldings.map((h) => (
+        {(data.protocolHoldings || []).map((h) => (
           <div key={h.symbol} className="flex justify-between text-[11px]">
             <span className="text-gray-300">{h.symbol}:</span>
             <span className="text-gray-400">

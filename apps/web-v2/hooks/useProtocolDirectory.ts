@@ -36,22 +36,19 @@ export function useProtocolDirectory(): ProtocolAddresses {
   const isZeroAddress =
     !directoryAddress || directoryAddress === '0x0000000000000000000000000000000000000000';
 
-  const isSepolia = chainId === baseSepolia.id;
-  const fallback = isSepolia ? DEPLOYED_CONTRACTS_SEPOLIA : undefined;
-
   const moduleKeys = [
-    { key: 'controller', moduleId: MODULE_IDS.CONTROLLER },
-    { key: 'vault', moduleId: MODULE_IDS.VAULT },
-    { key: 'treasury', moduleId: MODULE_IDS.TREASURY },
-    { key: 'oracle', moduleId: MODULE_IDS.ORACLE },
-    { key: 'token', moduleId: MODULE_IDS.TOKEN },
-    { key: 'strategyManager', moduleId: MODULE_IDS.STRATEGY_MANAGER },
-    { key: 'portfolioManager', moduleId: MODULE_IDS.PORTFOLIO_MANAGER },
-    { key: 'swapAdapter', moduleId: MODULE_IDS.SWAP_ADAPTER },
-    { key: 'liquidityManager', moduleId: MODULE_IDS.LIQUIDITY_MANAGER },
-    { key: 'feeManager', moduleId: MODULE_IDS.FEE_MANAGER },
-    { key: 'costBasisManager', moduleId: MODULE_IDS.COST_BASIS_MANAGER },
-    { key: 'performanceManager', moduleId: MODULE_IDS.PERFORMANCE_MANAGER },
+    { key: 'controller', moduleId: MODULE_IDS.CONTROLLER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController },
+    { key: 'vault', moduleId: MODULE_IDS.VAULT, fallback: DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault },
+    { key: 'treasury', moduleId: MODULE_IDS.TREASURY, fallback: DEPLOYED_CONTRACTS_SEPOLIA.Treasury },
+    { key: 'oracle', moduleId: MODULE_IDS.ORACLE, fallback: DEPLOYED_CONTRACTS_SEPOLIA.OracleManager },
+    { key: 'token', moduleId: MODULE_IDS.TOKEN, fallback: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken },
+    { key: 'strategyManager', moduleId: MODULE_IDS.STRATEGY_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager },
+    { key: 'portfolioManager', moduleId: MODULE_IDS.PORTFOLIO_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager },
+    { key: 'swapAdapter', moduleId: MODULE_IDS.SWAP_ADAPTER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter },
+    { key: 'liquidityManager', moduleId: MODULE_IDS.LIQUIDITY_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager },
+    { key: 'feeManager', moduleId: MODULE_IDS.FEE_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.FeeManager },
+    { key: 'costBasisManager', moduleId: MODULE_IDS.COST_BASIS_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager },
+    { key: 'performanceManager', moduleId: MODULE_IDS.PERFORMANCE_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager },
   ];
 
   const contracts = moduleKeys.map((item) => ({
@@ -72,31 +69,36 @@ export function useProtocolDirectory(): ProtocolAddresses {
   });
 
   const getResult = (index: number): `0x${string}` | undefined => {
-    if (!data || !data[index]) return undefined;
-    const res = data[index];
-    if (
-      res.status === 'success' &&
-      res.result &&
-      res.result !== '0x0000000000000000000000000000000000000000'
-    ) {
-      return res.result as `0x${string}`;
+    if (data && data[index]) {
+      const res = data[index];
+      if (
+        res.status === 'success' &&
+        res.result &&
+        res.result !== '0x0000000000000000000000000000000000000000'
+      ) {
+        return res.result as `0x${string}`;
+      }
+    }
+    // Fallback for Sepolia deployment if on-chain registry entry is missing or zero address
+    if (chainId === baseSepolia.id || !chain?.id) {
+      return moduleKeys[index]?.fallback;
     }
     return undefined;
   };
 
   return {
     directory: directoryAddress,
-    controller: getResult(0) || fallback?.UnifyVaultController,
-    vault: getResult(1) || fallback?.CustodyVault,
-    treasury: getResult(2) || fallback?.Treasury,
-    oracle: getResult(3) || fallback?.OracleManager,
-    token: getResult(4) || fallback?.UVBTCETHToken,
-    strategyManager: getResult(5) || fallback?.StrategyManager,
-    portfolioManager: getResult(6) || fallback?.PortfolioManager,
-    swapAdapter: getResult(7) || fallback?.SwapAdapter,
-    liquidityManager: getResult(8) || fallback?.LiquidityManager,
-    feeManager: getResult(9) || fallback?.FeeManager,
-    costBasisManager: getResult(10) || fallback?.CostBasisManager,
+    controller: getResult(0),
+    vault: getResult(1),
+    treasury: getResult(2),
+    oracle: getResult(3),
+    token: getResult(4),
+    strategyManager: getResult(5),
+    portfolioManager: getResult(6),
+    swapAdapter: getResult(7),
+    liquidityManager: getResult(8),
+    feeManager: getResult(9),
+    costBasisManager: getResult(10),
     performanceManager: getResult(11),
     isLoading: !isZeroAddress && isLoading,
     isError,

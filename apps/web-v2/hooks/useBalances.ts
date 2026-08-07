@@ -1,5 +1,3 @@
-'use client';
-
 import { useAccount, useReadContracts } from 'wagmi';
 import { ERC20_ABI } from '../lib/contracts';
 import { getChainTokens } from '../constants';
@@ -33,7 +31,8 @@ export function useBalances() {
     ],
     query: {
       enabled: !!userAddress,
-      refetchInterval: 10_000,
+      staleTime: 15_000,
+      gcTime: 5 * 60 * 1000,
     },
   });
 
@@ -50,3 +49,4 @@ export function useBalances() {
     refetch,
   };
 }
+

@@ -5,6 +5,7 @@ import { useAccount, usePublicClient } from 'wagmi';
 import { formatUnits, type Address } from 'viem';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { CONTROLLER_ABI, CUSTODY_VAULT_ABI, ERC20_ABI } from '../lib/contracts';
+import { useOraclePrices } from './useOraclePrices';
 import { NavSnapshot } from '../types';
 
 export interface IndexedEvent {
@@ -39,14 +40,15 @@ export function useTransactionHistory() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     async function fetchLogs() {
       if (!publicClient || !controller) {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
         return;
       }
       try {
         const latestBlock = await publicClient.getBlockNumber();
-        const fromBlock = latestBlock >= 2000n ? latestBlock - 2000n : 0n;
+        const fromBlock = latestBlock >= 500n ? latestBlock - 500n : 0n;
 
         const logs = await publicClient.getContractEvents({
           address: controller,
@@ -78,15 +80,18 @@ export function useTransactionHistory() {
           };
         });
 
-        setTransactions(formatted);
+        if (isMounted) setTransactions(formatted);
       } catch (err) {
         console.warn('On-chain event log fetch warning:', err);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
 
     fetchLogs();
+    return () => {
+      isMounted = false;
+    };
   }, [publicClient, controller]);
 
   return { transactions, isLoading };
@@ -108,9 +113,10 @@ export function useHistoricalNAV(period: string = 'ALL') {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     async function deriveNAV() {
       if (!publicClient || !token) {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
         return;
       }
 
@@ -133,26 +139,28 @@ export function useHistoricalNAV(period: string = 'ALL') {
 
         for (let i = pointsCount - 1; i >= 0; i--) {
           const timestamp = new Date(now - i * 3600 * 1000).toISOString();
-          const variance = i === 0 ? 0 : Math.sin(i) * 0.002;
           snapshots.push({
             timestamp,
-            nav: Math.max(0.0001, currentNav + variance),
-            sharePrice: Math.max(0.0001, currentNav + variance),
-            totalAssets: Math.max(0, assetsNum * (1 + variance)),
-            btcPrice: 65000,
-            ethPrice: 3500,
+            nav: currentNav,
+            sharePrice: currentNav,
+            totalAssets: assetsNum,
+            btcPrice: 0,
+            ethPrice: 0,
           });
         }
 
-        setNavHistory(snapshots);
+        if (isMounted) setNavHistory(snapshots);
       } catch (err) {
         console.warn('Live on-chain NAV derivation warning:', err);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
 
     deriveNAV();
+    return () => {
+      isMounted = false;
+    };
   }, [publicClient, token, period]);
 
   return { navHistory, isLoading };

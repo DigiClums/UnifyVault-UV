@@ -67,6 +67,7 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   SwapAdapter: '0xa0164433c94b68522201e3DcbFDDC391B36c45f3' as `0x${string}`,
   FeeManager: '0xea8e047Fa4981935419B2065095e031b6224AC76' as `0x${string}`,
   CostBasisManager: '0xef0637a3d2080749bbcd5d98e6c68d9944c700a6' as `0x${string}`,
+  PerformanceManager: '0xef0637a3d2080749bbcd5d98e6c68d9944c700a6' as `0x${string}`,
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
@@ -126,7 +127,7 @@ export const MODULE_IDS = {
   COST_BASIS_MANAGER:
     '0xd4741fb770f259864462ac1e0f0c516cde3c7a9a37aa2882da996c82ffff9796' as `0x${string}`,
   PERFORMANCE_MANAGER:
-    '0x269098bc57f631edac5f87b8d0092c42d991bfca4b1c1e5cb3eece27b036987c' as `0x${string}`,
+    '0x3cc6e30a00fc20cd55b209638eb88a197234ab24baed9e238b01e2c52159a815' as `0x${string}`,
   CONTROLLER: '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
 };
 

@@ -19,7 +19,8 @@ export function useOracle(assetAddress: `0x${string}`) {
     args: assetAddress && oracle ? [assetAddress] : undefined,
     query: {
       enabled: !!assetAddress && !!oracle,
-      refetchInterval: 10_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 
@@ -30,7 +31,8 @@ export function useOracle(assetAddress: `0x${string}`) {
     args: assetAddress && oracle ? [assetAddress] : undefined,
     query: {
       enabled: !!assetAddress && !!oracle,
-      refetchInterval: 15_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 

@@ -163,7 +163,9 @@ contract TestSwapRouter {
 
     uint256 routerBal = IERC20(params.tokenOut).balanceOf(address(this));
     if (routerBal < amountOut) {
-      try TestToken(params.tokenOut).mint(address(this), amountOut - routerBal) {} catch {}
+      try TestToken(params.tokenOut).mint(address(this), amountOut - routerBal) {} catch {
+        require(IERC20(params.tokenOut).balanceOf(address(this)) >= amountOut, "TestSwapRouter: insufficient router liquidity for output token");
+      }
     }
 
     IERC20(params.tokenOut).safeTransfer(params.recipient, amountOut);
@@ -200,6 +202,9 @@ contract DeployV2Script is Script, Test {
   MockChainlinkAggregator public wethAggregator;
 
   address public constant BASE_SEPOLIA_USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+  address public constant BASE_SEPOLIA_USDC_FEED = 0x598D6E603Ed84b46Ac310209960b9810583133Af;
+  address public constant BASE_SEPOLIA_CBBTC_FEED = 0x961AD289351459A45fC90884eF3AB0278ea95DDE;
+  address public constant BASE_SEPOLIA_ETH_FEED = 0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1;
   address public constant DEFAULT_GNOSIS_SAFE = 0x1111111111111111111111111111111111111111;
 
   address public deployerAddress;
@@ -329,17 +334,17 @@ contract DeployV2Script is Script, Test {
     // --------------------------------------------------
     // STEP 4: Configure Oracle (ChainlinkOracleProvider)
     // --------------------------------------------------
-    usdcAggregator = new MockChainlinkAggregator(6, 1 * 10 ** 6);
-    cbbtcAggregator = new MockChainlinkAggregator(8, 65000 * 10 ** 8);
-    wethAggregator = new MockChainlinkAggregator(8, 3500 * 10 ** 8);
+    address usdcFeed = BASE_SEPOLIA_USDC_FEED;
+    address cbbtcFeed = BASE_SEPOLIA_CBBTC_FEED;
+    address wethFeed = BASE_SEPOLIA_ETH_FEED;
 
     bytes32 usdcId = bytes32(uint256(uint160(BASE_SEPOLIA_USDC)));
     bytes32 cbbtcId = bytes32(uint256(uint160(address(testCbBTC))));
     bytes32 wethId = bytes32(uint256(uint160(address(testWETH))));
 
-    chainlinkProvider.registerFeed(usdcId, address(usdcAggregator), 86400);
-    chainlinkProvider.registerFeed(cbbtcId, address(cbbtcAggregator), 86400);
-    chainlinkProvider.registerFeed(wethId, address(wethAggregator), 86400);
+    chainlinkProvider.registerFeed(usdcId, usdcFeed, 86400);
+    chainlinkProvider.registerFeed(cbbtcId, cbbtcFeed, 86400);
+    chainlinkProvider.registerFeed(wethId, wethFeed, 86400);
 
     oracleManager.configureAsset(usdcId, address(chainlinkProvider), address(0), 86400, true);
     oracleManager.configureAsset(cbbtcId, address(chainlinkProvider), address(0), 86400, true);
@@ -347,11 +352,11 @@ contract DeployV2Script is Script, Test {
 
     // Verify Oracles
     require(oracleManager.isPriceFresh(BASE_SEPOLIA_USDC), 'USDC oracle fresh failed');
-    require(oracleManager.getAssetPrice(BASE_SEPOLIA_USDC) == 1e18, 'USDC price failed');
+    require(oracleManager.getAssetPrice(BASE_SEPOLIA_USDC) > 0, 'USDC price failed');
     require(oracleManager.isPriceFresh(address(testCbBTC)), 'cbBTC oracle fresh failed');
-    require(oracleManager.getAssetPrice(address(testCbBTC)) == 65000e18, 'cbBTC price failed');
+    require(oracleManager.getAssetPrice(address(testCbBTC)) > 0, 'cbBTC price failed');
     require(oracleManager.isPriceFresh(address(testWETH)), 'WETH oracle fresh failed');
-    require(oracleManager.getAssetPrice(address(testWETH)) == 3500e18, 'WETH price failed');
+    require(oracleManager.getAssetPrice(address(testWETH)) > 0, 'WETH price failed');
 
     // --------------------------------------------------
     // Vault & Treasury Assets Registration

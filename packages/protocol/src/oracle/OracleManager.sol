@@ -171,7 +171,6 @@ contract OracleManager is AccessControl, IOracle {
       maxDev = DEFAULT_MAX_DEVIATION_BPS;
     }
     uint256 lastPrice = _lastValidPrices[assetId];
-    bool primaryValid = false;
 
     // 1. Attempt Primary Provider call
     try IOracleProvider(config.primaryProvider).getLatestRound(assetId) returns (

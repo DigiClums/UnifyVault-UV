@@ -34,9 +34,9 @@ describe('portfolioMath Utility Library', () => {
       expect(proRata).toBe(0n);
     });
 
-    it('returns fallback $1.00 for Total Vault NAV when total portfolio value is 0', () => {
+    it('returns 0 for Total Vault NAV when total portfolio value is 0', () => {
       const nav = calculateTotalVaultNAVUSD(0);
-      expect(nav).toBe(1.0);
+      expect(nav).toBe(0);
     });
   });
 
@@ -68,10 +68,10 @@ describe('portfolioMath Utility Library', () => {
       expect(costBasis).toBe(500.0);
     });
 
-    it('falls back to genesis $1.00/share when untracked on-chain but user holds shares', () => {
-      // User holds 50 shares (50e18)
+    it('returns 0 cost basis when untracked on-chain', () => {
+      // User holds 50 shares (50e18) but untracked on-chain
       const costBasis = calculateCostBasis(0n, 50_000_000_000_000_000_000n, undefined);
-      expect(costBasis).toBe(50.0);
+      expect(costBasis).toBe(0);
     });
   });
 

@@ -91,11 +91,14 @@ export default function AdminCustodyPage() {
     if (!vault || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
+      const latestBlock = await publicClient.getBlockNumber();
+      const fromBlock = latestBlock >= 2000n ? latestBlock - 2000n : 0n;
+
       const logs = await publicClient.getContractEvents({
         address: vault,
         abi: CUSTODY_VAULT_ABI,
-        fromBlock: 'earliest',
-        toBlock: 'latest',
+        fromBlock,
+        toBlock: latestBlock,
       });
 
       const parsedPromises: Promise<CustodyEventLog | null>[] = logs.map(
@@ -107,7 +110,7 @@ export default function AdminCustodyPage() {
 
           const eventLog = log as unknown as {
             eventName: CustodyEventLog['type'];
-            args: Record<string, any>;
+            args: Record<string, unknown>;
           };
 
           const eventName = eventLog.eventName;
@@ -230,10 +233,17 @@ export default function AdminCustodyPage() {
         functionName: 'getAssetPrice',
         args: [tokens.WETH],
       },
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'getAssetPrice',
+        args: [tokens.USDC],
+      },
     ],
     query: {
       enabled: !!vault && !!oracle,
-      refetchInterval: 5_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 
@@ -242,11 +252,13 @@ export default function AdminCustodyPage() {
   const wethBalRaw = (vaultData?.[2]?.result as bigint) || 0n;
   const btcPriceRaw = (vaultData?.[3]?.result as bigint) || 0n;
   const ethPriceRaw = (vaultData?.[4]?.result as bigint) || 0n;
+  const usdcPriceRaw = (vaultData?.[5]?.result as bigint) || 0n;
 
-  const usdcUSD = Number(formatUnits(usdcBalRaw, 6));
   const btcPrice = Number(formatUnits(btcPriceRaw, 18));
   const ethPrice = Number(formatUnits(ethPriceRaw, 18));
+  const usdcPrice = Number(formatUnits(usdcPriceRaw, 18));
 
+  const usdcUSD = Number(formatUnits(usdcBalRaw, 6)) * usdcPrice;
   const wbtcUSD = Number(formatUnits(wbtcBalRaw, 8)) * btcPrice;
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
   const totalCustodyValUSD = usdcUSD + wbtcUSD + wethUSD;

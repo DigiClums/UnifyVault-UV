@@ -43,7 +43,8 @@ export function useAdminAccess(): AdminAccessResult {
     ],
     query: {
       enabled: !!address && (!!directory || !!controller || !!treasury),
-      refetchInterval: 10_000,
+      staleTime: 60_000,
+      gcTime: 5 * 60 * 1000,
     },
   });
 

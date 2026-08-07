@@ -37,4 +37,6 @@ library Errors {
   error DailyDepositCapExceeded(uint256 newTotal, uint256 cap);
   error DailyRedeemCapExceeded(uint256 newTotal, uint256 cap);
   error UnsafePricing(address asset);
+  error InsufficientSwapOutput(uint256 expectedUSD, uint256 actualUSD, uint256 minUSD);
+  error RouterLiquidityUnavailable(address token, uint256 requested, uint256 available);
 }

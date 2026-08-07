@@ -69,11 +69,14 @@ export default function PublicTreasuryPage() {
     if (!treasury || !publicClient) return;
     setIsRefreshingLogs(true);
     try {
+      const latestBlock = await publicClient.getBlockNumber();
+      const fromBlock = latestBlock >= 2000n ? latestBlock - 2000n : 0n;
+
       const logs = await publicClient.getContractEvents({
         address: treasury,
         abi: TREASURY_ABI,
-        fromBlock: 'earliest',
-        toBlock: 'latest',
+        fromBlock,
+        toBlock: latestBlock,
       });
 
       const parsedPromises = logs.map(async (log) => {
@@ -84,7 +87,7 @@ export default function PublicTreasuryPage() {
 
         const eventLog = log as unknown as {
           eventName: PublicTreasuryLog['type'];
-          args: Record<string, any>;
+          args: Record<string, unknown>;
         };
 
         const eventName = eventLog.eventName;
@@ -216,10 +219,17 @@ export default function PublicTreasuryPage() {
         functionName: 'getAssetPrice',
         args: [tokens.WETH],
       },
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'getAssetPrice',
+        args: [tokens.USDC],
+      },
     ],
     query: {
       enabled: !!treasury && !!controller && !!oracle,
-      refetchInterval: 5_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 
@@ -232,12 +242,14 @@ export default function PublicTreasuryPage() {
 
   const btcPriceRaw = (data?.[5]?.result as bigint) || 0n;
   const ethPriceRaw = (data?.[6]?.result as bigint) || 0n;
+  const usdcPriceRaw = (data?.[7]?.result as bigint) || 0n;
 
   const usdcBalFormatted = formatUnits(usdcBalRaw, 6);
-  const usdcUSD = Number(usdcBalFormatted);
   const btcPrice = Number(formatUnits(btcPriceRaw, 18));
   const ethPrice = Number(formatUnits(ethPriceRaw, 18));
+  const usdcPrice = Number(formatUnits(usdcPriceRaw, 18));
 
+  const usdcUSD = Number(usdcBalFormatted) * usdcPrice;
   const wbtcUSD = Number(formatUnits(wbtcBalRaw, 8)) * btcPrice;
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
   const totalTreasuryUSD = usdcUSD + wbtcUSD + wethUSD;

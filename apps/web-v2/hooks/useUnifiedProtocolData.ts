@@ -14,7 +14,6 @@ import { getChainTokens } from '../constants';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { HistoricalNavPoint, ProtocolMetrics, UserPortfolio } from '../types';
 import { transformProtocolMetrics, transformUserPortfolio } from '../lib/portfolioTransforms';
-import { useHistoricalNAV } from './useIndexerData';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
@@ -31,6 +30,8 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const activeUser = userAddress || ZERO_ADDRESS;
   const { vault, oracle, token, costBasisManager, performanceManager, strategyManager, portfolioManager } =
     useProtocolDirectory();
+
+  const activePerformanceContract = performanceManager || costBasisManager;
 
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
@@ -100,7 +101,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
       {
         address: costBasisManager,
         abi: COST_BASIS_MANAGER_ABI,
-        functionName: 'investedAssets',
+        functionName: 'costBasis',
         args: [activeUser],
       },
       // 10. StrategyManager Target Weights
@@ -115,18 +116,18 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         abi: PORTFOLIO_MANAGER_ABI,
         functionName: 'calculateNAV',
       },
-      // 12. PerformanceManager On-Chain Performance Struct
+      // 12. Performance / CostBasis Performance Struct
       {
-        address: performanceManager,
-        abi: PERFORMANCE_MANAGER_ABI,
-        functionName: 'performance',
+        address: activePerformanceContract,
+        abi: performanceManager ? PERFORMANCE_MANAGER_ABI : COST_BASIS_MANAGER_ABI,
+        functionName: performanceManager ? 'performance' : 'portfolioPerformance',
         args: [activeUser],
       },
     ],
     query: {
       enabled: !!vault && !!oracle && !!token,
-      refetchInterval: 3_000,
-      staleTime: 0,
+      staleTime: 15_000,
+      gcTime: 5 * 60 * 1000,
     },
   });
 
@@ -136,7 +137,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     usdcTotalAssets: (data?.[2]?.result as bigint) || 0n,
     priceWBTC: (data?.[3]?.result as bigint) || 0n,
     priceWETH: (data?.[4]?.result as bigint) || 0n,
-    priceUSDC: (data?.[5]?.result as bigint) || 1_000_000_000_000_000_000n,
+    priceUSDC: (data?.[5]?.result as bigint) || 0n,
     totalSharesRaw: (data?.[6]?.result as bigint) || 0n,
     onChainNAV: data?.[11]?.result as readonly [bigint, bigint] | undefined,
   };
@@ -180,12 +181,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const protocolMetrics = transformProtocolMetrics(rawProtocolData, strategyMetrics);
   const userPortfolio = transformUserPortfolio(rawUserData, rawProtocolData, protocolMetrics);
 
-  const { navHistory } = useHistoricalNAV('ALL');
-  const historicalNAV: HistoricalNavPoint[] = (navHistory || []).map((point) => ({
-    timestamp: point.timestamp,
-    navUSD: point.nav || point.sharePrice || 1.0,
-    portfolioValueUSD: point.totalAssets || 0,
-  }));
+  const historicalNAV: HistoricalNavPoint[] = [];
 
   return {
     ...protocolMetrics,
@@ -200,3 +196,4 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
 export { useStrategyMetrics } from './useStrategyMetrics';
 export { useProtocolMetrics } from './useProtocolMetrics';
 export { useUserPortfolio } from './useUserPortfolio';
+

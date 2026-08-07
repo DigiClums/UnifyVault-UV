@@ -111,7 +111,6 @@ contract AccountingModelTest is Test {
   function testDirectDonationReflectedInTotalAssets() public {
     uint256 depositAmt = 10 * 10 ** 18;
     uint256 fee = FeeLib.calculateDepositFee(depositAmt);
-    uint256 net = depositAmt - fee;
 
     // Perform initial deposit
     tokenA.mint(user, depositAmt);

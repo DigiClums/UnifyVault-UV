@@ -38,6 +38,8 @@ export function DepositForm() {
     isDepositing,
     isQuoteLoading,
     formattedQuote,
+    isDepositDisabled,
+    depositDisabledReason,
     lastTxHash,
     approve,
     executeDeposit,
@@ -400,20 +402,27 @@ export function DepositForm() {
             )}
           </button>
         ) : (
-          <button
-            onClick={handleDeposit}
-            disabled={amountRaw <= 0n || isDepositing}
-            className="w-full min-h-[48px] py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-accent-emerald dark:hover:bg-emerald-600 active:scale-[0.99] font-bold text-white text-sm shadow-glow-emerald transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 focus:ring-2 focus:ring-accent-emerald/50"
-          >
-            {isDepositing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Executing Deposit & Minting Shares...</span>
-              </>
-            ) : (
-              <span>Step 2: Confirm Live Deposit</span>
+          <div className="space-y-2">
+            <button
+              onClick={handleDeposit}
+              disabled={isDepositDisabled}
+              className="w-full min-h-[48px] py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-accent-emerald dark:hover:bg-emerald-600 active:scale-[0.99] font-bold text-white text-sm shadow-glow-emerald transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 focus:ring-2 focus:ring-accent-emerald/50"
+            >
+              {isDepositing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Executing Deposit & Minting Shares...</span>
+                </>
+              ) : (
+                <span>Step 2: Confirm Live Deposit</span>
+              )}
+            </button>
+            {isDepositDisabled && depositDisabledReason && amountRaw > 0n && (
+              <p className="text-[11px] text-center font-mono text-amber-600 dark:text-amber-400 font-semibold">
+                ⚠️ {depositDisabledReason}
+              </p>
             )}
-          </button>
+          </div>
         )}
       </Card>
     </div>

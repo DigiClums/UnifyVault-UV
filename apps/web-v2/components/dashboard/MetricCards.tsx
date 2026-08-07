@@ -11,6 +11,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Info,
+  Zap,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { DashboardMetrics } from '../../types';
@@ -29,6 +30,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: DollarSign,
       iconBg: 'bg-accent-blue/10 text-accent-blue',
       source: 'On-chain: PortfolioManager.calculatePortfolioValue()',
+      isLiveSynced: true,
     },
     {
       title: 'Current NAV / Share Price',
@@ -38,6 +40,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: Activity,
       iconBg: 'bg-accent-violet/10 text-accent-violet',
       source: 'On-chain: Total Vault NAV / Total Supply',
+      isLiveSynced: true,
     },
     {
       title: 'Your Invested Capital',
@@ -47,6 +50,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: Wallet,
       iconBg: 'bg-accent-emerald/10 text-accent-emerald',
       source: 'On-chain: UnifyVaultController',
+      isLiveSynced: false,
     },
     {
       title: 'Current Holding Value',
@@ -56,6 +60,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: Coins,
       iconBg: 'bg-accent-cyan/10 text-accent-cyan',
       source: 'On-chain: userShares * sharePriceUSD',
+      isLiveSynced: true,
     },
     {
       title: 'Net Profit & Loss (PnL)',
@@ -67,6 +72,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
         ? 'bg-accent-emerald/10 text-accent-emerald'
         : 'bg-accent-rose/10 text-accent-rose',
       source: 'Calculated: currentValue - investedAssets',
+      isLiveSynced: true,
     },
     {
       title: 'Strategy Index Allocation',
@@ -76,6 +82,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: PieChart,
       iconBg: 'bg-accent-amber/10 text-accent-amber',
       source: 'On-chain: StrategyManager.getTargetWeights()',
+      isLiveSynced: false,
     },
   ];
 
@@ -86,9 +93,17 @@ export function MetricCards({ metrics }: MetricCardsProps) {
         return (
           <Card key={idx} glow className="relative group overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                {card.title}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {card.title}
+                </span>
+                {card.isLiveSynced && (
+                  <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
+                    <Zap className="w-2.5 h-2.5 animate-pulse" />
+                    <span>LIVE</span>
+                  </span>
+                )}
+              </div>
               <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
                 <Icon className="w-5 h-5" />
               </div>
@@ -130,3 +145,4 @@ export function MetricCards({ metrics }: MetricCardsProps) {
     </div>
   );
 }
+

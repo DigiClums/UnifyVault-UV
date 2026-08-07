@@ -46,7 +46,7 @@ export function calculateTVLUSD18(assetValuesUSD18: bigint[]): bigint {
  * Total Vault NAV is equal to Total Value Locked (TVL) in USD.
  */
 export function calculateTotalVaultNAVUSD(totalPortfolioValueUSD: number): number {
-  return totalPortfolioValueUSD > 0 && isFinite(totalPortfolioValueUSD) ? totalPortfolioValueUSD : 1.0;
+  return totalPortfolioValueUSD > 0 && isFinite(totalPortfolioValueUSD) ? totalPortfolioValueUSD : 0;
 }
 
 /**
@@ -189,12 +189,6 @@ export function calculateCostBasis(
     } catch {
       // Ignore localStorage access errors
     }
-  }
-
-  // 3. Fallback: If user holds shares but cost basis is untracked, assume genesis $1.00/share
-  if (investedAssetsUSD === 0 && userSharesRaw > 0n) {
-    const userSharesNumber = Number(userSharesRaw) / 1e18;
-    investedAssetsUSD = userSharesNumber * 1.0;
   }
 
   return investedAssetsUSD;

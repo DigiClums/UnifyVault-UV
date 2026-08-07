@@ -97,7 +97,9 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
       _costBasisUSD[user] -= costBasisReduction;
     }
 
-    uint256 totalSharesAfter = indexToken != address(0) ? IERC20(indexToken).balanceOf(user) : (userSharesBefore - sharesBurned);
+    uint256 totalSharesAfter = indexToken != address(0)
+      ? IERC20(indexToken).balanceOf(user)
+      : (userSharesBefore - sharesBurned);
 
     if (_costBasisUSD[user] == 0 || totalSharesAfter == 0) {
       _firstDepositTimestamp[user] = 0;

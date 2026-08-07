@@ -35,7 +35,7 @@ export default function AdminMonitoringPage() {
   const tokens = getChainTokens(activeChainId);
   const activeRpcUrl = getRpcUrl(activeChainId);
 
-  const { data: blockNumber } = useBlockNumber({ watch: true });
+  const { data: blockNumber } = useBlockNumber();
   const { oracle, controller, vault, treasury } = useProtocolDirectory();
 
   const {
@@ -59,6 +59,12 @@ export default function AdminMonitoringPage() {
       {
         address: oracle,
         abi: ORACLE_MANAGER_ABI,
+        functionName: 'getAssetPrice',
+        args: [tokens.USDC],
+      },
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
         functionName: 'isPriceFresh',
         args: [tokens.cbBTC],
       },
@@ -68,19 +74,29 @@ export default function AdminMonitoringPage() {
         functionName: 'isPriceFresh',
         args: [tokens.WETH],
       },
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'isPriceFresh',
+        args: [tokens.USDC],
+      },
     ],
     query: {
       enabled: !!oracle,
-      refetchInterval: 5_000,
+      staleTime: 15_000,
+      gcTime: 60_000,
     },
   });
 
   const btcPriceRaw = (contractReads?.[0]?.result as bigint) || 0n;
   const ethPriceRaw = (contractReads?.[1]?.result as bigint) || 0n;
-  const btcFresh = Boolean(contractReads?.[2]?.result);
-  const ethFresh = Boolean(contractReads?.[3]?.result);
+  const usdcPriceRaw = (contractReads?.[2]?.result as bigint) || 0n;
+  const btcFresh = Boolean(contractReads?.[3]?.result);
+  const ethFresh = Boolean(contractReads?.[4]?.result);
+  const usdcFresh = Boolean(contractReads?.[5]?.result);
 
-  const isOracleHealthy = btcFresh && ethFresh && btcPriceRaw > 0n && ethPriceRaw > 0n;
+  const isOracleHealthy =
+    btcFresh && ethFresh && usdcFresh && btcPriceRaw > 0n && ethPriceRaw > 0n && usdcPriceRaw > 0n;
   const keeperStatus = isOracleHealthy ? 'Healthy' : 'Error';
   const keeperLabel = isOracleHealthy ? 'ACTIVE' : 'ATTENTION REQUIRED';
 

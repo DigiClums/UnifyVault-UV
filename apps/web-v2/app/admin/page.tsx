@@ -50,7 +50,7 @@ export default function AdminOverviewPage() {
         />
         <StatCard
           title="Current NAV / Share"
-          value={sharePriceUSD || '$1.000'}
+          value={sharePriceUSD}
           subtitle="OracleManager valuation"
           icon={Activity}
           glowColor="emerald"

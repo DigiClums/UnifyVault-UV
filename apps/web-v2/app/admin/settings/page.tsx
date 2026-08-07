@@ -75,7 +75,8 @@ export default function AdminSettingsPage() {
     ],
     query: {
       enabled: !!controller,
-      refetchInterval: 5_000,
+      staleTime: 30_000,
+      gcTime: 5 * 60 * 1000,
     },
   });
 

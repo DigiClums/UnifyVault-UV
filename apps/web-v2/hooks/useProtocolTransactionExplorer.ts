@@ -23,7 +23,7 @@ import {
 } from '../lib/contracts/events-registry';
 
 /** Keep requests comfortably below public Base RPC log-range limits. */
-export const TRANSACTION_BLOCK_WINDOW = 1_500n;
+export const TRANSACTION_BLOCK_WINDOW = 500n;
 
 export type TransactionSource = 'rpc';
 export type ExplorerState = 'loading' | 'ready' | 'error' | 'unsupported';
@@ -303,7 +303,7 @@ export function useProtocolTransactionExplorer(page: number) {
   const query = useQuery({
     queryKey: ['protocol-transactions-v2', chainId, controller, page],
     enabled: supported,
-    staleTime: 15_000,
+    staleTime: 30_000,
     retry: 1,
     queryFn: async (): Promise<{
       transactions: TransactionGroup[];

@@ -12,7 +12,8 @@ export function GlobalAlertBanner() {
   const pathname = usePathname();
   const { isConnected, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
-  const { oracle, treasury } = useProtocolDirectory();
+  const { oracle, treasury, controller, vault, isLoading } = useProtocolDirectory();
+  const isDirectoryIncomplete = !isLoading && (!oracle || !treasury || !controller || !vault);
 
   const { data, isError } = useReadContracts({
     contracts: [
@@ -37,7 +38,8 @@ export function GlobalAlertBanner() {
     ],
     query: {
       enabled: !!oracle && !!treasury,
-      refetchInterval: 10_000,
+      staleTime: 30_000,
+      gcTime: 60_000,
     },
   });
 
@@ -46,6 +48,17 @@ export function GlobalAlertBanner() {
 
   const isOracleStale = !btcFresh || !ethFresh;
   const isTransactionPage = ['/deposit', '/redeem', '/admin'].some((p) => pathname.startsWith(p));
+
+  if (isDirectoryIncomplete) {
+    return (
+      <div className="bg-rose-950/90 border-b border-rose-500/50 text-rose-300 px-4 py-2.5 text-xs flex items-center justify-center space-x-2 backdrop-blur-md shadow-lg">
+        <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+        <span className="font-bold">
+          Protocol Directory Error: Module addresses could not be resolved from ProtocolDirectory on-chain registry. Hardcoded fallbacks are disabled.
+        </span>
+      </div>
+    );
+  }
 
   if (isError) {
     return (
