@@ -2,8 +2,8 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA || 'https://sepolia
 const ORACLE_MANAGER_ADDRESS = '0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F';
 
 const TOKENS = {
-  cbBTC: '0xc83D0A904E1103d8144E9DF93cdb5bC05f7cdee6',
-  WETH: '0xEEAa69Db6046f026d88004d0D6946518071bA15c',
+  cbBTC: '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29',
+  WETH: '0xd116ab1c943cf15904ec4c8dd701086f175fa323',
   USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
 };
 
@@ -39,9 +39,21 @@ async function runKeeperDaemon() {
     const ethPrice = (Number(ethRaw) / 1e18).toFixed(2);
     const usdcPrice = (Number(usdcRaw) / 1e18).toFixed(4);
 
-    console.log(`🤖 Starting UnifyVault Real-Time Oracle Keeper...`);
-    console.log(`🌐 Connected to Base Sepolia (${RPC_URL})`);
-    console.log(`📈 Real-Time Spot Prices: BTC = $${btcPrice} | ETH = $${ethPrice} | USDC = $${usdcPrice}`);
+    let liveMarketStr = '';
+    try {
+      const liveRes = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+      const liveJson = await liveRes.json();
+      const rates = liveJson?.data?.rates;
+      if (rates && rates.BTC && rates.ETH) {
+        const liveBtc = (1 / parseFloat(rates.BTC)).toFixed(2);
+        const liveEth = (1 / parseFloat(rates.ETH)).toFixed(2);
+        liveMarketStr = ` | Live Market: BTC = $${liveBtc} | ETH = $${liveEth}`;
+      }
+    } catch {}
+
+    console.log(`🤖 UnifyVault Real-Time Oracle Keeper Active`);
+    console.log(`🌐 Network: Base Sepolia (${RPC_URL})`);
+    console.log(`📈 On-Chain Valuation: BTC = $${btcPrice} | ETH = $${ethPrice} | USDC = $${usdcPrice}${liveMarketStr}`);
   } catch (err) {
     console.error('Oracle Keeper Error:', err.message);
   }
