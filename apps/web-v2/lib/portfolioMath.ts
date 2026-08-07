@@ -1,68 +1,89 @@
 import { parseUnits } from 'viem';
 
 /**
+ * Calculates the USD valuation of a raw asset balance in 18-decimal BigInt.
+ *
+ * Formula: (balanceRaw * priceUSD18) / (10^decimals)
+ */
+export function calculateAssetUSDValue18(
+  balanceRaw: bigint,
+  decimals: number,
+  priceUSD18: bigint,
+): bigint {
+  if (balanceRaw <= 0n || priceUSD18 <= 0n || decimals < 0) return 0n;
+  return (balanceRaw * priceUSD18) / 10n ** BigInt(decimals);
+}
+
+/**
  * Calculates the USD valuation of a raw asset balance using its native decimal precision
- * and an 18-decimal fixed-point Oracle price.
- *
- * Uses BigInt fixed-point arithmetic `(balanceRaw * priceUSD18) / (10^decimals)` to maintain
- * exact precision before float conversion.
- *
- * @param balanceRaw - Raw BigInt token balance (e.g. 100,000,000 for 1.0 WBTC).
- * @param decimals - Token decimal precision (e.g. 8 for WBTC, 18 for WETH, 6 for USDC).
- * @param priceUSD18 - Asset price in 18-decimal fixed point USD (e.g. 60000e18 for $60,000).
- * @returns USD valuation as a number.
+ * and an 18-decimal fixed-point Oracle price, returning a JS number.
  */
 export function calculateAssetUSDValue(
   balanceRaw: bigint,
   decimals: number,
   priceUSD18: bigint,
 ): number {
-  if (balanceRaw <= 0n || priceUSD18 <= 0n || decimals < 0) return 0;
-  const usdValue18 = (balanceRaw * priceUSD18) / 10n ** BigInt(decimals);
+  const usdValue18 = calculateAssetUSDValue18(balanceRaw, decimals, priceUSD18);
   return Number(usdValue18) / 1e18;
 }
 
 /**
  * Calculates Total Value Locked (TVL) in USD by summing individual asset USD valuations.
- *
- * @param assetValuesUSD - Array of asset valuations in USD.
- * @returns Total portfolio value in USD.
  */
 export function calculateTVLUSD(assetValuesUSD: number[]): number {
-  return assetValuesUSD.reduce((sum, val) => sum + (isNaN(val) || val < 0 ? 0 : val), 0);
+  return assetValuesUSD.reduce((sum, val) => sum + (isNaN(val) || !isFinite(val) || val < 0 ? 0 : val), 0);
+}
+
+/**
+ * Calculates Total Value Locked (TVL) in 18-decimal BigInt.
+ */
+export function calculateTVLUSD18(assetValuesUSD18: bigint[]): bigint {
+  return assetValuesUSD18.reduce((sum, val) => sum + (val < 0n ? 0n : val), 0n);
 }
 
 /**
  * Calculates Net Asset Value (NAV) of the Total Vault in USD.
  * Total Vault NAV is equal to Total Value Locked (TVL) in USD.
- *
- * @param totalPortfolioValueUSD - Total portfolio value in USD.
- * @returns Total Vault NAV in USD. Defaults to 1.0 if zero or negative.
  */
 export function calculateTotalVaultNAVUSD(totalPortfolioValueUSD: number): number {
-  return totalPortfolioValueUSD > 0 ? totalPortfolioValueUSD : 1.0;
+  return totalPortfolioValueUSD > 0 && isFinite(totalPortfolioValueUSD) ? totalPortfolioValueUSD : 1.0;
 }
 
 /**
  * Calculates price per share / NAV per share in USD based on Total Portfolio USD Value and total share supply.
  * Formula: Total Vault NAV / Total Share Supply.
  * Uses 18-decimal fixed point BigInt arithmetic to avoid loss of precision on large share supplies.
- *
- * @param totalPortfolioValueUSD - Total portfolio value in USD.
- * @param totalSharesRaw - Total share token supply in 18-decimal BigInt.
- * @returns Price per share (NAV per share) in USD. Defaults to 1.0 ($1.00) when share supply is zero.
  */
 export function calculateSharePriceUSD(
   totalPortfolioValueUSD: number,
   totalSharesRaw: bigint,
 ): number {
-  if (totalSharesRaw <= 0n || totalPortfolioValueUSD <= 0) {
+  if (totalSharesRaw <= 0n || totalPortfolioValueUSD <= 0 || !isFinite(totalPortfolioValueUSD) || isNaN(totalPortfolioValueUSD)) {
     return 1.0;
   }
-  const totalPortfolioValueUSD18 = parseUnits(totalPortfolioValueUSD.toFixed(18), 18);
-  const sharePriceUSD18 = (totalPortfolioValueUSD18 * 10n ** 18n) / totalSharesRaw;
-  return Number(sharePriceUSD18) / 1e18;
+  try {
+    const totalPortfolioValueUSD18 = parseUnits(totalPortfolioValueUSD.toFixed(18), 18);
+    const sharePriceUSD18 = (totalPortfolioValueUSD18 * 10n ** 18n) / totalSharesRaw;
+    const result = Number(sharePriceUSD18) / 1e18;
+    return result > 0 && isFinite(result) ? result : 1.0;
+  } catch {
+    return 1.0;
+  }
 }
+
+/**
+ * Calculates share price in 18-decimal BigInt fixed point arithmetic directly from TVL BigInt.
+ */
+export function calculateSharePriceUSD18(
+  totalPortfolioValueUSD18: bigint,
+  totalSharesRaw: bigint,
+): bigint {
+  if (totalSharesRaw <= 0n || totalPortfolioValueUSD18 <= 0n) {
+    return 10n ** 18n; // Genesis $1.00 USD (1e18)
+  }
+  return (totalPortfolioValueUSD18 * 10n ** 18n) / totalSharesRaw;
+}
+
 
 /**
  * Calculates Net Asset Value (NAV) per Share in USD.

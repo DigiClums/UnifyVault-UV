@@ -74,5 +74,20 @@ interface ISwapAdapter {
     uint256 amountIn
   ) external view returns (uint256 amountOut);
 
+  function quote(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external view returns (uint256 amountOut);
+
+  function bestRoute(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external view returns (address targetRouter, uint256 expectedOut, bytes memory routeData);
+
+  function supportedRouters() external view returns (address[] memory routers);
+
   function router() external view returns (address);
 }
+

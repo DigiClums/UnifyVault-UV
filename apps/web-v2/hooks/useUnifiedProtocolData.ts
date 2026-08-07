@@ -7,6 +7,7 @@ import {
   ORACLE_MANAGER_ABI,
   COST_BASIS_MANAGER_ABI,
   STRATEGY_MANAGER_ABI,
+  PORTFOLIO_MANAGER_ABI,
 } from '../lib/contracts';
 import { getChainTokens } from '../constants';
 import { useProtocolDirectory } from './useProtocolDirectory';
@@ -27,7 +28,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
-  const { vault, oracle, token, costBasisManager, strategyManager } = useProtocolDirectory();
+  const { vault, oracle, token, costBasisManager, strategyManager, portfolioManager } = useProtocolDirectory();
 
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
@@ -106,6 +107,19 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         abi: STRATEGY_MANAGER_ABI,
         functionName: 'getTargetWeights',
       },
+      // 11. PortfolioManager On-Chain NAV
+      {
+        address: portfolioManager,
+        abi: PORTFOLIO_MANAGER_ABI,
+        functionName: 'calculateNAV',
+      },
+      // 12. CostBasisManager On-Chain Performance
+      {
+        address: costBasisManager,
+        abi: COST_BASIS_MANAGER_ABI,
+        functionName: 'portfolioPerformance',
+        args: [activeUser],
+      },
     ],
     query: {
       enabled: !!vault && !!oracle && !!token,
@@ -122,6 +136,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     priceWETH: (data?.[4]?.result as bigint) || 0n,
     priceUSDC: (data?.[5]?.result as bigint) || 1_000_000_000_000_000_000n,
     totalSharesRaw: (data?.[6]?.result as bigint) || 0n,
+    onChainNAV: data?.[11]?.result as readonly [bigint, bigint] | undefined,
   };
 
   const rawUserData = {
@@ -129,6 +144,9 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     userSharesRaw: userAddress ? (data?.[7]?.result as bigint) || 0n : 0n,
     userUsdcRaw: userAddress ? (data?.[8]?.result as bigint) || 0n : 0n,
     contractInvestedAssetsRaw: userAddress ? (data?.[9]?.result as bigint) || 0n : 0n,
+    onChainPerformance: data?.[12]?.result as
+      | readonly [bigint, bigint, bigint, bigint]
+      | undefined,
   };
 
   const targetWeightsResult = data?.[10]?.result as

@@ -151,10 +151,57 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
         if (price == 0) revert AssetNotSupportedByOracle(asset);
 
         uint8 decimals = IERC20Metadata(asset).decimals();
-        uint256 assetValueUSD = (balance * price) / (10 ** decimals);
-        totalPortfolioValueUSD += assetValueUSD;
+        uint256 valUSD = (balance * price) / (10 ** decimals);
+        totalPortfolioValueUSD += valUSD;
       }
     }
+  }
+
+  /**
+   * @notice Alias for calculatePortfolioValue returning total portfolio USD (18 decimals)
+   */
+  function totalPortfolioValueUSD() external view override returns (uint256) {
+    return calculatePortfolioValue();
+  }
+
+  /**
+   * @notice Calculates aggregate USD valuation of a single collateral asset held in CustodyVault (18 decimals)
+   */
+  function assetValueUSD(address asset) external view override returns (uint256 valueUSD) {
+    if (asset == address(0)) revert ZeroAddressDetected();
+    uint256 balance = ICustodyVaultTotalAssets(custodyVault).totalAssets(asset);
+    if (balance == 0) return 0;
+    uint256 price = IOracle(oracleManager).getAssetPrice(asset);
+    if (price == 0) revert AssetNotSupportedByOracle(asset);
+    uint8 decimals = IERC20Metadata(asset).decimals();
+    return (balance * price) / (10 ** decimals);
+  }
+
+
+  /**
+   * @notice Alias for calculateNAV returning total portfolio value and NAV per share (18 decimals)
+   */
+  function nav() external view override returns (uint256 totalValueUSD, uint256 navPerShare) {
+    return calculateNAV();
+  }
+
+  /**
+   * @notice Returns price per share / NAV per share in 18 decimals
+   */
+  function sharePrice() external view override returns (uint256 pricePerShare) {
+    (, pricePerShare) = calculateNAV();
+  }
+
+  /**
+   * @notice Returns target strategy assets and allocation weights in basis points (BPS)
+   */
+  function allocation()
+    external
+    view
+    override
+    returns (address[] memory targetAssets, uint256[] memory weightsBps)
+  {
+    return IStrategyManager(strategyManager).getTargetWeights();
   }
 
   /**
@@ -178,6 +225,7 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
       navPerShare = (totalPortfolioValueUSD * 1e18) / totalShares;
     }
   }
+
 
   /**
    * @notice Simulates deposit execution, calculating share mint amount and strategy asset allocation breakdown

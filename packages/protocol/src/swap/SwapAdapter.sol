@@ -183,11 +183,42 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) external pure override returns (uint256 amountOut) {
+  ) public pure override returns (uint256 amountOut) {
     if (tokenIn == address(0) || tokenOut == address(0) || amountIn == 0) return 0;
     // Basic fallback simulation estimate
     return amountIn;
   }
+
+  /**
+   * @notice Alias for getExpectedOutput to support unified ISwapAdapter quote interface
+   */
+  function quote(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external pure override returns (uint256 amountOut) {
+    return getExpectedOutput(tokenIn, tokenOut, amountIn);
+  }
+
+  /**
+   * @notice Returns the optimal route and expected output for a swap
+   */
+  function bestRoute(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) external view override returns (address targetRouter, uint256 expectedOut, bytes memory routeData) {
+    return (router, getExpectedOutput(tokenIn, tokenOut, amountIn), '');
+  }
+
+  /**
+   * @notice Returns array of currently supported DEX router addresses
+   */
+  function supportedRouters() external view override returns (address[] memory routers) {
+    routers = new address[](1);
+    routers[0] = router;
+  }
+
 
   // --- Internal Helper Functions ---
 

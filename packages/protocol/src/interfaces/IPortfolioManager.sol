@@ -52,6 +52,19 @@ interface IPortfolioManager {
     view
     returns (uint256 totalPortfolioValueUSD, uint256 navPerShare);
 
+  function totalPortfolioValueUSD() external view returns (uint256);
+
+  function nav() external view returns (uint256 totalPortfolioValueUSD, uint256 navPerShare);
+
+  function sharePrice() external view returns (uint256 pricePerShare);
+
+  function assetValueUSD(address asset) external view returns (uint256 valueUSD);
+
+  function allocation()
+    external
+    view
+    returns (address[] memory targetAssets, uint256[] memory weightsBps);
+
   function previewDeposit(
     address depositAsset,
     uint256 depositAmount

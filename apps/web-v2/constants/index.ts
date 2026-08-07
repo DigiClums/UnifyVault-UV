@@ -51,6 +51,28 @@ export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
 export const PROTOCOL_DIRECTORY_ADDRESS = getProtocolDirectoryAddress();
 
 /**
+ * Base Sepolia Deployed Contracts (V2 Protocol Deployment)
+ */
+export const DEPLOYED_CONTRACTS_SEPOLIA = {
+  ProtocolDirectory: '0xb5dd6d766867cb4c299ad2711068455c718eddbc' as `0x${string}`,
+  Treasury: '0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D' as `0x${string}`,
+  CustodyVault: '0x54696d5d00b58F27F9d8C358560ff2a7d10d409e' as `0x${string}`,
+  OracleManager: '0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635' as `0x${string}`,
+  ChainlinkOracleProvider: '0xef27d89dcbe99f477f5d5d1bcf20c099be53b09d' as `0x${string}`,
+  LiquidityManager: '0xf311e7bd0f5c438a11da188e26433996870d29ba' as `0x${string}`,
+  UVBTCETHToken: '0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1' as `0x${string}`,
+  UnifyVaultController: '0x8B71b41D4dBEb2b6821d44692d3fACAAf77480Bb' as `0x${string}`,
+  StrategyManager: '0x4C52a6277b1B84121b3072C0c92b6Be0b7CC10F1' as `0x${string}`,
+  PortfolioManager: '0x978e3286EB805934215a88694d80b09aDed68D90' as `0x${string}`,
+  SwapAdapter: '0xd21060559c9beb54fC07aFd6151aDf6cFCDDCAeB' as `0x${string}`,
+  FeeManager: '0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3' as `0x${string}`,
+  CostBasisManager: '0xef0637a3d2080749bbcd5d98e6c68d9944c700a6' as `0x${string}`,
+  TimelockController: '0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809' as `0x${string}`,
+  UnifyVaultTimelock: '0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809' as `0x${string}`,
+  GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
+};
+
+/**
  * Core ERC20 Tokens by Chain ID
  */
 export const TOKENS_BY_CHAIN: Record<
@@ -97,6 +119,8 @@ export const MODULE_IDS = {
     '0x3c40c670348eca8b03e7650189aa991cc9d77fcbee961381c2354fae1a3e2188' as `0x${string}`,
   SWAP_ADAPTER:
     '0xb38cc8783565eb75ee1b8d4c76a41d2179385de2efafcf6315528396e14ed8f2' as `0x${string}`,
+  LIQUIDITY_MANAGER:
+    '0x6878742ff510854cb02c186504af5267007c4a6d33f490fc28ec83e83e1458e1' as `0x${string}`,
   FEE_MANAGER:
     '0x42e3570c507db8e472a4592e53f4b6df78eb7c8a8d593e718bb47b707f2c6a90' as `0x${string}`,
   COST_BASIS_MANAGER:

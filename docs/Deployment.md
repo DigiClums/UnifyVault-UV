@@ -122,4 +122,26 @@ After broadcasting deployment transactions:
 - [ ] `CONTROLLER_ROLE` granted to `UnifyVaultController` on `CustodyVault`, `Treasury`, `UVBTCETHToken`, and `LiquidityManager`.
 - [ ] Deployer `CONTROLLER_ROLE` revoked on `UVBTCETHToken`.
 - [ ] Initial deposit executed to mint and burn `DEAD_SHARES` (`1000` wei).
-- [ ] Frontend environment variables updated with the new `NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA` or `NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET`.
+- [x] Frontend environment variables updated with the new `NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA` or `NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET`.
+
+---
+
+## 8. Latest Deployment Addresses (Base Sepolia Testnet - V2)
+
+| Contract / Role | Address |
+| :--- | :--- |
+| **ProtocolDirectory** | `0xb5dd6d766867cb4c299ad2711068455c718eddbc` |
+| **OracleManager** | `0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635` |
+| **ChainlinkOracleProvider** | `0xef27d89dcbe99f477f5d5d1bcf20c099be53b09d` |
+| **Treasury** | `0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D` |
+| **CustodyVault** | `0x54696d5d00b58F27F9d8C358560ff2a7d10d409e` |
+| **LiquidityManager** | `0xf311e7bd0f5c438a11da188e26433996870d29ba` |
+| **UVBTCETHToken** | `0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1` |
+| **CostBasisManager** | `0xef0637a3d2080749bbcd5d98e6c68d9944c700a6` |
+| **SwapAdapter** | `0xd21060559c9beb54fC07aFd6151aDf6cFCDDCAeB` |
+| **StrategyManager** | `0x4C52a6277b1B84121b3072C0c92b6Be0b7CC10F1` |
+| **PortfolioManager** | `0x978e3286EB805934215a88694d80b09aDed68D90` |
+| **UnifyVaultController** | `0x8B71b41D4dBEb2b6821d44692d3fACAAf77480Bb` |
+| **FeeManager** | `0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3` |
+| **TimelockController / UnifyVaultTimelock** | `0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809` |
+| **Gnosis Safe Proposer** | `0x1111111111111111111111111111111111111111` |

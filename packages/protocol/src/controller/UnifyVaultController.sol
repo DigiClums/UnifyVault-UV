@@ -18,6 +18,7 @@ import '../interfaces/IPortfolioManager.sol';
 import '../interfaces/IStrategyManager.sol';
 import '../interfaces/ISwapAdapter.sol';
 import '../interfaces/IFeeManager.sol';
+import '../interfaces/ICostBasisManager.sol';
 import '../constants/ModuleIds.sol';
 import '../vault/CustodyVault.sol';
 import '../token/UVBTCETHToken.sol';
@@ -322,6 +323,16 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   function feeManager() public view returns (address) {
     try IProtocolDirectory(_directory).getAddress(ModuleIds.FEE_MANAGER) returns (address fm) {
       return fm;
+    } catch {
+      return address(0);
+    }
+  }
+
+  function costBasisManager() public view returns (address) {
+    try IProtocolDirectory(_directory).getAddress(ModuleIds.COST_BASIS_MANAGER) returns (
+      address cbm
+    ) {
+      return cbm;
     } catch {
       return address(0);
     }
@@ -884,6 +895,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       quote.netDeposit,
       shares
     );
+    address cbm = costBasisManager();
+    if (cbm != address(0)) {
+      uint256 depositPrice = IOracle(_oracle).getAssetPrice(quote.asset);
+      uint8 depositDecimals = CustodyVault(_vault).assetConfig(quote.asset).decimals;
+      uint256 depositUSD = (quote.netDeposit * depositPrice) / (10 ** depositDecimals);
+      try ICostBasisManager(cbm).recordDeposit(quote.receiver, depositUSD, shares) {} catch {}
+    }
+
     emit DepositExecuted(
       msg.sender,
       quote.depositAmount,
@@ -977,6 +996,8 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       revert ProtocolErrors.SlippageLimitExceeded(minAssetsOut, netOut);
     }
 
+    uint256 userSharesBefore = IERC20(_token).balanceOf(msg.sender);
+
     // 1. Burn shares from msg.sender
     UVBTCETHToken(_token).burn(msg.sender, shares);
 
@@ -989,6 +1010,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
     // 3. Transfer net collateral to receiver
     IERC20(asset).safeTransfer(receiver, netOut);
+
+    address cbm = costBasisManager();
+    if (cbm != address(0)) {
+      uint256 payoutPrice = IOracle(_oracle).getAssetPrice(asset);
+      uint8 payoutDecimals = CustodyVault(_vault).assetConfig(asset).decimals;
+      uint256 payoutUSD = (netOut * payoutPrice) / (10 ** payoutDecimals);
+      try ICostBasisManager(cbm).recordRedeem(msg.sender, userSharesBefore, shares, payoutUSD) {} catch {}
+    }
 
     // 4. Recalculate NAV
     uint256 navAfter = 1e18;

@@ -11,6 +11,7 @@ import {
   calculateAllocationBps,
   calculateAllocationPercent,
   calculateAssetUSDValue,
+  calculateAssetUSDValue18,
   calculateAverageEntryPrice,
   calculateCostBasis,
   calculateCurrentValueUSD,
@@ -19,7 +20,9 @@ import {
   calculateOwnershipRatio,
   calculatePnL,
   calculateSharePriceUSD,
+  calculateSharePriceUSD18,
   calculateTVLUSD,
+  calculateTVLUSD18,
   calculateUserProRataBalance,
   calculateUserProRataUSD,
 } from './portfolioMath';
@@ -33,6 +36,7 @@ export interface RawProtocolContractData {
   priceWETH: bigint;
   priceUSDC: bigint;
   totalSharesRaw: bigint;
+  onChainNAV?: readonly [bigint, bigint];
 }
 
 export interface RawUserContractData {
@@ -56,16 +60,29 @@ export function transformProtocolMetrics(
     priceWETH,
     priceUSDC,
     totalSharesRaw,
+    onChainNAV,
   } = rawData;
 
-  const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC);
-  const wethUSDValue = calculateAssetUSDValue(wethTotalAssets, 18, priceWETH);
-  const usdcUSDValue = calculateAssetUSDValue(usdcTotalAssets, 6, priceUSDC);
+  const wbtcUSDValue18 = calculateAssetUSDValue18(wbtcTotalAssets, 8, priceWBTC);
+  const wethUSDValue18 = calculateAssetUSDValue18(wethTotalAssets, 18, priceWETH);
+  const usdcUSDValue18 = calculateAssetUSDValue18(usdcTotalAssets, 6, priceUSDC);
 
-  const totalPortfolioValueUSDNumber = calculateTVLUSD([wbtcUSDValue, wethUSDValue, usdcUSDValue]);
+  const wbtcUSDValue = Number(wbtcUSDValue18) / 1e18;
+  const wethUSDValue = Number(wethUSDValue18) / 1e18;
+  const usdcUSDValue = Number(usdcUSDValue18) / 1e18;
 
-  const sharePriceUSD = calculateSharePriceUSD(totalPortfolioValueUSDNumber, totalSharesRaw);
+  // Primary source of truth: On-chain PortfolioManager.calculateNAV()
+  const totalPortfolioValueUSDNumber = onChainNAV
+    ? Number(onChainNAV[0]) / 1e18
+    : Number(calculateTVLUSD18([wbtcUSDValue18, wethUSDValue18, usdcUSDValue18])) / 1e18;
+
+  const sharePriceUSD = onChainNAV
+    ? Number(onChainNAV[1]) / 1e18
+    : Number(calculateSharePriceUSD18(calculateTVLUSD18([wbtcUSDValue18, wethUSDValue18, usdcUSDValue18]), totalSharesRaw)) / 1e18;
+
   const totalVaultNAVUSD = calculateTotalVaultNAVUSD(totalPortfolioValueUSDNumber);
+
+
 
   const custodyBtcPercentNum = calculateAllocationPercent(
     wbtcUSDValue,

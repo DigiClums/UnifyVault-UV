@@ -20,4 +20,5 @@ library ModuleIds {
   bytes32 public constant SWAP_ADAPTER = keccak256('SwapAdapter');
   bytes32 public constant LIQUIDITY_MANAGER = keccak256('LiquidityManager');
   bytes32 public constant FEE_MANAGER = keccak256('FeeManager');
+  bytes32 public constant COST_BASIS_MANAGER = keccak256('CostBasisManager');
 }

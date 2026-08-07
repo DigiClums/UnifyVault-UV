@@ -12,6 +12,9 @@ export interface ProtocolAddresses {
   oracle?: `0x${string}`;
   token?: `0x${string}`;
   strategyManager?: `0x${string}`;
+  portfolioManager?: `0x${string}`;
+  swapAdapter?: `0x${string}`;
+  liquidityManager?: `0x${string}`;
   feeManager?: `0x${string}`;
   costBasisManager?: `0x${string}`;
   isLoading: boolean;
@@ -33,6 +36,9 @@ export function useProtocolDirectory(): ProtocolAddresses {
     { key: 'oracle', moduleId: MODULE_IDS.ORACLE },
     { key: 'token', moduleId: MODULE_IDS.TOKEN },
     { key: 'strategyManager', moduleId: MODULE_IDS.STRATEGY_MANAGER },
+    { key: 'portfolioManager', moduleId: MODULE_IDS.PORTFOLIO_MANAGER },
+    { key: 'swapAdapter', moduleId: MODULE_IDS.SWAP_ADAPTER },
+    { key: 'liquidityManager', moduleId: MODULE_IDS.LIQUIDITY_MANAGER },
     { key: 'feeManager', moduleId: MODULE_IDS.FEE_MANAGER },
     { key: 'costBasisManager', moduleId: MODULE_IDS.COST_BASIS_MANAGER },
   ];
@@ -75,8 +81,11 @@ export function useProtocolDirectory(): ProtocolAddresses {
     oracle: getResult(3),
     token: getResult(4),
     strategyManager: getResult(5),
-    feeManager: getResult(6),
-    costBasisManager: getResult(7),
+    portfolioManager: getResult(6),
+    swapAdapter: getResult(7),
+    liquidityManager: getResult(8),
+    feeManager: getResult(9),
+    costBasisManager: getResult(10),
     isLoading: !isZeroAddress && isLoading,
     isError,
     error: error as Error | null,
