@@ -86,8 +86,8 @@ export const TOKENS_BY_CHAIN: Record<
   },
   [baseSepolia.id]: {
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    cbBTC: '0xc83D0A904E1103d8144E9DF93cdb5bC05f7cdee6',
-    WETH: '0xEEAa69Db6046f026d88004d0D6946518071bA15c',
+    cbBTC: '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29',
+    WETH: '0xd116ab1c943cf15904ec4c8dd701086f175fa323',
   },
 };
 

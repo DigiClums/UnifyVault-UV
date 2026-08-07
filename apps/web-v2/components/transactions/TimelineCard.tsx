@@ -60,6 +60,8 @@ const KNOWN_TOKENS: Record<string, string> = {
   '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': 'cbBTC',
   '0x4200000000000000000000000000000000000006': 'WETH',
   '0x036cbd53842c5426634e7929541ec2318f3dcf7e': 'USDC',
+  '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29': 'cbBTC',
+  '0xd116ab1c943cf15904ec4c8dd701086f175fa323': 'WETH',
   '0xc83d0a904e1103d8144e9df93cdb5bc05f7cdee6': 'cbBTC',
   '0xeeaa69db6046f026d88004d0d6946518071ba15c': 'WETH',
 };
