@@ -42,6 +42,12 @@ export function formatShares(shares: bigint | string | number): string {
     num = shares || 0;
   }
 
+  if (num === 0) return '0.0000';
+  if (num > 0 && num < 0.0001) {
+    if (num >= 0.000001) return num.toFixed(6);
+    return '< 0.0001';
+  }
+
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,

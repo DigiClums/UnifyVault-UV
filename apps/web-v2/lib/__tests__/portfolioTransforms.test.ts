@@ -52,7 +52,7 @@ describe('portfolioTransforms Domain Transformation Module', () => {
       userAddress: '0x1234567890123456789012345678901234567890' as `0x${string}`,
       userSharesRaw: 9_000_000_000_000_000_000_000n, // 9,000 shares (10% of 90,000)
       userUsdcRaw: 500_000_000n, // 500 USDC
-      contractInvestedAssetsRaw: 8_000_000_000n, // $8,000 invested capital
+      contractInvestedAssetsRaw: 8_000_000_000_000_000_000_000n, // $8,000 invested capital (18 decimals)
     };
 
     const userPortfolio = transformUserPortfolio(

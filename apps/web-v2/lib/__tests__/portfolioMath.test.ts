@@ -63,8 +63,8 @@ describe('portfolioMath Utility Library', () => {
   });
 
   describe('Invested Capital Fallback Logic', () => {
-    it('uses on-chain CostBasisManager value when available (6 decimals)', () => {
-      const costBasis = calculateCostBasis(500_000_000n, 0n, '0x123');
+    it('uses on-chain CostBasisManager value when available (18 decimals)', () => {
+      const costBasis = calculateCostBasis(500_000_000_000_000_000_000n, 0n, '0x123');
       expect(costBasis).toBe(500.0);
     });
 

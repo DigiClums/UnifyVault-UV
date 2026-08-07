@@ -237,22 +237,41 @@ export function transformUserPortfolio(
   const userUsdcUSD = calculateUserProRataUSD(usdcUSDValue, ownershipRatio);
   const userTotalUSDNumber = userWbtcUSD + userWethUSD + userUsdcUSD;
 
-  // Primary source of truth: On-chain PerformanceManager.performance()
-  const investedAssetsUSD = onChainPerformance
-    ? Number('investedCapitalUSD' in onChainPerformance ? onChainPerformance.investedCapitalUSD : onChainPerformance[1]) / 1e18
-    : calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
+  // Primary source of truth: On-chain PerformanceManager.performance() or CostBasisManager.portfolioPerformance()
+  const isPerformanceManagerStruct =
+    onChainPerformance &&
+    typeof onChainPerformance === 'object' &&
+    !Array.isArray(onChainPerformance) &&
+    'investedCapitalUSD' in (onChainPerformance as object);
 
-  const currentValueUSD = onChainPerformance
-    ? Number('currentValueUSD' in onChainPerformance ? onChainPerformance.currentValueUSD : onChainPerformance[0]) / 1e18
-    : calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
+  const isCostBasisManagerArray =
+    onChainPerformance &&
+    Array.isArray(onChainPerformance) &&
+    onChainPerformance.length >= 4;
 
-  const pnlUSD = onChainPerformance
-    ? Number('netPnL' in onChainPerformance ? onChainPerformance.netPnL : onChainPerformance[4]) / 1e18
-    : calculatePnL(currentValueUSD, investedAssetsUSD).pnlUSD;
+  const investedAssetsUSD = isPerformanceManagerStruct
+    ? Number((onChainPerformance as PerformanceStruct).investedCapitalUSD) / 1e18
+    : isCostBasisManagerArray
+      ? Number(onChainPerformance[0]) / 1e18
+      : calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
 
-  const pnlPercent = onChainPerformance && investedAssetsUSD > 0
-    ? Number('roiBps' in onChainPerformance ? onChainPerformance.roiBps : onChainPerformance[5]) / 100
-    : calculatePnL(currentValueUSD, investedAssetsUSD).pnlPercent;
+  const currentValueUSD = isPerformanceManagerStruct
+    ? Number((onChainPerformance as PerformanceStruct).currentValueUSD) / 1e18
+    : isCostBasisManagerArray
+      ? Number(onChainPerformance[1]) / 1e18
+      : calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
+
+  const pnlUSD = isPerformanceManagerStruct
+    ? Number((onChainPerformance as PerformanceStruct).netPnL) / 1e18
+    : isCostBasisManagerArray
+      ? Number(onChainPerformance[2]) / 1e18
+      : calculatePnL(currentValueUSD, investedAssetsUSD).pnlUSD;
+
+  const pnlPercent = isPerformanceManagerStruct && investedAssetsUSD > 0
+    ? Number((onChainPerformance as PerformanceStruct).roiBps) / 100
+    : isCostBasisManagerArray && investedAssetsUSD > 0
+      ? Number(onChainPerformance[3]) / 100
+      : calculatePnL(currentValueUSD, investedAssetsUSD).pnlPercent;
 
   const isProfitable = pnlUSD >= 0;
 

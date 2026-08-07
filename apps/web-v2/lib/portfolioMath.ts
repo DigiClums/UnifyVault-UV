@@ -166,6 +166,15 @@ export function calculateUserProRataUSD(totalAssetUSD: number, ownershipRatio: n
  * @param userAddress - User's EVM wallet address for localStorage lookup.
  * @returns Invested capital in USD.
  */
+/**
+ * Derives user invested capital in USD based on on-chain cost basis, browser localStorage cache,
+ * and genesis share price fallback rules.
+ *
+ * @param contractInvestedRaw - On-chain invested assets raw BigInt (18 decimals USD fixed point).
+ * @param userSharesRaw - User raw share balance (18 decimals).
+ * @param userAddress - User's EVM wallet address for localStorage lookup.
+ * @returns Invested capital in USD.
+ */
 export function calculateCostBasis(
   contractInvestedRaw: bigint,
   userSharesRaw: bigint,
@@ -173,9 +182,9 @@ export function calculateCostBasis(
 ): number {
   let investedAssetsUSD = 0;
 
-  // 1. On-chain CostBasisManager tracking
+  // 1. On-chain CostBasisManager tracking (18 decimals fixed point)
   if (contractInvestedRaw > 0n) {
-    investedAssetsUSD = Number(contractInvestedRaw) / 1e6;
+    investedAssetsUSD = Number(contractInvestedRaw) / 1e18;
   }
   // 2. Browser localStorage fallback
   else if (typeof window !== 'undefined' && userAddress) {
@@ -191,7 +200,9 @@ export function calculateCostBasis(
     }
   }
 
-  return investedAssetsUSD;
+  return isFinite(investedAssetsUSD) && !isNaN(investedAssetsUSD) && investedAssetsUSD >= 0
+    ? investedAssetsUSD
+    : 0;
 }
 
 /**
@@ -202,9 +213,12 @@ export function calculateCostBasis(
  * @returns Current user portfolio USD value.
  */
 export function calculateCurrentValueUSD(userSharesRaw: bigint, sharePriceUSD: number): number {
-  if (userSharesRaw <= 0n || sharePriceUSD <= 0) return 0;
+  if (userSharesRaw <= 0n || sharePriceUSD <= 0 || !isFinite(sharePriceUSD) || isNaN(sharePriceUSD)) {
+    return 0;
+  }
   const userSharesNumber = Number(userSharesRaw) / 1e18;
-  return userSharesNumber * sharePriceUSD;
+  const val = userSharesNumber * sharePriceUSD;
+  return isFinite(val) && !isNaN(val) && val >= 0 ? val : 0;
 }
 
 /**
@@ -218,20 +232,23 @@ export function calculatePnL(
   currentValueUSD: number,
   investedAssetsUSD: number,
 ): { pnlUSD: number; pnlPercent: number; isProfitable: boolean } {
-  const pnlUSD = currentValueUSD - investedAssetsUSD;
-  const pnlPercent = investedAssetsUSD > 0 ? (pnlUSD / investedAssetsUSD) * 100 : 0;
+  const safeCurrent = isFinite(currentValueUSD) && !isNaN(currentValueUSD) ? currentValueUSD : 0;
+  const safeInvested = isFinite(investedAssetsUSD) && !isNaN(investedAssetsUSD) ? investedAssetsUSD : 0;
+
+  const pnlUSD = safeCurrent - safeInvested;
+  const pnlPercent = safeInvested > 0 ? (pnlUSD / safeInvested) * 100 : 0;
   const isProfitable = pnlUSD >= 0;
 
   return {
-    pnlUSD,
-    pnlPercent,
+    pnlUSD: isFinite(pnlUSD) && !isNaN(pnlUSD) ? pnlUSD : 0,
+    pnlPercent: isFinite(pnlPercent) && !isNaN(pnlPercent) ? pnlPercent : 0,
     isProfitable,
   };
 }
 
 /**
  * Calculates user average entry price per share in USD.
- * Defaults to current share price if user holds zero shares or zero invested assets.
+ * Defaults to 0 if user holds zero shares or zero invested assets.
  *
  * @param userSharesRaw - User raw share balance (18 decimals).
  * @param investedAssetsUSD - User invested capital in USD.
@@ -243,11 +260,22 @@ export function calculateAverageEntryPrice(
   investedAssetsUSD: number,
   currentSharePriceUSD: number,
 ): number {
-  if (userSharesRaw <= 0n || investedAssetsUSD <= 0) {
+  if (
+    userSharesRaw <= 0n ||
+    investedAssetsUSD <= 0 ||
+    !isFinite(investedAssetsUSD) ||
+    isNaN(investedAssetsUSD)
+  ) {
     return 0;
   }
   const userSharesNumber = Number(userSharesRaw) / 1e18;
-  return userSharesNumber > 0 ? investedAssetsUSD / userSharesNumber : 0;
+  if (userSharesNumber <= 0 || !isFinite(userSharesNumber) || isNaN(userSharesNumber)) {
+    return 0;
+  }
+  const avgEntryPrice = investedAssetsUSD / userSharesNumber;
+  return isFinite(avgEntryPrice) && !isNaN(avgEntryPrice) && avgEntryPrice >= 0
+    ? avgEntryPrice
+    : 0;
 }
 
 /**
