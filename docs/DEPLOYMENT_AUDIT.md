@@ -19,20 +19,20 @@
 
 | Contract Name | Module ID Key | Canonical Deployed Address | Broadcast Run Status |
 | :--- | :--- | :--- | :---: |
-| **`ProtocolDirectory`** | — | `0xb5dd6d766867cb4c299ad2711068455c718eddbc` | **VERIFIED** |
-| **`OracleManager`** | `ORACLE` | `0xb636dd8f0faa46055fb4a0fafb1eead33eba3635` | **VERIFIED** |
-| **`ChainlinkOracleProvider`** | — | `0xef27d89dcbe99f477f5d5d1bcf20c099be53b09d` | **VERIFIED** |
-| **`Treasury`** | `TREASURY` | `0x0f51d2135ca7b6b5511bfd3b53ebef50af01513d` | **VERIFIED** |
-| **`CustodyVault`** | `VAULT` | `0x54696d5d00b58f27f9d8c358560ff2a7d10d409e` | **VERIFIED** |
-| **`LiquidityManager`** | `LIQUIDITY_MANAGER` | `0xf311e7bd0f5c438a11da188e26433996870d29ba` | **VERIFIED** |
-| **`UVBTCETHToken`** | `TOKEN` | `0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1` | **VERIFIED** |
+| **`ProtocolDirectory`** | — | `0x329158A24DdC8ED267cc5D3f3D9C2905149C596D` | **VERIFIED** |
+| **`OracleManager`** | `ORACLE` | `0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F` | **VERIFIED** |
+| **`ChainlinkOracleProvider`** | — | `0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89` | **VERIFIED** |
+| **`Treasury`** | `TREASURY` | `0x8Aa2e812D244b0C30D45035C3C843f4CdD02aCe6` | **VERIFIED** |
+| **`CustodyVault`** | `VAULT` | `0xa9284887B8670890F675386dA85877c34b40EE44` | **VERIFIED** |
+| **`LiquidityManager`** | `LIQUIDITY_MANAGER` | `0xd0542D47176f2869F034e43Efca2C2d540d1fFD3` | **VERIFIED** |
+| **`UVBTCETHToken`** | `TOKEN` | `0x5c0C26A825639adc58C6edf3aE864616F1dA94b9` | **VERIFIED** |
 | **`CostBasisManager`** | `COST_BASIS_MANAGER`| `0xef0637a3d2080749bbcd5d98e6c68d9944c700a6` | **VERIFIED** |
-| **`SwapAdapter`** | `SWAP_ADAPTER` | `0xd21060559c9beb54fC07aFd6151aDf6cFCDDCAeB` | **VERIFIED** |
-| **`StrategyManager`** | `STRATEGY_MANAGER` | `0x4C52a6277b1B84121b3072C0c92b6Be0b7CC10F1` | **VERIFIED** |
-| **`PortfolioManager`** | `PORTFOLIO_MANAGER` | `0x978e3286EB805934215a88694d80b09aDed68D90` | **VERIFIED** |
-| **`UnifyVaultController`** | `DEPOSIT_MANAGER` | `0x8B71b41D4dBEb2b6821d44692d3fACAAf77480Bb` | **VERIFIED** |
-| **`FeeManager`** | `FEE_MANAGER` | `0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3` | **VERIFIED** |
-| **`UnifyVaultTimelock`** | — | `0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809` | **VERIFIED** |
+| **`SwapAdapter`** | `SWAP_ADAPTER` | `0xa0164433c94b68522201e3DcbFDDC391B36c45f3` | **VERIFIED** |
+| **`StrategyManager`** | `STRATEGY_MANAGER` | `0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958` | **VERIFIED** |
+| **`PortfolioManager`** | `PORTFOLIO_MANAGER` | `0x5d597C08F5f2B2A7870b081dC741A776Ed730601` | **VERIFIED** |
+| **`UnifyVaultController`** | `DEPOSIT_MANAGER` | `0xC99868355790A58A737a4841B963CB32030DdBab` | **VERIFIED** |
+| **`FeeManager`** | `FEE_MANAGER` | `0xea8e047Fa4981935419B2065095e031b6224AC76` | **VERIFIED** |
+| **`UnifyVaultTimelock`** | — | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | **VERIFIED** |
 
 ---
 

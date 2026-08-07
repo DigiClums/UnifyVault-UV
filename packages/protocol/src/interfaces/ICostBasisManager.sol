@@ -44,6 +44,8 @@ interface ICostBasisManager {
 
   function unrealizedPnL(address account) external view returns (int256 pnlUSD);
 
+  function firstDepositTimestamp(address account) external view returns (uint256 timestamp);
+
   function portfolioPerformance(
     address account
   )

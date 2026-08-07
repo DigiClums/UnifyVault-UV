@@ -338,6 +338,16 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     }
   }
 
+  function performanceManager() public view returns (address) {
+    try IProtocolDirectory(_directory).getAddress(ModuleIds.PERFORMANCE_MANAGER) returns (
+      address pm
+    ) {
+      return pm;
+    } catch {
+      return address(0);
+    }
+  }
+
   function getDepositFeeBps() public view returns (uint256) {
     address fm = feeManager();
     if (fm != address(0)) {

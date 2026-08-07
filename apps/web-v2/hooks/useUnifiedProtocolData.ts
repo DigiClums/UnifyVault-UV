@@ -6,6 +6,7 @@ import {
   ERC20_ABI,
   ORACLE_MANAGER_ABI,
   COST_BASIS_MANAGER_ABI,
+  PERFORMANCE_MANAGER_ABI,
   STRATEGY_MANAGER_ABI,
   PORTFOLIO_MANAGER_ABI,
 } from '../lib/contracts';
@@ -28,7 +29,8 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
-  const { vault, oracle, token, costBasisManager, strategyManager, portfolioManager } = useProtocolDirectory();
+  const { vault, oracle, token, costBasisManager, performanceManager, strategyManager, portfolioManager } =
+    useProtocolDirectory();
 
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
@@ -113,11 +115,11 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         abi: PORTFOLIO_MANAGER_ABI,
         functionName: 'calculateNAV',
       },
-      // 12. CostBasisManager On-Chain Performance
+      // 12. PerformanceManager On-Chain Performance Struct
       {
-        address: costBasisManager,
-        abi: COST_BASIS_MANAGER_ABI,
-        functionName: 'portfolioPerformance',
+        address: performanceManager,
+        abi: PERFORMANCE_MANAGER_ABI,
+        functionName: 'performance',
         args: [activeUser],
       },
     ],

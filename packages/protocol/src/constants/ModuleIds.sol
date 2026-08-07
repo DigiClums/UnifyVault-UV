@@ -21,4 +21,5 @@ library ModuleIds {
   bytes32 public constant LIQUIDITY_MANAGER = keccak256('LiquidityManager');
   bytes32 public constant FEE_MANAGER = keccak256('FeeManager');
   bytes32 public constant COST_BASIS_MANAGER = keccak256('CostBasisManager');
+  bytes32 public constant PERFORMANCE_MANAGER = keccak256('PerformanceManager');
 }

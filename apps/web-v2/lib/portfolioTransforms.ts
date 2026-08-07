@@ -39,11 +39,22 @@ export interface RawProtocolContractData {
   onChainNAV?: readonly [bigint, bigint];
 }
 
+export interface PerformanceStruct {
+  currentValueUSD: bigint;
+  investedCapitalUSD: bigint;
+  realizedPnL: bigint;
+  unrealizedPnL: bigint;
+  netPnL: bigint;
+  roiBps: bigint;
+  holdingPeriod: bigint;
+}
+
 export interface RawUserContractData {
   userAddress?: `0x${string}`;
   userSharesRaw: bigint;
   userUsdcRaw: bigint;
   contractInvestedAssetsRaw: bigint;
+  onChainPerformance?: PerformanceStruct | readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint];
 }
 
 export function transformProtocolMetrics(
@@ -81,8 +92,6 @@ export function transformProtocolMetrics(
     : Number(calculateSharePriceUSD18(calculateTVLUSD18([wbtcUSDValue18, wethUSDValue18, usdcUSDValue18]), totalSharesRaw)) / 1e18;
 
   const totalVaultNAVUSD = calculateTotalVaultNAVUSD(totalPortfolioValueUSDNumber);
-
-
 
   const custodyBtcPercentNum = calculateAllocationPercent(
     wbtcUSDValue,
@@ -184,7 +193,7 @@ export function transformUserPortfolio(
   chainId?: number,
 ): UserPortfolio {
   const tokens = getChainTokens(chainId);
-  const { userAddress, userSharesRaw, userUsdcRaw, contractInvestedAssetsRaw } = rawUserData;
+  const { userAddress, userSharesRaw, userUsdcRaw, contractInvestedAssetsRaw, onChainPerformance } = rawUserData;
   const {
     totalSharesRaw,
     wbtcTotalAssets,
@@ -225,14 +234,24 @@ export function transformUserPortfolio(
   const userUsdcUSD = calculateUserProRataUSD(usdcUSDValue, ownershipRatio);
   const userTotalUSDNumber = userWbtcUSD + userWethUSD + userUsdcUSD;
 
-  const investedAssetsUSD = calculateCostBasis(
-    contractInvestedAssetsRaw,
-    userSharesRaw,
-    userAddress,
-  );
+  // Primary source of truth: On-chain PerformanceManager.performance()
+  const investedAssetsUSD = onChainPerformance
+    ? Number('investedCapitalUSD' in onChainPerformance ? onChainPerformance.investedCapitalUSD : onChainPerformance[1]) / 1e18
+    : calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
 
-  const currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
-  const { pnlUSD, pnlPercent, isProfitable } = calculatePnL(currentValueUSD, investedAssetsUSD);
+  const currentValueUSD = onChainPerformance
+    ? Number('currentValueUSD' in onChainPerformance ? onChainPerformance.currentValueUSD : onChainPerformance[0]) / 1e18
+    : calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
+
+  const pnlUSD = onChainPerformance
+    ? Number('netPnL' in onChainPerformance ? onChainPerformance.netPnL : onChainPerformance[4]) / 1e18
+    : calculatePnL(currentValueUSD, investedAssetsUSD).pnlUSD;
+
+  const pnlPercent = onChainPerformance && investedAssetsUSD > 0
+    ? Number('roiBps' in onChainPerformance ? onChainPerformance.roiBps : onChainPerformance[5]) / 100
+    : calculatePnL(currentValueUSD, investedAssetsUSD).pnlPercent;
+
+  const isProfitable = pnlUSD >= 0;
 
   const averageEntryPriceUSDNum = calculateAverageEntryPrice(
     userSharesRaw,

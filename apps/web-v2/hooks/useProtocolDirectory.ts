@@ -17,6 +17,7 @@ export interface ProtocolAddresses {
   liquidityManager?: `0x${string}`;
   feeManager?: `0x${string}`;
   costBasisManager?: `0x${string}`;
+  performanceManager?: `0x${string}`;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -41,6 +42,7 @@ export function useProtocolDirectory(): ProtocolAddresses {
     { key: 'liquidityManager', moduleId: MODULE_IDS.LIQUIDITY_MANAGER },
     { key: 'feeManager', moduleId: MODULE_IDS.FEE_MANAGER },
     { key: 'costBasisManager', moduleId: MODULE_IDS.COST_BASIS_MANAGER },
+    { key: 'performanceManager', moduleId: MODULE_IDS.PERFORMANCE_MANAGER },
   ];
 
   const contracts = moduleKeys.map((item) => ({
@@ -86,6 +88,7 @@ export function useProtocolDirectory(): ProtocolAddresses {
     liquidityManager: getResult(8),
     feeManager: getResult(9),
     costBasisManager: getResult(10),
+    performanceManager: getResult(11),
     isLoading: !isZeroAddress && isLoading,
     isError,
     error: error as Error | null,

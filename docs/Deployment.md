@@ -130,18 +130,18 @@ After broadcasting deployment transactions:
 
 | Contract / Role | Address |
 | :--- | :--- |
-| **ProtocolDirectory** | `0xb5dd6d766867cb4c299ad2711068455c718eddbc` |
-| **OracleManager** | `0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635` |
-| **ChainlinkOracleProvider** | `0xef27d89dcbe99f477f5d5d1bcf20c099be53b09d` |
-| **Treasury** | `0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D` |
-| **CustodyVault** | `0x54696d5d00b58F27F9d8C358560ff2a7d10d409e` |
-| **LiquidityManager** | `0xf311e7bd0f5c438a11da188e26433996870d29ba` |
-| **UVBTCETHToken** | `0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1` |
+| **ProtocolDirectory** | `0x329158A24DdC8ED267cc5D3f3D9C2905149C596D` |
+| **OracleManager** | `0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F` |
+| **ChainlinkOracleProvider** | `0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89` |
+| **Treasury** | `0x8Aa2e812D244b0C30D45035C3C843f4CdD02aCe6` |
+| **CustodyVault** | `0xa9284887B8670890F675386dA85877c34b40EE44` |
+| **LiquidityManager** | `0xd0542D47176f2869F034e43Efca2C2d540d1fFD3` |
+| **UVBTCETHToken** | `0x5c0C26A825639adc58C6edf3aE864616F1dA94b9` |
 | **CostBasisManager** | `0xef0637a3d2080749bbcd5d98e6c68d9944c700a6` |
-| **SwapAdapter** | `0xd21060559c9beb54fC07aFd6151aDf6cFCDDCAeB` |
-| **StrategyManager** | `0x4C52a6277b1B84121b3072C0c92b6Be0b7CC10F1` |
-| **PortfolioManager** | `0x978e3286EB805934215a88694d80b09aDed68D90` |
-| **UnifyVaultController** | `0x8B71b41D4dBEb2b6821d44692d3fACAAf77480Bb` |
-| **FeeManager** | `0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3` |
-| **TimelockController / UnifyVaultTimelock** | `0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809` |
+| **SwapAdapter** | `0xa0164433c94b68522201e3DcbFDDC391B36c45f3` |
+| **StrategyManager** | `0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958` |
+| **PortfolioManager** | `0x5d597C08F5f2B2A7870b081dC741A776Ed730601` |
+| **UnifyVaultController** | `0xC99868355790A58A737a4841B963CB32030DdBab` |
+| **FeeManager** | `0xea8e047Fa4981935419B2065095e031b6224AC76` |
+| **TimelockController / UnifyVaultTimelock** | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
 | **Gnosis Safe Proposer** | `0x1111111111111111111111111111111111111111` |

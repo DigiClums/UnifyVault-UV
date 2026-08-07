@@ -38,7 +38,7 @@ export const DIRECTORY_ADDRESS_MAINNET = (process.env.NEXT_PUBLIC_DIRECTORY_ADDR
   '0x7EF5D93f83995228efFc63dbe513367a719f0633') as `0x${string}`;
 
 export const DIRECTORY_ADDRESS_SEPOLIA = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA ||
-  '0xb5dd6d766867cb4c299ad2711068455c718eddbc') as `0x${string}`;
+  '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D') as `0x${string}`;
 
 export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
   const targetChain = chainId || getDefaultChainId();
@@ -54,21 +54,21 @@ export const PROTOCOL_DIRECTORY_ADDRESS = getProtocolDirectoryAddress();
  * Base Sepolia Deployed Contracts (V2 Protocol Deployment)
  */
 export const DEPLOYED_CONTRACTS_SEPOLIA = {
-  ProtocolDirectory: '0xb5dd6d766867cb4c299ad2711068455c718eddbc' as `0x${string}`,
-  Treasury: '0x0F51D2135cA7b6b5511bFD3B53EBEf50af01513D' as `0x${string}`,
-  CustodyVault: '0x54696d5d00b58F27F9d8C358560ff2a7d10d409e' as `0x${string}`,
-  OracleManager: '0xB636DD8F0faA46055fB4a0fafB1EEAD33eBa3635' as `0x${string}`,
-  ChainlinkOracleProvider: '0xef27d89dcbe99f477f5d5d1bcf20c099be53b09d' as `0x${string}`,
-  LiquidityManager: '0xf311e7bd0f5c438a11da188e26433996870d29ba' as `0x${string}`,
-  UVBTCETHToken: '0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1' as `0x${string}`,
-  UnifyVaultController: '0x8B71b41D4dBEb2b6821d44692d3fACAAf77480Bb' as `0x${string}`,
-  StrategyManager: '0x4C52a6277b1B84121b3072C0c92b6Be0b7CC10F1' as `0x${string}`,
-  PortfolioManager: '0x978e3286EB805934215a88694d80b09aDed68D90' as `0x${string}`,
-  SwapAdapter: '0xd21060559c9beb54fC07aFd6151aDf6cFCDDCAeB' as `0x${string}`,
-  FeeManager: '0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3' as `0x${string}`,
+  ProtocolDirectory: '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D' as `0x${string}`,
+  Treasury: '0x8Aa2e812D244b0C30D45035C3C843f4CdD02aCe6' as `0x${string}`,
+  CustodyVault: '0xa9284887B8670890F675386dA85877c34b40EE44' as `0x${string}`,
+  OracleManager: '0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F' as `0x${string}`,
+  ChainlinkOracleProvider: '0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89' as `0x${string}`,
+  LiquidityManager: '0xd0542D47176f2869F034e43Efca2C2d540d1fFD3' as `0x${string}`,
+  UVBTCETHToken: '0x5c0C26A825639adc58C6edf3aE864616F1dA94b9' as `0x${string}`,
+  UnifyVaultController: '0xC99868355790A58A737a4841B963CB32030DdBab' as `0x${string}`,
+  StrategyManager: '0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958' as `0x${string}`,
+  PortfolioManager: '0x5d597C08F5f2B2A7870b081dC741A776Ed730601' as `0x${string}`,
+  SwapAdapter: '0xa0164433c94b68522201e3DcbFDDC391B36c45f3' as `0x${string}`,
+  FeeManager: '0xea8e047Fa4981935419B2065095e031b6224AC76' as `0x${string}`,
   CostBasisManager: '0xef0637a3d2080749bbcd5d98e6c68d9944c700a6' as `0x${string}`,
-  TimelockController: '0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809' as `0x${string}`,
-  UnifyVaultTimelock: '0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809' as `0x${string}`,
+  TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
+  UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
 };
 
@@ -125,6 +125,8 @@ export const MODULE_IDS = {
     '0x42e3570c507db8e472a4592e53f4b6df78eb7c8a8d593e718bb47b707f2c6a90' as `0x${string}`,
   COST_BASIS_MANAGER:
     '0xd4741fb770f259864462ac1e0f0c516cde3c7a9a37aa2882da996c82ffff9796' as `0x${string}`,
+  PERFORMANCE_MANAGER:
+    '0x269098bc57f631edac5f87b8d0092c42d991bfca4b1c1e5cb3eece27b036987c' as `0x${string}`,
   CONTROLLER: '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
 };
 

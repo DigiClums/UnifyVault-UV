@@ -21,6 +21,7 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
 
   mapping(address => uint256) private _costBasisUSD;
   mapping(address => int256) private _realizedPnLUSD;
+  mapping(address => uint256) private _firstDepositTimestamp;
 
   constructor(address admin, address directoryAddress) {
     if (admin == address(0)) revert ZeroAddressDetected();
@@ -60,6 +61,10 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     if (user == address(0)) revert ZeroAddressDetected();
     if (depositValueUSD == 0 || sharesMinted == 0) return;
 
+    if (_firstDepositTimestamp[user] == 0) {
+      _firstDepositTimestamp[user] = block.timestamp;
+    }
+
     _costBasisUSD[user] += depositValueUSD;
 
     uint256 totalShares = indexToken != address(0) ? IERC20(indexToken).balanceOf(user) : sharesMinted;
@@ -93,6 +98,10 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     }
 
     uint256 totalSharesAfter = indexToken != address(0) ? IERC20(indexToken).balanceOf(user) : (userSharesBefore - sharesBurned);
+
+    if (_costBasisUSD[user] == 0 || totalSharesAfter == 0) {
+      _firstDepositTimestamp[user] = 0;
+    }
 
     emit CostBasisUpdated(user, _costBasisUSD[user], totalSharesAfter, block.timestamp);
     emit RealizedPnLRecorded(user, realizedGainLoss, sharesBurned, block.timestamp);
@@ -129,6 +138,10 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     uint256 currentValueUSD = (userShares * navPerShare) / 1e18;
 
     return int256(currentValueUSD) - int256(basis);
+  }
+
+  function firstDepositTimestamp(address account) external view override returns (uint256 timestamp) {
+    return _firstDepositTimestamp[account];
   }
 
   function portfolioPerformance(
