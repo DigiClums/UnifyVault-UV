@@ -15,6 +15,8 @@ import { useProtocolDirectory } from './useProtocolDirectory';
 import { HistoricalNavPoint, ProtocolMetrics, UserPortfolio } from '../types';
 import { transformProtocolMetrics, transformUserPortfolio } from '../lib/portfolioTransforms';
 
+import { useLivePrices } from './useLivePrices';
+
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
@@ -28,8 +30,16 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
-  const { vault, oracle, token, costBasisManager, performanceManager, strategyManager, portfolioManager } =
-    useProtocolDirectory();
+  const livePrices = useLivePrices();
+  const {
+    vault,
+    oracle,
+    token,
+    costBasisManager,
+    performanceManager,
+    strategyManager,
+    portfolioManager,
+  } = useProtocolDirectory();
 
   const activePerformanceContract = performanceManager || costBasisManager;
 
@@ -131,13 +141,21 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     },
   });
 
+  const onChainBtcPrice = (data?.[3]?.result as bigint) || 0n;
+  const onChainEthPrice = (data?.[4]?.result as bigint) || 0n;
+  const onChainUsdcPrice = (data?.[5]?.result as bigint) || 0n;
+
+  const priceWBTC = livePrices.btcPrice18 > 0n ? livePrices.btcPrice18 : onChainBtcPrice;
+  const priceWETH = livePrices.ethPrice18 > 0n ? livePrices.ethPrice18 : onChainEthPrice;
+  const priceUSDC = livePrices.usdcPrice18 > 0n ? livePrices.usdcPrice18 : onChainUsdcPrice;
+
   const rawProtocolData = {
     wbtcTotalAssets: (data?.[0]?.result as bigint) || 0n,
     wethTotalAssets: (data?.[1]?.result as bigint) || 0n,
     usdcTotalAssets: (data?.[2]?.result as bigint) || 0n,
-    priceWBTC: (data?.[3]?.result as bigint) || 0n,
-    priceWETH: (data?.[4]?.result as bigint) || 0n,
-    priceUSDC: (data?.[5]?.result as bigint) || 0n,
+    priceWBTC,
+    priceWETH,
+    priceUSDC,
     totalSharesRaw: (data?.[6]?.result as bigint) || 0n,
     onChainNAV: data?.[11]?.result as readonly [bigint, bigint] | undefined,
   };
@@ -147,9 +165,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     userSharesRaw: userAddress ? (data?.[7]?.result as bigint) || 0n : 0n,
     userUsdcRaw: userAddress ? (data?.[8]?.result as bigint) || 0n : 0n,
     contractInvestedAssetsRaw: userAddress ? (data?.[9]?.result as bigint) || 0n : 0n,
-    onChainPerformance: data?.[12]?.result as
-      | readonly [bigint, bigint, bigint, bigint]
-      | undefined,
+    onChainPerformance: data?.[12]?.result as readonly [bigint, bigint, bigint, bigint] | undefined,
   };
 
   const targetWeightsResult = data?.[10]?.result as
@@ -196,4 +212,3 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
 export { useStrategyMetrics } from './useStrategyMetrics';
 export { useProtocolMetrics } from './useProtocolMetrics';
 export { useUserPortfolio } from './useUserPortfolio';
-

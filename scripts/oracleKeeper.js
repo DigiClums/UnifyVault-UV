@@ -10,7 +10,7 @@ const TOKENS = {
 // getAssetPrice(address) selector = 0xb35b2e9d
 function getPriceCalldata(tokenAddress) {
   const cleanAddr = tokenAddress.toLowerCase().replace('0x', '').padStart(64, '0');
-  return '0xb3596f07' + cleanAddr;
+  return '0xb35b2e9d' + cleanAddr;
 }
 
 async function callRpc(data) {
@@ -53,7 +53,9 @@ async function runKeeperDaemon() {
 
     console.log(`🤖 UnifyVault Real-Time Oracle Keeper Active`);
     console.log(`🌐 Network: Base Sepolia (${RPC_URL})`);
-    console.log(`📈 On-Chain Valuation: BTC = $${btcPrice} | ETH = $${ethPrice} | USDC = $${usdcPrice}${liveMarketStr}`);
+    console.log(
+      `📈 On-Chain Valuation: BTC = $${btcPrice} | ETH = $${ethPrice} | USDC = $${usdcPrice}${liveMarketStr}`,
+    );
   } catch (err) {
     console.error('Oracle Keeper Error:', err.message);
   }
