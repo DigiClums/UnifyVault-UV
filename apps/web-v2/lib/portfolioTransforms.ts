@@ -26,7 +26,16 @@ import {
   calculateUserProRataBalance,
   calculateUserProRataUSD,
 } from './portfolioMath';
-import { formatPercent, formatShares, formatUnits, formatUSD } from './math';
+import {
+  formatNAVUSD,
+  formatPercent,
+  formatPnLPercent,
+  formatPnLUSD,
+  formatShares,
+  formatUnits,
+  formatUSD,
+  formatHighPrecisionUSD,
+} from './math';
 
 export interface RawProtocolContractData {
   wbtcTotalAssets: bigint;
@@ -177,8 +186,8 @@ export function transformProtocolMetrics(
     totalPortfolioValueUSD: formatUSD(totalPortfolioValueUSDNumber),
     totalVaultNAVUSD: formatUSD(totalVaultNAVUSD),
     totalPortfolioValueUSDNumber,
-    navPerShareUSD: formatUSD(sharePriceUSD),
-    sharePriceUSD: formatUSD(sharePriceUSD),
+    navPerShareUSD: formatNAVUSD(sharePriceUSD),
+    sharePriceUSD: formatNAVUSD(sharePriceUSD),
     sharePriceNumber: sharePriceUSD,
     totalSharesRaw,
     totalSharesFormatted: formatShares(totalSharesRaw),
@@ -397,11 +406,11 @@ export function transformUserPortfolio(
     userUsdcBalanceFormatted: formatUnits(userUsdcRaw, 6),
     investedAssetsUSD: formatUSD(investedAssetsUSD),
     rawInvestedAssetsUSD: investedAssetsUSD,
-    currentValueUSD: formatUSD(currentValueUSD),
+    currentValueUSD: formatHighPrecisionUSD(currentValueUSD, 4),
     rawCurrentValueUSD: currentValueUSD,
-    pnlUSD: pnlUSD > 0.005 ? `+${formatUSD(pnlUSD)}` : formatUSD(pnlUSD),
+    pnlUSD: formatPnLUSD(pnlUSD),
     rawPnLUSD: pnlUSD,
-    pnlPercentage: formatPercent(pnlPercent),
+    pnlPercentage: formatPnLPercent(pnlPercent),
     isProfitable,
     averageEntryPriceUSD: formatUSD(averageEntryPriceUSDNum),
     ownershipPercentage,

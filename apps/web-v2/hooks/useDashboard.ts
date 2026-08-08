@@ -33,5 +33,8 @@ export function useDashboard(): DashboardMetrics {
     rawPnLUSD: data.rawPnLUSD,
     isLoading: data.isLoading,
     isError: data.isError,
+    dataUpdatedAt: data.dataUpdatedAt,
+    secondsAgo: data.secondsAgo,
+    isLiveSynced: data.isLiveSynced,
   };
 }

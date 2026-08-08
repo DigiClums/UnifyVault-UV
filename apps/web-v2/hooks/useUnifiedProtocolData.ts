@@ -15,22 +15,22 @@ import { useProtocolDirectory } from './useProtocolDirectory';
 import { HistoricalNavPoint, ProtocolMetrics, UserPortfolio } from '../types';
 import { transformProtocolMetrics, transformUserPortfolio } from '../lib/portfolioTransforms';
 
-import { useLivePrices } from './useLivePrices';
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
-
 export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
   historicalNAV: HistoricalNavPoint[];
   isLoading: boolean;
   isError: boolean;
+  dataUpdatedAt: number;
+  secondsAgo: number | null;
+  isLiveSynced: boolean;
   refetch: () => void;
 }
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
-  const livePrices = useLivePrices();
   const {
     vault,
     oracle,
@@ -43,7 +43,7 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
 
   const activePerformanceContract = performanceManager || costBasisManager;
 
-  const { data, isLoading, isError, refetch } = useReadContracts({
+  const { data, isLoading, isError, refetch, dataUpdatedAt } = useReadContracts({
     contracts: [
       // 0. CustodyVault total WBTC
       {
@@ -136,18 +136,16 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     ],
     query: {
       enabled: !!vault && !!oracle && !!token,
-      staleTime: 15_000,
+      staleTime: 5_000,
+      refetchInterval: 5_000,
+      refetchOnWindowFocus: true,
       gcTime: 5 * 60 * 1000,
     },
   });
 
-  const onChainBtcPrice = (data?.[3]?.result as bigint) || 0n;
-  const onChainEthPrice = (data?.[4]?.result as bigint) || 0n;
-  const onChainUsdcPrice = (data?.[5]?.result as bigint) || 0n;
-
-  const priceWBTC = livePrices.btcPrice18 > 0n ? livePrices.btcPrice18 : onChainBtcPrice;
-  const priceWETH = livePrices.ethPrice18 > 0n ? livePrices.ethPrice18 : onChainEthPrice;
-  const priceUSDC = livePrices.usdcPrice18 > 0n ? livePrices.usdcPrice18 : onChainUsdcPrice;
+  const priceWBTC = (data?.[3]?.result as bigint) || 0n;
+  const priceWETH = (data?.[4]?.result as bigint) || 0n;
+  const priceUSDC = (data?.[5]?.result as bigint) || 0n;
 
   const rawProtocolData = {
     wbtcTotalAssets: (data?.[0]?.result as bigint) || 0n,
@@ -199,12 +197,20 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
 
   const historicalNAV: HistoricalNavPoint[] = [];
 
+  const dataAgeMs = dataUpdatedAt ? Date.now() - dataUpdatedAt : null;
+  const secondsAgo = dataAgeMs !== null ? Math.max(0, Math.floor(dataAgeMs / 1000)) : null;
+  const isLiveSynced =
+    !isLoading && !isError && dataUpdatedAt > 0 && (dataAgeMs === null || dataAgeMs < 30_000);
+
   return {
     ...protocolMetrics,
     ...userPortfolio,
     historicalNAV,
     isLoading,
     isError,
+    dataUpdatedAt,
+    secondsAgo,
+    isLiveSynced,
     refetch,
   };
 }

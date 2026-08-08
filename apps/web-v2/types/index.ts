@@ -59,6 +59,9 @@ export interface DashboardMetrics {
   rawPnLUSD: number;
   isLoading: boolean;
   isError: boolean;
+  dataUpdatedAt?: number;
+  secondsAgo?: number | null;
+  isLiveSynced?: boolean;
 }
 
 export interface AssetHolding {

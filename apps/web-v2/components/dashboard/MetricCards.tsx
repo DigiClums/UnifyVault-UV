@@ -21,6 +21,13 @@ interface MetricCardsProps {
 }
 
 export function MetricCards({ metrics }: MetricCardsProps) {
+  const secondsAgoStr =
+    metrics.secondsAgo !== undefined && metrics.secondsAgo !== null
+      ? metrics.secondsAgo <= 1
+        ? 'Updated just now'
+        : `Updated ${metrics.secondsAgo}s ago`
+      : 'Updated 5s ago';
+
   const cards = [
     {
       title: 'Total Portfolio Value',
@@ -30,7 +37,8 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       icon: DollarSign,
       iconBg: 'bg-accent-blue/10 text-accent-blue',
       source: 'On-chain: PortfolioManager.calculatePortfolioValue()',
-      isLiveSynced: true,
+      isLiveSynced: metrics.isLiveSynced ?? true,
+      timeText: secondsAgoStr,
     },
     {
       title: 'Current NAV / Share Price',
@@ -39,8 +47,9 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       isPositive: true,
       icon: Activity,
       iconBg: 'bg-accent-violet/10 text-accent-violet',
-      source: 'On-chain: Total Vault NAV / Total Supply',
-      isLiveSynced: true,
+      source: 'On-chain: PortfolioManager.calculateNAV()',
+      isLiveSynced: metrics.isLiveSynced ?? true,
+      timeText: secondsAgoStr,
     },
     {
       title: 'Your Invested Capital',
@@ -49,7 +58,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       isPositive: true,
       icon: Wallet,
       iconBg: 'bg-accent-emerald/10 text-accent-emerald',
-      source: 'On-chain: UnifyVaultController',
+      source: 'On-chain: CostBasisManager',
       isLiveSynced: false,
     },
     {
@@ -59,8 +68,9 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       isPositive: true,
       icon: Coins,
       iconBg: 'bg-accent-cyan/10 text-accent-cyan',
-      source: 'On-chain: userShares * sharePriceUSD',
-      isLiveSynced: true,
+      source: 'On-chain: userShares × onChainNAV',
+      isLiveSynced: metrics.isLiveSynced ?? true,
+      timeText: secondsAgoStr,
     },
     {
       title: 'Net Profit & Loss (PnL)',
@@ -71,8 +81,9 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       iconBg: metrics.isProfitable
         ? 'bg-accent-emerald/10 text-accent-emerald'
         : 'bg-accent-rose/10 text-accent-rose',
-      source: 'Calculated: currentValue - investedAssets',
-      isLiveSynced: true,
+      source: 'Calculated: currentValue - costBasis',
+      isLiveSynced: metrics.isLiveSynced ?? true,
+      timeText: secondsAgoStr,
     },
     {
       title: 'Strategy Index Allocation',
@@ -93,24 +104,35 @@ export function MetricCards({ metrics }: MetricCardsProps) {
         return (
           <Card key={idx} glow className="relative group overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col space-y-1">
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
                   {card.title}
                 </span>
-                {card.isLiveSynced && (
-                  <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
-                    <Zap className="w-2.5 h-2.5 animate-pulse" />
-                    <span>LIVE</span>
-                  </span>
-                )}
+                <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                  {card.isLiveSynced ? (
+                    <>
+                      <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
+                        <Zap className="w-2.5 h-2.5 animate-pulse" />
+                        <span>LIVE • Oracle valued</span>
+                      </span>
+                      {card.timeText && (
+                        <span className="text-[10px] font-medium text-slate-400">
+                          {card.timeText}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[10px] font-medium text-slate-400">On-chain Sync</span>
+                  )}
+                </div>
               </div>
-              <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
+              <div className={`p-2.5 rounded-xl ${card.iconBg} shrink-0`}>
                 <Icon className="w-5 h-5" />
               </div>
             </div>
 
             <div className="space-y-1 min-w-0">
-              <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+              <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate font-mono">
                 {metrics.isLoading ? (
                   <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                 ) : (

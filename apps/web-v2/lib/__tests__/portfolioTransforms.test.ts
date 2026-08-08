@@ -28,8 +28,8 @@ describe('portfolioTransforms Domain Transformation Module', () => {
     expect(protocolMetrics.totalPortfolioValueUSDNumber).toBe(90000);
     expect(protocolMetrics.totalPortfolioValueUSD).toBe('$90,000.00');
 
-    // Share Price = $90,000 / 90,000 shares = $1.00
-    expect(protocolMetrics.sharePriceUSD).toBe('$1.00');
+    // Share Price = $90,000 / 90,000 shares = $1.00000000
+    expect(protocolMetrics.sharePriceUSD).toBe('$1.00000000');
 
     // Target Weights vs Current Custody Weights
     expect(protocolMetrics.targetBtcPercent).toBe('50.0%');
@@ -112,8 +112,8 @@ describe('portfolioTransforms Domain Transformation Module', () => {
 
     expect(protocolMetrics.totalPortfolioValueUSDNumber).toBe(0);
     expect(protocolMetrics.totalPortfolioValueUSD).toBe('$0.00');
-    expect(protocolMetrics.sharePriceUSD).toBe('$1.00');
-    expect(protocolMetrics.navPerShareUSD).toBe('$1.00');
+    expect(protocolMetrics.sharePriceUSD).toBe('$1.00000000');
+    expect(protocolMetrics.navPerShareUSD).toBe('$1.00000000');
     expect(protocolMetrics.totalSharesFormatted).toBe('0.0000');
     expect(protocolMetrics.protocolHoldings).toHaveLength(3);
 
@@ -148,10 +148,10 @@ describe('portfolioTransforms Domain Transformation Module', () => {
       protocolMetrics,
     );
 
-    expect(userPortfolio.currentValueUSD).toBe('$9.97');
+    expect(userPortfolio.currentValueUSD).toBe('$9.9700');
     expect(userPortfolio.investedAssetsUSD).toBe('$10.00');
     expect(userPortfolio.averageEntryPriceUSD).toBe('$2.19');
-    expect(userPortfolio.pnlPercentage).toBe('-0.30%');
+    expect(userPortfolio.pnlPercentage).toBe('-0.3000%');
   });
 
   it('correctly parses CostBasisManager 4-element positional array', () => {
@@ -177,9 +177,9 @@ describe('portfolioTransforms Domain Transformation Module', () => {
       protocolMetrics,
     );
 
-    expect(userPortfolio.currentValueUSD).toBe('$9.97');
+    expect(userPortfolio.currentValueUSD).toBe('$9.9700');
     expect(userPortfolio.investedAssetsUSD).toBe('$10.00');
     expect(userPortfolio.averageEntryPriceUSD).toBe('$2.19');
-    expect(userPortfolio.pnlPercentage).toBe('-0.30%');
+    expect(userPortfolio.pnlPercentage).toBe('-0.3000%');
   });
 });
