@@ -22,7 +22,7 @@ export interface UseAddTokenResult {
 }
 
 export function useAddTokenToWallet(): UseAddTokenResult {
-  const { chain } = useAccount();
+  const { connector, chain } = useAccount();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
 
   const [status, setStatus] = useState<TokenAddStatus>('idle');
@@ -46,7 +46,94 @@ export function useAddTokenToWallet(): UseAddTokenResult {
       setStatus('pending');
       setErrorMessage(null);
 
-      // 1. Try wagmi watchAssetAsync
+      // Dev-only diagnostic logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[UVBTCETH Token Add] Connector:', connector?.name, connector?.id);
+        console.log('[UVBTCETH Token Add] Chain ID:', chain?.id);
+      }
+
+      // 1. Obtain active provider directly from connected Wagmi connector (EIP-1193)
+      let provider: any = null;
+      try {
+        if (connector?.getProvider) {
+          provider = await connector.getProvider();
+        }
+      } catch {
+        // Fallback to window.ethereum if connector getProvider fails
+      }
+
+      if (!provider && typeof window !== 'undefined' && window.ethereum) {
+        provider = window.ethereum;
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          '[UVBTCETH Token Add] Active Provider available:',
+          Boolean(provider),
+          Boolean(provider?.request),
+        );
+      }
+
+      // 2. Call wallet_watchAsset on the active connector provider
+      if (provider && typeof provider.request === 'function') {
+        try {
+          const res = await provider.request({
+            method: 'wallet_watchAsset',
+            params: {
+              type: 'ERC20',
+              options: {
+                address,
+                symbol,
+                decimals,
+                ...(image ? { image } : {}),
+              },
+            },
+          });
+
+          if (res === true) {
+            setStatus('success');
+            return true;
+          } else if (res === false) {
+            setStatus('rejected');
+            setErrorMessage('Token was not added');
+            return false;
+          }
+        } catch (err: unknown) {
+          const errObj = err as any;
+          const msg = errObj?.message || String(err);
+          const code = errObj?.code;
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[UVBTCETH Token Add] Provider request error:', code, msg);
+          }
+
+          // User rejected / cancelled in wallet
+          if (
+            code === 4001 ||
+            msg.toLowerCase().includes('user rejected') ||
+            msg.toLowerCase().includes('user denied') ||
+            msg.toLowerCase().includes('rejected')
+          ) {
+            setStatus('rejected');
+            setErrorMessage('Token import request was cancelled in your wallet.');
+            return false;
+          }
+
+          // Method not supported on mobile provider (-32601 or Unsupported)
+          if (
+            code === -32601 ||
+            msg.toLowerCase().includes('not supported') ||
+            msg.toLowerCase().includes('unsupported') ||
+            msg.toLowerCase().includes('does not support')
+          ) {
+            setStatus('unsupported');
+            setErrorMessage("Your wallet doesn't support automatic token import.");
+            return false;
+          }
+        }
+      }
+
+      // 3. Fallback to wagmi watchAssetAsync if direct provider request did not succeed
       try {
         if (watchAssetAsync) {
           const success = await watchAssetAsync({
@@ -64,68 +151,37 @@ export function useAddTokenToWallet(): UseAddTokenResult {
           }
         }
       } catch (err: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errObj = err as any;
         const msg = errObj?.message || String(err);
+        const code = errObj?.code;
 
         if (
-          errObj?.code === 4001 ||
+          code === 4001 ||
           msg.toLowerCase().includes('user rejected') ||
           msg.toLowerCase().includes('user denied')
         ) {
           setStatus('rejected');
-          setErrorMessage('Token addition request was cancelled in your wallet.');
+          setErrorMessage('Token import request was cancelled in your wallet.');
           return false;
         }
-      }
 
-      // 2. Direct fallback to window.ethereum.request({ method: 'wallet_watchAsset' })
-      if (typeof window !== 'undefined' && window.ethereum && window.ethereum.request) {
-        try {
-          const added = await window.ethereum.request({
-            method: 'wallet_watchAsset',
-            params: {
-              type: 'ERC20',
-              options: {
-                address,
-                symbol,
-                decimals,
-                ...(image ? { image } : {}),
-              },
-            },
-          });
-          if (added) {
-            setStatus('success');
-            return true;
-          } else {
-            setStatus('rejected');
-            setErrorMessage('Token addition cancelled by user.');
-            return false;
-          }
-        } catch (fallbackErr: unknown) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fObj = fallbackErr as any;
-          const fMsg = fObj?.message || String(fallbackErr);
-          if (
-            fObj?.code === 4001 ||
-            fMsg.toLowerCase().includes('user rejected') ||
-            fMsg.toLowerCase().includes('user denied')
-          ) {
-            setStatus('rejected');
-            setErrorMessage('Token addition request was cancelled in your wallet.');
-            return false;
-          }
+        if (
+          code === -32601 ||
+          msg.toLowerCase().includes('not supported') ||
+          msg.toLowerCase().includes('unsupported')
+        ) {
           setStatus('unsupported');
-          setErrorMessage('Your wallet does not support automatic token import.');
+          setErrorMessage("Your wallet doesn't support automatic token import.");
           return false;
         }
       }
 
+      // 4. Default fallback if unsupported by wallet
       setStatus('unsupported');
-      setErrorMessage('Your wallet does not support automatic token import.');
+      setErrorMessage("Your wallet doesn't support automatic token import.");
       return false;
     },
-    [watchAssetAsync],
+    [connector, chain?.id, watchAssetAsync],
   );
 
   return {

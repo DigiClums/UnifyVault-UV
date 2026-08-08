@@ -112,12 +112,12 @@ export function AddTokenToWallet({
         <button
           onClick={handleAddToken}
           disabled={status === 'pending'}
-          className="flex-1 py-2 px-3 rounded-lg bg-accent-blue hover:bg-blue-600 active:scale-[0.99] text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5"
+          className="flex-1 py-2 px-3 rounded-lg bg-accent-blue hover:bg-blue-600 active:scale-[0.99] text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 min-w-[140px]"
         >
           {status === 'pending' ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Awaiting Wallet...</span>
+              <span>Confirm in wallet...</span>
             </>
           ) : status === 'success' ? (
             <>
@@ -138,20 +138,26 @@ export function AddTokenToWallet({
           title={`Copy full contract address: ${address}`}
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-400 font-bold">Copied!</span>
+            </>
           ) : (
-            <Copy className="w-3.5 h-3.5 text-slate-400" />
+            <>
+              <Copy className="w-3.5 h-3.5 text-slate-400" />
+              <span>Copy Contract Address</span>
+            </>
           )}
-          <span>{copied ? 'Copied!' : shortAddr}</span>
         </button>
 
         <a
           href={explorerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-accent-blue border border-slate-700 transition-colors"
+          className="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-accent-blue font-mono text-xs border border-slate-700 flex items-center space-x-1.5 transition-colors"
           title="View contract on BaseScan explorer"
         >
+          <span>View Contract</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>
@@ -161,16 +167,16 @@ export function AddTokenToWallet({
           <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
           <span>
             {errorMessage ||
-              'Token import request cancelled in wallet. Click above anytime to retry.'}
+              'Token was not added to wallet. UVBTCETH was minted successfully — you can add it anytime.'}
           </span>
         </div>
       )}
 
       {status === 'unsupported' && (
-        <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] space-y-1 font-mono">
+        <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] space-y-1.5 font-mono">
           <div className="flex items-center space-x-1.5 text-amber-400 font-semibold font-sans">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>Your wallet does not support automatic token import.</span>
+            <span>Your wallet doesn't support automatic token import.</span>
           </div>
           <div className="text-slate-400 pt-0.5">
             Manually import using contract address:{' '}

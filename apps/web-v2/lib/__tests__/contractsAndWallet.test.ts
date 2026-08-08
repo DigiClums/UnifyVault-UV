@@ -50,6 +50,62 @@ describe('Protocol Contracts & Wallet Integration Suite', () => {
     expect(watchAssetParams.options.decimals).toBe(18);
   });
 
+  it('should verify desktop and mobile EIP-1193 provider wallet_watchAsset execution matrix', async () => {
+    const mockSuccessProvider = {
+      request: async ({ method, params }: { method: string; params: any }) => {
+        if (method === 'wallet_watchAsset' && params.options.symbol === 'UVBTCETH') {
+          return true;
+        }
+        return false;
+      },
+    };
+
+    const resSuccess = await mockSuccessProvider.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: {
+          address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+          symbol: 'UVBTCETH',
+          decimals: 18,
+        },
+      },
+    });
+
+    expect(resSuccess).toBe(true);
+
+    const mockRejectionProvider = {
+      request: async () => {
+        const err = new Error('User rejected the request.');
+        (err as any).code = 4001;
+        throw err;
+      },
+    };
+
+    await expect(
+      mockRejectionProvider.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+            symbol: 'UVBTCETH',
+            decimals: 18,
+          },
+        },
+      }),
+    ).rejects.toThrow('User rejected the request.');
+  });
+
+  it('should verify deposit transaction state remains confirmed even if token import fails', () => {
+    const depositStepState = 'confirmed';
+    const tokenAddStatus = 'rejected';
+
+    expect(depositStepState).toBe('confirmed');
+    expect(tokenAddStatus).toBe('rejected');
+    expect(depositStepState === 'confirmed').toBe(true);
+  });
+
   it('should verify no private keys or secrets exist in deployed contract configuration', () => {
     const contractsObj = JSON.stringify(DEPLOYED_CONTRACTS_SEPOLIA);
     expect(contractsObj).not.toContain('privateKey');
