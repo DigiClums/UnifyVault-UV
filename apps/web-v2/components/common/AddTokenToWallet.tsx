@@ -54,6 +54,7 @@ export function AddTokenToWallet({
 
   const shortAddr = `${address.slice(0, 6)}…${address.slice(-4)}`;
   const explorerUrl = `${explorerBaseUrl}/address/${address}`;
+  const metamaskDappUrl = `https://metamask.app.link/dapp/app.unifyvault.xyz/deposit`;
 
   const handleCopy = async () => {
     try {
@@ -68,7 +69,6 @@ export function AddTokenToWallet({
   };
 
   const handleAddToken = async () => {
-    // Automatically copy address to clipboard as a helpful fallback for mobile browsers
     if (isMobile) {
       handleCopy();
     }
@@ -116,8 +116,8 @@ export function AddTokenToWallet({
             <h4 className="font-bold text-white text-xs">Add {symbol} to Wallet</h4>
             <p className="text-[11px] text-slate-400">
               {isMobile
-                ? `Add ${symbol} to your mobile wallet (MetaMask, Trust Wallet, Coinbase)`
-                : `One-click watch request for ${name}`}
+                ? `Import ${symbol} shares into Mobile Wallet`
+                : `1-click token watch request for ${name}`}
             </p>
           </div>
         </div>
@@ -130,41 +130,63 @@ export function AddTokenToWallet({
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-        <button
-          onClick={handleAddToken}
-          disabled={status === 'pending'}
-          className="flex-1 py-2.5 px-3 rounded-lg bg-accent-blue hover:bg-blue-600 active:scale-[0.99] text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 min-h-[44px]"
-        >
-          {status === 'pending' ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Awaiting Wallet...</span>
-            </>
-          ) : status === 'success' ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-white" />
-              <span>{symbol} Added to Wallet</span>
-            </>
-          ) : (
-            <>
-              <PlusCircle className="w-4 h-4" />
-              <span>Add {symbol} to Wallet</span>
-            </>
-          )}
-        </button>
+        {/* On Mobile Chrome, primary action is Copy Contract Address */}
+        {isMobile ? (
+          <button
+            onClick={handleCopy}
+            className="flex-1 py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center space-x-1.5 min-h-[44px]"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                <span>Address Copied to Clipboard!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 text-white" />
+                <span>Copy {symbol} Contract Address</span>
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={handleAddToken}
+            disabled={status === 'pending'}
+            className="flex-1 py-2.5 px-3 rounded-lg bg-accent-blue hover:bg-blue-600 active:scale-[0.99] text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 min-h-[44px]"
+          >
+            {status === 'pending' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Awaiting Wallet Response...</span>
+              </>
+            ) : status === 'success' ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>{symbol} Added to Wallet</span>
+              </>
+            ) : (
+              <>
+                <PlusCircle className="w-4 h-4" />
+                <span>Auto-Add {symbol} to Wallet</span>
+              </>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={handleCopy}
-          className="py-2.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 font-mono text-xs border border-slate-700 flex items-center justify-center space-x-1.5 transition-colors min-h-[44px]"
-          title={`Copy full contract address: ${address}`}
-        >
-          {copied ? (
-            <Check className="w-4 h-4 text-emerald-400" />
-          ) : (
-            <Copy className="w-4 h-4 text-slate-400" />
-          )}
-          <span className="font-bold">{copied ? 'Address Copied!' : `Copy ${shortAddr}`}</span>
-        </button>
+        {!isMobile && (
+          <button
+            onClick={handleCopy}
+            className="py-2.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 font-mono text-xs border border-slate-700 flex items-center justify-center space-x-1.5 transition-colors min-h-[44px]"
+            title={`Copy full contract address: ${address}`}
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <Copy className="w-4 h-4 text-slate-400" />
+            )}
+            <span className="font-bold">{copied ? 'Address Copied!' : `Copy ${shortAddr}`}</span>
+          </button>
+        )}
 
         <a
           href={explorerUrl}
@@ -180,37 +202,58 @@ export function AddTokenToWallet({
       {copiedToast && isMobile && (
         <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center space-x-2 font-mono">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>Address copied to clipboard! Paste in your wallet to import {symbol}.</span>
+          <span>
+            Address copied to clipboard! Open your Mobile Wallet &gt; Import Custom Token.
+          </span>
         </div>
       )}
 
-      {/* Mobile Explanation Box for External Mobile Browsers */}
+      {/* Mobile Chrome Protocol Explanation & Step-by-Step */}
       {isMobile && (
-        <div className="p-3 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] space-y-2 font-sans">
+        <div className="p-3.5 rounded-lg bg-slate-800/90 border border-slate-700/80 text-slate-300 text-[11px] space-y-2.5 font-sans">
           <div className="flex items-center space-x-2 text-slate-200 font-bold">
             <Smartphone className="w-4 h-4 text-accent-blue shrink-0" />
-            <span>Mobile Wallet Import Notice</span>
+            <span>Mobile Token Import Notice</span>
           </div>
 
           <p className="text-slate-300 text-[11px] leading-relaxed">
-            Mobile Chrome/Safari opens your wallet app when tapping <strong>Add to Wallet</strong>.
-            If your mobile wallet opens without a popup prompt:
+            Desktop browsers (Brave, Chrome extension) support 1-tap auto-addition. Mobile Chrome
+            uses WalletConnect deep-links which require pasting the contract address into your
+            mobile wallet app:
           </p>
 
-          <div className="text-slate-300 text-[11px] space-y-1 font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+          <div className="text-slate-300 text-[11px] space-y-1.5 font-mono bg-slate-950/80 p-3 rounded-lg border border-slate-800">
             <div>
-              1. Tap <strong className="text-emerald-400">Copy Address</strong> above (
-              <span className="text-white font-bold">{shortAddr}</span>)
+              1. Tap <strong className="text-emerald-400">Copy Contract Address</strong> above
             </div>
-            <div>2. Open your Wallet App (MetaMask, Trust Wallet, Coinbase)</div>
+            <div>2. Open your Mobile Wallet (MetaMask, Trust Wallet, Coinbase)</div>
             <div>
-              3. Go to <strong className="text-white">Tokens &gt; Import Custom Token</strong> and
-              paste
+              3. Go to <strong className="text-white">Tokens &gt; Import Custom Token</strong> &amp;
+              paste:
+              <div className="text-white font-bold select-all break-all pt-0.5 text-[10px]">
+                {address}
+              </div>
             </div>
-            <div className="text-slate-400 pt-1 text-[10px] flex justify-between border-t border-slate-800 mt-1">
-              <span>Decimals: 18</span>
-              <span>Symbol: {symbol}</span>
+            <div className="text-slate-400 pt-1 text-[10px] flex justify-between border-t border-slate-800/80 mt-1.5">
+              <span>
+                Symbol: <strong className="text-white">{symbol}</strong>
+              </span>
+              <span>
+                Decimals: <strong className="text-white">18</strong>
+              </span>
             </div>
+          </div>
+
+          <div className="pt-1 flex items-center justify-between">
+            <a
+              href={metamaskDappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-mono text-accent-blue hover:underline flex items-center space-x-1"
+            >
+              <span>Open in MetaMask In-App Browser</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         </div>
       )}
