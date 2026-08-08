@@ -264,24 +264,25 @@ export default function ProtocolExplorerPage() {
         subtitle="Each row is one transaction. Click to expand the full multi-contract execution trace."
         icon={History}
         action={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
-              disabled={pageIndex === 0}
-              className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Newer blocks"
+              disabled={pageIndex === 0 || isFetching}
+              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Previous</span>
             </button>
-            <span className="text-xs text-slate-400 font-mono px-1 min-w-[5ch] text-center">
-              {pageIndex === 0 ? 'Latest' : `-${pageIndex}`}
+            <span className="text-xs text-slate-300 font-mono px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+              Page {pageIndex + 1}
             </span>
             <button
               onClick={() => setPageIndex(pageIndex + 1)}
-              className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 transition-colors"
-              title="Load older transactions"
+              disabled={transactions.length === 0 || isFetching}
+              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
             >
-              <ChevronRight className="w-4 h-4" />
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         }

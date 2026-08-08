@@ -153,17 +153,17 @@ export function MetricCards({ metrics }: MetricCardsProps) {
               </div>
             </div>
 
-            {/* Documented Source Tooltip */}
-            <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 min-w-0">
+            {/* Provenance Badge & Tooltip */}
+            <div className="mt-4 pt-3 border-t border-border-subtle/50 flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 min-w-0">
               <div className="flex items-center space-x-1 shrink-0">
-                <Info className="w-3 h-3 text-slate-400 shrink-0" />
-                <span>Source</span>
+                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-slate-400">Provenance</span>
               </div>
               <span
-                title={card.source}
-                className="font-mono text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-slate-200 dark:border-border-subtle truncate max-w-[170px] sm:max-w-[210px] text-right"
+                title={`Source: ${card.source}`}
+                className="font-mono text-[10px] text-slate-400 dark:text-slate-300 bg-slate-800/50 hover:bg-slate-800 px-2 py-0.5 rounded border border-slate-700/50 transition-colors cursor-help shrink-0"
               >
-                {card.source}
+                On-chain
               </span>
             </div>
           </Card>

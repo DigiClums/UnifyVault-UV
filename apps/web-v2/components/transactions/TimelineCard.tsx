@@ -650,8 +650,150 @@ interface TimelineCardProps {
   explorerUrl: string;
 }
 
+function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
+  const depEvent = tx.events.find((e) => e.eventName === 'DepositExecuted');
+  const redEvent = tx.events.find((e) => e.eventName === 'RedeemExecuted');
+
+  if (tx.actionType === 'deposit' && depEvent) {
+    const depositAmount = depEvent.args.depositAmount as bigint | undefined;
+    const fee = depEvent.args.fee as bigint | undefined;
+    const sharesMinted = depEvent.args.sharesMinted as bigint | undefined;
+    const targetAssets = depEvent.args.targetAssets as string[] | undefined;
+    const assetsBought = depEvent.args.assetsBought as bigint[] | undefined;
+
+    return (
+      <div className="mb-4 p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1.5">
+        <div className="font-sans font-bold text-slate-200 text-xs flex items-center justify-between pb-1.5 border-b border-slate-800">
+          <span className="flex items-center space-x-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Deposit Execution Summary</span>
+          </span>
+          <span className="text-[10px] text-emerald-400 font-semibold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+            Success
+          </span>
+        </div>
+        <div className="space-y-1 pt-1 text-slate-300">
+          <div className="flex items-center space-x-2">
+            <span className="text-slate-500">├─</span>
+            <span>
+              User deposited:{' '}
+              <strong className="text-white">
+                {depositAmount ? formatAmount(depositAmount, 6) : tx.summaryAmount} USDC
+              </strong>
+            </span>
+          </div>
+          {fee !== undefined && fee > 0n && (
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">├─</span>
+              <span>
+                Protocol fee: <span className="text-amber-400">{formatAmount(fee, 6)} USDC</span>
+              </span>
+            </div>
+          )}
+          {targetAssets && assetsBought && targetAssets.length === assetsBought.length && (
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">├─</span>
+              <span>
+                Strategy assets acquired:{' '}
+                <span className="text-cyan-300">
+                  {targetAssets
+                    .map((a, i) => `${formatAmount(assetsBought[i], 18)} ${getTokenSymbol(a)}`)
+                    .join(', ')}
+                </span>
+              </span>
+            </div>
+          )}
+          {sharesMinted !== undefined && (
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">├─</span>
+              <span>
+                Index shares minted:{' '}
+                <strong className="text-white">{formatAmount(sharesMinted)} UVBTCETH</strong>
+              </span>
+            </div>
+          )}
+          <div className="flex items-center space-x-2 pt-0.5">
+            <span className="text-slate-500">└─</span>
+            <span className="text-emerald-400 font-semibold">Transaction successful</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (tx.actionType === 'redeem' && redEvent) {
+    const sharesBurned = redEvent.args.sharesBurned as bigint | undefined;
+    const fee = redEvent.args.fee as bigint | undefined;
+    const usdcReturned = redEvent.args.usdcReturned as bigint | undefined;
+    const targetAssets = redEvent.args.targetAssets as string[] | undefined;
+    const assetsSold = redEvent.args.assetsSold as bigint[] | undefined;
+
+    return (
+      <div className="mb-4 p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1.5">
+        <div className="font-sans font-bold text-slate-200 text-xs flex items-center justify-between pb-1.5 border-b border-slate-800">
+          <span className="flex items-center space-x-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />
+            <span>Redeem Execution Summary</span>
+          </span>
+          <span className="text-[10px] text-purple-400 font-semibold px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20">
+            Success
+          </span>
+        </div>
+        <div className="space-y-1 pt-1 text-slate-300">
+          <div className="flex items-center space-x-2">
+            <span className="text-slate-500">├─</span>
+            <span>
+              Shares burned:{' '}
+              <strong className="text-white">
+                {sharesBurned ? formatAmount(sharesBurned) : tx.summaryAmount} UVBTCETH
+              </strong>
+            </span>
+          </div>
+          {targetAssets && assetsSold && targetAssets.length === assetsSold.length && (
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">├─</span>
+              <span>
+                Strategy assets liquidated:{' '}
+                <span className="text-cyan-300">
+                  {targetAssets
+                    .map((a, i) => `${formatAmount(assetsSold[i], 18)} ${getTokenSymbol(a)}`)
+                    .join(', ')}
+                </span>
+              </span>
+            </div>
+          )}
+          {fee !== undefined && fee > 0n && (
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">├─</span>
+              <span>
+                Protocol fee: <span className="text-amber-400">{formatAmount(fee, 6)} USDC</span>
+              </span>
+            </div>
+          )}
+          {usdcReturned !== undefined && (
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">├─</span>
+              <span>
+                USDC payout:{' '}
+                <strong className="text-white">{formatAmount(usdcReturned, 6)} USDC</strong>
+              </span>
+            </div>
+          )}
+          <div className="flex items-center space-x-2 pt-0.5">
+            <span className="text-slate-500">└─</span>
+            <span className="text-emerald-400 font-semibold">Transaction successful</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showTechnicalEvents, setShowTechnicalEvents] = useState(false);
 
   const txShort = `${tx.transactionHash.slice(0, 8)}…${tx.transactionHash.slice(-6)}`;
   const time = new Date(tx.timestamp * 1000);
@@ -782,12 +924,36 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
                 )}
               </div>
 
-              {/* Timeline */}
-              <div className="space-y-0 ml-1">
-                {tx.events.map((evt) => (
-                  <TimelineStep key={evt.id} event={evt} explorerUrl={explorerUrl} />
-                ))}
+              {/* Human Readable Execution Summary First */}
+              <HumanReadableExecutionSummary tx={tx} />
+
+              {/* Toggle for Raw Technical On-Chain Events */}
+              <div className="mt-2 mb-3">
+                <button
+                  onClick={() => setShowTechnicalEvents(!showTechnicalEvents)}
+                  className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      showTechnicalEvents ? 'rotate-0' : '-rotate-90'
+                    }`}
+                  />
+                  <span>
+                    {showTechnicalEvents
+                      ? 'Hide Technical Events'
+                      : `Show Technical Events (${eventCount} events)`}
+                  </span>
+                </button>
               </div>
+
+              {/* Raw Technical Events Timeline */}
+              {showTechnicalEvents && (
+                <div className="space-y-0 ml-1 border-t border-slate-800/60 pt-3">
+                  {tx.events.map((evt) => (
+                    <TimelineStep key={evt.id} event={evt} explorerUrl={explorerUrl} />
+                  ))}
+                </div>
+              )}
 
               {/* Legend */}
               <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-wrap gap-3 text-[10px] text-slate-500">

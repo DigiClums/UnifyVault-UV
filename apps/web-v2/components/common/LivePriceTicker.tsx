@@ -103,12 +103,12 @@ export function LivePriceTicker() {
           {/* BTC Price */}
           <div
             className={cn(
-              'flex items-center space-x-1.5 px-2.5 py-0.5 rounded-lg border transition-all duration-300 font-mono text-[11px]',
+              'flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md border transition-colors duration-200 font-mono text-[11px]',
               livePrices.flashStates.btc === 'up'
-                ? 'bg-accent-emerald/20 border-accent-emerald text-accent-emerald shadow-glow-emerald animate-bounce-short'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 : livePrices.flashStates.btc === 'down'
-                  ? 'bg-accent-rose/20 border-accent-rose text-accent-rose shadow-glow animate-bounce-short'
-                  : 'bg-slate-800/60 border-slate-700/60 text-slate-200',
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                  : 'bg-slate-800/40 border-slate-700/50 text-slate-200',
             )}
           >
             <span className="font-semibold text-slate-400">BTC</span>
@@ -116,21 +116,21 @@ export function LivePriceTicker() {
               {livePrices.btcPriceUSD > 0 ? formatUSD(livePrices.btcPriceUSD) : '...'}
             </span>
             {livePrices.btcTrend === 'up' ? (
-              <TrendingUp className="w-3 h-3 text-accent-emerald shrink-0" />
+              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
             ) : livePrices.btcTrend === 'down' ? (
-              <TrendingDown className="w-3 h-3 text-accent-rose shrink-0" />
+              <TrendingDown className="w-3 h-3 text-rose-400 shrink-0" />
             ) : null}
           </div>
 
           {/* ETH Price */}
           <div
             className={cn(
-              'flex items-center space-x-1.5 px-2.5 py-0.5 rounded-lg border transition-all duration-300 font-mono text-[11px]',
+              'flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md border transition-colors duration-200 font-mono text-[11px]',
               livePrices.flashStates.eth === 'up'
-                ? 'bg-accent-emerald/20 border-accent-emerald text-accent-emerald shadow-glow-emerald animate-bounce-short'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 : livePrices.flashStates.eth === 'down'
-                  ? 'bg-accent-rose/20 border-accent-rose text-accent-rose shadow-glow animate-bounce-short'
-                  : 'bg-slate-800/60 border-slate-700/60 text-slate-200',
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                  : 'bg-slate-800/40 border-slate-700/50 text-slate-200',
             )}
           >
             <span className="font-semibold text-slate-400">ETH</span>
@@ -138,14 +138,14 @@ export function LivePriceTicker() {
               {livePrices.ethPriceUSD > 0 ? formatUSD(livePrices.ethPriceUSD) : '...'}
             </span>
             {livePrices.ethTrend === 'up' ? (
-              <TrendingUp className="w-3 h-3 text-accent-emerald shrink-0" />
+              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
             ) : livePrices.ethTrend === 'down' ? (
-              <TrendingDown className="w-3 h-3 text-accent-rose shrink-0" />
+              <TrendingDown className="w-3 h-3 text-rose-400 shrink-0" />
             ) : null}
           </div>
 
           {/* USDC Price */}
-          <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-lg bg-slate-800/60 border border-slate-700/60 font-mono text-[11px] text-slate-300">
+          <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md bg-slate-800/40 border border-slate-700/50 font-mono text-[11px] text-slate-300">
             <span className="font-semibold text-slate-400">USDC</span>
             <span className="font-bold text-white">$1.000</span>
           </div>
@@ -183,29 +183,24 @@ export function LivePriceTicker() {
         </div>
       </div>
 
-      {/* Floating Live Update Toast Notification — rendered below header, top-right */}
+      {/* Compact Toast Notification */}
       {activeToast && (
-        <div className="fixed top-28 right-4 sm:right-6 z-50 w-auto max-w-[calc(100vw-2rem)] sm:max-w-sm pointer-events-none">
+        <div className="fixed top-20 right-4 z-50 pointer-events-none max-w-xs sm:max-w-sm">
           <div
             role="alert"
             aria-live="polite"
             className={cn(
-              'flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border shadow-2xl backdrop-blur-xl text-xs font-semibold pointer-events-auto animate-slide-down',
+              'flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono shadow-md backdrop-blur-md transition-all',
               activeToast.type === 'up'
-                ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200 shadow-emerald-900/50'
-                : 'bg-rose-950/90 border-rose-500/50 text-rose-200 shadow-rose-900/50',
+                ? 'bg-slate-900/95 border-emerald-500/40 text-emerald-400'
+                : 'bg-slate-900/95 border-rose-500/40 text-rose-400',
             )}
           >
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-              <Zap
-                className={cn(
-                  'w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0',
-                  activeToast.type === 'up' ? 'text-accent-emerald' : 'text-accent-rose',
-                )}
-              />
-              <span className="truncate leading-tight">{activeToast.message}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Zap className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate text-[11px]">{activeToast.message}</span>
             </div>
-            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-60 shrink-0" />
+            <CheckCircle2 className="w-3 h-3 opacity-60 shrink-0" />
           </div>
         </div>
       )}
