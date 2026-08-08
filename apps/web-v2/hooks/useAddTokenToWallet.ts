@@ -25,18 +25,39 @@ export interface UseAddTokenResult {
 
 /**
  * Resolves the active EVM wallet provider prioritizing:
- * 1. SafePal injected provider (window.safepalProvider or window.ethereum.isSafePal)
- * 2. Active Wagmi connector provider (e.g. WalletConnect on Android Chrome)
+ * 1. Active Wagmi connector provider (e.g. WalletConnect on Android Chrome or active DApp connection)
+ * 2. SafePal injected provider (window.safepalProvider or window.ethereum.isSafePal when active)
  * 3. EIP-6963 multi-injected provider array
  * 4. Desktop injected window.ethereum
  */
 async function resolveWalletProvider(connector: any): Promise<{ provider: any; source: string }> {
+  // 1. FIRST: Check active Wagmi connector provider (e.g. WalletConnect / RainbowKit active session)
+  if (connector?.getProvider) {
+    try {
+      const connProvider = await connector.getProvider();
+      if (connProvider) {
+        if (
+          typeof window !== 'undefined' &&
+          ((window as any).safepalProvider || connProvider.isSafePal)
+        ) {
+          return {
+            provider: (window as any).safepalProvider || connProvider,
+            source: 'safepalProvider:connected',
+          };
+        }
+        return { provider: connProvider, source: `connector:${connector.id || connector.name}` };
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 2. SECOND: Check SafePal injected provider in SafePal DApp Browser / webview
   if (typeof window !== 'undefined') {
     const win = window as any;
 
-    // 1. SafePal dedicated injected provider
     if (win.safepalProvider) {
-      return { provider: win.safepalProvider, source: 'safepalProvider' };
+      return { provider: win.safepalProvider, source: 'safepalProvider:injected' };
     }
     if (win.ethereum && win.ethereum.isSafePal) {
       return { provider: win.ethereum, source: 'ethereum.isSafePal' };
@@ -49,19 +70,7 @@ async function resolveWalletProvider(connector: any): Promise<{ provider: any; s
     }
   }
 
-  // 2. Active Wagmi connector provider (e.g. WalletConnect / RainbowKit connector)
-  if (connector?.getProvider) {
-    try {
-      const connProvider = await connector.getProvider();
-      if (connProvider) {
-        return { provider: connProvider, source: `connector:${connector.id || connector.name}` };
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  // 3. EIP-6963 / Standard window.ethereum fallback for desktop extensions
+  // 3. TERTIARY: Standard EIP-6963 / window.ethereum fallback for desktop extensions
   if (typeof window !== 'undefined' && (window as any).ethereum) {
     const win = window as any;
     if (Array.isArray(win.ethereum.providers) && win.ethereum.providers.length > 0) {
@@ -77,7 +86,7 @@ async function resolveWalletProvider(connector: any): Promise<{ provider: any; s
 }
 
 export function useAddTokenToWallet(): UseAddTokenResult {
-  const { connector, chain, isConnected } = useAccount();
+  const { connector, chain, isConnected, address: accountAddress } = useAccount();
   const { data: walletClient } = useWalletClient();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
 
@@ -106,6 +115,7 @@ export function useAddTokenToWallet(): UseAddTokenResult {
       }
 
       // Explicit Network Validation BEFORE calling wallet_watchAsset
+      // Target chain MUST be Base Sepolia (Chain ID 84532)
       const requiredChainId = baseSepolia.id;
       if (chain?.id && chain.id !== requiredChainId) {
         setStatus('unsupported');
@@ -118,16 +128,16 @@ export function useAddTokenToWallet(): UseAddTokenResult {
       setStatus('pending');
       setErrorMessage(null);
 
-      // Resolve active EIP-1193 provider (SafePal / WalletConnect / Injected)
+      // Resolve active EIP-1193 provider corresponding to connected wallet
       const { provider: activeProvider, source: providerSource } =
         await resolveWalletProvider(connector);
 
-      // Dev-only diagnostic logging
+      // Dev-only diagnostic logging with actual connected account & provider source
       if (process.env.NODE_ENV === 'development') {
         console.debug('[UV] wallet provider', {
           source: providerSource,
+          account: accountAddress,
           chainId: chain?.id,
-          account: connector?.id,
           hasWatchAsset: typeof activeProvider?.request === 'function',
         });
       }
@@ -288,7 +298,7 @@ export function useAddTokenToWallet(): UseAddTokenResult {
       setErrorMessage("This wallet doesn't support one-click token import.");
       return false;
     },
-    [walletClient, connector, chain?.id, isConnected, watchAssetAsync],
+    [walletClient, connector, chain?.id, isConnected, accountAddress, watchAssetAsync],
   );
 
   return {
