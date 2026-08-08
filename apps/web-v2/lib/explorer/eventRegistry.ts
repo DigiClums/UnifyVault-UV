@@ -1,0 +1,153 @@
+/**
+ * Complete event ABI registry for all protocol contracts and known tokens.
+ *
+ * Maps every contract address to its ABI for receipt log decoding.
+ * Includes: Controller, Vault, Treasury, Token, StrategyManager,
+ *           SwapAdapter, USDC, cbBTC, WETH, CostBasisManager.
+ */
+import { type Address, parseAbi } from 'viem';
+import type { ContractEventRegistry } from './types';
+
+// ─── Individual Event ABIs ──────────────────────────────────────────────────
+
+const CONTROLLER_EVENT_ABI = parseAbi([
+  'event DepositExecuted(address indexed user, uint256 depositAmount, uint256 fee, address[] targetAssets, uint256[] assetsBought, uint256 sharesMinted, uint256 navAfter)',
+  'event DepositCompleted(address indexed receiver, address indexed asset, uint256 grossDeposit, uint256 protocolFee, uint256 netDeposit, uint256 sharesMinted)',
+  'event RedeemExecuted(address indexed user, uint256 sharesBurned, address[] targetAssets, uint256[] assetsSold, uint256 fee, uint256 usdcReturned, uint256 navAfter)',
+  'event RedeemCompleted(address indexed owner, address indexed receiver, address indexed asset, uint256 sharesBurned, uint256 grossAssets, uint256 protocolFee, uint256 netAssets)',
+  'event ProtocolFeeCollected(address indexed payer, address indexed asset, uint256 feeAmount)',
+  'event EmergencyPaused(address indexed caller)',
+  'event EmergencyResumed(address indexed caller)',
+]);
+
+const VAULT_EVENT_ABI = parseAbi([
+  'event DepositExecuted(address indexed asset, address indexed from, uint256 amount, address indexed caller)',
+  'event WithdrawalExecuted(address indexed asset, address indexed to, uint256 amount, address indexed caller)',
+]);
+
+const TREASURY_EVENT_ABI = parseAbi([
+  'event FeeCollected(address indexed asset, address indexed from, uint256 amount)',
+  'event TreasuryWithdrawal(address indexed asset, address indexed recipient, uint256 amount, address indexed caller)',
+  'event NativeWithdrawn(address indexed recipient, uint256 amount, address indexed caller)',
+]);
+
+const TOKEN_EVENT_ABI = parseAbi([
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+  'event Approval(address indexed owner, address indexed spender, uint256 value)',
+]);
+
+const STRATEGY_EVENT_ABI = parseAbi([
+  'event StrategyRebalanced(address indexed caller, address[] assets, uint256[] newWeights)',
+]);
+
+const COST_BASIS_EVENT_ABI = parseAbi([
+  'event CostBasisUpdated(address indexed user, uint256 newCostBasis)',
+]);
+
+// ─── Human-Readable Display Names ───────────────────────────────────────────
+
+type EventKey = string;
+
+export const EVENT_DISPLAY_NAMES: Record<EventKey, string> = {
+  'UnifyVaultController:DepositExecuted': 'Deposit Executed',
+  'UnifyVaultController:DepositCompleted': 'Deposit Completed',
+  'UnifyVaultController:RedeemExecuted': 'Redeem Executed',
+  'UnifyVaultController:RedeemCompleted': 'Redeem Completed',
+  'UnifyVaultController:ProtocolFeeCollected': 'Protocol Fee Collected',
+  'UnifyVaultController:EmergencyPaused': 'Emergency Paused',
+  'UnifyVaultController:EmergencyResumed': 'Emergency Resumed',
+  'CustodyVault:DepositExecuted': 'Custody Deposit',
+  'CustodyVault:WithdrawalExecuted': 'Custody Withdrawal',
+  'Treasury:FeeCollected': 'Fee Sent To Treasury',
+  'Treasury:TreasuryWithdrawal': 'Treasury Withdrawal',
+  'Treasury:NativeWithdrawn': 'Native (ETH) Withdrawn',
+  'UVBTCETHToken:Transfer': 'Shares Transfer',
+  'UVBTCETHToken:Approval': 'Shares Approval',
+  'StrategyManager:StrategyRebalanced': 'Strategy Rebalanced',
+  'CostBasisManager:CostBasisUpdated': 'Cost Basis Updated',
+  'PortfolioManager:PortfolioRebalanced': 'Portfolio Rebalanced',
+};
+
+export function getEventDisplayName(contractName: string, eventName: string): string {
+  return EVENT_DISPLAY_NAMES[`${contractName}:${eventName}`] ?? `${contractName}: ${eventName}`;
+}
+
+// ─── Address → Registry Map Builder ─────────────────────────────────────────
+
+export interface ProtocolAddresses {
+  controller?: Address;
+  vault?: Address;
+  treasury?: Address;
+  token?: Address;
+  strategyManager?: Address;
+  costBasisManager?: Address;
+  performanceManager?: Address;
+  swapAdapter?: Address;
+}
+
+/**
+ * Build a complete runtime map: address → { name, abi }.
+ * Includes protocol contracts AND known tokens (USDC, cbBTC, WETH).
+ */
+export function buildEventRegistry(
+  addresses: ProtocolAddresses,
+  usdc: Address,
+  cbBTC: Address,
+  weth: Address,
+): Map<Address, ContractEventRegistry> {
+  const map = new Map<Address, ContractEventRegistry>();
+
+  const add = (addr: Address | undefined, name: string, abi: readonly object[]) => {
+    if (addr) map.set(addr.toLowerCase() as Address, { name, abi });
+  };
+
+  // Protocol contracts
+  add(addresses.controller, 'UnifyVaultController', CONTROLLER_EVENT_ABI);
+  add(addresses.vault, 'CustodyVault', VAULT_EVENT_ABI);
+  add(addresses.treasury, 'Treasury', TREASURY_EVENT_ABI);
+  add(addresses.token, 'UVBTCETHToken', TOKEN_EVENT_ABI);
+  add(addresses.strategyManager, 'StrategyManager', STRATEGY_EVENT_ABI);
+  add(addresses.costBasisManager, 'CostBasisManager', COST_BASIS_EVENT_ABI);
+
+  // Known ERC20 tokens
+  add(usdc, 'USDC', TOKEN_EVENT_ABI);
+  add(cbBTC, 'cbBTC', TOKEN_EVENT_ABI);
+  add(weth, 'WETH', TOKEN_EVENT_ABI);
+
+  // SwapAdapter (generic events)
+  add(addresses.swapAdapter, 'SwapAdapter', []);
+
+  return map;
+}
+
+// ─── Action Classification ──────────────────────────────────────────────────
+
+/**
+ * Classify a transaction based on its decoded event names.
+ * Priority: deposit > redeem > fee > admin > other
+ */
+export function classifyTransaction(eventNames: string[]): string {
+  for (const name of eventNames) {
+    if (name === 'DepositExecuted' || name === 'DepositCompleted') return 'deposit';
+  }
+  for (const name of eventNames) {
+    if (name === 'RedeemExecuted' || name === 'RedeemCompleted') return 'redeem';
+  }
+  for (const name of eventNames) {
+    if (
+      name === 'ProtocolFeeCollected' ||
+      name === 'FeeCollected' ||
+      name === 'TreasuryWithdrawal' ||
+      name === 'NativeWithdrawn' ||
+      name === 'CostBasisUpdated'
+    )
+      return 'fee';
+  }
+  for (const name of eventNames) {
+    if (name === 'EmergencyPaused' || name === 'EmergencyResumed' || name === 'StrategyRebalanced')
+      return 'admin';
+  }
+  // Any transaction involving protocol contracts is "other" (never discard)
+  if (eventNames.length > 0) return 'other';
+  return 'unknown';
+}

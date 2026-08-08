@@ -183,27 +183,29 @@ export function LivePriceTicker() {
         </div>
       </div>
 
-      {/* Floating Live Update Toast Notification */}
+      {/* Floating Live Update Toast Notification — rendered below header, top-right */}
       {activeToast && (
-        <div className="fixed bottom-6 right-4 sm:right-6 left-4 sm:left-auto max-w-sm z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed top-28 right-4 sm:right-6 z-50 w-auto max-w-[calc(100vw-2rem)] sm:max-w-sm pointer-events-none">
           <div
+            role="alert"
+            aria-live="polite"
             className={cn(
-              'flex items-center justify-between space-x-2 px-4 py-2.5 rounded-xl border shadow-2xl backdrop-blur-xl text-xs font-semibold max-w-full',
+              'flex items-center justify-between gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border shadow-2xl backdrop-blur-xl text-xs font-semibold pointer-events-auto animate-slide-down',
               activeToast.type === 'up'
                 ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200 shadow-emerald-900/50'
                 : 'bg-rose-950/90 border-rose-500/50 text-rose-200 shadow-rose-900/50',
             )}
           >
-            <div className="flex items-center space-x-2 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
               <Zap
                 className={cn(
-                  'w-4 h-4 shrink-0',
+                  'w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0',
                   activeToast.type === 'up' ? 'text-accent-emerald' : 'text-accent-rose',
                 )}
               />
-              <span className="truncate">{activeToast.message}</span>
+              <span className="truncate leading-tight">{activeToast.message}</span>
             </div>
-            <CheckCircle2 className="w-3.5 h-3.5 opacity-60 shrink-0 ml-1" />
+            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-60 shrink-0" />
           </div>
         </div>
       )}

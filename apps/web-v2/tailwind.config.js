@@ -42,6 +42,15 @@ module.exports = {
         glow: '0 0 20px rgba(59, 130, 246, 0.25)',
         'glow-emerald': '0 0 20px rgba(16, 185, 129, 0.25)',
       },
+      keyframes: {
+        'slide-down': {
+          '0%': { opacity: '0', transform: 'translateY(-0.5rem)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'slide-down': 'slide-down 0.3s ease-out',
+      },
     },
   },
   plugins: [],

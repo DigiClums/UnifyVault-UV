@@ -20,10 +20,7 @@ import {
   Shield,
   Coins,
 } from 'lucide-react';
-import type {
-  TransactionGroup,
-  DecodedTimelineEvent,
-} from '../../hooks/useProtocolTransactionExplorer';
+import type { TransactionGroup, DecodedTimelineEvent } from '../../hooks/useTransactionExplorer';
 import { formatUnits } from 'viem';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -41,6 +38,20 @@ function formatGas(gasWei?: bigint): string {
   if (gwei < 1) return `${gwei.toFixed(3)} Gwei`;
   if (gwei < 1000) return `${gwei.toFixed(1)} Gwei`;
   return `${(gwei / 1000).toFixed(2)}K Gwei`;
+}
+
+function formatGasPrice(gasPriceWei: bigint): string {
+  const gwei = Number(gasPriceWei) / 1e9;
+  if (gwei < 0.001) return '<0.001 Gwei';
+  if (gwei < 1) return `${gwei.toFixed(3)} Gwei`;
+  return `${gwei.toFixed(1)} Gwei`;
+}
+
+function formatETH(wei: bigint): string {
+  const eth = Number(wei) / 1e18;
+  if (eth === 0) return '0';
+  if (eth < 0.000001) return eth.toExponential(3);
+  return eth.toFixed(9);
 }
 
 function formatAmount(value: bigint | undefined, decimals: number = 18): string {
@@ -454,8 +465,61 @@ function renderEventDetails(
   if (contractName === 'Treasury') {
     const asset = args.asset as string;
     const from = args.from as string;
+    const recipient = args.recipient as string;
     const amount = args.amount as bigint | undefined;
+    const caller = args.caller as string;
 
+    if (eventName === 'TreasuryWithdrawal') {
+      if (asset)
+        rows.push(
+          <span key="a" className="text-slate-500">
+            Asset: <span className="text-slate-300 font-mono">{getTokenSymbol(asset)}</span>
+          </span>,
+        );
+      if (recipient)
+        rows.push(
+          <span key="r" className="text-slate-500">
+            Recipient: <span className="text-slate-300 font-mono">{short(recipient)}</span>
+          </span>,
+        );
+      if (caller)
+        rows.push(
+          <span key="c" className="text-slate-500">
+            Caller: <span className="text-slate-300 font-mono">{short(caller)}</span>
+          </span>,
+        );
+      if (amount !== undefined)
+        rows.push(
+          <span key="amt" className="text-slate-500">
+            Amount: <span className="text-white font-mono">{formatAmount(amount, 6)} USDC</span>
+          </span>,
+        );
+      return rows;
+    }
+
+    if (eventName === 'NativeWithdrawn') {
+      if (recipient)
+        rows.push(
+          <span key="r" className="text-slate-500">
+            Recipient: <span className="text-slate-300 font-mono">{short(recipient)}</span>
+          </span>,
+        );
+      if (caller)
+        rows.push(
+          <span key="c" className="text-slate-500">
+            Caller: <span className="text-slate-300 font-mono">{short(caller)}</span>
+          </span>,
+        );
+      if (amount !== undefined)
+        rows.push(
+          <span key="amt" className="text-slate-500">
+            Amount: <span className="text-white font-mono">{formatAmount(amount, 18)} ETH</span>
+          </span>,
+        );
+      return rows;
+    }
+
+    // FeeCollected (default)
     if (asset)
       rows.push(
         <span key="a" className="text-slate-500">
@@ -692,9 +756,18 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
                 </span>
                 <span className="flex items-center gap-1">
                   <ArrowRightLeft className="w-3 h-3" />
-                  Gas: {formatGas(tx.gasFeeWei)}
-                  {tx.gasUsed ? ` (${tx.gasUsed.toLocaleString()} gas)` : ''}
+                  Gas Used: {tx.gasUsed ? tx.gasUsed.toLocaleString() : '—'}
                 </span>
+                {tx.gasPrice !== undefined && tx.gasPrice > 0n && (
+                  <span className="flex items-center gap-1 text-slate-500">
+                    Gas Price: {formatGasPrice(tx.gasPrice)}
+                  </span>
+                )}
+                {tx.gasFeeWei !== undefined && tx.gasFeeWei > 0n && (
+                  <span className="flex items-center gap-1 text-slate-500">
+                    Tx Fee: {formatETH(tx.gasFeeWei)} ETH
+                  </span>
+                )}
                 {tx.wallet && (
                   <a
                     href={`${explorerUrl}/address/${tx.wallet}`}

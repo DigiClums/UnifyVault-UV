@@ -1,41 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAccount, useBlockNumber, useReadContracts } from 'wagmi';
+import React from 'react';
+import { useAccount, useBlockNumber, useReadContracts, useGasPrice } from 'wagmi';
 import { ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { getChainTokens, getRpcUrl, getDefaultChainId } from '../../../constants';
+import { getChainTokens, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
-import { Activity, Server, Cpu, Database, Zap, RefreshCw, Layers, ShieldCheck } from 'lucide-react';
-
-interface IndexerTelemetry {
-  latestChainBlock: number;
-  lastIndexedBlock: number;
-  blocksBehind: number;
-  indexerLag: number;
-  rpcProvider: string;
-  rpcErrors: number;
-  lastSuccessfulScan: string | null;
-  lastScanDurationMs?: number;
-  uptime: number;
-  status: 'ONLINE' | 'SYNCING' | 'DEGRADED' | 'OFFLINE';
-}
-
-const DEPLOY_BLOCK = 18000000;
-
-const INDEXER_API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_INDEXER_API_URL || '';
+import { Activity, Server, Cpu, Zap, RefreshCw, Layers, ShieldCheck, History } from 'lucide-react';
 
 export default function AdminMonitoringPage() {
   const { chain } = useAccount();
   const activeChainId = chain?.id || getDefaultChainId();
   const chainName = chain?.name || (activeChainId === 8453 ? 'Base Mainnet' : 'Base Sepolia');
   const tokens = getChainTokens(activeChainId);
-  const activeRpcUrl = getRpcUrl(activeChainId);
 
-  const { data: blockNumber } = useBlockNumber();
+  const { data: blockNumber, isError: isBlockError } = useBlockNumber();
+  const { data: gasPrice } = useGasPrice();
   const { oracle, controller, vault, treasury } = useProtocolDirectory();
 
   const {
@@ -97,81 +79,22 @@ export default function AdminMonitoringPage() {
 
   const isOracleHealthy =
     btcFresh && ethFresh && usdcFresh && btcPriceRaw > 0n && ethPriceRaw > 0n && usdcPriceRaw > 0n;
+
   const keeperStatus = isOracleHealthy ? 'Healthy' : 'Error';
   const keeperLabel = isOracleHealthy ? 'ACTIVE' : 'ATTENTION REQUIRED';
 
-  const [indexerState, setIndexerState] = useState<IndexerTelemetry>({
-    latestChainBlock: 0,
-    lastIndexedBlock: 0,
-    blocksBehind: 0,
-    indexerLag: 0,
-    rpcProvider: activeRpcUrl,
-    rpcErrors: 0,
-    lastSuccessfulScan: null,
-    uptime: 0,
-    status: 'OFFLINE',
-  });
+  // Current chain block from live RPC
+  const currentChainBlock = blockNumber ? Number(blockNumber) : 0;
 
-  useEffect(() => {
-    async function checkIndexer() {
-      try {
-        let res = await fetch(`${INDEXER_API_BASE}/api/health`).catch(() => null);
-        if (!res || !res.ok) {
-          res = await fetch('/api/health').catch(() => null);
-        }
+  // Real gas price from RPC
+  const gasGwei = gasPrice ? `${(Number(gasPrice) / 1e9).toFixed(3)} Gwei` : '...';
 
-        if (res && res.ok) {
-          const data: IndexerTelemetry = await res.json();
-          setIndexerState(data);
-        } else {
-          const statsRes = await fetch(`${INDEXER_API_BASE}/api/indexer/stats`).catch(() => null);
-          if (statsRes && statsRes.ok) {
-            const data = await statsRes.json();
-            setIndexerState({
-              latestChainBlock: data.latestChainBlock || data.lastBlock || 0,
-              lastIndexedBlock: data.lastBlock || 0,
-              blocksBehind: data.blocksBehind || 0,
-              indexerLag: data.indexerLag || 0,
-              rpcProvider: data.rpcProvider || activeRpcUrl,
-              rpcErrors: data.rpcErrors || 0,
-              lastSuccessfulScan: data.lastSuccessfulScan || new Date().toISOString(),
-              uptime: data.uptime || 0,
-              status: data.status || 'ONLINE',
-            });
-          } else {
-            setIndexerState((prev) => ({ ...prev, status: 'OFFLINE' }));
-          }
-        }
-      } catch {
-        setIndexerState((prev) => ({ ...prev, status: 'OFFLINE' }));
-      }
-    }
-
-    checkIndexer();
-    const interval = setInterval(checkIndexer, 5_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const currentChainBlock =
-    indexerState.latestChainBlock > 0
-      ? indexerState.latestChainBlock
-      : blockNumber
-        ? Number(blockNumber)
-        : 0;
-
-  const currentIndexedBlock = indexerState.lastIndexedBlock;
-  const blocksRemaining = indexerState.blocksBehind;
-  const totalBlocksToSync = Math.max(1, currentChainBlock - DEPLOY_BLOCK);
-  const syncedBlocks = Math.max(0, currentIndexedBlock - DEPLOY_BLOCK);
-  const syncPercent =
-    currentChainBlock > 0 && currentIndexedBlock >= currentChainBlock
-      ? 100
-      : Math.min(100, Math.max(0, Number(((syncedBlocks / totalBlocksToSync) * 100).toFixed(2))));
-
-  const gasGwei = '0.001 Gwei';
+  const rpcHealthy = !isBlockError && currentChainBlock > 0;
 
   const shortAddr = (addr?: string) =>
     addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Connecting...';
+
+  const overallHealthy = isOracleHealthy && rpcHealthy && !isReadError;
 
   return (
     <div className="space-y-6">
@@ -183,25 +106,13 @@ export default function AdminMonitoringPage() {
               System Infrastructure Telemetry
             </h1>
             <StatusBadge
-              status={
-                isOracleHealthy && indexerState.status === 'ONLINE' && !isReadError
-                  ? 'Healthy'
-                  : indexerState.status === 'SYNCING'
-                    ? 'Warning'
-                    : 'Error'
-              }
-              label={
-                isOracleHealthy && indexerState.status === 'ONLINE' && !isReadError
-                  ? 'ALL SYSTEMS OPERATIONAL'
-                  : indexerState.status === 'SYNCING'
-                    ? 'INDEXER SYNCING'
-                    : 'SYSTEM ISSUES DETECTED'
-              }
+              status={overallHealthy ? 'Healthy' : 'Error'}
+              label={overallHealthy ? 'ALL SYSTEMS OPERATIONAL' : 'SYSTEM ISSUES DETECTED'}
             />
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time telemetry across network connections, protocol contracts, price sync, and
-            asset reserves.
+            Real-time telemetry across network connections, protocol contracts, and price feed
+            synchronization.
           </p>
         </div>
 
@@ -214,72 +125,19 @@ export default function AdminMonitoringPage() {
         </button>
       </div>
 
-      {/* Indexer Telemetry Summary Panel */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
-          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            Indexed Block
-          </p>
-          <p className="text-base font-mono font-bold text-white mt-1">
-            {currentIndexedBlock > 0 ? currentIndexedBlock : '...'}
-          </p>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
-          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            Chain Block
-          </p>
-          <p className="text-base font-mono font-bold text-white mt-1">
-            {currentChainBlock > 0 ? currentChainBlock : '...'}
-          </p>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
-          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            Blocks Remaining
-          </p>
-          <p className="text-base font-mono font-bold text-cyan-400 mt-1">{blocksRemaining}</p>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
-          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            Sync %
-          </p>
-          <p className="text-base font-mono font-bold text-emerald-400 mt-1">{syncPercent}%</p>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
-          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            Indexer Latency
-          </p>
-          <p className="text-base font-mono font-bold text-purple-400 mt-1">
-            {indexerState.indexerLag} blocks
-          </p>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-surface/80 border border-border-subtle shadow-sm">
-          <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            RPC Health
-          </p>
-          <p className="text-base font-mono font-bold text-emerald-400 mt-1">
-            {indexerState.rpcErrors === 0 ? 'Optimal' : `${indexerState.rpcErrors} err`}
-          </p>
-        </div>
-      </div>
-
-      {/* Top Infrastructure Stat Cards */}
+      {/* Infrastructure Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Network Status"
           value={chainName}
-          subtitle={`Chain ID ${activeChainId} | Block ${currentChainBlock ? currentChainBlock.toString() : '...'}`}
+          subtitle={`Chain ID ${activeChainId} | Block ${currentChainBlock > 0 ? currentChainBlock.toLocaleString() : '...'}`}
           icon={Layers}
           glowColor="blue"
         />
         <StatCard
           title="Gas Price"
           value={gasGwei}
-          subtitle="Optimal Base L2 Gas"
+          subtitle="Live Base L2 Gas Price"
           icon={Cpu}
           glowColor="emerald"
         />
@@ -291,17 +149,11 @@ export default function AdminMonitoringPage() {
           glowColor={isOracleHealthy ? 'purple' : 'amber'}
         />
         <StatCard
-          title="Data Event Sync"
-          value={indexerState.status}
-          subtitle={`Indexed #${currentIndexedBlock} (${blocksRemaining} remaining)`}
-          icon={Database}
-          glowColor={
-            indexerState.status === 'ONLINE'
-              ? 'cyan'
-              : indexerState.status === 'SYNCING'
-                ? 'blue'
-                : 'amber'
-          }
+          title="Transaction Explorer"
+          value={rpcHealthy ? 'LIVE' : 'DEGRADED'}
+          subtitle={rpcHealthy ? 'Direct blockchain RPC watcher' : 'RPC connection issue'}
+          icon={History}
+          glowColor={rpcHealthy ? 'cyan' : 'amber'}
         />
       </div>
 
@@ -322,6 +174,7 @@ export default function AdminMonitoringPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle/40 font-mono">
+            {/* Frontend UI */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
                 <Server className="w-4 h-4 text-accent-blue" />
@@ -337,34 +190,28 @@ export default function AdminMonitoringPage() {
               </td>
             </tr>
 
+            {/* Transaction Explorer */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
-                <Database className="w-4 h-4 text-accent-cyan" />
-                <span>Protocol Data Service</span>
+                <History className="w-4 h-4 text-accent-cyan" />
+                <span>Transaction Explorer</span>
               </td>
-              <td className="py-3.5 px-3 text-slate-300">Data Event Pipeline</td>
+              <td className="py-3.5 px-3 text-slate-300">On-chain RPC event watcher</td>
               <td className="py-3.5 px-3 text-slate-400">
-                {indexerState.lastScanDurationMs
-                  ? `${indexerState.lastScanDurationMs}ms`
-                  : '10s scan'}
+                {rpcHealthy ? 'Live watcher + 30s polling' : 'RPC unavailable'}
               </td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge
-                  status={
-                    indexerState.status === 'ONLINE'
-                      ? 'Healthy'
-                      : indexerState.status === 'SYNCING'
-                        ? 'Warning'
-                        : 'Error'
-                  }
-                  label={indexerState.status}
+                  status={rpcHealthy ? 'Healthy' : 'Error'}
+                  label={rpcHealthy ? 'LIVE' : 'OFFLINE'}
                 />
               </td>
               <td className="py-3.5 px-3 text-right font-sans text-emerald-400 font-semibold">
-                Block {currentIndexedBlock} ({syncPercent}%)
+                {rpcHealthy ? `Block ${currentChainBlock.toLocaleString()}` : 'No connection'}
               </td>
             </tr>
 
+            {/* Price Feed Sync */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
                 <Zap className="w-4 h-4 text-purple-400" />
@@ -380,6 +227,7 @@ export default function AdminMonitoringPage() {
               </td>
             </tr>
 
+            {/* UnifyVaultController */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -395,6 +243,7 @@ export default function AdminMonitoringPage() {
               </td>
             </tr>
 
+            {/* CustodyVault */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -410,6 +259,7 @@ export default function AdminMonitoringPage() {
               </td>
             </tr>
 
+            {/* Treasury */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -425,6 +275,7 @@ export default function AdminMonitoringPage() {
               </td>
             </tr>
 
+            {/* OracleManager */}
             <tr className="hover:bg-card/40 transition-colors">
               <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center space-x-2">
                 <Activity className="w-4 h-4 text-amber-400" />
