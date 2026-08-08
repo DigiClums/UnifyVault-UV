@@ -92,7 +92,12 @@ export function transformProtocolMetrics(
 
   const sharePriceUSD = onChainNAV
     ? Number(onChainNAV[1]) / 1e18
-    : Number(calculateSharePriceUSD18(calculateTVLUSD18([wbtcUSDValue18, wethUSDValue18, usdcUSDValue18]), totalSharesRaw)) / 1e18;
+    : Number(
+        calculateSharePriceUSD18(
+          calculateTVLUSD18([wbtcUSDValue18, wethUSDValue18, usdcUSDValue18]),
+          totalSharesRaw,
+        ),
+      ) / 1e18;
 
   const totalVaultNAVUSD = calculateTotalVaultNAVUSD(totalPortfolioValueUSDNumber);
 
@@ -196,7 +201,8 @@ export function transformUserPortfolio(
   chainId?: number,
 ): UserPortfolio {
   const tokens = getChainTokens(chainId);
-  const { userAddress, userSharesRaw, userUsdcRaw, contractInvestedAssetsRaw, onChainPerformance } = rawUserData;
+  const { userAddress, userSharesRaw, userUsdcRaw, contractInvestedAssetsRaw, onChainPerformance } =
+    rawUserData;
   const {
     totalSharesRaw,
     wbtcTotalAssets,
@@ -238,40 +244,59 @@ export function transformUserPortfolio(
   const userTotalUSDNumber = userWbtcUSD + userWethUSD + userUsdcUSD;
 
   // Primary source of truth: On-chain PerformanceManager.performance() or CostBasisManager.portfolioPerformance()
-  const isPerformanceManagerStruct =
-    onChainPerformance &&
-    typeof onChainPerformance === 'object' &&
-    !Array.isArray(onChainPerformance) &&
-    'investedCapitalUSD' in (onChainPerformance as object);
+  let investedAssetsUSD = 0;
+  let currentValueUSD = 0;
+  let pnlUSD = 0;
+  let pnlPercent = 0;
 
-  const isCostBasisManagerArray =
-    onChainPerformance &&
-    Array.isArray(onChainPerformance) &&
-    onChainPerformance.length >= 4;
-
-  const investedAssetsUSD = isPerformanceManagerStruct
-    ? Number((onChainPerformance as PerformanceStruct).investedCapitalUSD) / 1e18
-    : isCostBasisManagerArray
-      ? Number(onChainPerformance[0]) / 1e18
-      : calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
-
-  const currentValueUSD = isPerformanceManagerStruct
-    ? Number((onChainPerformance as PerformanceStruct).currentValueUSD) / 1e18
-    : isCostBasisManagerArray
-      ? Number(onChainPerformance[1]) / 1e18
-      : calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
-
-  const pnlUSD = isPerformanceManagerStruct
-    ? Number((onChainPerformance as PerformanceStruct).netPnL) / 1e18
-    : isCostBasisManagerArray
-      ? Number(onChainPerformance[2]) / 1e18
-      : calculatePnL(currentValueUSD, investedAssetsUSD).pnlUSD;
-
-  const pnlPercent = isPerformanceManagerStruct && investedAssetsUSD > 0
-    ? Number((onChainPerformance as PerformanceStruct).roiBps) / 100
-    : isCostBasisManagerArray && investedAssetsUSD > 0
-      ? Number(onChainPerformance[3]) / 100
-      : calculatePnL(currentValueUSD, investedAssetsUSD).pnlPercent;
+  if (onChainPerformance && typeof onChainPerformance === 'object') {
+    if ('investedCapitalUSD' in onChainPerformance) {
+      // PerformanceManager struct (Viem object or proxy array with named properties)
+      const perf = onChainPerformance as PerformanceStruct;
+      investedAssetsUSD = Number(perf.investedCapitalUSD) / 1e18;
+      currentValueUSD = Number(perf.currentValueUSD) / 1e18;
+      pnlUSD = Number(perf.netPnL) / 1e18;
+      pnlPercent = Number(perf.roiBps) / 100;
+    } else if ('costBasisUSD' in onChainPerformance) {
+      // CostBasisManager portfolioPerformance tuple (Viem object or proxy array with named properties)
+      const cbm = onChainPerformance as unknown as {
+        costBasisUSD: bigint;
+        currentValueUSD: bigint;
+        pnlUSD: bigint;
+        pnlBps: bigint;
+      };
+      investedAssetsUSD = Number(cbm.costBasisUSD) / 1e18;
+      currentValueUSD = Number(cbm.currentValueUSD) / 1e18;
+      pnlUSD = Number(cbm.pnlUSD) / 1e18;
+      pnlPercent = Number(cbm.pnlBps) / 100;
+    } else if (Array.isArray(onChainPerformance) && onChainPerformance.length >= 7) {
+      // Positional array from PerformanceManager
+      // [currentValueUSD, investedCapitalUSD, realizedPnL, unrealizedPnL, netPnL, roiBps, holdingPeriod]
+      currentValueUSD = Number(onChainPerformance[0]) / 1e18;
+      investedAssetsUSD = Number(onChainPerformance[1]) / 1e18;
+      pnlUSD = Number(onChainPerformance[4]) / 1e18;
+      pnlPercent = Number(onChainPerformance[5]) / 100;
+    } else if (Array.isArray(onChainPerformance) && onChainPerformance.length >= 4) {
+      // Positional array from CostBasisManager
+      // [costBasisUSD, currentValueUSD, pnlUSD, pnlBps]
+      investedAssetsUSD = Number(onChainPerformance[0]) / 1e18;
+      currentValueUSD = Number(onChainPerformance[1]) / 1e18;
+      pnlUSD = Number(onChainPerformance[2]) / 1e18;
+      pnlPercent = Number(onChainPerformance[3]) / 100;
+    } else {
+      investedAssetsUSD = calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
+      currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
+      const computedPnL = calculatePnL(currentValueUSD, investedAssetsUSD);
+      pnlUSD = computedPnL.pnlUSD;
+      pnlPercent = computedPnL.pnlPercent;
+    }
+  } else {
+    investedAssetsUSD = calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
+    currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
+    const computedPnL = calculatePnL(currentValueUSD, investedAssetsUSD);
+    pnlUSD = computedPnL.pnlUSD;
+    pnlPercent = computedPnL.pnlPercent;
+  }
 
   const isProfitable = pnlUSD >= 0;
 
@@ -280,6 +305,26 @@ export function transformUserPortfolio(
     investedAssetsUSD,
     sharePriceNum,
   );
+
+  const formattedShares = formatShares(userSharesRaw);
+  const formattedCostBasisUSD = formatUSD(investedAssetsUSD);
+  const formattedHoldingValueUSD = formatUSD(currentValueUSD);
+  const formattedAvgEntryUSD = formatUSD(averageEntryPriceUSDNum);
+  const formattedNavPerShareUSD = formatUSD(sharePriceNum);
+
+  if (typeof window !== 'undefined') {
+    console.log('[Portfolio Accounting Audit]:', {
+      rawShares: userSharesRaw.toString(),
+      formattedShares,
+      totalSupply: totalSharesRaw.toString(),
+      navPerShare: formattedNavPerShareUSD,
+      costBasisRaw: contractInvestedAssetsRaw.toString(),
+      costBasisUSD: formattedCostBasisUSD,
+      holdingValue: formattedHoldingValueUSD,
+      ownership: ownershipPercentage,
+      averageEntryPrice: formattedAvgEntryUSD,
+    });
+  }
 
   const userHoldings: AssetHolding[] = [
     {

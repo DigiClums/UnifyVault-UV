@@ -40,6 +40,14 @@ export function useBalances() {
   const sharesBalance = (data?.[1]?.result as bigint) || 0n;
   const usdcAllowance = (data?.[2]?.result as bigint) || 0n;
 
+  if (process.env.NODE_ENV !== 'production' || typeof window !== 'undefined') {
+    console.log('[Telemetry] Wallet Share Balance:', {
+      rawShareBalance: sharesBalance.toString(),
+      formattedShareBalance: (Number(sharesBalance) / 1e18).toFixed(4),
+      shareDecimals: 18,
+    });
+  }
+
   return {
     usdcBalance,
     sharesBalance,
@@ -49,4 +57,3 @@ export function useBalances() {
     refetch,
   };
 }
-

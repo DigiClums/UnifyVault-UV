@@ -92,7 +92,7 @@ export default function AdminCustodyPage() {
     setIsRefreshingLogs(true);
     try {
       const latestBlock = await publicClient.getBlockNumber();
-      const fromBlock = latestBlock >= 2000n ? latestBlock - 2000n : 0n;
+      const fromBlock = latestBlock >= 1999n ? latestBlock - 1999n : 0n;
 
       const logs = await publicClient.getContractEvents({
         address: vault,

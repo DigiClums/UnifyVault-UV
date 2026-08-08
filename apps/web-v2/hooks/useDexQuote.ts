@@ -4,7 +4,14 @@ import { useAccount, useReadContract } from 'wagmi';
 import { CONTROLLER_ABI } from '../lib/contracts';
 import { getChainTokens } from '../constants';
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { parseUnits, formatUnits, formatUSD, formatShares, calculateSlippageMinShares, calculateSlippageMinAssets } from '../lib/math';
+import {
+  parseUnits,
+  formatUnits,
+  formatUSD,
+  formatShares,
+  calculateSlippageMinShares,
+  calculateSlippageMinAssets,
+} from '../lib/math';
 import { DepositQuoteData, FormattedDepositQuote } from '../types';
 
 export interface UseDexQuoteParams {
@@ -40,7 +47,8 @@ export function useDexQuote({
   const tokens = getChainTokens(chain?.id);
   const { controller } = useProtocolDirectory();
 
-  const amountRaw = mode === 'deposit' ? parseUnits(amountInput, decimals) : parseUnits(amountInput, 18);
+  const amountRaw =
+    mode === 'deposit' ? parseUnits(amountInput, decimals) : parseUnits(amountInput, 18);
 
   // Deposit quote query
   const {
@@ -73,10 +81,7 @@ export function useDexQuote({
     address: controller,
     abi: CONTROLLER_ABI,
     functionName: 'previewRedeem',
-    args:
-      mode === 'redeem' && controller && amountRaw > 0n
-        ? [tokens.USDC, amountRaw]
-        : undefined,
+    args: mode === 'redeem' && controller && amountRaw > 0n ? [tokens.USDC, amountRaw] : undefined,
     query: {
       enabled: mode === 'redeem' && !!controller && amountRaw > 0n,
       staleTime: 15_000,
@@ -84,29 +89,52 @@ export function useDexQuote({
     },
   });
 
-  const rawDepositQuote = depositQuoteData as DepositQuoteData | undefined;
+  const rawDepositQuote = depositQuoteData as any;
   const rawRedeemAssets = (redeemAssetsRaw as bigint) || 0n;
 
   if (mode === 'deposit') {
-    const sharesPreviewRaw = rawDepositQuote?.sharesPreview || 0n;
-    const netAmountRaw = rawDepositQuote?.netDeposit || 0n;
-    const feeAmountRaw = rawDepositQuote?.protocolFee || 0n;
+    const isArray = Array.isArray(rawDepositQuote);
+    const depositAmountRaw = isArray
+      ? (rawDepositQuote[3] as bigint)
+      : rawDepositQuote?.depositAmount || amountRaw;
+    const feeAmountRaw = isArray
+      ? (rawDepositQuote[7] as bigint)
+      : rawDepositQuote?.protocolFee || 0n;
+    const netAmountRaw = isArray
+      ? (rawDepositQuote[8] as bigint)
+      : rawDepositQuote?.netDeposit || 0n;
+    const sharesPreviewRaw = isArray
+      ? (rawDepositQuote[6] as bigint)
+      : rawDepositQuote?.sharesPreview || 0n;
     const minimumReceivedRaw = calculateSlippageMinShares(sharesPreviewRaw, slippageBps / 100);
 
     return {
-      amountRaw,
+      amountRaw: depositAmountRaw,
       sharesPreviewRaw,
       netAmountRaw,
       feeAmountRaw,
       minimumReceivedRaw,
-      formattedGrossUSD: formatUSD(Number(formatUnits(amountRaw, decimals))),
+      formattedGrossUSD: formatUSD(Number(formatUnits(depositAmountRaw, decimals))),
       formattedFeeUSD: formatUSD(Number(formatUnits(feeAmountRaw, decimals))),
       formattedNetUSD: formatUSD(Number(formatUnits(netAmountRaw, decimals))),
       formattedShares: formatShares(sharesPreviewRaw),
       isLoading: isDepositLoading,
       isError: isDepositError,
       error: depositError as Error | null,
-      rawDepositQuote,
+      rawDepositQuote: isArray
+        ? {
+            assetId: rawDepositQuote[0],
+            asset: rawDepositQuote[1],
+            receiver: rawDepositQuote[2],
+            depositAmount: depositAmountRaw,
+            rawPrice: rawDepositQuote[4],
+            normalizedPrice: rawDepositQuote[5],
+            sharesPreview: sharesPreviewRaw,
+            protocolFee: feeAmountRaw,
+            netDeposit: netAmountRaw,
+            timestamp: rawDepositQuote[9],
+          }
+        : rawDepositQuote,
     };
   } else {
     const netAmountRaw = rawRedeemAssets;

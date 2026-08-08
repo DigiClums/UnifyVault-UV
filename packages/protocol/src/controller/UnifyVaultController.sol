@@ -50,6 +50,17 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 timestamp;
   }
 
+  struct RedeemQuote {
+    address asset;
+    address receiver;
+    uint256 shares;
+    uint256 grossCollateral;
+    uint256 grossValueUSD;
+    uint256 protocolFee;
+    uint256 netPayout;
+    uint256 timestamp;
+  }
+
   struct FinalizeRedeemParams {
     address asset;
     address receiver;
@@ -440,8 +451,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     ) = _executeSwapsAndCalculateRealizedUSD(asset, quote.netDeposit);
 
     // Validate realized USD output against slippage threshold before minting shares
-    uint256 expectedDepositUSD = (quote.netDeposit * quote.normalizedPrice) /
-      (10 ** CustodyVault(_vault).assetConfig(asset).decimals);
+    uint256 expectedDepositUSD =
+      (quote.netDeposit * quote.normalizedPrice) /
+        (10 ** CustodyVault(_vault).assetConfig(asset).decimals);
     uint256 minAllowedUSD = (expectedDepositUSD * (10000 - _swapSlippageBps)) / 10000;
     if (realizedDepositUSD < minAllowedUSD) {
       revert ProtocolErrors.InsufficientSwapOutput(
@@ -754,6 +766,41 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     return _validateDeposit(asset, amount, minSharesOut, receiver);
   }
 
+  function getRedeemQuote(
+    address asset,
+    uint256 shares,
+    address receiver
+  ) public view returns (RedeemQuote memory quote) {
+    uint256 netOut = previewRedeem(asset, shares);
+    uint256 redFeeBps = getRedeemFeeBps();
+    uint256 grossOut = redFeeBps < 10000 ? (netOut * 10000) / (10000 - redFeeBps) : netOut;
+    uint256 fee = grossOut - netOut;
+
+    uint256 price = IOracle(_oracle).getAssetPrice(asset);
+    uint8 decimals = CustodyVault(_vault).assetConfig(asset).decimals;
+    uint256 grossValueUSD = (grossOut * price) / (10 ** decimals);
+
+    return
+      RedeemQuote({
+        asset: asset,
+        receiver: receiver,
+        shares: shares,
+        grossCollateral: grossOut,
+        grossValueUSD: grossValueUSD,
+        protocolFee: fee,
+        netPayout: netOut,
+        timestamp: block.timestamp
+      });
+  }
+
+  function getRedeemQuote(
+    uint256 shares,
+    address asset,
+    address receiver
+  ) external view returns (RedeemQuote memory quote) {
+    return getRedeemQuote(asset, shares, receiver);
+  }
+
   // --- Pausing Actions ---
 
   function emergencyPause() external onlyRole(GUARDIAN_ROLE) {
@@ -988,7 +1035,9 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) private returns (uint256 shares, uint256 navAfter) {
     address pm = portfolioManager();
     if (pm != address(0)) {
-      if (totalSharesBefore == 0 || totalPortfolioValueBefore == 0) {
+      if (
+        totalSharesBefore == 0 || totalSharesBefore <= DEAD_SHARES || totalPortfolioValueBefore == 0
+      ) {
         shares = realizedDepositUSD;
       } else {
         shares = (realizedDepositUSD * totalSharesBefore) / totalPortfolioValueBefore;
@@ -1078,15 +1127,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     }
 
     emit RedeemCompleted(owner, p.receiver, p.asset, p.shares, grossOut, protocolFee, netOut);
-    emit RedeemExecuted(
-      owner,
-      p.shares,
-      targetAssets,
-      assetsSold,
-      protocolFee,
-      netOut,
-      navAfter
-    );
+    emit RedeemExecuted(owner, p.shares, targetAssets, assetsSold, protocolFee, netOut, navAfter);
   }
 
   function _recordCostBasisRedeem(

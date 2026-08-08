@@ -74,6 +74,58 @@ export const CONTROLLER_ABI = [
     inputs: [
       { name: 'asset', type: 'address' },
       { name: 'shares', type: 'uint256' },
+      { name: 'receiver', type: 'address' },
+    ],
+    name: 'getRedeemQuote',
+    outputs: [
+      {
+        components: [
+          { name: 'asset', type: 'address' },
+          { name: 'receiver', type: 'address' },
+          { name: 'shares', type: 'uint256' },
+          { name: 'grossCollateral', type: 'uint256' },
+          { name: 'grossValueUSD', type: 'uint256' },
+          { name: 'protocolFee', type: 'uint256' },
+          { name: 'netPayout', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'shares', type: 'uint256' },
+      { name: 'asset', type: 'address' },
+      { name: 'receiver', type: 'address' },
+    ],
+    name: 'getRedeemQuote',
+    outputs: [
+      {
+        components: [
+          { name: 'asset', type: 'address' },
+          { name: 'receiver', type: 'address' },
+          { name: 'shares', type: 'uint256' },
+          { name: 'grossCollateral', type: 'uint256' },
+          { name: 'grossValueUSD', type: 'uint256' },
+          { name: 'protocolFee', type: 'uint256' },
+          { name: 'netPayout', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'shares', type: 'uint256' },
     ],
     name: 'previewRedeem',
     outputs: [{ name: '', type: 'uint256' }],
@@ -231,5 +283,98 @@ export const CONTROLLER_ABI = [
     inputs: [{ indexed: true, name: 'caller', type: 'address' }],
     name: 'EmergencyResumed',
     type: 'event',
+  },
+
+  // --- Errors ---
+  { inputs: [{ name: 'target', type: 'address' }], name: 'NotAContract', type: 'error' },
+  {
+    inputs: [
+      { name: 'deadline', type: 'uint256' },
+      { name: 'timestamp', type: 'uint256' },
+    ],
+    name: 'DeadlineExpired',
+    type: 'error',
+  },
+  { inputs: [], name: 'MathCalculationOverflow', type: 'error' },
+  { inputs: [], name: 'ZeroAddressDetected', type: 'error' },
+  {
+    inputs: [
+      { name: 'requested', type: 'uint256' },
+      { name: 'maxAllowed', type: 'uint256' },
+    ],
+    name: 'DepositExceedsTxLimit',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'newTotal', type: 'uint256' },
+      { name: 'cap', type: 'uint256' },
+    ],
+    name: 'DailyDepositCapExceeded',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'requested', type: 'uint256' },
+      { name: 'maxAllowed', type: 'uint256' },
+    ],
+    name: 'RedeemExceedsTxLimit',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'newTotal', type: 'uint256' },
+      { name: 'cap', type: 'uint256' },
+    ],
+    name: 'DailyRedeemCapExceeded',
+    type: 'error',
+  },
+  { inputs: [{ name: 'assetId', type: 'bytes32' }], name: 'AssetNotSupported', type: 'error' },
+  {
+    inputs: [
+      { name: 'expected', type: 'uint256' },
+      { name: 'actual', type: 'uint256' },
+      { name: 'minAllowed', type: 'uint256' },
+    ],
+    name: 'InsufficientSwapOutput',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'price', type: 'int256' },
+    ],
+    name: 'OraclePriceNegative',
+    type: 'error',
+  },
+  { inputs: [], name: 'RegistryIsFrozen', type: 'error' },
+  { inputs: [], name: 'EnforcedPause', type: 'error' },
+  { inputs: [], name: 'ExpectedPause', type: 'error' },
+  { inputs: [{ name: 'caller', type: 'address' }], name: 'UnauthorizedCaller', type: 'error' },
+  {
+    inputs: [
+      { name: 'token', type: 'address' },
+      { name: 'required', type: 'uint256' },
+      { name: 'available', type: 'uint256' },
+    ],
+    name: 'InsufficientBalance',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'token', type: 'address' },
+      { name: 'required', type: 'uint256' },
+      { name: 'available', type: 'uint256' },
+    ],
+    name: 'InsufficientAllowance',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'expected', type: 'uint256' },
+      { name: 'actual', type: 'uint256' },
+    ],
+    name: 'SlippageExceeded',
+    type: 'error',
   },
 ] as const;

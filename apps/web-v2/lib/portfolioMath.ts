@@ -31,7 +31,10 @@ export function calculateAssetUSDValue(
  * Calculates Total Value Locked (TVL) in USD by summing individual asset USD valuations.
  */
 export function calculateTVLUSD(assetValuesUSD: number[]): number {
-  return assetValuesUSD.reduce((sum, val) => sum + (isNaN(val) || !isFinite(val) || val < 0 ? 0 : val), 0);
+  return assetValuesUSD.reduce(
+    (sum, val) => sum + (isNaN(val) || !isFinite(val) || val < 0 ? 0 : val),
+    0,
+  );
 }
 
 /**
@@ -46,7 +49,9 @@ export function calculateTVLUSD18(assetValuesUSD18: bigint[]): bigint {
  * Total Vault NAV is equal to Total Value Locked (TVL) in USD.
  */
 export function calculateTotalVaultNAVUSD(totalPortfolioValueUSD: number): number {
-  return totalPortfolioValueUSD > 0 && isFinite(totalPortfolioValueUSD) ? totalPortfolioValueUSD : 0;
+  return totalPortfolioValueUSD > 0 && isFinite(totalPortfolioValueUSD)
+    ? totalPortfolioValueUSD
+    : 0;
 }
 
 /**
@@ -58,7 +63,12 @@ export function calculateSharePriceUSD(
   totalPortfolioValueUSD: number,
   totalSharesRaw: bigint,
 ): number {
-  if (totalSharesRaw <= 0n || totalPortfolioValueUSD <= 0 || !isFinite(totalPortfolioValueUSD) || isNaN(totalPortfolioValueUSD)) {
+  if (
+    totalSharesRaw <= 0n ||
+    totalPortfolioValueUSD <= 0 ||
+    !isFinite(totalPortfolioValueUSD) ||
+    isNaN(totalPortfolioValueUSD)
+  ) {
     return 1.0;
   }
   try {
@@ -84,7 +94,6 @@ export function calculateSharePriceUSD18(
   return (totalPortfolioValueUSD18 * 10n ** 18n) / totalSharesRaw;
 }
 
-
 /**
  * Calculates Net Asset Value (NAV) per Share in USD.
  * Mathematically identical to Share Price USD (Total Vault NAV / Total Shares Supply).
@@ -108,11 +117,20 @@ export function calculateNAVPerShareUSD(
  * @param totalSharesRaw - Raw BigInt total supply of shares.
  * @returns Ownership ratio as a decimal between 0.0 and 1.0.
  */
+/**
+ * Calculates user ownership ratio of the vault pool as a decimal between 0.0 and 1.0.
+ * Uses high-precision BigInt scaled division (1e16) to avoid premature float truncation.
+ *
+ * @param userSharesRaw - Raw BigInt balance of user shares.
+ * @param totalSharesRaw - Raw BigInt total supply of shares.
+ * @returns Ownership ratio as a decimal between 0.0 and 1.0.
+ */
 export function calculateOwnershipRatio(userSharesRaw: bigint, totalSharesRaw: bigint): number {
   if (totalSharesRaw <= 0n || userSharesRaw <= 0n) return 0;
   if (userSharesRaw >= totalSharesRaw) return 1.0;
   const ratioScaled16 = (userSharesRaw * 10n ** 16n) / totalSharesRaw;
-  return Number(ratioScaled16) / 1e16;
+  const result = Number(ratioScaled16) / 1e16;
+  return isFinite(result) && !isNaN(result) && result >= 0 ? Math.min(result, 1.0) : 0;
 }
 
 /**
@@ -122,9 +140,10 @@ export function calculateOwnershipRatio(userSharesRaw: bigint, totalSharesRaw: b
  * @returns Formatted percentage string (e.g. "0.00%", "< 0.01%", or "12.34%").
  */
 export function calculateOwnershipPercentage(ownershipRatio: number): string {
-  if (ownershipRatio <= 0) return '0.00%';
+  if (ownershipRatio <= 0 || !isFinite(ownershipRatio) || isNaN(ownershipRatio)) return '0.00%';
   const percentNum = ownershipRatio * 100;
   if (percentNum < 0.01) return '< 0.01%';
+  if (percentNum >= 100) return '100.00%';
   return `${percentNum.toFixed(2)}%`;
 }
 
@@ -153,19 +172,16 @@ export function calculateUserProRataBalance(
  * @returns User's USD claim value for the asset.
  */
 export function calculateUserProRataUSD(totalAssetUSD: number, ownershipRatio: number): number {
-  if (ownershipRatio <= 0 || totalAssetUSD <= 0) return 0;
+  if (
+    ownershipRatio <= 0 ||
+    totalAssetUSD <= 0 ||
+    !isFinite(ownershipRatio) ||
+    isNaN(ownershipRatio)
+  )
+    return 0;
   return totalAssetUSD * ownershipRatio;
 }
 
-/**
- * Derives user invested capital in USD based on on-chain cost basis, browser localStorage cache,
- * and genesis share price fallback rules.
- *
- * @param contractInvestedRaw - On-chain invested assets raw BigInt (6 decimals USDC).
- * @param userSharesRaw - User raw share balance (18 decimals).
- * @param userAddress - User's EVM wallet address for localStorage lookup.
- * @returns Invested capital in USD.
- */
 /**
  * Derives user invested capital in USD based on on-chain cost basis, browser localStorage cache,
  * and genesis share price fallback rules.
@@ -213,7 +229,12 @@ export function calculateCostBasis(
  * @returns Current user portfolio USD value.
  */
 export function calculateCurrentValueUSD(userSharesRaw: bigint, sharePriceUSD: number): number {
-  if (userSharesRaw <= 0n || sharePriceUSD <= 0 || !isFinite(sharePriceUSD) || isNaN(sharePriceUSD)) {
+  if (
+    userSharesRaw <= 0n ||
+    sharePriceUSD <= 0 ||
+    !isFinite(sharePriceUSD) ||
+    isNaN(sharePriceUSD)
+  ) {
     return 0;
   }
   const userSharesNumber = Number(userSharesRaw) / 1e18;
@@ -233,10 +254,11 @@ export function calculatePnL(
   investedAssetsUSD: number,
 ): { pnlUSD: number; pnlPercent: number; isProfitable: boolean } {
   const safeCurrent = isFinite(currentValueUSD) && !isNaN(currentValueUSD) ? currentValueUSD : 0;
-  const safeInvested = isFinite(investedAssetsUSD) && !isNaN(investedAssetsUSD) ? investedAssetsUSD : 0;
+  const safeInvested =
+    isFinite(investedAssetsUSD) && !isNaN(investedAssetsUSD) ? investedAssetsUSD : 0;
 
   const pnlUSD = safeCurrent - safeInvested;
-  const pnlPercent = safeInvested > 0 ? (pnlUSD / safeInvested) * 100 : 0;
+  const pnlPercent = safeInvested >= 0.001 ? (pnlUSD / safeInvested) * 100 : 0;
   const isProfitable = pnlUSD >= 0;
 
   return {
@@ -272,10 +294,15 @@ export function calculateAverageEntryPrice(
   if (userSharesNumber <= 0 || !isFinite(userSharesNumber) || isNaN(userSharesNumber)) {
     return 0;
   }
-  const avgEntryPrice = investedAssetsUSD / userSharesNumber;
-  return isFinite(avgEntryPrice) && !isNaN(avgEntryPrice) && avgEntryPrice >= 0
-    ? avgEntryPrice
-    : 0;
+
+  // Guard against raw 18-decimal BigInt numbers passed as float numbers (> 1e12)
+  let normalizedInvestedUSD = investedAssetsUSD;
+  if (normalizedInvestedUSD > 1e12) {
+    normalizedInvestedUSD = normalizedInvestedUSD / 1e18;
+  }
+
+  const avgEntryPrice = normalizedInvestedUSD / userSharesNumber;
+  return isFinite(avgEntryPrice) && !isNaN(avgEntryPrice) && avgEntryPrice >= 0 ? avgEntryPrice : 0;
 }
 
 /**

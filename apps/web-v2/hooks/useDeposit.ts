@@ -14,8 +14,20 @@ import {
   formatShares,
 } from '../lib/math';
 import { invalidateProtocolQueries } from '../lib/utils/cacheInvalidation';
+import { decodeTransactionError } from '../lib/utils/errorDecoder';
 import { DepositQuoteData, FormattedDepositQuote } from '../types';
 import { base, baseSepolia } from 'viem/chains';
+
+export type DepositStepState =
+  | 'idle'
+  | 'preparing'
+  | 'awaiting_approval_wallet'
+  | 'approval_pending'
+  | 'approval_confirmed'
+  | 'awaiting_deposit_wallet'
+  | 'deposit_pending'
+  | 'confirmed'
+  | 'failed';
 
 export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: number = 6) {
   const { address: userAddress, chain } = useAccount();
@@ -28,14 +40,14 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
 
   const [depositAmountInput, setDepositAmountInput] = useState<string>('');
   const [slippageBps, setSlippageBps] = useState<number>(50); // 0.5% default
-  const [isApproving, setIsApproving] = useState<boolean>(false);
-  const [isDepositing, setIsDepositing] = useState<boolean>(false);
-  const [txError, setTxError] = useState<string | null>(null);
+  const [stepState, setStepState] = useState<DepositStepState>('idle');
+  const [approvalTxHash, setApprovalTxHash] = useState<`0x${string}` | null>(null);
+  const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | null>(null);
   const [lastTxHash, setLastTxHash] = useState<`0x${string}` | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
 
   const amountRaw = parseUnits(depositAmountInput, decimals);
   const isCorrectNetwork = chain?.id === base.id || chain?.id === baseSepolia.id;
-
   const targetController = controller;
 
   // Fetch allowance
@@ -60,6 +72,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     isLoading: isQuoteLoading,
     isError: isQuoteError,
     error: quoteFetchError,
+    refetch: refetchQuote,
   } = useReadContract({
     address: targetController,
     abi: CONTROLLER_ABI,
@@ -75,95 +88,195 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     },
   });
 
-  const rawQuote = quoteResult as DepositQuoteData | undefined;
-
+  const rawQuote = quoteResult as Record<string, unknown> | unknown[] | undefined;
   let formattedQuote: FormattedDepositQuote | null = null;
 
-  // Production requirement: NEVER estimate financial values locally using mock math fallbacks.
-  if (rawQuote && rawQuote.sharesPreview > 0n) {
-    formattedQuote = {
-      grossDepositUSD: formatUSD(Number(formatUnits(rawQuote.depositAmount, decimals))),
-      protocolFeeUSD: formatUSD(Number(formatUnits(rawQuote.protocolFee, decimals))),
-      netDepositUSD: formatUSD(Number(formatUnits(rawQuote.netDeposit, decimals))),
-      sharesToMintFormatted: formatShares(rawQuote.sharesPreview),
-      protocolFeeFormatted: formatUnits(rawQuote.protocolFee, decimals),
-      netDepositFormatted: formatUnits(rawQuote.netDeposit, decimals),
-      rawQuote,
-    };
+  if (rawQuote) {
+    const isArray = Array.isArray(rawQuote);
+    const depositAmountRaw = isArray
+      ? (rawQuote[3] as bigint)
+      : (rawQuote as unknown as DepositQuoteData).depositAmount;
+    const protocolFeeRaw = isArray
+      ? (rawQuote[7] as bigint)
+      : (rawQuote as unknown as DepositQuoteData).protocolFee;
+    const netDepositRaw = isArray
+      ? (rawQuote[8] as bigint)
+      : (rawQuote as unknown as DepositQuoteData).netDeposit;
+    const sharesPreviewRaw = isArray
+      ? (rawQuote[6] as bigint)
+      : (rawQuote as unknown as DepositQuoteData).sharesPreview;
+
+    if (sharesPreviewRaw !== undefined && sharesPreviewRaw > 0n) {
+      const sharesToMintFormatted = formatShares(sharesPreviewRaw);
+
+      formattedQuote = {
+        grossDepositUSD: formatUSD(Number(formatUnits(depositAmountRaw, decimals))),
+        protocolFeeUSD: formatUSD(Number(formatUnits(protocolFeeRaw, decimals))),
+        netDepositUSD: formatUSD(Number(formatUnits(netDepositRaw, decimals))),
+        sharesToMintFormatted,
+        protocolFeeFormatted: formatUnits(protocolFeeRaw, decimals),
+        netDepositFormatted: formatUnits(netDepositRaw, decimals),
+        rawQuote: isArray
+          ? {
+              assetId: rawQuote[0],
+              asset: rawQuote[1],
+              receiver: rawQuote[2],
+              depositAmount: depositAmountRaw,
+              rawPrice: rawQuote[4],
+              normalizedPrice: rawQuote[5],
+              sharesPreview: sharesPreviewRaw,
+              protocolFee: protocolFeeRaw,
+              netDeposit: netDepositRaw,
+              timestamp: rawQuote[9],
+            }
+          : (rawQuote as DepositQuoteData),
+      };
+    }
   }
 
-  // Approve action
-  const approve = async () => {
-    if (!userAddress || amountRaw <= 0n || !targetController) {
-      throw new Error('Missing target contract or invalid deposit amount');
+  const resetState = () => {
+    setStepState('idle');
+    setTxError(null);
+    setApprovalTxHash(null);
+    setDepositTxHash(null);
+    setLastTxHash(null);
+  };
+
+  /**
+   * Single-click Deposit Execution Workflow.
+   * If allowance < amount, automatically executes Approval -> Deposit in one seamless flow.
+   */
+  const executeDeposit = async () => {
+    if (!userAddress) {
+      setTxError('Please connect your wallet');
+      setStepState('failed');
+      return;
     }
     if (!isCorrectNetwork) {
-      throw new Error(
-        'Wrong network: Please switch to a supported network (Base Mainnet or Base Sepolia)',
-      );
+      setTxError('Please switch to Base Sepolia or Base Mainnet');
+      setStepState('failed');
+      return;
     }
-    setIsApproving(true);
+    if (!targetController) {
+      setTxError('Protocol Controller unavailable');
+      setStepState('failed');
+      return;
+    }
+    if (amountRaw <= 0n) {
+      setTxError('Enter a valid deposit amount');
+      setStepState('failed');
+      return;
+    }
+
     setTxError(null);
+    setApprovalTxHash(null);
+    setDepositTxHash(null);
+    setLastTxHash(null);
+    setStepState('preparing');
+
     try {
-      let gasEstimate: bigint | undefined = undefined;
+      // 1. Verify user USDC balance
+      let freshUsdcBal = 0n;
       if (publicClient) {
         try {
-          const est = await publicClient.estimateContractGas({
+          freshUsdcBal = (await publicClient.readContract({
             address: selectedTokenAddress,
             abi: ERC20_ABI,
-            functionName: 'approve',
-            args: [targetController, amountRaw],
-            account: userAddress,
-          });
-          gasEstimate = (est * 120n) / 100n; // 20% gas buffer
+            functionName: 'balanceOf',
+            args: [userAddress],
+          })) as bigint;
         } catch {
-          // Fallback to wallet estimation if simulation fails
+          // fallback
         }
       }
 
-      const hash = await writeContractAsync({
-        address: selectedTokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [targetController, amountRaw],
-        ...(gasEstimate ? { gas: gasEstimate } : {}),
-      });
-
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
+      if (freshUsdcBal > 0n && amountRaw > freshUsdcBal) {
+        throw new Error('Insufficient USDC balance');
       }
-      await refetchAllowance();
-      await queryClient.invalidateQueries({ type: 'all', refetchType: 'all' });
-      await queryClient.refetchQueries({ type: 'active' });
-    } catch (err: unknown) {
-      console.error('Approve transaction failed:', err);
-      const error = err as { shortMessage?: string; message?: string };
-      const msg = error?.shortMessage || error?.message || 'Approval failed';
-      setTxError(msg);
-      throw error;
-    } finally {
-      setIsApproving(false);
-    }
-  };
 
-  // Deposit action
-  const executeDeposit = async () => {
-    if (!userAddress || amountRaw <= 0n || !targetController || !formattedQuote) {
-      throw new Error('Cannot execute deposit: On-chain quote is missing or invalid.');
-    }
-    if (!isCorrectNetwork) {
-      throw new Error(
-        'Wrong network: Please switch to a supported network (Base Mainnet or Base Sepolia)',
-      );
-    }
-    setIsDepositing(true);
-    setTxError(null);
+      // 2. Fetch fresh allowance
+      let currentAllowance = allowance;
+      if (publicClient) {
+        try {
+          currentAllowance = (await publicClient.readContract({
+            address: selectedTokenAddress,
+            abi: ERC20_ABI,
+            functionName: 'allowance',
+            args: [userAddress, targetController],
+          })) as bigint;
+        } catch {
+          // fallback
+        }
+      }
 
-    try {
-      const estimatedShares = formattedQuote.rawQuote.sharesPreview;
-      const minSharesOut = calculateSlippageMinShares(estimatedShares, slippageBps / 100);
+      // 3. Step 1 (if needed): Approve Allowance
+      if (currentAllowance < amountRaw) {
+        setStepState('awaiting_approval_wallet');
 
-      let gasEstimate: bigint | undefined = undefined;
+        let approveGas: bigint | undefined;
+        if (publicClient) {
+          try {
+            const est = await publicClient.estimateContractGas({
+              address: selectedTokenAddress,
+              abi: ERC20_ABI,
+              functionName: 'approve',
+              args: [targetController, amountRaw],
+              account: userAddress,
+            });
+            approveGas = (est * 120n) / 100n;
+          } catch {}
+        }
+
+        const approveHash = await writeContractAsync({
+          address: selectedTokenAddress,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [targetController, amountRaw],
+          ...(approveGas ? { gas: approveGas } : {}),
+        });
+
+        setApprovalTxHash(approveHash);
+        setLastTxHash(approveHash);
+        setStepState('approval_pending');
+
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        }
+
+        setStepState('approval_confirmed');
+        await refetchAllowance();
+      }
+
+      // 4. Re-fetch fresh quote right before deposit submission
+      setStepState('preparing');
+      let freshQuoteResult: unknown = null;
+      if (publicClient) {
+        try {
+          freshQuoteResult = await publicClient.readContract({
+            address: targetController,
+            abi: CONTROLLER_ABI,
+            functionName: 'getDepositQuote',
+            args: [selectedTokenAddress, amountRaw, 0n, userAddress],
+          });
+        } catch {}
+      }
+
+      const isArrayQuote = Array.isArray(freshQuoteResult);
+      const freshSharesPreview = isArrayQuote
+        ? (freshQuoteResult[6] as bigint)
+        : ((freshQuoteResult as Record<string, unknown>)?.sharesPreview as bigint | undefined);
+      const sharesPreviewToUse = freshSharesPreview || formattedQuote?.rawQuote.sharesPreview;
+
+      if (!sharesPreviewToUse || sharesPreviewToUse <= 0n) {
+        throw new Error('Unable to fetch fresh deposit quote. Please try again.');
+      }
+
+      const minSharesOut = calculateSlippageMinShares(sharesPreviewToUse, slippageBps / 100);
+
+      // 5. Step 2: Execute Deposit & Mint Shares
+      setStepState('awaiting_deposit_wallet');
+
+      let depositGas: bigint | undefined;
       if (publicClient) {
         try {
           const est = await publicClient.estimateContractGas({
@@ -173,42 +286,42 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
             args: [selectedTokenAddress, amountRaw, minSharesOut, userAddress],
             account: userAddress,
           });
-          gasEstimate = (est * 120n) / 100n; // 20% gas limit buffer for production safety
-        } catch {
-          // fallback
-        }
+          depositGas = (est * 120n) / 100n;
+        } catch {}
       }
 
-      const hash = await writeContractAsync({
+      const depHash = await writeContractAsync({
         address: targetController,
         abi: CONTROLLER_ABI,
         functionName: 'deposit',
         args: [selectedTokenAddress, amountRaw, minSharesOut, userAddress],
-        ...(gasEstimate ? { gas: gasEstimate } : {}),
+        ...(depositGas ? { gas: depositGas } : {}),
       });
 
-      setLastTxHash(hash);
+      setDepositTxHash(depHash);
+      setLastTxHash(depHash);
+      setStepState('deposit_pending');
 
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
+        await publicClient.waitForTransactionReceipt({ hash: depHash });
       }
 
-      await invalidateProtocolQueries(queryClient);
+      setStepState('confirmed');
 
-      // Secondary refresh after block propagation
+      // Invalidate and refetch all live protocol queries
+      await invalidateProtocolQueries(queryClient);
       setTimeout(async () => {
         await invalidateProtocolQueries(queryClient);
       }, 1000);
 
       setDepositAmountInput('');
     } catch (err: unknown) {
-      console.error('Deposit transaction failed:', err);
-      const error = err as { shortMessage?: string; message?: string };
-      const msg = error?.shortMessage || error?.message || 'Deposit failed';
-      setTxError(msg);
-      throw error;
-    } finally {
-      setIsDepositing(false);
+      console.error('Single-click Deposit workflow failed:', err);
+      const decoded = decodeTransactionError(err, 'Deposit failed. Please try again.');
+      setTxError(decoded.message);
+      if (decoded.txHash) setLastTxHash(decoded.txHash);
+      setStepState('failed');
+      throw err;
     }
   };
 
@@ -220,13 +333,19 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     if (slippageBps > 500) return 'Slippage exceeds 5.0% safety limit';
     if (isQuoteLoading) return 'Calculating DEX quote...';
     if (!formattedQuote) return 'Unable to fetch DEX quote from Controller';
-    if (!isApproved) return 'Step 1: Approve USDC Allowance required';
-    if (isDepositing) return 'Deposit transaction executing...';
+    if (stepState !== 'idle' && stepState !== 'failed' && stepState !== 'confirmed') {
+      return 'Transaction processing...';
+    }
     return null;
   };
 
   const depositDisabledReason = getDepositDisabledReason();
   const isDepositDisabled = depositDisabledReason !== null;
+  const isProcessing = stepState !== 'idle' && stepState !== 'confirmed' && stepState !== 'failed';
+
+  const isApproving = stepState === 'awaiting_approval_wallet' || stepState === 'approval_pending';
+  const isDepositing = stepState === 'awaiting_deposit_wallet' || stepState === 'deposit_pending';
+  const approve = executeDeposit;
 
   return {
     depositAmountInput,
@@ -234,6 +353,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     slippageBps,
     setSlippageBps,
     amountRaw,
+    allowance,
     isApproved,
     isApproving,
     isDepositing,
@@ -244,9 +364,16 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     isDepositDisabled,
     depositDisabledReason,
     isCorrectNetwork,
+    stepState,
+    isProcessing,
+    approvalTxHash,
+    depositTxHash,
     txError,
     lastTxHash,
     approve,
+    resetState,
     executeDeposit,
+    refetchAllowance,
+    refetchQuote,
   };
 }

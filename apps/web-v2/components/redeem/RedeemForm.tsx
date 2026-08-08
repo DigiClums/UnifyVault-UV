@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { Card } from '../common/Card';
@@ -37,13 +37,14 @@ export function RedeemForm() {
     feeUSD,
     netUSD,
     isPreviewLoading,
+    stepState,
     isRedeeming,
+    isRedeemDisabled,
+    txError,
     lastTxHash,
     executeRedeem,
+    resetState,
   } = useRedeem();
-
-  const [txSuccess, setTxSuccess] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const sharesBalNum = parseFloat(formatUnits(sharesBalance, 18)) || 0;
   const sharesBalFormatted = formatShares(sharesBalance);
@@ -52,20 +53,15 @@ export function RedeemForm() {
     if (sharesBalNum <= 0) return;
     const amount = (sharesBalNum * (pct / 100)).toFixed(4);
     setSharesInput(amount);
+    resetState();
   };
 
-  const handleRedeem = async () => {
-    setErrorMessage(null);
-    setTxSuccess(false);
+  const handleRedeemClick = async () => {
     try {
       await executeRedeem();
-      setTxSuccess(true);
       refetchBalances();
-    } catch (err: unknown) {
-      console.error('Redeem submission error:', err);
-      const error = err as { shortMessage?: string; message?: string };
-      const msg = error?.shortMessage || error?.message || 'Redemption execution failed';
-      setErrorMessage(msg);
+    } catch {
+      // Error handled inside useRedeem state
     }
   };
 
@@ -90,7 +86,7 @@ export function RedeemForm() {
           </div>
           <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 dark:bg-accent-emerald/10 text-emerald-700 dark:text-accent-emerald border border-emerald-500/30 dark:border-accent-emerald/20 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>2.00% Redeem Fee</span>
+            <span>2.00% Fee</span>
           </div>
         </div>
 
@@ -113,7 +109,10 @@ export function RedeemForm() {
                 type="number"
                 placeholder="0.0000"
                 value={sharesInput}
-                onChange={(e) => setSharesInput(e.target.value)}
+                onChange={(e) => {
+                  setSharesInput(e.target.value);
+                  resetState();
+                }}
                 className="w-full bg-transparent text-2xl sm:text-3xl font-extrabold text-foreground placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none font-mono tracking-tight"
               />
               <div className="flex items-center space-x-2 bg-slate-200/80 dark:bg-slate-800/90 px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700/80 shrink-0 shadow-sm">
@@ -212,7 +211,7 @@ export function RedeemForm() {
 
               <div className="border-t border-slate-200 dark:border-slate-800/80 pt-2 flex justify-between text-foreground font-medium">
                 <span className="text-emerald-700 dark:text-accent-emerald font-semibold">
-                  Net USDC Received
+                  You Receive (USDC)
                 </span>
                 <span className="font-mono text-foreground text-sm font-bold">
                   {isPreviewLoading ? 'Calculating...' : netUSD}
@@ -246,16 +245,48 @@ export function RedeemForm() {
           </div>
         )}
 
+        {/* State Machine Status Message */}
+        {isRedeeming && (
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-accent-emerald text-xs space-y-1">
+            <div className="flex items-center space-x-2 font-bold">
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+              <span>
+                {stepState === 'preparing' && 'Preparing redemption & validating quote...'}
+                {stepState === 'awaiting_redeem_wallet' && 'Confirm Redeem in your wallet...'}
+                {stepState === 'redeem_pending' && 'Burning UVBTCETH shares & unwinding assets...'}
+              </span>
+            </div>
+            {lastTxHash && (
+              <div className="pl-6 text-[11px] font-mono opacity-90 truncate">
+                Tx:{' '}
+                <a href={explorerTxUrl} target="_blank" rel="noreferrer" className="underline">
+                  {lastTxHash}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Error Notification */}
-        {errorMessage && (
-          <div className="p-3.5 rounded-xl bg-rose-500/15 dark:bg-accent-rose/10 border border-rose-500/30 dark:border-accent-rose/20 text-rose-700 dark:text-accent-rose text-xs flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{errorMessage}</span>
+        {txError && (
+          <div className="p-3.5 rounded-xl bg-rose-500/15 dark:bg-accent-rose/10 border border-rose-500/30 dark:border-accent-rose/20 text-rose-700 dark:text-accent-rose text-xs flex flex-col space-y-1">
+            <div className="flex items-center space-x-2 font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{txError}</span>
+            </div>
+            {lastTxHash && (
+              <div className="pl-6 text-[11px] font-mono opacity-80">
+                Tx:{' '}
+                <a href={explorerTxUrl} target="_blank" rel="noreferrer" className="underline">
+                  {lastTxHash}
+                </a>
+              </div>
+            )}
           </div>
         )}
 
         {/* Transaction Success Screen */}
-        {txSuccess && (
+        {stepState === 'confirmed' && (
           <div className="p-5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/50 border border-emerald-500/30 text-xs space-y-4 shadow-xl">
             <div className="flex items-center space-x-3 text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="w-6 h-6 shrink-0" />
@@ -315,17 +346,17 @@ export function RedeemForm() {
           </button>
         ) : (
           <button
-            onClick={handleRedeem}
-            disabled={sharesRaw <= 0n || isRedeeming}
+            onClick={handleRedeemClick}
+            disabled={isRedeemDisabled}
             className="w-full min-h-[48px] py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-accent-emerald dark:hover:bg-emerald-600 active:scale-[0.99] font-bold text-white text-sm shadow-glow-emerald transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 focus:ring-2 focus:ring-accent-emerald/50"
           >
             {isRedeeming ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Executing Multi-Asset Redemption...</span>
+                <span>Executing Redemption...</span>
               </>
             ) : (
-              <span>Confirm Redemption & Burn Shares</span>
+              <span>Redeem</span>
             )}
           </button>
         )}

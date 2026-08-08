@@ -121,4 +121,65 @@ describe('portfolioTransforms Domain Transformation Module', () => {
     expect(btc?.balanceFormatted).toBe('0');
     expect(btc?.valueUSD).toBe('$0.00');
   });
+
+  it('correctly parses PerformanceManager 7-element positional array without swapping currentValue and investedCapital', () => {
+    const protocolMetrics = transformProtocolMetrics(mockRawProtocolData, mockStrategyMetrics);
+
+    const mockUserDataWithPerformanceArray = {
+      userAddress: '0x1234567890123456789012345678901234567890' as `0x${string}`,
+      userSharesRaw: 4_560_000_000_000_000_000n, // 4.56 shares
+      userUsdcRaw: 0n,
+      contractInvestedAssetsRaw: 10_000_000_000_000_000_000n,
+      // PerformanceManager returns [currentValueUSD, investedCapitalUSD, realizedPnL, unrealizedPnL, netPnL, roiBps, holdingPeriod]
+      onChainPerformance: [
+        9_970_000_000_000_000_000n, // currentValue = $9.97
+        10_000_000_000_000_000_000n, // investedCapital = $10.00
+        0n,
+        -30_000_000_000_000_000n,
+        -30_000_000_000_000_000n, // netPnL = -$0.03
+        -30n, // roiBps = -0.30%
+        86400n,
+      ] as any,
+    };
+
+    const userPortfolio = transformUserPortfolio(
+      mockUserDataWithPerformanceArray,
+      mockRawProtocolData,
+      protocolMetrics,
+    );
+
+    expect(userPortfolio.currentValueUSD).toBe('$9.97');
+    expect(userPortfolio.investedAssetsUSD).toBe('$10.00');
+    expect(userPortfolio.averageEntryPriceUSD).toBe('$2.19');
+    expect(userPortfolio.pnlPercentage).toBe('-0.30%');
+  });
+
+  it('correctly parses CostBasisManager 4-element positional array', () => {
+    const protocolMetrics = transformProtocolMetrics(mockRawProtocolData, mockStrategyMetrics);
+
+    const mockUserDataWithCostBasisArray = {
+      userAddress: '0x1234567890123456789012345678901234567890' as `0x${string}`,
+      userSharesRaw: 4_560_000_000_000_000_000n, // 4.56 shares
+      userUsdcRaw: 0n,
+      contractInvestedAssetsRaw: 10_000_000_000_000_000_000n,
+      // CostBasisManager returns [costBasisUSD, currentValueUSD, pnlUSD, pnlBps]
+      onChainPerformance: [
+        10_000_000_000_000_000_000n, // costBasis = $10.00
+        9_970_000_000_000_000_000n, // currentValue = $9.97
+        -30_000_000_000_000_000n, // pnlUSD = -$0.03
+        -30n, // pnlBps = -0.30%
+      ] as any,
+    };
+
+    const userPortfolio = transformUserPortfolio(
+      mockUserDataWithCostBasisArray,
+      mockRawProtocolData,
+      protocolMetrics,
+    );
+
+    expect(userPortfolio.currentValueUSD).toBe('$9.97');
+    expect(userPortfolio.investedAssetsUSD).toBe('$10.00');
+    expect(userPortfolio.averageEntryPriceUSD).toBe('$2.19');
+    expect(userPortfolio.pnlPercentage).toBe('-0.30%');
+  });
 });

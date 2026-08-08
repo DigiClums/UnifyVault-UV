@@ -55,6 +55,7 @@ out/
 write-tests/
 .openzeppelin/
 .env
+packages/protocol/broadcast/
 
 # Hardhat Ignition deployments
 ignition/deployments/

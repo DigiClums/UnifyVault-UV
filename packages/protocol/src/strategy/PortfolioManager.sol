@@ -9,6 +9,7 @@ import '../interfaces/IStrategyManager.sol';
 import '../interfaces/IOracle.sol';
 import '../interfaces/IProtocolDirectory.sol';
 import '../libraries/AccessRoles.sol';
+import '../libraries/ShareLib.sol';
 import '../constants/ModuleIds.sol';
 
 interface ICustodyVaultTotalAssets {
@@ -177,7 +178,6 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     return (balance * price) / (10 ** decimals);
   }
 
-
   /**
    * @notice Alias for calculateNAV returning total portfolio value and NAV per share (18 decimals)
    */
@@ -218,14 +218,13 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     portfolioValUSD = calculatePortfolioValue();
     uint256 totalShares = IERC20(indexToken).totalSupply();
 
-    if (totalShares == 0) {
-      // Genesis case: $1.00 USD per initial share
+    if (totalShares == 0 || totalShares <= 1000) {
+      // Genesis / Bootstrap case: $1.00 USD per initial share
       navPerShare = INITIAL_NAV_PER_SHARE;
     } else {
       navPerShare = (portfolioValUSD * 1e18) / totalShares;
     }
   }
-
 
   /**
    * @notice Simulates deposit execution, calculating share mint amount and strategy asset allocation breakdown
@@ -250,11 +249,11 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     uint256 totalShares = IERC20(indexToken).totalSupply();
 
     uint256 sharesToMint;
-    if (totalShares == 0 || portfolioValUSD == 0) {
+    if (totalShares == 0 || totalShares <= 1000 || portfolioValUSD == 0) {
       // Initial mint: 1 Share per 1.00 USD value
       sharesToMint = depositValueUSD;
     } else {
-      sharesToMint = (depositValueUSD * totalShares) / portfolioValUSD;
+      sharesToMint = ShareLib.calculateShares(depositValueUSD, totalShares, portfolioValUSD, 18);
     }
 
     (address[] memory targetAssets, uint256[] memory allocationAmounts) = this.calculateAllocation(
@@ -287,8 +286,8 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     uint256 totalShares = IERC20(indexToken).totalSupply();
     if (totalShares == 0) return RedeemPreview(0, 0);
 
-    (uint256 portfolioValUSD, ) = calculateNAV();
-    uint256 userShareUSDValue = (sharesToBurn * portfolioValUSD) / totalShares;
+    (, uint256 navPerShare) = calculateNAV();
+    uint256 userShareUSDValue = (sharesToBurn * navPerShare) / 1e18;
 
     uint256 payoutPrice = IOracle(oracleManager).getAssetPrice(payoutAsset);
     if (payoutPrice == 0) revert AssetNotSupportedByOracle(payoutAsset);
