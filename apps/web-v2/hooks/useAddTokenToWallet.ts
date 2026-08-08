@@ -46,7 +46,61 @@ export function useAddTokenToWallet(): UseAddTokenResult {
       setStatus('pending');
       setErrorMessage(null);
 
-      // 1. Try wagmi watchAssetAsync
+      // Safety timeout for mobile browsers where RPC promises might stall when switching apps
+      const timeoutId = setTimeout(() => {
+        setStatus((current) => {
+          if (current === 'pending') {
+            setErrorMessage(
+              'Request timed out or wallet app didn’t respond. You can copy the contract address manually below.',
+            );
+            return 'unsupported';
+          }
+          return current;
+        });
+      }, 10000);
+
+      // 1. Direct window.ethereum check FIRST (Primary for Mobile Wallet In-App Browsers like MetaMask Mobile / Trust Wallet)
+      if (typeof window !== 'undefined' && window.ethereum && window.ethereum.request) {
+        try {
+          const added = await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+              type: 'ERC20',
+              options: {
+                address,
+                symbol,
+                decimals,
+                ...(image ? { image } : {}),
+              },
+            },
+          });
+          clearTimeout(timeoutId);
+          if (added) {
+            setStatus('success');
+            return true;
+          } else {
+            setStatus('rejected');
+            setErrorMessage('Token addition request was cancelled in your wallet.');
+            return false;
+          }
+        } catch (fallbackErr: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fObj = fallbackErr as any;
+          const fMsg = fObj?.message || String(fallbackErr);
+          if (
+            fObj?.code === 4001 ||
+            fMsg.toLowerCase().includes('user rejected') ||
+            fMsg.toLowerCase().includes('user denied')
+          ) {
+            clearTimeout(timeoutId);
+            setStatus('rejected');
+            setErrorMessage('Token addition request was cancelled in your wallet.');
+            return false;
+          }
+        }
+      }
+
+      // 2. Wagmi watchAssetAsync fallback (Primary for WalletConnect / Web3 Connectors)
       try {
         if (watchAssetAsync) {
           const success = await watchAssetAsync({
@@ -58,12 +112,14 @@ export function useAddTokenToWallet(): UseAddTokenResult {
               ...(image ? { image } : {}),
             },
           });
+          clearTimeout(timeoutId);
           if (success) {
             setStatus('success');
             return true;
           }
         }
       } catch (err: unknown) {
+        clearTimeout(timeoutId);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errObj = err as any;
         const msg = errObj?.message || String(err);
@@ -79,50 +135,11 @@ export function useAddTokenToWallet(): UseAddTokenResult {
         }
       }
 
-      // 2. Direct fallback to window.ethereum.request({ method: 'wallet_watchAsset' })
-      if (typeof window !== 'undefined' && window.ethereum && window.ethereum.request) {
-        try {
-          const added = await window.ethereum.request({
-            method: 'wallet_watchAsset',
-            params: {
-              type: 'ERC20',
-              options: {
-                address,
-                symbol,
-                decimals,
-                ...(image ? { image } : {}),
-              },
-            },
-          });
-          if (added) {
-            setStatus('success');
-            return true;
-          } else {
-            setStatus('rejected');
-            setErrorMessage('Token addition cancelled by user.');
-            return false;
-          }
-        } catch (fallbackErr: unknown) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fObj = fallbackErr as any;
-          const fMsg = fObj?.message || String(fallbackErr);
-          if (
-            fObj?.code === 4001 ||
-            fMsg.toLowerCase().includes('user rejected') ||
-            fMsg.toLowerCase().includes('user denied')
-          ) {
-            setStatus('rejected');
-            setErrorMessage('Token addition request was cancelled in your wallet.');
-            return false;
-          }
-          setStatus('unsupported');
-          setErrorMessage('Your wallet does not support automatic token import.');
-          return false;
-        }
-      }
-
+      clearTimeout(timeoutId);
       setStatus('unsupported');
-      setErrorMessage('Your wallet does not support automatic token import.');
+      setErrorMessage(
+        'Your mobile browser or wallet connector does not support automatic token import. Copy the contract address below to import manually.',
+      );
       return false;
     },
     [watchAssetAsync],
