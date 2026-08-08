@@ -88,23 +88,24 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     },
   });
 
-  const rawQuote = quoteResult as Record<string, unknown> | unknown[] | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawQuote = quoteResult as any;
   let formattedQuote: FormattedDepositQuote | null = null;
 
   if (rawQuote) {
     const isArray = Array.isArray(rawQuote);
     const depositAmountRaw = isArray
       ? (rawQuote[3] as bigint)
-      : (rawQuote as unknown as DepositQuoteData).depositAmount;
+      : (rawQuote as DepositQuoteData).depositAmount;
     const protocolFeeRaw = isArray
       ? (rawQuote[7] as bigint)
-      : (rawQuote as unknown as DepositQuoteData).protocolFee;
+      : (rawQuote as DepositQuoteData).protocolFee;
     const netDepositRaw = isArray
       ? (rawQuote[8] as bigint)
-      : (rawQuote as unknown as DepositQuoteData).netDeposit;
+      : (rawQuote as DepositQuoteData).netDeposit;
     const sharesPreviewRaw = isArray
       ? (rawQuote[6] as bigint)
-      : (rawQuote as unknown as DepositQuoteData).sharesPreview;
+      : (rawQuote as DepositQuoteData).sharesPreview;
 
     if (sharesPreviewRaw !== undefined && sharesPreviewRaw > 0n) {
       const sharesToMintFormatted = formatShares(sharesPreviewRaw);
@@ -118,16 +119,16 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         netDepositFormatted: formatUnits(netDepositRaw, decimals),
         rawQuote: isArray
           ? {
-              assetId: rawQuote[0],
-              asset: rawQuote[1],
-              receiver: rawQuote[2],
+              assetId: rawQuote[0] as `0x${string}`,
+              asset: rawQuote[1] as `0x${string}`,
+              receiver: rawQuote[2] as `0x${string}`,
               depositAmount: depositAmountRaw,
-              rawPrice: rawQuote[4],
-              normalizedPrice: rawQuote[5],
+              rawPrice: rawQuote[4] as bigint,
+              normalizedPrice: rawQuote[5] as bigint,
               sharesPreview: sharesPreviewRaw,
               protocolFee: protocolFeeRaw,
               netDeposit: netDepositRaw,
-              timestamp: rawQuote[9],
+              timestamp: rawQuote[9] as bigint,
             }
           : (rawQuote as DepositQuoteData),
       };
@@ -249,7 +250,8 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
 
       // 4. Re-fetch fresh quote right before deposit submission
       setStepState('preparing');
-      let freshQuoteResult: unknown = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let freshQuoteResult: any = null;
       if (publicClient) {
         try {
           freshQuoteResult = await publicClient.readContract({
@@ -264,7 +266,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
       const isArrayQuote = Array.isArray(freshQuoteResult);
       const freshSharesPreview = isArrayQuote
         ? (freshQuoteResult[6] as bigint)
-        : ((freshQuoteResult as Record<string, unknown>)?.sharesPreview as bigint | undefined);
+        : freshQuoteResult?.sharesPreview;
       const sharesPreviewToUse = freshSharesPreview || formattedQuote?.rawQuote.sharesPreview;
 
       if (!sharesPreviewToUse || sharesPreviewToUse <= 0n) {

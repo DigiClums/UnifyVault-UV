@@ -14,7 +14,8 @@ export function decodeTransactionError(
     return { message: defaultMessage };
   }
 
-  const errorObj = err as Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const errorObj = err as any;
 
   // Extract transaction hash if embedded in viem error object
   const txHash = errorObj?.txHash || errorObj?.hash || errorObj?.cause?.txHash || undefined;

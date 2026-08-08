@@ -109,8 +109,8 @@ export function MetricCards({ metrics }: MetricCardsProps) {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <div className="space-y-1 min-w-0">
+              <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
                 {metrics.isLoading ? (
                   <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                 ) : (
@@ -119,23 +119,28 @@ export function MetricCards({ metrics }: MetricCardsProps) {
               </div>
               <div className="flex items-center space-x-1.5 text-xs font-semibold">
                 {card.isPositive ? (
-                  <ArrowUpRight className="w-3.5 h-3.5 text-accent-emerald" />
+                  <ArrowUpRight className="w-3.5 h-3.5 text-accent-emerald shrink-0" />
                 ) : (
-                  <ArrowDownRight className="w-3.5 h-3.5 text-accent-rose" />
+                  <ArrowDownRight className="w-3.5 h-3.5 text-accent-rose shrink-0" />
                 )}
-                <span className={card.isPositive ? 'text-accent-emerald' : 'text-accent-rose'}>
+                <span
+                  className={`truncate ${card.isPositive ? 'text-accent-emerald' : 'text-accent-rose'}`}
+                >
                   {card.change}
                 </span>
               </div>
             </div>
 
             {/* Documented Source Tooltip */}
-            <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <div className="flex items-center space-x-1">
-                <Info className="w-3 h-3 text-slate-400" />
+            <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 min-w-0">
+              <div className="flex items-center space-x-1 shrink-0">
+                <Info className="w-3 h-3 text-slate-400 shrink-0" />
                 <span>Source</span>
               </div>
-              <span className="font-mono text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-slate-200 dark:border-border-subtle">
+              <span
+                title={card.source}
+                className="font-mono text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-slate-200 dark:border-border-subtle truncate max-w-[170px] sm:max-w-[210px] text-right"
+              >
                 {card.source}
               </span>
             </div>
@@ -145,4 +150,3 @@ export function MetricCards({ metrics }: MetricCardsProps) {
     </div>
   );
 }
-
