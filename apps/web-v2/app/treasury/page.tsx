@@ -7,19 +7,17 @@ import { TREASURY_ABI, CONTROLLER_ABI, ORACLE_MANAGER_ABI } from '../../lib/cont
 import { getChainTokens, getExplorerBaseUrl } from '../../constants';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../lib/math';
-import { StatCard } from '../../components/ui/StatCard';
-import { TableCard } from '../../components/ui/TableCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { EmptyState } from '../../components/ui/EmptyState';
 import {
-  Vault,
-  DollarSign,
   ArrowUpRight,
   ShieldCheck,
   History,
   RefreshCw,
-  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
 } from 'lucide-react';
+import { cn } from '../../lib/utils/cn';
 
 export interface PublicTreasuryLog {
   id: string;
@@ -44,6 +42,7 @@ export default function PublicTreasuryPage() {
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [isRefreshingLogs, setIsRefreshingLogs] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [showOnChainDetails, setShowOnChainDetails] = useState(false);
 
   const blockTimeCache = useMemo(() => new Map<bigint, number>(), []);
 
@@ -258,292 +257,314 @@ export default function PublicTreasuryPage() {
     ? `${treasury.slice(0, 6)}...${treasury.slice(-4)}`
     : 'Connecting...';
 
-  return (
-    <div className="space-y-8 py-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Protocol Treasury & Fee Reserves
-            </h1>
-            <StatusBadge status="Healthy" label="Operational" />
-          </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Safeguarding protocol-owned fee reserves custodied inside Treasury contract (
-            {treasuryShort}).
-          </p>
-        </div>
+  // Build asset list from existing data (not hardcoded)
+  const treasuryAssets = useMemo(() => {
+    return [
+      {
+        symbol: 'USDC',
+        balanceRaw: usdcBalRaw,
+        balanceFormatted: `${formatUnits(usdcBalRaw, 6)} USDC`,
+        usdValue: usdcUSD,
+        iconBg: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+        iconLabel: 'USD',
+      },
+      {
+        symbol: 'cbBTC',
+        balanceRaw: wbtcBalRaw,
+        balanceFormatted: `${formatUnits(wbtcBalRaw, 8)} cbBTC`,
+        usdValue: wbtcUSD,
+        iconBg: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+        iconLabel: 'BTC',
+      },
+      {
+        symbol: 'WETH',
+        balanceRaw: wethBalRaw,
+        balanceFormatted: `${formatUnits(wethBalRaw, 18)} WETH`,
+        usdValue: wethUSD,
+        iconBg: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
+        iconLabel: 'ETH',
+      },
+    ];
+  }, [usdcBalRaw, wbtcBalRaw, wethBalRaw, usdcUSD, wbtcUSD, wethUSD]);
 
-        <div className="flex items-center space-x-3">
-          {lastSyncTime && (
-            <span className="text-[11px] text-slate-400 font-mono">
-              Synced: {lastSyncTime.toLocaleTimeString()}
+  const secondsAgoStr = lastSyncTime
+    ? `${Math.max(0, Math.floor((Date.now() - lastSyncTime.getTime()) / 1000))}s ago`
+    : null;
+
+  const handleRefresh = () => {
+    refetch();
+    fetchTreasuryLogs();
+  };
+
+  return (
+    <div className="space-y-2.5 sm:space-y-4 pt-1 pb-6 sm:py-2">
+      {/* ── Compact Header ── */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center space-x-2 min-w-0">
+          <h1 className="text-base sm:text-xl font-bold text-foreground tracking-tight">
+            Treasury
+          </h1>
+          <StatusBadge status="Healthy" label="Operational" className="shrink-0" />
+        </div>
+        <div className="flex items-center space-x-2 shrink-0">
+          {secondsAgoStr && (
+            <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">
+              Synced: {secondsAgoStr}
             </span>
           )}
           <button
-            onClick={() => {
-              refetch();
-              fetchTreasuryLogs();
-            }}
+            onClick={handleRefresh}
             disabled={isRefreshingLogs || !treasury}
-            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold transition-colors disabled:opacity-50"
+            className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-[11px] font-medium text-slate-300 transition-all disabled:opacity-50"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshingLogs ? 'animate-spin text-accent-blue' : ''}`}
+              className={cn('w-3 h-3', isRefreshingLogs && 'animate-spin text-accent-blue')}
             />
-            <span>Refresh Balances & Logs</span>
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </div>
 
-      {/* Real On-Chain Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Treasury Value"
-          value={formatUSD(totalTreasuryUSD)}
-          subtitle="All asset reserves"
-          icon={Vault}
-          glowColor="blue"
-        />
-        <StatCard
-          title="USDC Fee Reserves"
-          value={formatUSD(usdcUSD)}
-          subtitle={`${usdcBalFormatted} USDC`}
-          icon={DollarSign}
-          glowColor="emerald"
-        />
-        <StatCard
-          title="Configured Deposit Fee"
-          value={`${(Number(depositFeeBps) / 100).toFixed(2)}%`}
-          subtitle={`${depositFeeBps.toString()} BPS`}
-          icon={ArrowUpRight}
-          glowColor="purple"
-        />
-        <StatCard
-          title="Configured Redeem Fee"
-          value={`${(Number(redeemFeeBps) / 100).toFixed(2)}%`}
-          subtitle={`${redeemFeeBps.toString()} BPS`}
-          icon={ShieldCheck}
-          glowColor="cyan"
-        />
-      </div>
+      {/* ── Treasury Hero Card ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+        {/* Subtle top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/50 to-transparent" />
 
-      {/* Treasury Asset Breakdown Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <TableCard
-            title="Treasury Asset Reserve Balances"
-            subtitle="Protocol-owned assets custodied inside Treasury contract"
-            icon={Vault}
-          >
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border-subtle text-slate-400 font-semibold">
-                  <th className="py-3 px-3">Asset</th>
-                  <th className="py-3 px-3">Raw Balance</th>
-                  <th className="py-3 px-3">Formatted Amount</th>
-                  <th className="py-3 px-3 text-right">USD Valuation</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-subtle/40 font-mono">
-                <tr className="hover:bg-card/40 transition-colors">
-                  <td className="py-3.5 px-3 font-bold text-white flex items-center space-x-2 font-sans">
-                    <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-extrabold text-[10px]">
-                      USD
-                    </div>
-                    <span>USDC</span>
-                  </td>
-                  <td className="py-3.5 px-3 text-slate-400">{usdcBalRaw.toString()}</td>
-                  <td className="py-3.5 px-3 text-slate-200 font-bold">
-                    {formatUnits(usdcBalRaw, 6)} USDC
-                  </td>
-                  <td className="py-3.5 px-3 text-right text-emerald-400 font-bold">
-                    {formatUSD(usdcUSD)}
-                  </td>
-                </tr>
-                <tr className="hover:bg-card/40 transition-colors">
-                  <td className="py-3.5 px-3 font-bold text-white flex items-center space-x-2 font-sans">
-                    <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-extrabold text-[10px]">
-                      BTC
-                    </div>
-                    <span>cbBTC</span>
-                  </td>
-                  <td className="py-3.5 px-3 text-slate-400">{wbtcBalRaw.toString()}</td>
-                  <td className="py-3.5 px-3 text-slate-200 font-bold">
-                    {formatUnits(wbtcBalRaw, 8)} cbBTC
-                  </td>
-                  <td className="py-3.5 px-3 text-right text-emerald-400 font-bold">
-                    {formatUSD(wbtcUSD)}
-                  </td>
-                </tr>
-                <tr className="hover:bg-card/40 transition-colors">
-                  <td className="py-3.5 px-3 font-bold text-white flex items-center space-x-2 font-sans">
-                    <div className="w-7 h-7 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-extrabold text-[10px]">
-                      ETH
-                    </div>
-                    <span>WETH</span>
-                  </td>
-                  <td className="py-3.5 px-3 text-slate-400">{wethBalRaw.toString()}</td>
-                  <td className="py-3.5 px-3 text-slate-200 font-bold">
-                    {formatUnits(wethBalRaw, 18)} WETH
-                  </td>
-                  <td className="py-3.5 px-3 text-right text-emerald-400 font-bold">
-                    {formatUSD(wethUSD)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </TableCard>
+        {/* Header row: Label + Live badge */}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Total Treasury Value
+          </span>
+          <div className="flex items-center space-x-1">
+            <span className="inline-flex items-center space-x-1 text-[9px] font-medium font-mono text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>LIVE</span>
+            </span>
+          </div>
         </div>
 
-        {/* Governance Controls Panel */}
-        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4">
-          <div className="flex items-center space-x-2 text-white font-bold text-base">
-            <ShieldCheck className="w-5 h-5 text-accent-blue" />
-            <span>Treasury Governance</span>
+        {/* Main value */}
+        <div className="mb-1">
+          <div className="text-[28px] sm:text-[36px] font-extrabold text-white tracking-tight font-mono leading-tight">
+            {formatUSD(totalTreasuryUSD)}
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Only accounts with <code className="text-accent-blue font-mono">Admin Role</code> can
-            release fee revenue from Treasury.
+        </div>
+
+        {/* Subtitle */}
+        <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed">
+          Protocol fee reserves custodied inside Treasury contract ({treasuryShort})
+        </p>
+      </div>
+
+      {/* ── Stats Grid 2×2: Fee Reserves + Fee Configuration ── */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {/* USDC Fee Reserves */}
+        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            USDC Fee Reserves
+          </span>
+          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
+            {formatUSD(usdcUSD)}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+            {Number(usdcBalFormatted).toLocaleString(undefined, { maximumFractionDigits: 6 })} USDC
           </p>
+        </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-3">
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Total Treasury USD</span>
-              <span className="font-mono text-white font-bold">{formatUSD(totalTreasuryUSD)}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Treasury Contract</span>
-              <span className="font-mono text-accent-blue text-[11px]">{treasuryShort}</span>
-            </div>
+        {/* Deposit Fee */}
+        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Deposit Fee
+          </span>
+          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
+            {(Number(depositFeeBps) / 100).toFixed(2)}%
           </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{depositFeeBps.toString()} BPS</p>
+        </div>
 
-          <div className="pt-2">
-            <a
-              href="/admin/treasury"
-              className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-accent-blue text-white font-bold text-xs shadow-glow hover:bg-blue-600 transition-all"
-            >
-              <span>Manage Treasury In Admin</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </a>
+        {/* Redeem Fee */}
+        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Redeem Fee
+          </span>
+          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
+            {(Number(redeemFeeBps) / 100).toFixed(2)}%
           </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{redeemFeeBps.toString()} BPS</p>
+        </div>
+
+        {/* Synced info — replaces the 4th stat slot */}
+        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col justify-center">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Synced
+          </span>
+          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
+            {secondsAgoStr ?? '—'}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">On-chain balance</p>
         </div>
       </div>
 
-      {/* Live Recent Treasury Releases Log & Fee Inflows Table */}
-      <TableCard
-        title="Recent Treasury Releases Log & Fee Inflows"
-        subtitle="Auditable live event record of governance releases and protocol fee collections"
-        icon={History}
-      >
+      {/* ── Treasury Assets Section ── */}
+      <div className="rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Treasury Assets
+          </h2>
+          <span className="text-[9px] text-muted-foreground font-mono">
+            Total: {formatUSD(totalTreasuryUSD)}
+          </span>
+        </div>
+
+        <div className="divide-y divide-slate-800/50">
+          {treasuryAssets.map((asset) => (
+            <div
+              key={asset.symbol}
+              className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+            >
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div
+                  className={cn(
+                    'w-7 h-7 rounded-full border flex items-center justify-center font-extrabold text-[10px] shrink-0',
+                    asset.iconBg,
+                  )}
+                >
+                  {asset.iconLabel}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-sm font-semibold text-white">{asset.symbol}</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-mono font-bold text-slate-200">
+                  {asset.balanceFormatted}
+                </p>
+                <p className="text-[11px] text-emerald-400 font-mono">
+                  {formatUSD(asset.usdValue)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Governance Section ── */}
+      <div className="rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+        <button
+          onClick={() => setShowOnChainDetails(!showOnChainDetails)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <div className="flex items-center space-x-2">
+            <ShieldCheck className="w-4 h-4 text-accent-blue shrink-0" />
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Treasury Governance
+              </h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Admin-controlled · Only Admin Role can release fee revenue
+              </p>
+            </div>
+          </div>
+          {showOnChainDetails ? (
+            <ChevronUp className="w-4 h-4 text-slate-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-500" />
+          )}
+        </button>
+
+        {showOnChainDetails && (
+          <div className="mt-3 pt-3 border-t border-slate-800/50 space-y-2">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-slate-500">Treasury Contract</span>
+              <span className="font-mono text-accent-blue font-bold text-[11px]">
+                {treasuryShort}
+              </span>
+            </div>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-slate-500">Network</span>
+              <span className="font-mono text-slate-300 font-semibold">Base Sepolia</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Recent Treasury Activity ── */}
+      <div className="rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+        <div className="flex items-center space-x-2 mb-2">
+          <History className="w-4 h-4 text-slate-500 shrink-0" />
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Recent Treasury Activity
+          </h2>
+        </div>
+
         {isLogsLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
-            <RefreshCw className="w-8 h-8 animate-spin text-accent-blue" />
-            <p className="text-sm font-medium">Syncing Treasury log events from Base Mainnet...</p>
+          <div className="flex items-center justify-center py-6">
+            <RefreshCw className="w-4 h-4 animate-spin text-accent-blue mr-2" />
+            <span className="text-[11px] text-slate-500">Syncing event logs...</span>
           </div>
         ) : treasuryLogs.length === 0 ? (
-          <EmptyState
-            title="No Treasury Releases Recorded"
-            description="Fee revenue is currently retained inside the Treasury contract reserves."
-            icon={History}
-          />
+          <div className="py-4 text-center">
+            <p className="text-xs font-medium text-slate-400">No Treasury Releases Recorded</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Fee revenue is currently retained inside the Treasury contract reserves.
+            </p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm text-slate-300">
-              <thead className="bg-slate-900/50 text-slate-400 border-b border-slate-800 font-semibold uppercase text-[11px] tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Block</th>
-                  <th className="py-3 px-4">Event Type</th>
-                  <th className="py-3 px-4">Asset</th>
-                  <th className="py-3 px-4">Recipient / Sender</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
-                  <th className="py-3 px-4 text-right">Tx Hash</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50 font-mono">
-                {treasuryLogs.map((log) => {
-                  const dateStr = new Date(log.timestamp * 1000).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
+          <div className="divide-y divide-slate-800/50 -mx-4 sm:-mx-5">
+            {treasuryLogs.slice(0, 10).map((log) => {
+              const dateStr = new Date(log.timestamp * 1000).toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
 
-                  const isWithdrawal =
-                    log.type === 'TreasuryWithdrawal' || log.type === 'NativeWithdrawn';
+              const isWithdrawal =
+                log.type === 'TreasuryWithdrawal' || log.type === 'NativeWithdrawn';
 
-                  return (
-                    <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
-                      {/* Block Number */}
-                      <td className="py-3 px-4 text-slate-300">
-                        #{log.blockNumber.toString()}
-                        <div className="text-[10px] text-slate-500 font-sans">{dateStr}</div>
-                      </td>
-
-                      {/* Event Type Badge */}
-                      <td className="py-3 px-4 font-sans">
-                        {isWithdrawal ? (
-                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                            <ArrowUpRight className="w-3 h-3" />
-                            <span>Revenue Release</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            <DollarSign className="w-3 h-3" />
-                            <span>Fee Inflow</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Asset */}
-                      <td className="py-3 px-4 font-bold text-white">{log.asset}</td>
-
-                      {/* Recipient */}
-                      <td className="py-3 px-4 text-slate-300">
-                        {log.recipient !== '0x0000000000000000000000000000000000000000' ? (
-                          <a
-                            href={`${explorerBaseUrl}/address/${log.recipient}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-accent-blue transition-colors"
-                            title={log.recipient}
-                          >
-                            {log.recipient.slice(0, 6)}...{log.recipient.slice(-4)}
-                          </a>
-                        ) : (
-                          <span className="text-slate-500">-</span>
-                        )}
-                      </td>
-
-                      {/* Amount */}
-                      <td className="py-3 px-4 text-right font-bold text-slate-100">
+              return (
+                <div key={log.id} className="flex items-center justify-between px-4 py-2.5 sm:px-5">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <span
+                      className={cn(
+                        'inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold shrink-0',
+                        isWithdrawal
+                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                      )}
+                    >
+                      {isWithdrawal ? (
+                        <ArrowUpRight className="w-3 h-3" />
+                      ) : (
+                        <DollarSign className="w-3 h-3" />
+                      )}
+                      <span>{isWithdrawal ? 'Release' : 'Collection'}</span>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">
+                        {isWithdrawal ? '-' : '+'}
                         {log.amountFormatted}
-                      </td>
-
-                      {/* Explorer Link */}
-                      <td className="py-3 px-4 text-right">
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        {log.asset} ·{' '}
                         <a
                           href={`${explorerBaseUrl}/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-1 text-accent-blue hover:underline"
-                          title="View on BaseScan"
+                          className="hover:text-accent-blue transition-colors"
                         >
-                          <span>
-                            {log.transactionHash.slice(0, 6)}...{log.transactionHash.slice(-4)}
-                          </span>
-                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                          {log.transactionHash.slice(0, 6)}...{log.transactionHash.slice(-4)}
                         </a>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500 shrink-0 ml-2">{dateStr}</span>
+                </div>
+              );
+            })}
           </div>
         )}
-      </TableCard>
+      </div>
     </div>
   );
 }
