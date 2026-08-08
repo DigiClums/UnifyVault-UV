@@ -30,23 +30,10 @@ const mainnetPrimaryRpc =
   'https://mainnet.base.org';
 
 const config = getDefaultConfig({
-  appName: 'UnifyVault V2',
-  appDescription: 'Multi-asset index tracking & portfolio vault engine',
-  appUrl: 'https://app.unifyvault.xyz',
-  appIcon: 'https://app.unifyvault.xyz/favicon.ico',
+  appName: 'UnifyVault',
   projectId: walletConnectProjectId,
-  chains: [baseSepolia, base],
+  chains: [base, baseSepolia],
   transports: {
-    [baseSepolia.id]: fallback([
-      http(sepoliaPrimaryRpc, {
-        batch: true,
-        retryCount: 3,
-        retryDelay: 1000,
-      }),
-      http('https://sepolia.base.org', {
-        batch: true,
-      }),
-    ]),
     [base.id]: fallback([
       http(mainnetPrimaryRpc, {
         batch: true,
@@ -54,6 +41,16 @@ const config = getDefaultConfig({
         retryDelay: 1000,
       }),
       http('https://mainnet.base.org', {
+        batch: true,
+      }),
+    ]),
+    [baseSepolia.id]: fallback([
+      http(sepoliaPrimaryRpc, {
+        batch: true,
+        retryCount: 3,
+        retryDelay: 1000,
+      }),
+      http('https://sepolia.base.org', {
         batch: true,
       }),
     ]),
@@ -66,11 +63,11 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 15_000, // 15s cache freshness
+        staleTime: 15_000, // 15s cache freshness to eliminate redundant RPC requests
         gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
-        refetchOnWindowFocus: true, // Re-sync on window focus when returning from mobile wallet app
-        refetchOnMount: true,
-        refetchOnReconnect: true, // Re-sync on wallet session reconnect
+        refetchOnWindowFocus: false, // Prevent RPC refetch storm on window focus
+        refetchOnMount: false, // Share cached data on mount if fresh
+        refetchOnReconnect: false,
         retry: 2, // Graceful retry on rate limits
       },
     },
@@ -107,11 +104,7 @@ function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) 
     return isDark ? darkTheme(themeOptions) : lightTheme(themeOptions);
   }, [mounted, resolvedTheme]);
 
-  return (
-    <RainbowKitProvider theme={rkTheme} initialChain={baseSepolia}>
-      {children}
-    </RainbowKitProvider>
-  );
+  return <RainbowKitProvider theme={rkTheme}>{children}</RainbowKitProvider>;
 }
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
