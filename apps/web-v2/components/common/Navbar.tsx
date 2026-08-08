@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -13,9 +13,6 @@ import {
   BarChart3,
   Vault,
   History,
-  Menu,
-  X,
-  BookOpen,
   ChevronDown,
   Globe,
 } from 'lucide-react';
@@ -24,32 +21,6 @@ import { cn } from '../../lib/utils/cn';
 
 export function Navbar() {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Lock body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [mobileMenuOpen]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMobileMenuOpen(false);
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [mobileMenuOpen]);
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
 
   interface NavItem {
     href: string;
@@ -71,11 +42,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/90 border-b border-border-subtle/80 transition-all">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link
-          href="/"
-          onClick={() => setMobileMenuOpen(false)}
-          className="flex items-center space-x-1.5 sm:space-x-2 group min-w-0 shrink"
-        >
+        <Link href="/" className="flex items-center space-x-1.5 sm:space-x-2 group min-w-0 shrink">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-accent-cyan p-0.5 shadow-sm flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
             <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-accent-blue" />
@@ -119,7 +86,7 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Right Section: Connect Button, Theme Toggle & Mobile Toggle */}
+        {/* Right Section: Connect Button & Theme Toggle */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
           <ThemeToggle />
 
@@ -216,101 +183,8 @@ export function Navbar() {
               }}
             </ConnectButton.Custom>
           </div>
-
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-surface border border-border-subtle text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent-blue/50 transition-all shrink-0"
-            aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-5 h-5 text-accent-blue" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </button>
         </div>
       </div>
-
-      {/* ── Full-viewport Mobile Menu Overlay ── */}
-      {mobileMenuOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-md"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
-          {/* Menu panel */}
-          <div className="lg:hidden fixed inset-0 top-16 z-50 bg-background/98 backdrop-blur-xl overflow-y-auto">
-            <div className="flex flex-col space-y-4 px-4 py-4 min-h-full">
-              {/* Primary Mobile Navigation */}
-              <div>
-                <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">
-                  Navigation Menu
-                </div>
-                <nav aria-label="Mobile Navigation" className="flex flex-col space-y-1.5">
-                  {navLinks.map((link) => {
-                    const Icon = link.icon;
-                    const isActive =
-                      pathname &&
-                      (pathname === link.href ||
-                        (link.href !== '/' && pathname.startsWith(link.href)));
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={cn(
-                          'flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 min-h-[44px]',
-                          isActive
-                            ? 'bg-accent-blue text-white shadow-glow'
-                            : 'text-muted-foreground hover:text-foreground bg-surface/60 hover:bg-card/60',
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{link.label}</span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              {/* Secondary Resources & Tools */}
-              <div className="border-t border-border-subtle/80 pt-3">
-                <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-2">
-                  Resources &amp; Tools
-                </div>
-                <div className="flex flex-col space-y-1.5">
-                  <a
-                    href="https://docs.unifyvault.xyz"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground bg-surface/60 hover:bg-card/60 transition-all"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <BookOpen className="w-4 h-4 text-muted-foreground" />
-                      <span>Documentation</span>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">↗</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Drawer Actions */}
-              <div className="border-t border-border-subtle/80 pt-3 flex items-center justify-between px-2">
-                <span className="text-xs text-muted-foreground font-medium">Theme Mode</span>
-                <ThemeToggle />
-              </div>
-
-              {/* Bottom safe-area spacer */}
-              <div className="flex-1" />
-              <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
-            </div>
-          </div>
-        </>
-      )}
     </header>
   );
 }
