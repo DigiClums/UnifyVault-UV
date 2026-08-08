@@ -95,9 +95,7 @@ export function AddTokenToWallet({
           </div>
           <div>
             <h4 className="font-bold text-white text-xs">Add {symbol} to Wallet</h4>
-            <p className="text-[11px] text-slate-400">
-              One-click wallet token watch request for {name}.
-            </p>
+            <p className="text-[11px] text-slate-400">One-click token import request for {name}.</p>
           </div>
         </div>
 
@@ -167,20 +165,38 @@ export function AddTokenToWallet({
           <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
           <span>
             {errorMessage ||
-              'Token was not added to wallet. UVBTCETH was minted successfully — you can add it anytime.'}
+              'Token import was cancelled. UVBTCETH was minted successfully — you can add it anytime.'}
           </span>
         </div>
       )}
 
       {status === 'unsupported' && (
-        <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] space-y-1.5 font-mono">
+        <div className="p-3 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] space-y-2">
           <div className="flex items-center space-x-1.5 text-amber-400 font-semibold font-sans">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>Your wallet doesn't support automatic token import.</span>
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Add UVBTCETH manually</span>
           </div>
-          <div className="text-slate-400 pt-0.5">
-            Manually import using contract address:{' '}
-            <span className="text-white select-all font-bold">{address}</span>
+          <p className="text-[11px] text-slate-400 font-sans">
+            Your deposit is confirmed. Use the details below to view or import the token in your
+            wallet manually.
+          </p>
+          <div className="text-slate-300 pt-1 space-y-1 bg-slate-950/60 p-2.5 rounded-md border border-slate-800 font-mono text-[11px]">
+            <div className="flex justify-between flex-wrap gap-1">
+              <span className="text-slate-400 font-sans">Contract Address:</span>
+              <span className="text-white select-all font-bold">{address}</span>
+            </div>
+            <div className="flex justify-between flex-wrap gap-1">
+              <span className="text-slate-400 font-sans">Network:</span>
+              <span className="text-white font-bold">Base Sepolia (Chain ID 84532)</span>
+            </div>
+            <div className="flex justify-between flex-wrap gap-1">
+              <span className="text-slate-400 font-sans">Symbol:</span>
+              <span className="text-white font-bold">{symbol}</span>
+            </div>
+            <div className="flex justify-between flex-wrap gap-1">
+              <span className="text-slate-400 font-sans">Decimals:</span>
+              <span className="text-white font-bold">{decimals}</span>
+            </div>
           </div>
         </div>
       )}
