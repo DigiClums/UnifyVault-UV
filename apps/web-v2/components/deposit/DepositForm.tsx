@@ -386,7 +386,7 @@ export function DepositForm() {
                   </span>
                 </>
               ) : (
-                <span>Deposit</span>
+                <span>Add USDC & Mint Shares</span>
               )}
             </button>
             {isDepositDisabled && depositDisabledReason && amountRaw > 0n && !isProcessing && (

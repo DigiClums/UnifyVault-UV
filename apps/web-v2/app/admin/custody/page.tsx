@@ -403,11 +403,16 @@ export default function AdminCustodyPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Admin Custody Withdrawal Form */}
         <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
-          <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
-            <ArrowUpRight className="w-5 h-5 text-purple-400" />
-            <h3 className="text-base font-bold text-white tracking-tight">
-              Withdraw Custody Funds to Wallet
-            </h3>
+          <div className="flex items-center justify-between border-b border-border-subtle/40 pb-3">
+            <div className="flex items-center space-x-2">
+              <ArrowUpRight className="w-5 h-5 text-purple-400" />
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Withdraw Custody Funds to Wallet
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+              STATE-MUTATING ACTION
+            </span>
           </div>
 
           <form onSubmit={handleWithdraw} className="space-y-4 text-xs">

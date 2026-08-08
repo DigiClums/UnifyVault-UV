@@ -437,9 +437,9 @@ export default function AdminTreasuryPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] font-semibold font-mono">
-              <ShieldCheck className="w-3 h-3 text-purple-400" />
-              <span>Governance Restricted</span>
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold font-mono shrink-0">
+              <ShieldCheck className="w-3 h-3 text-amber-400" />
+              <span>STATE-MUTATING ACTION</span>
             </div>
           </div>
 

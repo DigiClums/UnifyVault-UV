@@ -356,7 +356,7 @@ export function RedeemForm() {
                 <span>Executing Redemption...</span>
               </>
             ) : (
-              <span>Redeem</span>
+              <span>Burn Shares & Receive USDC</span>
             )}
           </button>
         )}
