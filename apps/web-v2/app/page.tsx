@@ -22,16 +22,16 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 py-2">
       {/* Hero Welcome */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-accent-blue/10 via-surface to-accent-violet/10 p-6 rounded-2xl border border-border-subtle shadow-glow">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/60 p-4 sm:p-5 rounded-xl border border-slate-800/80">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            UnifyVault V2 Portfolio Dashboard
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            Portfolio Dashboard
           </h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-0.5">
             Real-time multi-asset index tracking, NAV valuation, and strategy execution engine.
           </p>
         </div>
-        <div className="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
+        <div className="flex items-center space-x-1.5 text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
           <span className="w-2 h-2 rounded-full bg-accent-blue animate-pulse" />
           <span>{networkName} Live Sync</span>
         </div>
@@ -71,4 +71,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

@@ -64,38 +64,35 @@ export function Navbar() {
   const navLinks: NavItem[] = baseNavLinks.filter((link) => !link.isAdmin || isAdmin);
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border-subtle/80 transition-all">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/90 border-b border-border-subtle/80 transition-all">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link
           href="/"
           onClick={() => setMobileMenuOpen(false)}
-          className="flex items-center space-x-2 sm:space-x-3 group shrink min-w-0"
+          className="flex items-center space-x-2 sm:space-x-2.5 group shrink min-w-0"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-accent-cyan p-0.5 shadow-glow flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-accent-cyan p-0.5 shadow-sm flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
             <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-accent-blue" />
+              <ShieldCheck className="w-4 h-4 text-accent-blue" />
             </div>
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5 sm:space-x-2">
-              <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white via-slate-700 dark:via-slate-200 to-accent-blue tracking-tight truncate">
+              <span className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white via-slate-700 dark:via-slate-200 to-accent-blue tracking-tight truncate">
                 UnifyVault
               </span>
-              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 sm:px-2 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0 font-mono">
                 V2 Suite
               </span>
             </div>
-            <span className="text-[10px] text-muted-foreground font-mono tracking-wider hidden sm:block">
-              {chain?.name || 'Base Mainnet'}
-            </span>
           </div>
         </Link>
 
         {/* Desktop Navigation Links */}
         <nav
           aria-label="Main Navigation"
-          className="hidden lg:flex items-center space-x-1 bg-surface/60 p-1.5 rounded-xl border border-border-subtle/80 backdrop-blur-md"
+          className="hidden lg:flex items-center space-x-1 bg-slate-900/70 p-1 rounded-xl border border-slate-800/80 backdrop-blur-md"
         >
           {navLinks.map((link) => {
             const Icon = link.icon;
@@ -107,12 +104,12 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 relative',
+                  'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
                   isActive
-                    ? 'bg-accent-blue text-white shadow-glow after:absolute after:bottom-0.5 after:left-3 after:right-3 after:h-0.5 after:bg-white/80 after:rounded-full'
+                    ? 'bg-accent-blue text-white shadow-xs font-bold'
                     : link.isAdmin
-                      ? 'text-purple-600 dark:text-purple-400 hover:text-foreground hover:bg-purple-500/10'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-card/60',
+                      ? 'text-purple-400 hover:text-white hover:bg-purple-500/10'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60',
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
