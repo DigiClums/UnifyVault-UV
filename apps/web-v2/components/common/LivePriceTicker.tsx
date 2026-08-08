@@ -77,19 +77,19 @@ export function LivePriceTicker() {
   ]);
 
   return (
-    <div className="w-full bg-slate-900/90 dark:bg-slate-950/90 text-white border-b border-border-subtle/40 backdrop-blur-md px-3 sm:px-6 py-1.5 transition-all">
+    <div className="w-full bg-slate-100/90 dark:bg-slate-950/90 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md px-3 sm:px-6 py-1.5 transition-all">
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
         {/* Left: Status & Pulse Indicator */}
         <div className="flex items-center space-x-2 shrink-0">
-          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald">
+          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-emerald opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-emerald"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="text-[10px] font-bold uppercase tracking-wide">Live Feed</span>
           </div>
 
-          <span className="text-slate-400 hidden sm:inline text-[11px]">
+          <span className="text-slate-500 dark:text-slate-400 hidden sm:inline text-[11px]">
             {livePrices.isUpdating ? (
               <span className="text-accent-blue font-medium animate-pulse">Syncing...</span>
             ) : (
@@ -98,56 +98,56 @@ export function LivePriceTicker() {
           </span>
         </div>
 
-        {/* Center: Live Price Ticker Cards */}
-        <div className="flex items-center space-x-3 sm:space-x-6 overflow-x-auto py-0.5 no-scrollbar">
-          {/* BTC Price */}
+        {/* Center: Live Price Badges with Flash Indicators */}
+        <div className="flex items-center space-x-3 font-mono text-[11px] overflow-x-auto py-0.5">
+          {/* BTC Price Badge */}
           <div
             className={cn(
-              'flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md border transition-colors duration-200 font-mono text-[11px]',
-              livePrices.flashStates.btc === 'up'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : livePrices.flashStates.btc === 'down'
-                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                  : 'bg-slate-800/40 border-slate-700/50 text-slate-200',
+              'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs',
+              livePrices.flashStates.btc === 'up' &&
+                'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 scale-[1.02]',
+              livePrices.flashStates.btc === 'down' &&
+                'border-rose-500/60 bg-rose-500/10 text-rose-700 dark:text-rose-400 scale-[1.02]',
             )}
           >
-            <span className="font-semibold text-slate-400">BTC</span>
-            <span className="font-bold text-white">
-              {livePrices.btcPriceUSD > 0 ? formatUSD(livePrices.btcPriceUSD) : '...'}
+            <span className="font-bold text-amber-600 dark:text-amber-400">BTC</span>
+            <span className="font-semibold text-slate-900 dark:text-white">
+              {formatUSD(livePrices.btcPriceUSD)}
             </span>
-            {livePrices.btcTrend === 'up' ? (
-              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
-            ) : livePrices.btcTrend === 'down' ? (
-              <TrendingDown className="w-3 h-3 text-rose-400 shrink-0" />
-            ) : null}
+            {livePrices.flashStates.btc === 'up' && (
+              <TrendingUp className="w-3 h-3 text-emerald-500 animate-bounce" />
+            )}
+            {livePrices.flashStates.btc === 'down' && (
+              <TrendingDown className="w-3 h-3 text-rose-500 animate-bounce" />
+            )}
           </div>
 
-          {/* ETH Price */}
+          {/* ETH Price Badge */}
           <div
             className={cn(
-              'flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md border transition-colors duration-200 font-mono text-[11px]',
-              livePrices.flashStates.eth === 'up'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : livePrices.flashStates.eth === 'down'
-                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                  : 'bg-slate-800/40 border-slate-700/50 text-slate-200',
+              'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs',
+              livePrices.flashStates.eth === 'up' &&
+                'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 scale-[1.02]',
+              livePrices.flashStates.eth === 'down' &&
+                'border-rose-500/60 bg-rose-500/10 text-rose-700 dark:text-rose-400 scale-[1.02]',
             )}
           >
-            <span className="font-semibold text-slate-400">ETH</span>
-            <span className="font-bold text-white">
-              {livePrices.ethPriceUSD > 0 ? formatUSD(livePrices.ethPriceUSD) : '...'}
+            <span className="font-bold text-blue-600 dark:text-blue-400">ETH</span>
+            <span className="font-semibold text-slate-900 dark:text-white">
+              {formatUSD(livePrices.ethPriceUSD)}
             </span>
-            {livePrices.ethTrend === 'up' ? (
-              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
-            ) : livePrices.ethTrend === 'down' ? (
-              <TrendingDown className="w-3 h-3 text-rose-400 shrink-0" />
-            ) : null}
+            {livePrices.flashStates.eth === 'up' && (
+              <TrendingUp className="w-3 h-3 text-emerald-500 animate-bounce" />
+            )}
+            {livePrices.flashStates.eth === 'down' && (
+              <TrendingDown className="w-3 h-3 text-rose-500 animate-bounce" />
+            )}
           </div>
 
-          {/* USDC Price */}
-          <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-md bg-slate-800/40 border border-slate-700/50 font-mono text-[11px] text-slate-300">
-            <span className="font-semibold text-slate-400">USDC</span>
-            <span className="font-bold text-white">$1.000</span>
+          {/* USDC Peg Badge */}
+          <div className="flex items-center space-x-1 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hidden md:flex">
+            <span className="font-bold text-blue-500">USDC</span>
+            <span className="font-semibold">$1.00</span>
           </div>
         </div>
 
