@@ -52,50 +52,54 @@ export function StatCard({
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'p-5 rounded-2xl bg-surface/90 dark:bg-surface/80 border border-border-subtle/80 backdrop-blur-xl shadow-md shadow-indigo-500/5 dark:shadow-none transition-all duration-200',
+        'p-5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-xs transition-all duration-200',
         glowStyles[glowColor],
         className,
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
           {title}
         </span>
         {Icon && (
-          <div className={cn('p-2.5 rounded-xl border', iconBgStyles[glowColor])}>
-            <Icon className="w-5 h-5" />
+          <div className={cn('p-2 rounded-xl border shrink-0', iconBgStyles[glowColor])}>
+            <Icon className="w-4 h-4" />
           </div>
         )}
       </div>
 
-      <div className="mt-3">
-        <div className="text-2xl sm:text-3xl font-extrabold font-mono text-foreground tracking-tight">
+      <div className="mt-3 space-y-1">
+        <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">
           {value}
         </div>
-      </div>
 
-      {(change || subtitle) && (
-        <div className="mt-2.5 flex items-center justify-between text-xs">
-          {change && (
-            <div
-              className={cn(
-                'flex items-center space-x-1 font-semibold px-2 py-0.5 rounded-md border',
-                isPositive
-                  ? 'bg-emerald-500/15 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/20'
-                  : 'bg-rose-500/15 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/20',
-              )}
-            >
-              {isPositive ? (
-                <TrendingUp className="w-3.5 h-3.5" />
-              ) : (
-                <TrendingDown className="w-3.5 h-3.5" />
-              )}
-              <span>{change}</span>
-            </div>
-          )}
-          {subtitle && <span className="text-muted-foreground font-medium">{subtitle}</span>}
-        </div>
-      )}
+        {(change !== undefined || subtitle !== undefined) && (
+          <div className="flex items-center space-x-2 text-xs font-medium pt-0.5">
+            {change !== undefined && (
+              <span
+                className={cn(
+                  'flex items-center space-x-0.5 font-bold font-mono px-1.5 py-0.5 rounded text-[11px]',
+                  isPositive
+                    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                    : 'text-rose-700 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20',
+                )}
+              >
+                {isPositive ? (
+                  <TrendingUp className="w-3 h-3" />
+                ) : (
+                  <TrendingDown className="w-3 h-3" />
+                )}
+                <span>{change}</span>
+              </span>
+            )}
+            {subtitle && (
+              <span className="text-slate-500 dark:text-slate-400 text-[11px] truncate">
+                {subtitle}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

@@ -22,12 +22,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 py-2">
       {/* Hero Welcome */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/60 p-4 sm:p-5 rounded-xl border border-slate-800/80">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Portfolio Dashboard
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Real-time multi-asset index tracking, NAV valuation, and strategy execution engine.
           </p>
         </div>

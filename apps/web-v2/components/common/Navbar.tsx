@@ -92,7 +92,7 @@ export function Navbar() {
         {/* Desktop Navigation Links */}
         <nav
           aria-label="Main Navigation"
-          className="hidden lg:flex items-center space-x-1 bg-slate-900/70 p-1 rounded-xl border border-slate-800/80 backdrop-blur-md"
+          className="hidden lg:flex items-center space-x-1 bg-slate-100 dark:bg-slate-900/70 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 backdrop-blur-md"
         >
           {navLinks.map((link) => {
             const Icon = link.icon;
@@ -108,8 +108,8 @@ export function Navbar() {
                   isActive
                     ? 'bg-accent-blue text-white shadow-xs font-bold'
                     : link.isAdmin
-                      ? 'text-purple-400 hover:text-white hover:bg-purple-500/10'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60',
+                      ? 'text-purple-600 dark:text-purple-400 hover:text-slate-900 dark:hover:text-white hover:bg-purple-500/10'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60',
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
