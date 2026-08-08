@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAddTokenToWallet } from '../../hooks/useAddTokenToWallet';
 import { getExplorerBaseUrl } from '../../constants';
 import { useAccount } from 'wagmi';
@@ -14,6 +14,7 @@ import {
   Loader2,
   Wallet,
   Smartphone,
+  Info,
 } from 'lucide-react';
 
 interface AddTokenToWalletProps {
@@ -34,8 +35,18 @@ export function AddTokenToWallet({
   const { chain } = useAccount();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { status, errorMessage, addToken } = useAddTokenToWallet();
+
   const [copied, setCopied] = useState(false);
-  const [showManualGuide, setShowManualGuide] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [copiedToast, setCopiedToast] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userAgent = navigator.userAgent || '';
+      const mobileCheck = /iPhone|iPad|iPod|Android/i.test(userAgent);
+      setIsMobile(mobileCheck);
+    }
+  }, []);
 
   if (!address || address === '0x0000000000000000000000000000000000000000') {
     return null;
@@ -48,13 +59,19 @@ export function AddTokenToWallet({
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
+      setCopiedToast(true);
       setTimeout(() => setCopied(false), 2500);
+      setTimeout(() => setCopiedToast(false), 4000);
     } catch {
       // Ignore copy error
     }
   };
 
   const handleAddToken = async () => {
+    // Automatically copy address to clipboard as a helpful fallback for mobile browsers
+    if (isMobile) {
+      handleCopy();
+    }
     await addToken({ address, symbol, decimals });
   };
 
@@ -98,7 +115,9 @@ export function AddTokenToWallet({
           <div>
             <h4 className="font-bold text-white text-xs">Add {symbol} to Wallet</h4>
             <p className="text-[11px] text-slate-400">
-              One-click watch request or manual contract import for {name}.
+              {isMobile
+                ? `Add ${symbol} to your mobile wallet (MetaMask, Trust Wallet, Coinbase)`
+                : `One-click watch request for ${name}`}
             </p>
           </div>
         </div>
@@ -119,7 +138,7 @@ export function AddTokenToWallet({
           {status === 'pending' ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Awaiting Wallet Response...</span>
+              <span>Awaiting Wallet...</span>
             </>
           ) : status === 'success' ? (
             <>
@@ -129,7 +148,7 @@ export function AddTokenToWallet({
           ) : (
             <>
               <PlusCircle className="w-4 h-4" />
-              <span>Auto-Add {symbol} to Wallet</span>
+              <span>Add {symbol} to Wallet</span>
             </>
           )}
         </button>
@@ -158,60 +177,62 @@ export function AddTokenToWallet({
         </a>
       </div>
 
-      {status === 'rejected' && (
-        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] space-y-1">
-          <div className="flex items-center space-x-2 font-semibold">
-            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
-            <span>{errorMessage || 'Request cancelled in wallet.'}</span>
+      {copiedToast && isMobile && (
+        <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center space-x-2 font-mono">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Address copied to clipboard! Paste in your wallet to import {symbol}.</span>
+        </div>
+      )}
+
+      {/* Mobile Explanation Box for External Mobile Browsers */}
+      {isMobile && (
+        <div className="p-3 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] space-y-2 font-sans">
+          <div className="flex items-center space-x-2 text-slate-200 font-bold">
+            <Smartphone className="w-4 h-4 text-accent-blue shrink-0" />
+            <span>Mobile Wallet Import Notice</span>
           </div>
-          <p className="text-slate-400 pl-6 text-[10px]">
-            You can tap <strong className="text-amber-300">Copy Address</strong> above to add{' '}
-            {symbol} manually in your mobile wallet app.
+
+          <p className="text-slate-300 text-[11px] leading-relaxed">
+            Mobile Chrome/Safari opens your wallet app when tapping <strong>Add to Wallet</strong>.
+            If your mobile wallet opens without a popup prompt:
           </p>
-        </div>
-      )}
 
-      {(status === 'unsupported' || showManualGuide) && (
-        <div className="p-3 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] space-y-2 font-sans">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-slate-200 font-bold">
-              <Smartphone className="w-4 h-4 text-accent-blue" />
-              <span>Mobile Wallet Manual Import Guide</span>
-            </div>
-            <button
-              onClick={handleCopy}
-              className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent-blue/20 text-accent-blue border border-accent-blue/30 font-bold"
-            >
-              {copied ? 'Copied!' : 'Copy Contract Address'}
-            </button>
-          </div>
-
-          <div className="text-slate-400 text-[11px] space-y-1 font-mono">
+          <div className="text-slate-300 text-[11px] space-y-1 font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
             <div>
-              1. Tap <strong className="text-white">Copy Address</strong> above (
-              <span className="text-accent-blue">{shortAddr}</span>)
+              1. Tap <strong className="text-emerald-400">Copy Address</strong> above (
+              <span className="text-white font-bold">{shortAddr}</span>)
             </div>
-            <div>2. Open your Mobile Wallet app (MetaMask, Trust Wallet, Coinbase)</div>
+            <div>2. Open your Wallet App (MetaMask, Trust Wallet, Coinbase)</div>
             <div>
-              3. Go to <strong className="text-white">Tokens &gt; Import Custom Token</strong> &amp;
-              paste address
+              3. Go to <strong className="text-white">Tokens &gt; Import Custom Token</strong> and
+              paste
             </div>
-          </div>
-
-          <div className="pt-1 flex justify-between items-center text-[10px] text-slate-400 font-mono border-t border-slate-700/60">
-            <span>Decimals: 18</span>
-            <span>Symbol: {symbol}</span>
+            <div className="text-slate-400 pt-1 text-[10px] flex justify-between border-t border-slate-800 mt-1">
+              <span>Decimals: 18</span>
+              <span>Symbol: {symbol}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {status === 'idle' && !showManualGuide && (
-        <button
-          onClick={() => setShowManualGuide(true)}
-          className="text-[10px] text-slate-400 hover:text-slate-200 underline font-mono cursor-pointer"
-        >
-          Having trouble on mobile? Tap for manual import instructions.
-        </button>
+      {status === 'rejected' && !isMobile && (
+        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] flex items-center space-x-2 font-semibold">
+          <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+          <span>{errorMessage || 'Request cancelled in wallet.'}</span>
+        </div>
+      )}
+
+      {status === 'unsupported' && !isMobile && (
+        <div className="p-3 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 text-[11px] space-y-1 font-mono">
+          <div className="flex items-center space-x-1.5 text-amber-400 font-semibold font-sans">
+            <Info className="w-3.5 h-3.5 shrink-0" />
+            <span>Browser does not support automatic watchAsset.</span>
+          </div>
+          <div className="text-slate-400 pt-0.5">
+            Manually import using contract address:{' '}
+            <span className="text-white select-all font-bold">{address}</span>
+          </div>
+        </div>
       )}
     </div>
   );
