@@ -4,10 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../providers/ThemeProvider';
 import { Web3Provider } from '../providers/Web3Provider';
-import { Navbar } from '../components/common/Navbar';
-import { Footer } from '../components/common/Footer';
-import { GlobalAlertBanner } from '../components/common/GlobalAlertBanner';
-import { LivePriceTicker } from '../components/common/LivePriceTicker';
+import { AppShell } from '../components/layout/AppShell';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -55,13 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <Web3Provider>
-            <GlobalAlertBanner />
-            <LivePriceTicker />
-            <Navbar />
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {children}
-            </main>
-            <Footer />
+            <AppShell>{children}</AppShell>
           </Web3Provider>
         </ThemeProvider>
       </body>
