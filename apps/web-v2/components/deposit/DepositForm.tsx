@@ -23,11 +23,15 @@ import {
   Sliders,
 } from 'lucide-react';
 
+import { AddTokenToWallet } from '../common/AddTokenToWallet';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
+
 export function DepositForm() {
   const { isConnected, chain } = useAccount();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { usdcBalance, refetch: refetchBalances } = useBalances();
   const { navPerShareUSD } = useUnifiedProtocolData();
+  const { token: uvTokenAddress } = useProtocolDirectory();
   const {
     depositAmountInput,
     setDepositAmountInput,
@@ -336,23 +340,32 @@ export function DepositForm() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row gap-2">
-              <a
-                href={explorerTxUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 py-2.5 px-3 rounded-xl bg-surface border border-border-subtle text-foreground hover:text-accent-blue font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors text-xs shadow-xs"
-              >
-                <span>View on Explorer</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <Link
-                href="/portfolio"
-                className="flex-1 py-2.5 px-3 rounded-xl bg-accent-blue hover:bg-blue-600 text-white font-bold text-center flex items-center justify-center space-x-1.5 transition-colors shadow-glow text-xs"
-              >
-                <span>Go to Portfolio</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+            <div className="pt-3 border-t border-emerald-500/20 space-y-3">
+              <AddTokenToWallet
+                address={uvTokenAddress}
+                symbol="UVBTCETH"
+                decimals={18}
+                name="UnifyVault BTC-ETH Index Share"
+              />
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <a
+                  href={explorerTxUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-surface border border-border-subtle text-foreground hover:text-accent-blue font-semibold text-center flex items-center justify-center space-x-1.5 transition-colors text-xs shadow-xs"
+                >
+                  <span>View on Explorer</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <Link
+                  href="/portfolio"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-accent-blue hover:bg-blue-600 text-white font-bold text-center flex items-center justify-center space-x-1.5 transition-colors shadow-glow text-xs"
+                >
+                  <span>Go to Portfolio</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
         )}
