@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens, getExplorerBaseUrl } from '../../constants';
 
-describe('Protocol Contracts & Wallet Integration Suite', () => {
+describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   it('should expose all 8 required canonical protocol contract addresses for Base Sepolia', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toBe(
       '0x5c0C26A825639adc58C6edf3aE864616F1dA94b9',
@@ -52,17 +52,22 @@ describe('Protocol Contracts & Wallet Integration Suite', () => {
     expect(watchAssetParams.options.decimals).toBe(18);
   });
 
-  it('should verify desktop provider wallet_watchAsset success response', async () => {
-    const mockDesktopProvider = {
+  it('should verify SafePal mobile injected provider window.safepalProvider request dispatch', async () => {
+    const mockSafePalProvider = {
+      isSafePal: true,
       request: async ({ method, params }: { method: string; params: any }) => {
-        if (method === 'wallet_watchAsset' && params.options.symbol === 'UVBTCETH') {
+        if (
+          method === 'wallet_watchAsset' &&
+          params.type === 'ERC20' &&
+          params.options.symbol === 'UVBTCETH'
+        ) {
           return true;
         }
         return false;
       },
     };
 
-    const res = await mockDesktopProvider.request({
+    const res = await mockSafePalProvider.request({
       method: 'wallet_watchAsset',
       params: {
         type: 'ERC20',
@@ -77,7 +82,7 @@ describe('Protocol Contracts & Wallet Integration Suite', () => {
     expect(res).toBe(true);
   });
 
-  it('should verify mobile provider wallet_watchAsset matrix (success, false, rejection, unsupported)', async () => {
+  it('should verify desktop and mobile provider wallet_watchAsset matrix (success, false, rejection, unsupported)', async () => {
     // 1. Mobile success
     const mockMobileSuccess = {
       request: async ({ method }: { method: string }) => method === 'wallet_watchAsset',
