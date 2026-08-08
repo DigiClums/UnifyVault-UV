@@ -77,9 +77,9 @@ export function Navbar() {
               <ShieldCheck className="w-4 h-4 text-accent-blue" />
             </div>
           </div>
-          <div className="min-w-0">
+          <div className="shrink-0">
             <div className="flex items-center space-x-1.5 sm:space-x-2">
-              <span className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white via-slate-700 dark:via-slate-200 to-accent-blue tracking-tight truncate">
+              <span className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white via-slate-700 dark:via-slate-200 to-accent-blue tracking-tight shrink-0">
                 UnifyVault
               </span>
               <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0 font-mono">

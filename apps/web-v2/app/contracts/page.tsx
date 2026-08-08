@@ -159,12 +159,12 @@ export default function ContractsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center space-x-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center space-x-2">
               <FileText className="w-6 h-6 text-accent-blue" />
               <span>Protocol Contracts & On-Chain Addresses</span>
             </h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Canonical smart-contract address directory for UnifyVault V2 deployment on{' '}
             {activeChainName}.
           </p>
