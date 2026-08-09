@@ -2,14 +2,17 @@
 
 import React, { useState } from 'react';
 import {
+  useAccount,
   useReadContract,
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
+  usePublicClient,
 } from 'wagmi';
 import { CONTROLLER_ABI, FEE_MANAGER_ABI, PROTOCOL_DIRECTORY_ABI } from '../../../lib/contracts';
 import { MODULE_IDS } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
+import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
@@ -23,6 +26,8 @@ import {
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
   const {
     directory,
     controller,
@@ -96,45 +101,68 @@ export default function AdminSettingsPage() {
     hash: txHash,
   });
 
-  const handleUpdateDepositFee = (e: React.FormEvent) => {
+  const handleUpdateDepositFee = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(depositFeeInput);
-    if (isNaN(parsed) || parsed < 0 || parsed > 500 || !targetFeeManager) return;
+    if (
+      isNaN(parsed) ||
+      parsed < 0 ||
+      parsed > 500 ||
+      !targetFeeManager ||
+      !address ||
+      !publicClient
+    )
+      return;
 
     setActiveAction('depositFee');
+    const nonce = await getTransactionNonce(publicClient, address);
     writeContract({
       address: targetFeeManager,
       abi: FEE_MANAGER_ABI,
       functionName: 'setDepositFeeBps',
       args: [BigInt(parsed)],
+      nonce,
     });
   };
 
-  const handleUpdateRedeemFee = (e: React.FormEvent) => {
+  const handleUpdateRedeemFee = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(redeemFeeInput);
-    if (isNaN(parsed) || parsed < 0 || parsed > 500 || !targetFeeManager) return;
+    if (
+      isNaN(parsed) ||
+      parsed < 0 ||
+      parsed > 500 ||
+      !targetFeeManager ||
+      !address ||
+      !publicClient
+    )
+      return;
 
     setActiveAction('redeemFee');
+    const nonce = await getTransactionNonce(publicClient, address);
     writeContract({
       address: targetFeeManager,
       abi: FEE_MANAGER_ABI,
       functionName: 'setRedeemFeeBps',
       args: [BigInt(parsed)],
+      nonce,
     });
   };
 
-  const handleUpdateSlippage = (e: React.FormEvent) => {
+  const handleUpdateSlippage = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(slippageBps);
-    if (isNaN(parsed) || parsed < 0 || parsed > 10000 || !controller) return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 10000 || !controller || !address || !publicClient)
+      return;
 
     setActiveAction('slippage');
+    const nonce = await getTransactionNonce(publicClient, address);
     writeContract({
       address: controller,
       abi: CONTROLLER_ABI,
       functionName: 'setSwapSlippageBps',
       args: [BigInt(parsed)],
+      nonce,
     });
   };
 

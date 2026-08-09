@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import {
+  useAccount,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  usePublicClient,
+} from 'wagmi';
+import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { usePortfolio } from '../../../hooks/usePortfolio';
 import { STRATEGY_MANAGER_ABI, CONTROLLER_ABI } from '../../../lib/contracts';
 import { getChainTokens } from '../../../constants';
@@ -22,7 +29,8 @@ import {
 } from 'lucide-react';
 
 export default function AdminRebalancePage() {
-  const { chain } = useAccount();
+  const { address, chain } = useAccount();
+  const publicClient = usePublicClient();
   const tokens = getChainTokens(chain?.id);
   const { holdings } = usePortfolio();
   const { controller, strategyManager } = useProtocolDirectory();
@@ -95,9 +103,11 @@ export default function AdminRebalancePage() {
     hash: txHash,
   });
 
-  const handleUpdateWeights = (e: React.FormEvent) => {
+  const handleUpdateWeights = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeStrategyManager || !isValidBps) return;
+    if (!activeStrategyManager || !isValidBps || !address || !publicClient) return;
+
+    const nonce = await getTransactionNonce(publicClient, address);
 
     writeContract({
       address: activeStrategyManager,
@@ -107,6 +117,7 @@ export default function AdminRebalancePage() {
         [tokens.cbBTC, tokens.WETH],
         [BigInt(wbtcBpsVal), BigInt(wethBpsVal)],
       ],
+      nonce,
     });
   };
 

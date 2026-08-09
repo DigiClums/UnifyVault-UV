@@ -13,6 +13,7 @@ import { TREASURY_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
 import { getChainTokens, getExplorerBaseUrl } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
+import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -320,17 +321,27 @@ export default function AdminTreasuryPage() {
     hash: txHash,
   });
 
-  const handleWithdraw = (e: React.FormEvent) => {
+  const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recipient || !amount || parseFloat(amount) <= 0 || !treasury) return;
+    if (
+      !recipient ||
+      !amount ||
+      parseFloat(amount) <= 0 ||
+      !treasury ||
+      !connectedAddress ||
+      !publicClient
+    )
+      return;
 
     const amountRaw = parseUnits(amount, selectedAssetDecimals);
+    const nonce = await getTransactionNonce(publicClient, connectedAddress);
 
     writeContract({
       address: treasury,
       abi: TREASURY_ABI,
       functionName: 'withdraw',
       args: [assetAddress as `0x${string}`, recipient as `0x${string}`, amountRaw],
+      nonce,
     });
   };
 

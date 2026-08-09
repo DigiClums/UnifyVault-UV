@@ -10,6 +10,7 @@ import { getChainTokens } from '../constants';
 import { parseUnits, formatUnits, formatUSD, calculateSlippageMinAssets } from '../lib/math';
 import { invalidateProtocolQueries } from '../lib/utils/cacheInvalidation';
 import { decodeTransactionError } from '../lib/utils/errorDecoder';
+import { getTransactionNonce } from '../lib/utils/getTransactionNonce';
 import { base, baseSepolia } from 'viem/chains';
 
 export type RedeemStepState =
@@ -212,12 +213,21 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
         } catch {}
       }
 
+      const redeemNonce = publicClient
+        ? await getTransactionNonce(publicClient, userAddress)
+        : undefined;
+
+      if (typeof redeemNonce === 'number') {
+        console.log('[UV TX] redeem nonce:', redeemNonce);
+      }
+
       const hash = await writeContractAsync({
         address: targetController,
         abi: CONTROLLER_ABI,
         functionName: 'redeem',
         args: [targetAssetAddress, sharesRaw, minAssetsOut, userAddress, deadline],
         ...(redeemGas ? { gas: redeemGas } : {}),
+        ...(typeof redeemNonce === 'number' ? { nonce: redeemNonce } : {}),
       });
 
       setLastTxHash(hash);
