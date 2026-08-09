@@ -13,6 +13,7 @@ import { useTheme } from 'next-themes';
 import { base, baseSepolia } from 'viem/chains';
 import { http, fallback } from 'viem';
 import { createSafeWagmiStorage, setupIndexedDBGuard } from '../lib/utils/storageFallback';
+import { installProviderInterceptors } from '../lib/utils/providerInterceptor';
 import '@rainbow-me/rainbowkit/styles.css';
 
 const walletConnectProjectId =
@@ -112,6 +113,36 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     setupIndexedDBGuard();
+    // Install EIP-1193 provider interceptors to log outgoing transactions
+    // This MUST run early so it proxies window.ethereum / window.safepalProvider
+    // before wagmi/viem uses them for eth_sendTransaction.
+    installProviderInterceptors();
+
+    // SafePal detection: if the injected provider is SafePal, advise using
+    // WalletConnect instead.  SafePal's injected EVM provider uses a
+    // proprietary RPC backend that does not honor dApp-provided nonces.
+    // WalletConnect bypasses this and delegates nonce management correctly.
+    // This does NOT affect MetaMask or any other injected wallet.
+    if (typeof window !== 'undefined') {
+      const win = window as unknown as {
+        ethereum?: { isSafePal?: boolean; isMetaMask?: boolean };
+        safepalProvider?: unknown;
+      };
+      if (win.safepalProvider || win.ethereum?.isSafePal) {
+        console.info(
+          '%c[UnifyVault] %cSafePal detected.%c\n' +
+            '  For best results, use the %cWalletConnect%c option in the wallet connection modal.\n' +
+            '  The injected SafePal provider does not honor dApp-provided nonces\n' +
+            '  and uses a proprietary RPC backend.  WalletConnect handles this correctly.\n' +
+            '  See docs/safepal-nonce-investigation.md for details.',
+          'color: #f59e0b; font-weight: bold;',
+          'color: #ef4444; font-weight: bold;',
+          'color: inherit;',
+          'color: #3b82f6; font-weight: bold;',
+          'color: inherit;',
+        );
+      }
+    }
   }, []);
 
   return (

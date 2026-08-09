@@ -147,6 +147,10 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
   /**
    * Single-click Deposit Execution Workflow.
    * If allowance < amount, automatically executes Approval -> Deposit in one seamless flow.
+   *
+   * Nonce handling is delegated to the active connector via getTransactionNonce().
+   * No manual nonce computation or incrementing — the connector/wallet determines
+   * the correct nonce for each transaction.
    */
   const executeDeposit = async () => {
     if (!userAddress) {
@@ -177,10 +181,6 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
     setStepState('preparing');
 
     try {
-      // Track the last submitted nonce so the subsequent deposit tx
-      // can verify it receives a strictly greater nonce (N+1).
-      let lastSubmittedNonce: number | undefined;
-
       // 1. Verify user USDC balance
       let freshUsdcBal = 0n;
       if (publicClient) {
@@ -237,10 +237,6 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
           ? await getTransactionNonce(publicClient, userAddress)
           : undefined;
 
-        if (typeof approveNonce === 'number') {
-          console.log('[UV TX] approve nonce:', approveNonce);
-        }
-
         const approveHash = await writeContractAsync({
           address: selectedTokenAddress,
           abi: ERC20_ABI,
@@ -249,12 +245,6 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
           ...(approveGas ? { gas: approveGas } : {}),
           ...(typeof approveNonce === 'number' ? { nonce: approveNonce } : {}),
         });
-
-        // Track the successfully-submitted nonce so the deposit step
-        // can assert N+1 later.
-        if (typeof approveNonce === 'number') {
-          lastSubmittedNonce = approveNonce;
-        }
 
         setApprovalTxHash(approveHash);
         setLastTxHash(approveHash);
@@ -312,40 +302,9 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         } catch {}
       }
 
-      // Fetch the current pending nonce.  If a prior approval tx was
-      // submitted at nonce N, the deposit MUST use N+1 — some RPC
-      // backends may still return N even after the receipt is
-      // confirmed, so we compute explicitly when needed.
-      const rawDepositNonce = publicClient
+      const depositNonce = publicClient
         ? await getTransactionNonce(publicClient, userAddress)
         : undefined;
-
-      const depositNonce: number | undefined = (() => {
-        if (typeof lastSubmittedNonce !== 'number') {
-          // No prior approval tx — just use whatever the RPC returned.
-          return typeof rawDepositNonce === 'number' ? rawDepositNonce : undefined;
-        }
-
-        // We submitted an approval at nonce N.  The deposit belongs at N+1.
-        if (typeof rawDepositNonce === 'number' && rawDepositNonce > lastSubmittedNonce) {
-          console.log(
-            '[UV TX] approve nonce: %d  →  deposit nonce: %d  (RPC returned N+1)',
-            lastSubmittedNonce,
-            rawDepositNonce,
-          );
-          return rawDepositNonce;
-        }
-
-        // RPC returned a stale value (≤ N).  Compute N+1 explicitly.
-        const forcedNonce = lastSubmittedNonce + 1;
-        console.log(
-          '[UV TX] approve nonce: %d  →  deposit nonce: %d  (forced N+1 — RPC returned stale: %d)',
-          lastSubmittedNonce,
-          forcedNonce,
-          rawDepositNonce,
-        );
-        return forcedNonce;
-      })();
 
       const depHash = await writeContractAsync({
         address: targetController,
