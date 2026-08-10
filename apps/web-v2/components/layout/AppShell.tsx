@@ -1,36 +1,40 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
 import { Navbar } from '../common/Navbar';
 import { Footer } from '../common/Footer';
 import { GlobalAlertBanner } from '../common/GlobalAlertBanner';
 import { LivePriceTicker } from '../common/LivePriceTicker';
 import { MobileBottomNav } from '../common/MobileBottomNav';
 import { AdminHeader } from './AdminHeader';
+import { LandingHeader } from '../landing/LandingHeader';
+import { LandingFooter } from '../landing/LandingFooter';
 
 interface AppShellProps {
   children: React.ReactNode;
+  shellMode: 'landing' | 'app' | 'admin';
 }
 
 /**
  * AppShell conditionally renders the appropriate application chrome
- * based on the current route.
+ * based on the host-determined shellMode passed from the root layout.
  *
- * ── Admin routes (/admin/*) ──────────────────────────────────
- * Served from v2.unifyvault.xyz (via middleware rewrite).
- * Renders the AdminHeader with the admin sidebar/nav — no public
- * Navbar, Footer, or MobileBottomNav.
+ * ── landing ───────────────────────────────────────────────────
+ * unifyvault.xyz marketing hero site.
+ * Renders LandingHeader + LandingFooter.
+ * No LivePriceTicker, Navbar, MobileBottomNav, or app Footer.
  *
- * ── Public routes (everything else) ──────────────────────────
- * Served from app.unifyvault.xyz.
+ * ── admin ─────────────────────────────────────────────────────
+ * v2.unifyvault.xyz admin application.
+ * Renders the AdminHeader with admin sidebar.
+ * No public Navbar, Footer, or MobileBottomNav.
+ *
+ * ── app ───────────────────────────────────────────────────────
+ * app.unifyvault.xyz DeFi application.
  * Renders the full public chrome: Navbar, Footer, MobileBottomNav.
  */
-export function AppShell({ children }: AppShellProps) {
-  const pathname = usePathname();
-  const isAdminRoute = pathname?.startsWith('/admin');
-
-  if (isAdminRoute) {
+export function AppShell({ children, shellMode }: AppShellProps) {
+  if (shellMode === 'admin') {
     return (
       <>
         <GlobalAlertBanner />
@@ -42,6 +46,18 @@ export function AppShell({ children }: AppShellProps) {
     );
   }
 
+  if (shellMode === 'landing') {
+    return (
+      <>
+        <GlobalAlertBanner />
+        <LandingHeader />
+        <main className="flex-1">{children}</main>
+        <LandingFooter />
+      </>
+    );
+  }
+
+  // shellMode === 'app'
   return (
     <>
       <GlobalAlertBanner />

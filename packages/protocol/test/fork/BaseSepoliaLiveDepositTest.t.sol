@@ -36,7 +36,9 @@ contract BaseSepoliaLiveDepositTest is Test {
   }
 
   function test_RevertWhenOutputIsBelowSlippageThreshold() public {
-    console.log('=== TEST 1: Deposit Reverts When Post-Swap Realized Output Is Below Slippage Threshold ===');
+    console.log(
+      '=== TEST 1: Deposit Reverts When Post-Swap Realized Output Is Below Slippage Threshold ==='
+    );
 
     uint256 depositAmount = 20_000_000; // 20 USDC
     deal(SEPOLIA_USDC, newWallet, depositAmount);
@@ -60,7 +62,7 @@ contract BaseSepoliaLiveDepositTest is Test {
 
     // Top up TestSwapRouter with mock strategy liquidity (1 cbBTC, 10 WETH)
     deal(SEPOLIA_CBBTC, TEST_SWAP_ROUTER, 100_000_000); // 1 cbBTC
-    deal(SEPOLIA_WETH, TEST_SWAP_ROUTER, 10 ether);     // 10 WETH
+    deal(SEPOLIA_WETH, TEST_SWAP_ROUTER, 10 ether); // 10 WETH
 
     uint256 sharesBefore = IERC20(TOKEN).balanceOf(newWallet);
     assertEq(sharesBefore, 0, 'New wallet must start with 0 shares');
@@ -91,6 +93,9 @@ contract BaseSepoliaLiveDepositTest is Test {
     // Verify abnormal -99% PnL is completely eliminated
     uint256 holdingValUSD = (sharesAfter * navPerShare) / 1e18;
     console.log('User Holding Value (USD 18 dec): ', holdingValUSD);
-    assertTrue(holdingValUSD >= 19_000_000_000_000_000_000, 'Holding value must be ~19.98 USD, not $0.22!');
+    assertTrue(
+      holdingValUSD >= 19_000_000_000_000_000_000,
+      'Holding value must be ~19.98 USD, not $0.22!'
+    );
   }
 }

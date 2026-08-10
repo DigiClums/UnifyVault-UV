@@ -134,6 +134,14 @@ export function HistoricalNavChart() {
   const { navHistory, isLoading: isLoadingNav } = useHistoricalNAV(period);
   const { transactions } = useTransactionHistory();
 
+  // Detect bogus stub data: when useHistoricalNAV returns snapshots with
+  // totalAssets=0 and btcPrice=0 and ethPrice=0 across all points, it means
+  // no real historical data has been recorded yet.
+  const hasRealHistoricalData = useMemo(() => {
+    if (!navHistory || navHistory.length < 2) return false;
+    return navHistory.some((s) => (s.totalAssets ?? 0) > 0 || (s.nav ?? 0) > 0);
+  }, [navHistory]);
+
   // Match indexed transaction events to closest NAV point timestamps
   const activityMarkers: ActivityMarkerPoint[] = useMemo(() => {
     if (!navHistory || navHistory.length === 0 || !transactions || transactions.length === 0) {
@@ -235,10 +243,10 @@ export function HistoricalNavChart() {
         <div className="h-64 w-full pt-2 flex items-center justify-center">
           <Skeleton className="h-full w-full rounded-xl" />
         </div>
-      ) : !navHistory || navHistory.length < 2 ? (
+      ) : !hasRealHistoricalData ? (
         <EmptyState
-          title="Collecting NAV history..."
-          description="At least 2 historical NAV snapshots are required to display progression trajectory."
+          title="No historical NAV data yet"
+          description="Your NAV history will appear after portfolio activity is recorded on-chain. Deposits and redemptions create NAV snapshots over time."
           icon={History}
         />
       ) : (

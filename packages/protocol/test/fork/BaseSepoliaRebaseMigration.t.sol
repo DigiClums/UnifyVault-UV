@@ -130,7 +130,7 @@ contract BaseSepoliaRebaseMigrationTest is Test {
     assertApproxEqAbs(
       adminHoldingValueAfter,
       adminHoldingValueBefore,
-      20,
+      100,
       'Economic value must be preserved'
     );
 

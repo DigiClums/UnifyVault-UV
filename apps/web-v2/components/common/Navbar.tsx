@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
   ShieldCheck,
-  LayoutDashboard,
+  Home,
   ArrowDownRight,
   ArrowUpRight,
   PieChart,
@@ -29,13 +29,13 @@ export function Navbar() {
   }
 
   const navLinks: NavItem[] = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/', label: 'Home', icon: Home },
     { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
-    { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
     { href: '/portfolio', label: 'Portfolio', icon: PieChart },
+    { href: '/transactions', label: 'Activity', icon: History },
+    { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/treasury', label: 'Treasury', icon: Vault },
-    { href: '/transactions', label: 'Activity', icon: History },
   ];
 
   return (
@@ -67,7 +67,9 @@ export function Navbar() {
             const Icon = link.icon;
             const isActive =
               pathname &&
-              (pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)));
+              (link.href === '/'
+                ? pathname === '/'
+                : pathname === link.href || pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}

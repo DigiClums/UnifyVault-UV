@@ -126,8 +126,11 @@ contract PythOracleProvider is AccessControl, IOracleProvider {
       IPyth.Price memory pythPrice
     ) {
       if (pythPrice.price <= 0) return false;
-      if (pythPrice.publishTime == 0 || block.timestamp - pythPrice.publishTime > config.heartbeat)
+      if (
+        pythPrice.publishTime == 0 || block.timestamp - pythPrice.publishTime > config.heartbeat
+      ) {
         return false;
+      }
       return true;
     } catch {
       return false;

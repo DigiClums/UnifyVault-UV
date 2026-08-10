@@ -14,13 +14,17 @@ contract RegisterCostBasisAndPerformanceScript is Script {
 
     ProtocolDirectory dir = ProtocolDirectory(DIRECTORY);
 
-    console.log('=== REGISTERING COST_BASIS_MANAGER & PERFORMANCE_MANAGER IN PROTOCOL DIRECTORY ===');
+    console.log(
+      '=== REGISTERING COST_BASIS_MANAGER & PERFORMANCE_MANAGER IN PROTOCOL DIRECTORY ==='
+    );
     _registerOrUpdate(dir, ModuleIds.COST_BASIS_MANAGER, COST_BASIS_MANAGER);
     _registerOrUpdate(dir, ModuleIds.PERFORMANCE_MANAGER, COST_BASIS_MANAGER);
 
     vm.stopBroadcast();
 
-    console.log('[SUCCESS] COST_BASIS_MANAGER and PERFORMANCE_MANAGER registered in ProtocolDirectory!');
+    console.log(
+      '[SUCCESS] COST_BASIS_MANAGER and PERFORMANCE_MANAGER registered in ProtocolDirectory!'
+    );
   }
 
   function _registerOrUpdate(ProtocolDirectory dir, bytes32 id, address target) internal {

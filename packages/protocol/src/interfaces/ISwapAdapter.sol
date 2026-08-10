@@ -90,4 +90,3 @@ interface ISwapAdapter {
 
   function router() external view returns (address);
 }
-

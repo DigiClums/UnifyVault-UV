@@ -177,7 +177,7 @@ contract GenesisNAVAndMigrationTest is Test {
 
     // Price decrease to $30,000 (-50% from original)
     vm.prank(admin);
-    oracleProvider.registerAsset(btcId, 30000 * 1e18, 18, block.timestamp, 3);
+    oracleProvider.setPrice(btcId, 30000 * 1e18);
     (, uint256 navDown) = portfolioManager.calculateNAV();
     assertEq(navDown, 0.5e18, 'NAV per share should drop to $0.50');
   }
@@ -197,13 +197,13 @@ contract GenesisNAVAndMigrationTest is Test {
 
     // Price increase to $6,000 (+100%)
     vm.prank(admin);
-    oracleProvider.registerAsset(ethId, 6000 * 1e18, 18, block.timestamp, 2);
+    oracleProvider.setPrice(ethId, 6000 * 1e18);
     (, uint256 navUp) = portfolioManager.calculateNAV();
     assertEq(navUp, 2e18, 'NAV per share should double to $2.00');
 
     // Price decrease to $1,500 (-50%)
     vm.prank(admin);
-    oracleProvider.registerAsset(ethId, 1500 * 1e18, 18, block.timestamp, 3);
+    oracleProvider.setPrice(ethId, 1500 * 1e18);
     (, uint256 navDown) = portfolioManager.calculateNAV();
     assertEq(navDown, 0.5e18, 'NAV per share should drop to $0.50');
   }
@@ -226,6 +226,11 @@ contract GenesisNAVAndMigrationTest is Test {
 
   // 9 & 10. Deposit at $1 NAV and after appreciation
   function test_9_10_DepositAtOneDollarAndAppreciatedNAV() public {
+    // Seed vault with 0.5 ETH ($1,500 at $3,000/ETH) so ETH price movement affects NAV
+    eth.mint(address(this), 0.5 * 1e18);
+    eth.approve(address(vault), 0.5 * 1e18);
+    vault.deposit(address(eth), address(this), 0.5 * 1e18);
+
     // 6-decimal USDC deposit of 1000 USDC ($1000)
     usdc.mint(user1, 1000 * 1e6);
     vm.startPrank(user1);
@@ -243,7 +248,7 @@ contract GenesisNAVAndMigrationTest is Test {
 
     // Double ETH price => NAV doubles
     vm.prank(admin);
-    oracleProvider.registerAsset(ethId, 6000 * 1e18, 18, block.timestamp, 2);
+    oracleProvider.setPrice(ethId, 6000 * 1e18);
 
     // User 2 deposits $1000 net ($997.50) when NAV/share > $1
     usdc.mint(user2, 1000 * 1e6);

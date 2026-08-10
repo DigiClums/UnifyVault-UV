@@ -17,9 +17,11 @@ import '../src/constants/ModuleIds.sol';
 
 contract MockUSDC is ERC20 {
   constructor() ERC20('USD Coin', 'USDC') {}
+
   function decimals() public pure override returns (uint8) {
     return 6;
   }
+
   function mint(address to, uint256 amount) external {
     _mint(to, amount);
   }
@@ -27,9 +29,11 @@ contract MockUSDC is ERC20 {
 
 contract MockWBTC is ERC20 {
   constructor() ERC20('Wrapped BTC', 'WBTC') {}
+
   function decimals() public pure override returns (uint8) {
     return 8;
   }
+
   function mint(address to, uint256 amount) external {
     _mint(to, amount);
   }
@@ -37,9 +41,11 @@ contract MockWBTC is ERC20 {
 
 contract MockWETH is ERC20 {
   constructor() ERC20('Wrapped ETH', 'WETH') {}
+
   function decimals() public pure override returns (uint8) {
     return 18;
   }
+
   function mint(address to, uint256 amount) external {
     _mint(to, amount);
   }

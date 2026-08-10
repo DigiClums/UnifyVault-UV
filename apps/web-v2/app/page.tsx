@@ -1,73 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useAccount } from 'wagmi';
-import { useDashboard } from '../hooks/useDashboard';
-import { MetricCards } from '../components/dashboard/MetricCards';
-import { AllocationChart } from '../components/dashboard/AllocationChart';
-import { QuickActions } from '../components/dashboard/QuickActions';
-import { getDefaultChainId } from '../constants';
-import { base } from 'viem/chains';
-import { Layers, Zap } from 'lucide-react';
+import { HeroSection } from '../components/landing/HeroSection';
+import { ProductPreview } from '../components/landing/ProductPreview';
+import { FeaturesSection } from '../components/landing/FeaturesSection';
+import { StrategySection } from '../components/landing/StrategySection';
+import { TreasurySection } from '../components/landing/TreasurySection';
+import { AppCTASection } from '../components/landing/AppCTASection';
 
-import { NavDebugLogger } from '../components/dashboard/NavDebugLogger';
-import { useUnifiedProtocolData } from '../hooks/useUnifiedProtocolData';
-
-export default function DashboardPage() {
-  const metrics = useDashboard();
-  const { chain } = useAccount();
-  const currentChainId = chain?.id || getDefaultChainId();
-  const networkName = currentChainId === base.id ? 'Base Mainnet' : 'Base Sepolia';
-
+export default function LandingPage() {
   return (
-    <div className="space-y-8 py-2">
-      {/* Hero Welcome */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-xs">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Portfolio Dashboard
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Real-time multi-asset index tracking, NAV valuation, and strategy execution engine.
-          </p>
-        </div>
-        <div className="flex items-center space-x-1.5 text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-accent-blue animate-pulse" />
-          <span>{networkName} Live Sync</span>
-        </div>
-      </div>
-
-      {/* 1. Protocol Overview Metrics Section */}
-      <section className="space-y-4">
-        <div className="flex items-center space-x-2 pb-1 border-b border-border-subtle">
-          <Layers className="w-4 h-4 text-accent-blue" />
-          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-            Protocol Metrics
-          </h2>
-        </div>
-        <MetricCards metrics={metrics} />
-      </section>
-
-      {/* 2. Strategy Allocation & Quick Execution Section */}
-      <section className="space-y-4">
-        <div className="flex items-center space-x-2 pb-1 border-b border-border-subtle">
-          <Zap className="w-4 h-4 text-accent-blue" />
-          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-            Live Strategy Allocation & Actions
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <AllocationChart metrics={metrics} />
-          </div>
-          <div className="lg:col-span-2">
-            <QuickActions />
-          </div>
-        </div>
-      </section>
-
-      <NavDebugLogger data={metrics} />
+    <div className="min-h-screen">
+      <HeroSection />
+      <ProductPreview />
+      <FeaturesSection />
+      <StrategySection />
+      <TreasurySection />
+      <AppCTASection />
     </div>
   );
 }

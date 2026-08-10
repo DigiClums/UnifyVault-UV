@@ -12,10 +12,7 @@ interface IUniswapV3Pool {
   )
     external
     view
-    returns (
-      int56[] memory tickCumulatives,
-      uint160[] memory secondsPerLiquidityCumulativeX128s
-    );
+    returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s);
 
   function token0() external view returns (address);
   function token1() external view returns (address);
@@ -75,9 +72,15 @@ contract UniswapV3OracleProvider is AccessControl, IOracleProvider {
 
     (int56[] memory tickCumulatives, ) = IUniswapV3Pool(config.poolAddress).observe(secondsAgos);
 
-    int56 timeWeightedTick = (tickCumulatives[1] - tickCumulatives[0]) / int56(int32(config.twapWindow));
+    int56 timeWeightedTick =
+      (tickCumulatives[1] - tickCumulatives[0]) / int56(int32(config.twapWindow));
 
-    uint256 price = _getQuoteAtTick(timeWeightedTick, 10 ** config.decimals, config.baseToken, config.quoteToken);
+    uint256 price = _getQuoteAtTick(
+      timeWeightedTick,
+      10 ** config.decimals,
+      config.baseToken,
+      config.quoteToken
+    );
 
     if (price == 0) {
       revert Errors.OracleProviderPriceNegative(assetId, 0);
@@ -177,14 +180,18 @@ contract UniswapV3OracleProvider is AccessControl, IOracleProvider {
     address quoteToken
   ) internal pure returns (uint256 quoteAmount) {
     if (tick == 0) return baseAmount;
-    
+
     // Simplistic tick to ratio approximation for 1.0001^tick
     int24 tick24 = int24(tick);
     uint160 sqrtPriceX96;
     if (tick24 > 0) {
-      sqrtPriceX96 = uint160(79228162514264337593543950336 + uint256(int256(tick24)) * 39614081257132);
+      sqrtPriceX96 = uint160(
+        79228162514264337593543950336 + uint256(int256(tick24)) * 39614081257132
+      );
     } else {
-      sqrtPriceX96 = uint160(79228162514264337593543950336 - uint256(int256(-tick24)) * 39614081257132);
+      sqrtPriceX96 = uint160(
+        79228162514264337593543950336 - uint256(int256(-tick24)) * 39614081257132
+      );
     }
 
     uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;

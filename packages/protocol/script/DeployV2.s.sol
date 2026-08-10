@@ -164,7 +164,10 @@ contract TestSwapRouter {
     uint256 routerBal = IERC20(params.tokenOut).balanceOf(address(this));
     if (routerBal < amountOut) {
       try TestToken(params.tokenOut).mint(address(this), amountOut - routerBal) {} catch {
-        require(IERC20(params.tokenOut).balanceOf(address(this)) >= amountOut, "TestSwapRouter: insufficient router liquidity for output token");
+        require(
+          IERC20(params.tokenOut).balanceOf(address(this)) >= amountOut,
+          'TestSwapRouter: insufficient router liquidity for output token'
+        );
       }
     }
 

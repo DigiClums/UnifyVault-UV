@@ -51,10 +51,5 @@ interface ICostBasisManager {
   )
     external
     view
-    returns (
-      uint256 costBasisUSD,
-      uint256 currentValueUSD,
-      int256 pnlUSD,
-      int256 pnlBps
-    );
+    returns (uint256 costBasisUSD, uint256 currentValueUSD, int256 pnlUSD, int256 pnlBps);
 }

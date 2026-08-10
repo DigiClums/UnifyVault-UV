@@ -207,7 +207,12 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) external view override returns (address targetRouter, uint256 expectedOut, bytes memory routeData) {
+  )
+    external
+    view
+    override
+    returns (address targetRouter, uint256 expectedOut, bytes memory routeData)
+  {
     return (router, getExpectedOutput(tokenIn, tokenOut, amountIn), '');
   }
 
@@ -218,7 +223,6 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     routers = new address[](1);
     routers[0] = router;
   }
-
 
   // --- Internal Helper Functions ---
 

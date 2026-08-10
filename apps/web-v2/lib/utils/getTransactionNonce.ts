@@ -21,7 +21,6 @@ import type { PublicClient } from 'viem';
  *   supported wallets.
  *
  * See: docs/safepal-nonce-investigation.md for the full investigation report.
- * See: /debug/safepal for the live diagnostic test page (diagnostic-only).
  */
 export async function getTransactionNonce(
   publicClient: PublicClient,

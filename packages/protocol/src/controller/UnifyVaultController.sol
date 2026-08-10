@@ -476,7 +476,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     );
 
     quote.sharesPreview = shares;
-    _finalizeDeposit(quote, shares, navAfter, targetAssets, assetsBought);
+    _finalizeDeposit(quote, shares, navAfter, targetAssets, assetsBought, realizedDepositUSD);
 
     return quote;
   }
@@ -957,7 +957,8 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 shares,
     uint256 navAfter,
     address[] memory targetAssets,
-    uint256[] memory assetsBought
+    uint256[] memory assetsBought,
+    uint256 realizedDepositUSD
   ) private {
     uint256 controllerBal = IERC20(quote.asset).balanceOf(address(this));
     if (controllerBal != 0) {
@@ -987,10 +988,12 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     );
     address cbm = costBasisManager();
     if (cbm != address(0)) {
-      uint256 depositPrice = IOracle(_oracle).getAssetPrice(quote.asset);
-      uint8 depositDecimals = CustodyVault(_vault).assetConfig(quote.asset).decimals;
-      uint256 depositUSD = (quote.netDeposit * depositPrice) / (10 ** depositDecimals);
-      try ICostBasisManager(cbm).recordDeposit(quote.receiver, depositUSD, shares) {} catch {}
+      // Use the exact post-swap realized USD value used to mint shares.
+      // This keeps cost basis / CPS aligned with the actual underlying
+      // assets acquired by the protocol.
+      try
+        ICostBasisManager(cbm).recordDeposit(quote.receiver, realizedDepositUSD, shares)
+      {} catch {}
     }
 
     emit DepositExecuted(

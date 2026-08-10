@@ -15,7 +15,6 @@
  *
  * This interceptor remains installed for debugging purposes only.
  * See docs/safepal-nonce-investigation.md for the full report.
- * See /debug/safepal for the live diagnostic test page.
  * ════════════════════════════════════════════════════════════════════════════
  */
 

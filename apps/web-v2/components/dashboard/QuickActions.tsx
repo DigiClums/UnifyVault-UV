@@ -2,62 +2,72 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card } from '../common/Card';
-import { ArrowDownRight, ArrowUpRight, Zap } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, BarChart3, FileText } from 'lucide-react';
 
 export function QuickActions() {
+  const actions = [
+    {
+      href: '/deposit',
+      label: 'Deposit',
+      desc: 'Add USDC & mint shares',
+      icon: ArrowDownRight,
+      accent:
+        'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20 hover:border-blue-500/40',
+      iconBg: 'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400',
+    },
+    {
+      href: '/redeem',
+      label: 'Redeem',
+      desc: 'Burn shares & receive USDC',
+      icon: ArrowUpRight,
+      accent:
+        'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-500/40',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    },
+    {
+      href: '/portfolio',
+      label: 'Portfolio',
+      desc: 'Holdings & analytics',
+      icon: BarChart3,
+      accent:
+        'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/20 hover:border-violet-500/40',
+      iconBg: 'bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400',
+    },
+    {
+      href: '/transactions',
+      label: 'Activity',
+      desc: 'Transaction history',
+      icon: FileText,
+      accent:
+        'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-500/20 hover:border-slate-500/40',
+      iconBg: 'bg-slate-200 dark:bg-slate-500/15 text-slate-600 dark:text-slate-400',
+    },
+  ];
+
   return (
-    <Card className="space-y-4 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-xs">
-      <div className="flex items-center space-x-2">
-        <div className="p-1.5 rounded-lg bg-accent-blue/10 text-accent-blue">
-          <Zap className="w-4 h-4" />
-        </div>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">
-          Vault Execution Actions
-        </h3>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Deposit Card */}
-        <Link
-          href="/deposit"
-          className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-900 border border-blue-500/30 hover:border-accent-blue p-4 shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5"
-        >
-          <div className="w-full flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-base font-bold text-slate-900 dark:text-white block group-hover:text-accent-blue transition-colors">
-                Deposit
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
+      {actions.map((action) => {
+        const Icon = action.icon;
+        return (
+          <Link
+            key={action.href}
+            href={action.href}
+            className={`group relative flex items-center space-x-2 rounded-xl border px-2.5 py-2 sm:px-4 sm:py-3 transition-all active:scale-[0.98] ${action.accent}`}
+          >
+            <div className={`p-1.5 rounded-lg shrink-0 ${action.iconBg}`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs sm:text-sm font-bold text-foreground block leading-tight">
+                {action.label}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 block">
-                Add USDC & mint UVBTCETH shares
+              <span className="text-[10px] text-muted-foreground hidden sm:block leading-tight">
+                {action.desc}
               </span>
             </div>
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-accent-blue border border-blue-500/20 group-hover:bg-accent-blue group-hover:text-white transition-all shrink-0">
-              <ArrowDownRight className="w-5 h-5" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Redeem Card */}
-        <Link
-          href="/redeem"
-          className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 hover:border-emerald-500 p-4 shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5"
-        >
-          <div className="w-full flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-base font-bold text-slate-900 dark:text-white block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                Redeem
-              </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 block">
-                Burn UVBTCETH & receive USDC
-              </span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
-              <ArrowUpRight className="w-5 h-5" />
-            </div>
-          </div>
-        </Link>
-      </div>
-    </Card>
+          </Link>
+        );
+      })}
+    </div>
   );
 }

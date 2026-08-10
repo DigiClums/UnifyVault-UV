@@ -67,7 +67,8 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
 
     _costBasisUSD[user] += depositValueUSD;
 
-    uint256 totalShares = indexToken != address(0) ? IERC20(indexToken).balanceOf(user) : sharesMinted;
+    uint256 totalShares =
+      indexToken != address(0) ? IERC20(indexToken).balanceOf(user) : sharesMinted;
 
     emit CostBasisUpdated(user, _costBasisUSD[user], totalShares, block.timestamp);
   }
@@ -97,9 +98,10 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
       _costBasisUSD[user] -= costBasisReduction;
     }
 
-    uint256 totalSharesAfter = indexToken != address(0)
-      ? IERC20(indexToken).balanceOf(user)
-      : (userSharesBefore - sharesBurned);
+    uint256 totalSharesAfter =
+      indexToken != address(0)
+        ? IERC20(indexToken).balanceOf(user)
+        : (userSharesBefore - sharesBurned);
 
     if (_costBasisUSD[user] == 0 || totalSharesAfter == 0) {
       _firstDepositTimestamp[user] = 0;
@@ -115,7 +117,9 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     return _costBasisUSD[account];
   }
 
-  function averageEntryPrice(address account) external view override returns (uint256 entryPriceUSD) {
+  function averageEntryPrice(
+    address account
+  ) external view override returns (uint256 entryPriceUSD) {
     uint256 basis = _costBasisUSD[account];
     if (basis == 0 || indexToken == address(0)) return 0;
 
@@ -142,7 +146,9 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     return int256(currentValueUSD) - int256(basis);
   }
 
-  function firstDepositTimestamp(address account) external view override returns (uint256 timestamp) {
+  function firstDepositTimestamp(
+    address account
+  ) external view override returns (uint256 timestamp) {
     return _firstDepositTimestamp[account];
   }
 
@@ -152,12 +158,7 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     external
     view
     override
-    returns (
-      uint256 costBasisUSD,
-      uint256 currentValueUSD,
-      int256 pnlUSD,
-      int256 pnlBps
-    )
+    returns (uint256 costBasisUSD, uint256 currentValueUSD, int256 pnlUSD, int256 pnlBps)
   {
     costBasisUSD = _costBasisUSD[account];
     if (costBasisUSD == 0 || indexToken == address(0) || portfolioManager == address(0)) {

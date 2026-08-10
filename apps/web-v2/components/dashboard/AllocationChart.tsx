@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ChartCard } from '../ui/ChartCard';
-import { PieChart as PieIcon, ShieldCheck } from 'lucide-react';
+import { PieChart as PieIcon } from 'lucide-react';
 import { DashboardMetrics } from '../../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -19,105 +18,114 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
   const ethVal = parseFloat(ethPctStr) || 40.0;
 
   const data = [
-    { name: 'BTC (cbBTC)', value: btcVal },
-    { name: 'ETH (WETH)', value: ethVal },
+    { name: 'BTC', value: btcVal },
+    { name: 'ETH', value: ethVal },
   ];
 
   return (
-    <ChartCard
-      title="TARGET ALLOCATION"
-      subtitle={`60% BTC / 40% ETH Multi-Asset Index`}
-      icon={PieIcon}
-    >
+    <div className="rounded-xl bg-card border border-border-subtle px-3.5 py-3 sm:px-4 sm:py-3.5">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-1.5">
+          <PieIcon className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Allocation
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          Target: {btcVal.toFixed(0)}% BTC / {ethVal.toFixed(0)}% ETH
+        </span>
+      </div>
+
       {metrics.isLoading ? (
-        <div className="h-32 w-full flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full border-2 border-slate-300 border-t-accent-blue animate-spin" />
+        <div className="h-16 w-full flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-muted-foreground border-t-accent-blue animate-spin" />
         </div>
       ) : (
-        <div className="h-36 w-full relative flex items-center justify-center">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={56}
-                paddingAngle={4}
-                dataKey="value"
-              >
-                {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0F172A',
-                  borderColor: '#334155',
-                  borderRadius: '8px',
-                  color: '#FFF',
-                  fontSize: '12px',
-                }}
-                formatter={(val: unknown) => [`${Number(val || 0).toFixed(1)}%`, 'Target']}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
-              {btcVal.toFixed(0)}/{ethVal.toFixed(0)}
-            </span>
-            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-              Ratio
+        <>
+          {/* Desktop: Donut chart + bars. Mobile: bars only */}
+          <div className="flex items-center gap-3">
+            {/* Donut — hidden on mobile */}
+            <div className="hidden sm:block relative w-[88px] h-[88px] shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={28}
+                    outerRadius={40}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {data.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[11px] font-bold text-foreground font-mono leading-tight">
+                  {btcVal.toFixed(0)}/{ethVal.toFixed(0)}
+                </span>
+                <span className="text-[8px] text-muted-foreground font-semibold uppercase">
+                  Ratio
+                </span>
+              </div>
+            </div>
+
+            {/* Progress bars */}
+            <div className="flex-1 space-y-2.5 min-w-0">
+              {/* BTC */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span className="text-[11px] font-semibold text-foreground">BTC</span>
+                    <span className="text-[10px] text-muted-foreground">cbBTC</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 font-mono">
+                    {metrics.btcAllocationPercent ?? '...'}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                    style={{ width: `${btcVal}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* ETH */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                    <span className="text-[11px] font-semibold text-foreground">ETH</span>
+                    <span className="text-[10px] text-muted-foreground">WETH</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 font-mono">
+                    {metrics.ethAllocationPercent ?? '...'}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                    style={{ width: `${ethVal}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer: target info */}
+          <div className="flex items-center justify-end mt-1.5 pt-1.5 border-t border-border-subtle">
+            <span className="text-[9px] text-muted-foreground font-mono">
+              {btcVal.toFixed(0)}/{ethVal.toFixed(0)} BTC/ETH
             </span>
           </div>
-        </div>
+        </>
       )}
-
-      <div className="space-y-3 pt-1 text-xs">
-        {/* Allocation breakdown */}
-        <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-              <span className="font-semibold text-slate-900 dark:text-slate-200 text-xs">
-                BTC (cbBTC)
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-              Target:{' '}
-              <span className="text-amber-600 dark:text-amber-400 font-bold">
-                {metrics.btcAllocationPercent ?? '60.0%'}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-              <span className="font-semibold text-slate-900 dark:text-slate-200 text-xs">
-                ETH (WETH)
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-              Target:{' '}
-              <span className="text-blue-600 dark:text-blue-400 font-bold">
-                {metrics.ethAllocationPercent ?? '40.0%'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Verification Status */}
-        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1 pt-1 font-mono">
-          <span className="flex items-center space-x-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span>Custody Vault</span>
-          </span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            Verified On-Chain
-          </span>
-        </div>
-      </div>
-    </ChartCard>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../providers/ThemeProvider';
@@ -44,7 +45,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+async function getShellMode(): Promise<'landing' | 'app' | 'admin'> {
+  try {
+    const headersList = await headers();
+    const host = headersList.get('host') || '';
+    const hostname = host.split(':')[0] || '';
+
+    if (hostname === 'v2.unifyvault.xyz') return 'admin';
+    if (hostname === 'unifyvault.xyz' || hostname === 'www.unifyvault.xyz') return 'landing';
+    // app.unifyvault.xyz and localhost both default to app mode
+    return 'app';
+  } catch {
+    // headers() throws during build/static generation — default to app
+    return 'app';
+  }
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const shellMode = await getShellMode();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -52,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <Web3Provider>
-            <AppShell>{children}</AppShell>
+            <AppShell shellMode={shellMode}>{children}</AppShell>
           </Web3Provider>
         </ThemeProvider>
       </body>
