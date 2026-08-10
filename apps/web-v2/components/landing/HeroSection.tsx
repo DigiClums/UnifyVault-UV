@@ -3,20 +3,20 @@
 import React from 'react';
 import { ShieldCheck, ArrowRight, ChevronDown, LockKeyhole, FileCheck2, Layers3 } from 'lucide-react';
 import { useLivePrices } from '../../hooks/useLivePrices';
-import { useProtocolData } from '../../hooks/useProtocolData';
-import { formatUSD } from '../../lib/math';
+import { useUnifiedProtocolData } from '../../hooks/useUnifiedProtocolData';
+import { formatUSD, formatNAVUSD } from '../../lib/math';
 
 export function HeroSection() {
   const livePrices = useLivePrices();
-  const protocol = useProtocolData();
+  const protocol = useUnifiedProtocolData();
 
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const nav = protocol.sharePriceUSD || 0;
-  const btcWeight = protocol.strategyAllocation?.btcWeight ?? 50;
-  const ethWeight = protocol.strategyAllocation?.ethWeight ?? 50;
+  const nav = protocol.sharePriceNumber;
+  const btcWeight = protocol.targetBtcBps !== undefined ? protocol.targetBtcBps / 100 : 50;
+  const ethWeight = protocol.targetEthBps !== undefined ? protocol.targetEthBps / 100 : 50;
 
   return (
     <section className="relative overflow-hidden px-4 sm:px-6 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-20">
@@ -25,13 +25,7 @@ export function HeroSection() {
         <div className="absolute top-1/4 right-0 h-[460px] w-[460px] rounded-full bg-indigo-500/[0.08] blur-[140px]" />
         <div className="absolute bottom-0 left-1/2 h-[360px] w-[600px] -translate-x-1/2 rounded-full bg-blue-900/[0.12] blur-[120px]" />
       </div>
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(148,163,184,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.7) 1px, transparent 1px)',
-          backgroundSize: '72px 72px',
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(148,163,184,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.7) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
 
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
         <div>
@@ -42,9 +36,7 @@ export function HeroSection() {
 
           <h1 className="max-w-2xl text-5xl font-black tracking-[-0.045em] leading-[0.92] text-white sm:text-6xl lg:text-8xl">
             BTC + ETH
-            <span className="mt-2 block bg-gradient-to-r from-white via-blue-100 to-blue-400 bg-clip-text text-transparent">
-              ON-CHAIN INDEX
-            </span>
+            <span className="mt-2 block bg-gradient-to-r from-white via-blue-100 to-blue-400 bg-clip-text text-transparent">ON-CHAIN INDEX</span>
           </h1>
 
           <p className="mt-6 max-w-xl text-sm leading-7 text-slate-400 sm:text-base">
@@ -52,16 +44,10 @@ export function HeroSection() {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="https://app.unifyvault.xyz/"
-              className="inline-flex min-h-11 items-center justify-center gap-2 border border-blue-300/30 bg-blue-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_30px_rgba(59,130,246,.18)] transition hover:bg-blue-400"
-            >
+            <a href="https://app.unifyvault.xyz/" className="inline-flex min-h-11 items-center justify-center gap-2 border border-blue-300/30 bg-blue-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_30px_rgba(59,130,246,.18)] transition hover:bg-blue-400">
               Launch App <ArrowRight className="h-4 w-4" />
             </a>
-            <button
-              onClick={scrollToFeatures}
-              className="inline-flex min-h-11 items-center justify-center gap-2 border border-blue-300/15 bg-white/[0.035] px-5 py-2.5 text-sm font-bold text-slate-200 transition hover:border-blue-300/30 hover:bg-white/[0.06]"
-            >
+            <button onClick={scrollToFeatures} className="inline-flex min-h-11 items-center justify-center gap-2 border border-blue-300/15 bg-white/[0.035] px-5 py-2.5 text-sm font-bold text-slate-200 transition hover:border-blue-300/30 hover:bg-white/[0.06]">
               Explore Protocol <ChevronDown className="h-4 w-4" />
             </button>
           </div>
@@ -105,7 +91,7 @@ export function HeroSection() {
             <div className="py-6">
               <div className="text-[9px] font-bold tracking-[0.16em] text-slate-500">CURRENT NAV</div>
               <div className="mt-2 font-mono text-4xl font-black tracking-tight text-white sm:text-5xl">
-                {nav > 0 ? formatUSD(nav) : '$1.00'}
+                {protocol.isLoading ? '—' : formatNAVUSD(nav)}
               </div>
             </div>
 
@@ -117,17 +103,15 @@ export function HeroSection() {
                 <div key={asset.label}>
                   <div className="mb-2 flex items-center justify-between font-mono text-xs">
                     <span className="font-bold text-slate-200">{asset.label}</span>
-                    <span className="font-bold text-white">{asset.weight}%</span>
+                    <span className="font-bold text-white">{asset.weight.toFixed(0)}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden bg-white/[0.06]">
-                    <div className={`h-full ${asset.track}`} style={{ width: `${asset.weight}%` }} />
-                  </div>
+                  <div className="h-2 overflow-hidden bg-white/[0.06]"><div className={`h-full ${asset.track}`} style={{ width: `${asset.weight}%` }} /></div>
                 </div>
               ))}
             </div>
 
             <div className="mt-6 border-t border-blue-100/10 pt-4 text-[9px] leading-5 text-slate-500">
-              Allocation reflects the configured UVBTCETH strategy weights. NAV is sourced from the existing protocol data hook.
+              Configured UVBTCETH target allocation · NAV sourced from the existing protocol data.
             </div>
           </div>
         </div>
