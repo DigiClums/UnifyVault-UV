@@ -66,7 +66,7 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   PortfolioManager: '0x8139C575C0b1B067b66c1c3EbC501B81f6253826' as `0x${string}`,
   SwapAdapter: '0xa0164433c94b68522201e3DcbFDDC391B36c45f3' as `0x${string}`,
   FeeManager: '0xea8e047Fa4981935419B2065095e031b6224AC76' as `0x${string}`,
-  CostBasisManager: '0x00010d0463D9A90352aDf61eC310e4d82E3eAd97' as `0x${string}`,
+  CostBasisManager: '0xDfD7ECD6461Ded7ed63D2ab6D6192D2Dfc232FC9' as `0x${string}`,
   PerformanceManager: '0xB0F3C1D90B92AfB4e03c06C7411a0741f506FCc6' as `0x${string}`,
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,

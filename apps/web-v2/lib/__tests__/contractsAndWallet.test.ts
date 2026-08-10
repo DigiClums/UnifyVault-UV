@@ -18,7 +18,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager).toBe(
-      '0x00010d0463D9A90352aDf61eC310e4d82E3eAd97',
+      '0xDfD7ECD6461Ded7ed63D2ab6D6192D2Dfc232FC9',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager).toBe(
       '0xB0F3C1D90B92AfB4e03c06C7411a0741f506FCc6',
