@@ -32,7 +32,7 @@ contract MigrateAccountingScript is Script {
     console2.log('Old CBM:', OLD_CBM);
     console2.log('New CBM:', address(newCBM));
     console2.log('Cost Basis:', costBasis);
-    console2.log('Realized PnL:', realizedPnL);
+    console2.logInt(realizedPnL);
     console2.log('First Deposit:', firstDeposit);
 
     require(costBasis > 0, 'Old cost basis is zero');
