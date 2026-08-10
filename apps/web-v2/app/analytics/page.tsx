@@ -66,19 +66,19 @@ function ChartTooltip({ active, payload }: CustomTooltipProps) {
   if (!data) return null;
 
   return (
-    <div className="bg-slate-900/95 border border-slate-700/80 p-2.5 rounded-lg shadow-xl backdrop-blur-md text-[11px] space-y-1.5 min-w-[190px]">
-      <div className="border-b border-slate-800 pb-1 font-semibold text-slate-300">
+    <div className="bg-card border border-border-subtle p-2.5 rounded-lg shadow-xl backdrop-blur-md text-[11px] space-y-1.5 min-w-[190px]">
+      <div className="border-b border-border-subtle pb-1 font-semibold text-foreground">
         {formatTooltipDate(data.timestamp)}
       </div>
       <div className="space-y-1">
         <div className="flex justify-between items-center">
-          <span className="text-cyan-400 font-medium">NAV:</span>
-          <span className="font-bold text-white font-mono">
+          <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium">NAV:</span>
+          <span className="font-bold text-foreground font-mono">
             ${Number(data.nav || data.sharePrice || 0).toFixed(4)}
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-slate-400">Assets:</span>
+          <span className="text-muted-foreground">Assets:</span>
           <span className="font-semibold font-mono">
             $
             {Number(data.totalAssets || 0).toLocaleString('en-US', {
@@ -94,9 +94,9 @@ function ChartTooltip({ active, payload }: CustomTooltipProps) {
 
 // ─── Colours matching Portfolio AllocationChart ───
 const ASSET_COLORS: Record<string, { bg: string; bar: string; dot: string }> = {
-  BTC: { bg: 'bg-amber-500/10', bar: 'bg-amber-500', dot: 'bg-amber-500' },
-  ETH: { bg: 'bg-blue-500/10', bar: 'bg-blue-500', dot: 'bg-blue-500' },
-  USDC: { bg: 'bg-emerald-500/10', bar: 'bg-emerald-500', dot: 'bg-emerald-500' },
+  BTC: { bg: 'bg-[#BFFF00]/10', bar: 'bg-[#BFFF00]', dot: 'bg-[#BFFF00]' },
+  ETH: { bg: 'bg-slate-400/15', bar: 'bg-slate-400', dot: 'bg-slate-400' },
+  USDC: { bg: 'bg-slate-500/10', bar: 'bg-slate-500', dot: 'bg-slate-500' },
 };
 
 const FALLBACK_COLOR = { bg: 'bg-slate-500/10', bar: 'bg-slate-500', dot: 'bg-slate-500' };
@@ -148,34 +148,37 @@ export default function AnalyticsPage() {
             Portfolio performance &amp; historical NAV
           </p>
         </div>
-        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-pulse" />
+        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
           <span className="hidden sm:inline">Base Mainnet Live</span>
           <span className="sm:hidden">Live</span>
         </div>
       </div>
 
       {/* ── Current NAV Hero ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/50 to-transparent" />
+      <div className="relative overflow-hidden rounded-2xl bg-card border-2 border-black dark:border-white/15 shadow-[4px_4px_0_#BFFF00] px-4 py-3 sm:px-5 sm:py-3.5">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#BFFF00]/60 to-transparent" />
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Current NAV
           </span>
-          <span className="text-[10px] font-mono text-emerald-400">{metrics.sharePriceUSD}</span>
+          <span className="text-[10px] font-mono text-[#5f8f00] dark:text-[#BFFF00]">
+            {metrics.sharePriceUSD}
+          </span>
         </div>
         <div className="mb-1">
           {metrics.isLoading ? (
-            <div className="h-8 w-28 bg-slate-800 rounded animate-pulse" />
+            <div className="h-8 w-28 bg-muted rounded animate-pulse" />
           ) : (
-            <div className="text-[24px] sm:text-[30px] font-extrabold text-white tracking-tight font-mono leading-tight">
+            <div className="text-[24px] sm:text-[30px] font-black text-foreground tracking-tight font-mono leading-tight">
               {metrics.sharePriceUSD}
             </div>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-          <span className="text-[11px] text-slate-500 font-mono">
-            Portfolio Value <span className="text-slate-300">{metrics.totalPortfolioValueUSD}</span>
+          <span className="text-[11px] text-muted-foreground font-mono">
+            Portfolio Value{' '}
+            <span className="text-foreground">{metrics.totalPortfolioValueUSD}</span>
           </span>
         </div>
       </div>
@@ -185,12 +188,12 @@ export default function AnalyticsPage() {
         {/* Header: "Portfolio Performance" + period selector */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-1.5">
-            <BarChart3 className="w-3.5 h-3.5 text-accent-blue" />
+            <BarChart3 className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Portfolio Performance
             </span>
           </div>
-          <div className="flex items-center space-x-0.5 bg-slate-900/60 p-0.5 rounded-lg border border-slate-800/60">
+          <div className="flex items-center space-x-0.5 bg-muted/60 p-0.5 rounded-lg border border-border-subtle">
             {PERIODS.map((p) => {
               const isActive = period === p;
               return (
@@ -199,8 +202,8 @@ export default function AnalyticsPage() {
                   onClick={() => setPeriod(p)}
                   className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all ${
                     isActive
-                      ? 'bg-accent-blue text-white shadow-sm shadow-accent-blue/20'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      ? 'bg-[#BFFF00] text-black shadow-sm shadow-[#BFFF00]/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
                   {p}
@@ -217,11 +220,11 @@ export default function AnalyticsPage() {
           </div>
         ) : !hasRealHistoricalData ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-slate-400 mb-3">
+            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-muted-foreground mb-3">
               <Activity className="w-6 h-6" />
             </div>
-            <p className="text-sm font-semibold text-slate-300">No historical NAV data yet</p>
-            <p className="text-[11px] text-slate-500 max-w-xs mt-1 leading-relaxed">
+            <p className="text-sm font-semibold text-foreground">No historical NAV data yet</p>
+            <p className="text-[11px] text-muted-foreground max-w-xs mt-1 leading-relaxed">
               Your NAV history will appear after portfolio activity is recorded.
             </p>
           </div>
@@ -254,7 +257,7 @@ export default function AnalyticsPage() {
                 <Area
                   type="monotone"
                   dataKey="nav"
-                  stroke="#3B82F6"
+                  stroke="#BFFF00"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#analyticsNavGrad)"
@@ -269,7 +272,7 @@ export default function AnalyticsPage() {
       <div className="rounded-xl bg-card border border-border-subtle px-3.5 py-3 sm:px-4 sm:py-3.5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-1.5">
-            <PieChart className="w-3.5 h-3.5 text-amber-400" />
+            <PieChart className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Asset Distribution
             </span>
@@ -323,7 +326,7 @@ export default function AnalyticsPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-muted rounded animate-pulse" />
             ) : (
               metrics.totalPortfolioValueUSD
             )}
@@ -336,7 +339,7 @@ export default function AnalyticsPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-muted rounded animate-pulse" />
             ) : (
               <span className={metrics.isProfitable ? 'text-emerald-400' : 'text-rose-400'}>
                 {metrics.pnlUSD}
@@ -351,7 +354,7 @@ export default function AnalyticsPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-muted rounded animate-pulse" />
             ) : (
               metrics.sharePriceUSD
             )}
@@ -371,27 +374,27 @@ export default function AnalyticsPage() {
       {/* ── Protocol Fee Architecture ── */}
       <div className="rounded-xl bg-card border border-border-subtle px-3.5 py-3 sm:px-4 sm:py-3.5">
         <div className="flex items-center space-x-1.5 mb-3">
-          <ShieldCheck className="w-3.5 h-3.5 text-accent-blue" />
+          <ShieldCheck className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Protocol Fees
           </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
           <div className="rounded-lg bg-slate-900/60 border border-slate-800/60 px-3 py-2">
-            <span className="text-slate-400">Deposit Fee</span>
+            <span className="text-muted-foreground">Deposit Fee</span>
             <div className="text-sm font-bold font-mono text-emerald-400 mt-0.5">
               0.25% (25 BPS)
             </div>
           </div>
           <div className="rounded-lg bg-slate-900/60 border border-slate-800/60 px-3 py-2">
-            <span className="text-slate-400">Redemption Fee</span>
+            <span className="text-muted-foreground">Redemption Fee</span>
             <div className="text-sm font-bold font-mono text-purple-400 mt-0.5">
               2.00% (200 BPS)
             </div>
           </div>
           <div className="rounded-lg bg-slate-900/60 border border-slate-800/60 px-3 py-2">
-            <span className="text-slate-400">Performance Fee</span>
-            <div className="text-sm font-bold font-mono text-slate-400 mt-0.5">
+            <span className="text-muted-foreground">Performance Fee</span>
+            <div className="text-sm font-bold font-mono text-muted-foreground mt-0.5">
               0.00% (Disabled)
             </div>
           </div>
@@ -403,7 +406,7 @@ export default function AnalyticsPage() {
         <div className="rounded-xl bg-card border border-border-subtle px-3.5 py-3 sm:px-4 sm:py-3.5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-1.5">
-              <Activity className="w-3.5 h-3.5 text-accent-blue" />
+              <Activity className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Portfolio Activity
               </span>
@@ -418,14 +421,14 @@ export default function AnalyticsPage() {
               return (
                 <div
                   key={tx.txHash || idx}
-                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-800/40 transition-colors"
+                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 transition-colors"
                 >
                   <div className="flex items-center space-x-2 min-w-0">
                     <span
                       className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
                         isDeposit
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-amber-500/10 text-amber-400'
+                          ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
+                          : 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
                       }`}
                     >
                       {isDeposit ? (
@@ -446,7 +449,9 @@ export default function AnalyticsPage() {
                     )}
                     <span
                       className={`text-[11px] font-semibold font-mono ${
-                        isDeposit ? 'text-emerald-400' : 'text-amber-400'
+                        isDeposit
+                          ? 'text-[#5f8f00] dark:text-[#BFFF00]'
+                          : 'text-[#5f8f00] dark:text-[#BFFF00]'
                       }`}
                     >
                       {isDeposit ? '+' : '-'}

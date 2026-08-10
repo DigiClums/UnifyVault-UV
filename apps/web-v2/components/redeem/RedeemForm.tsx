@@ -71,7 +71,7 @@ export function RedeemForm() {
   const explorerTxUrl = lastTxHash ? `${explorerBaseUrl}/tx/${lastTxHash}` : explorerBaseUrl;
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
+    <div className="max-w-xl mx-auto space-y-3.5">
       {/* Wallet Disconnected Subtle Banner */}
       {!isConnected && (
         <div className="p-3.5 rounded-xl bg-[#BFFF00]/10 border-2 border-black dark:border-white/15 text-foreground text-xs flex items-center space-x-2.5 shadow-2xs">
@@ -83,11 +83,11 @@ export function RedeemForm() {
         </div>
       )}
 
-      <Card className="space-y-5 relative overflow-hidden bg-card border-2 border-black dark:border-white/15 shadow-glass p-5 sm:p-6 rounded-2xl">
+      <Card className="space-y-4 relative overflow-hidden bg-card border-2 border-black dark:border-white/15 shadow-glass p-4 sm:p-5 rounded-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b-2 border-black dark:border-white/10">
+        <div className="flex items-center justify-between pb-3 border-b-2 border-black dark:border-white/10">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-foreground flex items-center space-x-2">
+            <h2 className="text-lg sm:text-xl font-black text-foreground flex items-center space-x-2">
               <ArrowUpRight className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
               <span>Redeem Shares</span>
             </h2>
@@ -123,7 +123,7 @@ export function RedeemForm() {
                 }}
                 className="w-full bg-transparent text-2xl sm:text-3xl font-extrabold text-foreground placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none font-mono tracking-tight"
               />
-              <div className="flex items-center space-x-2 bg-black dark:bg-[#151515] px-3 py-1.5 rounded-lg border-2 border-black dark:border-white/15 shrink-0 shadow-2xs">
+              <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#151515] px-3 py-1.5 rounded-lg border-2 border-black dark:border-white/15 shrink-0 shadow-2xs">
                 <div className="w-5 h-5 rounded-full bg-[#BFFF00] border-2 border-black flex items-center justify-center text-[9px] font-black text-black">
                   UV
                 </div>
@@ -154,7 +154,7 @@ export function RedeemForm() {
         </div>
 
         {/* Payout Preview Breakdown */}
-        <div className="space-y-2.5 p-4 rounded-xl bg-black/[0.025] dark:bg-white/[0.025] border-2 border-black dark:border-white/10 text-xs">
+        <div className="space-y-2 p-3.5 rounded-xl bg-black/[0.025] dark:bg-white/[0.025] border-2 border-black dark:border-white/10 text-xs">
           <div className="flex items-center justify-between border-b-2 border-black dark:border-white/10 pb-2">
             <span className="font-semibold text-foreground">Estimated Redemption</span>
             <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
@@ -252,7 +252,7 @@ export function RedeemForm() {
 
         {/* Transaction Success Screen */}
         {stepState === 'confirmed' && (
-          <div className="p-5 rounded-xl bg-[#BFFF00]/10 border-2 border-[#BFFF00] text-xs space-y-4 shadow-[4px_4px_0_#000]">
+          <div className="p-4 rounded-xl bg-[#BFFF00]/10 border-2 border-[#BFFF00] text-xs space-y-3.5 shadow-[3px_3px_0_#000]">
             <div className="flex items-center space-x-3 text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="w-6 h-6 shrink-0" />
               <div>

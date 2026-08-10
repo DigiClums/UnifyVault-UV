@@ -265,7 +265,7 @@ export default function PublicTreasuryPage() {
         balanceRaw: usdcBalRaw,
         balanceFormatted: `${formatUnits(usdcBalRaw, 6)} USDC`,
         usdValue: usdcUSD,
-        iconBg: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+        iconBg: 'bg-[#BFFF00]/10 border-[#BFFF00]/25 text-[#5f8f00] dark:text-[#BFFF00]',
         iconLabel: 'USD',
       },
       {
@@ -273,7 +273,7 @@ export default function PublicTreasuryPage() {
         balanceRaw: wbtcBalRaw,
         balanceFormatted: `${formatUnits(wbtcBalRaw, 8)} cbBTC`,
         usdValue: wbtcUSD,
-        iconBg: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+        iconBg: 'bg-[#BFFF00]/10 border-[#BFFF00]/25 text-[#5f8f00] dark:text-[#BFFF00]',
         iconLabel: 'BTC',
       },
       {
@@ -281,7 +281,7 @@ export default function PublicTreasuryPage() {
         balanceRaw: wethBalRaw,
         balanceFormatted: `${formatUnits(wethBalRaw, 18)} WETH`,
         usdValue: wethUSD,
-        iconBg: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
+        iconBg: 'bg-[#BFFF00]/10 border-[#BFFF00]/25 text-[#5f8f00] dark:text-[#BFFF00]',
         iconLabel: 'ETH',
       },
     ];
@@ -315,10 +315,10 @@ export default function PublicTreasuryPage() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshingLogs || !treasury}
-            className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-[11px] font-medium text-slate-300 transition-all disabled:opacity-50"
+            className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-card hover:bg-muted/60 border border-border-subtle text-[11px] font-medium text-foreground transition-all disabled:opacity-50"
           >
             <RefreshCw
-              className={cn('w-3 h-3', isRefreshingLogs && 'animate-spin text-accent-blue')}
+              className={cn('w-3 h-3', isRefreshingLogs && 'animate-spin text-[#BFFF00]')}
             />
             <span className="hidden sm:inline">Refresh</span>
           </button>
@@ -326,18 +326,18 @@ export default function PublicTreasuryPage() {
       </div>
 
       {/* ── Treasury Hero Card ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+      <div className="relative overflow-hidden rounded-2xl bg-card border border-border-subtle px-4 py-3 sm:px-5 sm:py-3.5">
         {/* Subtle top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/50 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#BFFF00]/60 to-transparent" />
 
         {/* Header row: Label + Live badge */}
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Total Treasury Value
           </span>
           <div className="flex items-center space-x-1">
-            <span className="inline-flex items-center space-x-1 text-[9px] font-medium font-mono text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="inline-flex items-center space-x-1 text-[9px] font-medium font-mono text-[#5f8f00] dark:text-[#BFFF00]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse shrink-0" />
               <span>LIVE</span>
             </span>
           </div>
@@ -345,13 +345,13 @@ export default function PublicTreasuryPage() {
 
         {/* Main value */}
         <div className="mb-1">
-          <div className="text-[28px] sm:text-[36px] font-extrabold text-white tracking-tight font-mono leading-tight">
+          <div className="text-[28px] sm:text-[36px] font-black text-foreground tracking-tight font-mono leading-tight">
             {formatUSD(totalTreasuryUSD)}
           </div>
         </div>
 
         {/* Subtitle */}
-        <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed">
+        <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-relaxed">
           Protocol fee reserves custodied inside Treasury contract ({treasuryShort})
         </p>
       </div>
@@ -406,9 +406,9 @@ export default function PublicTreasuryPage() {
       </div>
 
       {/* ── Treasury Assets Section ── */}
-      <div className="rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+      <div className="rounded-2xl bg-card border border-border-subtle px-4 py-3 sm:px-5 sm:py-3.5">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Treasury Assets
           </h2>
           <span className="text-[9px] text-muted-foreground font-mono">
@@ -416,7 +416,7 @@ export default function PublicTreasuryPage() {
           </span>
         </div>
 
-        <div className="divide-y divide-slate-800/50">
+        <div className="divide-y divide-border-subtle/60">
           {treasuryAssets.map((asset) => (
             <div
               key={asset.symbol}
@@ -432,14 +432,14 @@ export default function PublicTreasuryPage() {
                   {asset.iconLabel}
                 </div>
                 <div className="min-w-0">
-                  <span className="text-sm font-semibold text-white">{asset.symbol}</span>
+                  <span className="text-sm font-semibold text-foreground">{asset.symbol}</span>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-xs font-mono font-bold text-slate-200">
+                <p className="text-xs font-mono font-bold text-foreground">
                   {asset.balanceFormatted}
                 </p>
-                <p className="text-[11px] text-emerald-400 font-mono">
+                <p className="text-[11px] text-[#5f8f00] dark:text-[#BFFF00] font-mono">
                   {formatUSD(asset.usdValue)}
                 </p>
               </div>
@@ -449,15 +449,15 @@ export default function PublicTreasuryPage() {
       </div>
 
       {/* ── Governance Section ── */}
-      <div className="rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+      <div className="rounded-2xl bg-card border border-border-subtle px-4 py-3 sm:px-5 sm:py-3.5">
         <button
           onClick={() => setShowOnChainDetails(!showOnChainDetails)}
           className="flex items-center justify-between w-full text-left"
         >
           <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-accent-blue shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
             <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Treasury Governance
               </h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -466,51 +466,53 @@ export default function PublicTreasuryPage() {
             </div>
           </div>
           {showOnChainDetails ? (
-            <ChevronUp className="w-4 h-4 text-slate-500" />
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-slate-500" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           )}
         </button>
 
         {showOnChainDetails && (
-          <div className="mt-3 pt-3 border-t border-slate-800/50 space-y-2">
+          <div className="mt-3 pt-3 border-t border-border-subtle/60 space-y-2">
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">Treasury Contract</span>
-              <span className="font-mono text-accent-blue font-bold text-[11px]">
+              <span className="text-muted-foreground">Treasury Contract</span>
+              <span className="font-mono text-[#5f8f00] dark:text-[#BFFF00] font-bold text-[11px]">
                 {treasuryShort}
               </span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">Network</span>
-              <span className="font-mono text-slate-300 font-semibold">Base Sepolia</span>
+              <span className="text-muted-foreground">Network</span>
+              <span className="font-mono text-foreground font-semibold">Base Sepolia</span>
             </div>
           </div>
         )}
       </div>
 
       {/* ── Recent Treasury Activity ── */}
-      <div className="rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
+      <div className="rounded-2xl bg-card border border-border-subtle px-4 py-3 sm:px-5 sm:py-3.5">
         <div className="flex items-center space-x-2 mb-2">
-          <History className="w-4 h-4 text-slate-500 shrink-0" />
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <History className="w-4 h-4 text-muted-foreground shrink-0" />
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Recent Treasury Activity
           </h2>
         </div>
 
         {isLogsLoading ? (
           <div className="flex items-center justify-center py-6">
-            <RefreshCw className="w-4 h-4 animate-spin text-accent-blue mr-2" />
-            <span className="text-[11px] text-slate-500">Syncing event logs...</span>
+            <RefreshCw className="w-4 h-4 animate-spin text-[#BFFF00] mr-2" />
+            <span className="text-[11px] text-muted-foreground">Syncing event logs...</span>
           </div>
         ) : treasuryLogs.length === 0 ? (
           <div className="py-4 text-center">
-            <p className="text-xs font-medium text-slate-400">No Treasury Releases Recorded</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-xs font-medium text-muted-foreground">
+              No Treasury Releases Recorded
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Fee revenue is currently retained inside the Treasury contract reserves.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-800/50 -mx-4 sm:-mx-5">
+          <div className="divide-y divide-border-subtle/60 -mx-4 sm:-mx-5">
             {treasuryLogs.slice(0, 10).map((log) => {
               const dateStr = new Date(log.timestamp * 1000).toLocaleString(undefined, {
                 month: 'short',
@@ -529,8 +531,8 @@ export default function PublicTreasuryPage() {
                       className={cn(
                         'inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold shrink-0',
                         isWithdrawal
-                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                          ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/25'
+                          : 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/25',
                       )}
                     >
                       {isWithdrawal ? (
@@ -541,24 +543,24 @@ export default function PublicTreasuryPage() {
                       <span>{isWithdrawal ? 'Release' : 'Collection'}</span>
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-white truncate">
+                      <p className="text-xs font-semibold text-foreground truncate">
                         {isWithdrawal ? '-' : '+'}
                         {log.amountFormatted}
                       </p>
-                      <p className="text-[10px] text-slate-500 font-mono">
+                      <p className="text-[10px] text-muted-foreground font-mono">
                         {log.asset} ·{' '}
                         <a
                           href={`${explorerBaseUrl}/tx/${log.transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-accent-blue transition-colors"
+                          className="hover:text-[#5f8f00] dark:hover:text-[#BFFF00] transition-colors"
                         >
                           {log.transactionHash.slice(0, 6)}...{log.transactionHash.slice(-4)}
                         </a>
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] text-slate-500 shrink-0 ml-2">{dateStr}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{dateStr}</span>
                 </div>
               );
             })}

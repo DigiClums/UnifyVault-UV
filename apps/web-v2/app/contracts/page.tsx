@@ -159,36 +159,36 @@ export default function ContractsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center space-x-2">
-              <FileText className="w-6 h-6 text-accent-blue" />
+            <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center space-x-2">
+              <FileText className="w-6 h-6 text-[#5f8f00] dark:text-[#BFFF00]" />
               <span>Protocol Contracts & On-Chain Addresses</span>
             </h1>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Canonical smart-contract address directory for UnifyVault V2 deployment on{' '}
             {activeChainName}.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono font-semibold text-slate-300 self-start sm:self-auto">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-muted border border-border-subtle text-xs font-mono font-semibold text-foreground self-start sm:self-auto">
+          <span className="w-2 h-2 rounded-full bg-[#BFFF00] animate-pulse" />
           <span>{activeChainName} Deployment</span>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border-subtle">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search by contract name, symbol, or address..."
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent-blue/80 font-mono"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-background border border-border-subtle text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-[#BFFF00]/80 font-mono"
           />
         </div>
-        <span className="text-xs text-slate-400 font-mono">
+        <span className="text-xs text-muted-foreground font-mono">
           Showing {filteredContracts.length} of {allContracts.length} deployed contracts
         </span>
       </div>
@@ -202,7 +202,7 @@ export default function ContractsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-border-subtle text-slate-400 font-semibold">
+              <tr className="border-b border-border-subtle text-muted-foreground font-semibold">
                 <th className="py-3 px-3">Contract Name</th>
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3">On-Chain Address</th>
@@ -217,13 +217,13 @@ export default function ContractsPage() {
                 const explorerUrl = `${explorerBaseUrl}/address/${c.address}`;
 
                 return (
-                  <tr key={c.name} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-3 font-sans font-bold text-white">
+                  <tr key={c.name} className="hover:bg-muted/60 transition-colors">
+                    <td className="py-3.5 px-3 font-sans font-bold text-foreground">
                       <div className="flex items-center space-x-2">
-                        <Icon className="w-4 h-4 text-accent-blue shrink-0" />
+                        <Icon className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
                         <div>
                           <span className="block">{c.name}</span>
-                          <span className="text-[10px] text-slate-400 font-normal block font-sans">
+                          <span className="text-[10px] text-muted-foreground font-normal block font-sans">
                             {c.description}
                           </span>
                         </div>
@@ -231,7 +231,7 @@ export default function ContractsPage() {
                     </td>
 
                     <td className="py-3.5 px-3 font-sans">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground border border-border-subtle">
                         {c.category}
                       </span>
                     </td>
@@ -239,15 +239,15 @@ export default function ContractsPage() {
                     <td className="py-3.5 px-3">
                       <span
                         title={`Full Address: ${c.address}`}
-                        className="text-slate-200 hover:text-white font-mono cursor-help"
+                        className="text-foreground hover:text-[#5f8f00] dark:hover:text-[#BFFF00] font-mono cursor-help"
                       >
                         {shortAddr(c.address)}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-3 font-sans text-slate-400">
+                    <td className="py-3.5 px-3 font-sans text-muted-foreground">
                       <span className="inline-flex items-center space-x-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00]" />
                         <span>{activeChainName}</span>
                       </span>
                     </td>
@@ -265,17 +265,19 @@ export default function ContractsPage() {
 
                         <button
                           onClick={() => handleCopy(c.address)}
-                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] font-mono flex items-center space-x-1 transition-colors"
+                          className="px-2 py-1 rounded bg-muted hover:bg-muted/70 border border-border-subtle text-foreground text-[11px] font-mono flex items-center space-x-1 transition-colors"
                           title={`Copy address: ${c.address}`}
                         >
                           {isCopied ? (
                             <>
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400 font-bold">Copied!</span>
+                              <Check className="w-3 h-3 text-[#5f8f00] dark:text-[#BFFF00]" />
+                              <span className="text-[#5f8f00] dark:text-[#BFFF00] font-bold">
+                                Copied!
+                              </span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3 h-3 text-slate-400" />
+                              <Copy className="w-3 h-3 text-muted-foreground" />
                               <span>Copy</span>
                             </>
                           )}
@@ -285,7 +287,7 @@ export default function ContractsPage() {
                           href={explorerUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-accent-blue text-[11px] font-mono flex items-center space-x-1 transition-colors"
+                          className="px-2 py-1 rounded bg-muted hover:bg-muted/70 border border-border-subtle text-[#5f8f00] dark:text-[#BFFF00] text-[11px] font-mono flex items-center space-x-1 transition-colors"
                           title="View contract on BaseScan"
                         >
                           <span>BaseScan</span>
