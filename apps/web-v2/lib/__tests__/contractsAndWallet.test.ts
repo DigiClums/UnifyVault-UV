@@ -6,13 +6,23 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toBe(
       '0x5c0C26A825639adc58C6edf3aE864616F1dA94b9',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toBe(
+      '0x15BF594654f718C6eBF2DCC135750eE8069e293f',
+    );
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toBe(
+      '0x8139C575C0b1B067b66c1c3EbC501B81f6253826',
+    );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.OracleManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager).toBe(
+      '0x00010d0463D9A90352aDf61eC310e4d82E3eAd97',
+    );
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager).toBe(
+      '0xB0F3C1D90B92AfB4e03c06C7411a0741f506FCc6',
+    );
   });
 
   it('should expose core ERC20 token addresses for Base Sepolia', () => {

@@ -85,14 +85,13 @@ contract DeployUpdatedV2ContractsScript is Script {
       address(newPerf)
     );
 
-    bytes32 controllerId = 0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af;
-    if (dir.exists(controllerId)) {
-      dir.updateAddress(controllerId, address(newController));
+    if (dir.exists(ModuleIds.DEPOSIT_MANAGER)) {
+      dir.updateAddress(ModuleIds.DEPOSIT_MANAGER, address(newController));
     } else {
-      dir.registerAddress(controllerId, address(newController));
+      dir.registerAddress(ModuleIds.DEPOSIT_MANAGER, address(newController));
     }
     console2.log(
-      'Registered/Updated UnifyVaultController in ProtocolDirectory to:',
+      'Registered/Updated DEPOSIT_MANAGER in ProtocolDirectory to:',
       address(newController)
     );
 
