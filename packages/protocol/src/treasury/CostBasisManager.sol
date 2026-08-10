@@ -14,6 +14,8 @@ import '../constants/ModuleIds.sol';
  * @notice Production-grade Cost Basis, Realized/Unrealized PnL, and Performance Accounting Module for UnifyVault V2
  */
 contract CostBasisManager is AccessControl, ICostBasisManager {
+  bytes32 public constant CONTROLLER_ROLE = keccak256('CONTROLLER_ROLE');
+
   address public immutable directory;
 
   address public portfolioManager;
@@ -22,6 +24,7 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
   mapping(address => uint256) private _costBasisUSD;
   mapping(address => int256) private _realizedPnLUSD;
   mapping(address => uint256) private _firstDepositTimestamp;
+  mapping(address => bool) private _accountingMigrated;
 
   constructor(address admin, address directoryAddress) {
     if (admin == address(0)) revert ZeroAddressDetected();
@@ -29,6 +32,7 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin);
     _grantRole(AccessRoles.GOVERNANCE_ROLE, admin);
+    _grantRole(CONTROLLER_ROLE, admin);
 
     directory = directoryAddress;
   }
@@ -48,6 +52,27 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     if (token != address(0)) indexToken = token;
   }
 
+  /**
+   * @notice Restores historical accounting state during a controlled migration.
+   * @dev Governance-only and permanently one-time per user.
+   */
+  function migrateAccounting(
+    address user,
+    uint256 costBasisUSD,
+    int256 realizedPnLUSD,
+    uint256 firstDepositTimestamp
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    if (user == address(0)) revert ZeroAddressDetected();
+    require(!_accountingMigrated[user], 'Accounting already migrated');
+
+    _costBasisUSD[user] = costBasisUSD;
+    _realizedPnLUSD[user] = realizedPnLUSD;
+    _firstDepositTimestamp[user] = firstDepositTimestamp;
+    _accountingMigrated[user] = true;
+
+    emit AccountingMigrated(user, costBasisUSD, realizedPnLUSD, firstDepositTimestamp);
+  }
+
   // --- Core Accounting Transactions ---
 
   /**
@@ -57,7 +82,7 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     address user,
     uint256 depositValueUSD,
     uint256 sharesMinted
-  ) external override {
+  ) external override onlyRole(CONTROLLER_ROLE) {
     if (user == address(0)) revert ZeroAddressDetected();
     if (depositValueUSD == 0 || sharesMinted == 0) return;
 
@@ -81,7 +106,7 @@ contract CostBasisManager is AccessControl, ICostBasisManager {
     uint256 userSharesBefore,
     uint256 sharesBurned,
     uint256 payoutValueUSD
-  ) external override {
+  ) external override onlyRole(CONTROLLER_ROLE) {
     if (user == address(0)) revert ZeroAddressDetected();
     if (sharesBurned == 0 || userSharesBefore == 0) return;
     if (sharesBurned > userSharesBefore) revert InsufficientShares();

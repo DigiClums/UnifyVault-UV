@@ -19,6 +19,12 @@ interface ICostBasisManager {
     uint256 sharesBurned,
     uint256 timestamp
   );
+  event AccountingMigrated(
+    address indexed user,
+    uint256 costBasisUSD,
+    int256 realizedPnLUSD,
+    uint256 firstDepositTimestamp
+  );
 
   // Custom Errors
   error ZeroAddressDetected();
@@ -33,6 +39,13 @@ interface ICostBasisManager {
     uint256 userSharesBefore,
     uint256 sharesBurned,
     uint256 payoutValueUSD
+  ) external;
+
+  function migrateAccounting(
+    address user,
+    uint256 costBasisUSD,
+    int256 realizedPnLUSD,
+    uint256 firstDepositTimestamp
   ) external;
 
   // View Functions

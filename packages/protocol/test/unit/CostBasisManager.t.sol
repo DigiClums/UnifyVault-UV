@@ -11,6 +11,7 @@ contract CostBasisManagerTest is Test {
   UVBTCETHToken public token;
   address public admin = address(1);
   address public user = address(2);
+  address public unauthorized = address(3);
 
   function setUp() public {
     vm.startPrank(admin);
@@ -74,5 +75,67 @@ contract CostBasisManagerTest is Test {
     assertEq(cbm.costBasis(user), 0);
     assertEq(cbm.realizedPnL(user), 50 * 1e18);
     assertEq(cbm.averageEntryPrice(user), 0);
+  }
+
+  function test_RecordDepositRevertsForUnauthorizedAccount() public {
+    vm.expectRevert(
+      abi.encodeWithSignature(
+        'AccessControlUnauthorizedAccount(address,bytes32)',
+        unauthorized,
+        cbm.CONTROLLER_ROLE()
+      )
+    );
+    vm.prank(unauthorized);
+    cbm.recordDeposit(user, 100 * 1e18, 100 * 1e18);
+  }
+
+  function test_RecordRedeemRevertsForUnauthorizedAccount() public {
+    vm.expectRevert(
+      abi.encodeWithSignature(
+        'AccessControlUnauthorizedAccount(address,bytes32)',
+        unauthorized,
+        cbm.CONTROLLER_ROLE()
+      )
+    );
+    vm.prank(unauthorized);
+    cbm.recordRedeem(user, 100 * 1e18, 100 * 1e18, 100 * 1e18);
+  }
+
+  function test_MigrateAccountingPreservesHistoricalState() public {
+    uint256 historicalCostBasis = 81162414845958829357;
+    int256 historicalRealizedPnL = 0;
+    uint256 historicalFirstDeposit = 1786161084;
+
+    vm.prank(admin);
+    cbm.migrateAccounting(user, historicalCostBasis, historicalRealizedPnL, historicalFirstDeposit);
+
+    assertEq(cbm.costBasis(user), historicalCostBasis);
+    assertEq(cbm.realizedPnL(user), historicalRealizedPnL);
+    assertEq(cbm.firstDepositTimestamp(user), historicalFirstDeposit);
+  }
+
+  function test_MigrateAccountingRevertsForUnauthorizedAccount() public {
+    vm.expectRevert(
+      abi.encodeWithSignature(
+        'AccessControlUnauthorizedAccount(address,bytes32)',
+        unauthorized,
+        AccessRoles.GOVERNANCE_ROLE
+      )
+    );
+
+    vm.prank(unauthorized);
+    cbm.migrateAccounting(user, 81162414845958829357, 0, 1786161084);
+  }
+
+  function test_MigrateAccountingCannotRunTwice() public {
+    vm.startPrank(admin);
+
+    cbm.migrateAccounting(user, 81162414845958829357, 0, 1786161084);
+
+    vm.expectRevert('Accounting already migrated');
+
+    cbm.migrateAccounting(user, 999e18, 100e18, 123);
+
+    vm.stopPrank();
   }
 }
