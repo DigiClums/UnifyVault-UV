@@ -30,30 +30,30 @@ export default function PortfolioPage() {
             {networkName} · Holdings, cost basis & performance
           </p>
         </div>
-        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-pulse" />
+        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-[#BFFF00]/10 text-[#5f8f00] dark:text-black border border-[#BFFF00]/30 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
           <span className="hidden sm:inline">{networkName} Live</span>
           <span className="sm:hidden">Live</span>
         </div>
       </div>
 
       {/* ── Portfolio Value Summary ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-slate-900/95 border border-slate-800/40 px-4 py-3 sm:px-5 sm:py-3.5">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/50 to-transparent" />
+      <div className="relative overflow-hidden rounded-2xl bg-card border-2 border-black dark:border-white/15 px-4 py-3 sm:px-5 sm:py-3.5 shadow-[4px_4px_0_#BFFF00]">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#BFFF00]/60 to-transparent" />
 
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Portfolio Value
           </span>
           <div className="flex items-center space-x-1">
             <span
               className={`inline-flex items-center space-x-1 text-[9px] font-medium font-mono ${
-                metrics.isLiveSynced !== false ? 'text-emerald-400' : 'text-slate-500'
+                metrics.isLiveSynced !== false ? 'text-[#BFFF00]' : 'text-black/50'
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  metrics.isLiveSynced !== false ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'
+                  metrics.isLiveSynced !== false ? 'bg-[#BFFF00] animate-pulse' : 'bg-white/30'
                 }`}
               />
               <span>{metrics.isLiveSynced !== false ? 'LIVE' : 'ON-CHAIN'}</span>
@@ -63,9 +63,9 @@ export default function PortfolioPage() {
 
         <div className="mb-1">
           {metrics.isLoading ? (
-            <div className="h-9 w-40 bg-slate-800 rounded animate-pulse" />
+            <div className="h-9 w-40 bg-white/10 rounded animate-pulse" />
           ) : (
-            <div className="text-[28px] sm:text-[36px] font-extrabold text-white tracking-tight font-mono leading-tight">
+            <div className="text-[30px] sm:text-[38px] font-black text-slate-950 dark:text-white tracking-tight font-mono leading-tight">
               {metrics.totalPortfolioValueUSD}
             </div>
           )}
@@ -75,7 +75,7 @@ export default function PortfolioPage() {
           {!metrics.isLoading && (
             <span
               className={`inline-flex items-center space-x-1 text-[11px] font-bold font-mono ${
-                metrics.isProfitable ? 'text-emerald-400' : 'text-rose-400'
+                metrics.isProfitable ? 'text-[#BFFF00]' : 'text-rose-400'
               }`}
             >
               {metrics.isProfitable ? (
@@ -88,8 +88,9 @@ export default function PortfolioPage() {
             </span>
           )}
           {metrics.userSharesBalance && (
-            <span className="text-[10px] text-slate-500 font-mono">
-              {metrics.userSharesBalance} <span className="text-slate-600">UVBTCETH</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+              {metrics.userSharesBalance}{' '}
+              <span className="text-slate-400 dark:text-white/30">UVBTCETH</span>
             </span>
           )}
         </div>
@@ -103,7 +104,7 @@ export default function PortfolioPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
               metrics.sharePriceUSD
             )}
@@ -115,7 +116,7 @@ export default function PortfolioPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
               metrics.investedAssetsUSD
             )}
@@ -127,12 +128,12 @@ export default function PortfolioPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
               <span
                 className={
                   metrics.isProfitable
-                    ? 'text-emerald-600 dark:text-emerald-400'
+                    ? 'text-[#5f8f00] dark:text-[#BFFF00]'
                     : 'text-rose-600 dark:text-rose-400'
                 }
               >
@@ -147,12 +148,12 @@ export default function PortfolioPage() {
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold font-mono tracking-tight">
             {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-slate-800 rounded animate-pulse" />
+              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
               <span
                 className={
                   metrics.isProfitable
-                    ? 'text-emerald-600 dark:text-emerald-400'
+                    ? 'text-[#5f8f00] dark:text-[#BFFF00]'
                     : 'text-rose-600 dark:text-rose-400'
                 }
               >

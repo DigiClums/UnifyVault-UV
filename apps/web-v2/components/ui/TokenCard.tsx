@@ -44,10 +44,12 @@ export function TokenCard({
           <TokenIcon symbol={symbol} size={36} />
           <div>
             <div className="flex items-center space-x-2">
-              <h4 className="text-base font-bold text-white tracking-tight">{symbol}</h4>
+              <h4 className="text-base font-bold text-slate-950 dark:text-white tracking-tight">
+                {symbol}
+              </h4>
               <StatusBadge status={status} showPulse={false} className="text-[10px] py-0 px-2" />
             </div>
-            <p className="text-xs text-slate-400">{name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{name}</p>
           </div>
         </div>
         <div className="text-right">
@@ -59,20 +61,24 @@ export function TokenCard({
 
       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border-subtle/40 text-xs">
         <div>
-          <span className="text-slate-400">Balance</span>
-          <p className="text-sm font-bold text-white font-mono mt-0.5">{balance}</p>
+          <span className="text-slate-500 dark:text-slate-400">Balance</span>
+          <p className="text-sm font-bold text-slate-950 dark:text-white font-mono mt-0.5">
+            {balance}
+          </p>
         </div>
         <div className="text-right">
-          <span className="text-slate-400">Current Price</span>
-          <p className="text-sm font-bold text-slate-200 font-mono mt-0.5">{priceUSD}</p>
+          <span className="text-slate-500 dark:text-slate-400">Current Price</span>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5">
+            {priceUSD}
+          </p>
         </div>
         <div>
-          <span className="text-slate-400">USD Valuation</span>
+          <span className="text-slate-500 dark:text-slate-400">USD Valuation</span>
           <p className="text-sm font-bold text-emerald-400 font-mono mt-0.5">{valueUSD}</p>
         </div>
         {change24h && (
           <div className="text-right">
-            <span className="text-slate-400">24h Change</span>
+            <span className="text-slate-500 dark:text-slate-400">24h Change</span>
             <p
               className={cn(
                 'text-sm font-bold font-mono mt-0.5',

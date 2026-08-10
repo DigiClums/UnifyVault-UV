@@ -23,40 +23,52 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
   ];
 
   return (
-    <div className="rounded-xl bg-card border border-border-subtle px-3.5 py-3 sm:px-4 sm:py-3.5">
+    <div className="h-full rounded-2xl bg-card border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-1.5">
-          <PieIcon className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Allocation
+      <div className="flex items-start justify-between gap-3 pb-3 border-b-2 border-black dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-black text-[#5f8f00] dark:text-[#BFFF00] border-2 border-black dark:border-white/15">
+            <PieIcon className="w-4 h-4" />
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black text-foreground tracking-tight">Allocation</h3>
+            <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
+              Portfolio exposure
+            </p>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <span className="block text-[8px] uppercase tracking-wider text-muted-foreground font-bold">
+            Target
+          </span>
+          <span className="text-[10px] font-black font-mono text-foreground">
+            {btcVal.toFixed(0)}/{ethVal.toFixed(0)}
           </span>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground">
-          Target: {btcVal.toFixed(0)}% BTC / {ethVal.toFixed(0)}% ETH
-        </span>
       </div>
 
       {metrics.isLoading ? (
-        <div className="h-16 w-full flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-muted-foreground border-t-accent-blue animate-spin" />
+        <div className="min-h-[150px] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full border-2 border-black dark:border-white/30 border-t-[#BFFF00] animate-spin" />
         </div>
       ) : (
-        <>
-          {/* Desktop: Donut chart + bars. Mobile: bars only */}
+        <div className="pt-2">
+          {/* Chart + allocation details */}
           <div className="flex items-center gap-3">
-            {/* Donut — hidden on mobile */}
-            <div className="hidden sm:block relative w-[88px] h-[88px] shrink-0">
+            <div className="relative w-[104px] h-[104px] shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%"
                     cy="50%"
-                    innerRadius={28}
-                    outerRadius={40}
+                    innerRadius={32}
+                    outerRadius={47}
                     paddingAngle={3}
                     dataKey="value"
+                    strokeWidth={0}
                   >
                     {data.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -64,31 +76,33 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
+
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[11px] font-bold text-foreground font-mono leading-tight">
+                <span className="text-sm font-black text-foreground font-mono">
                   {btcVal.toFixed(0)}/{ethVal.toFixed(0)}
                 </span>
-                <span className="text-[8px] text-muted-foreground font-semibold uppercase">
-                  Ratio
+                <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider">
+                  BTC / ETH
                 </span>
               </div>
             </div>
 
-            {/* Progress bars */}
-            <div className="flex-1 space-y-2.5 min-w-0">
+            <div className="flex-1 min-w-0 space-y-3">
               {/* BTC */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                    <span className="text-[11px] font-semibold text-foreground">BTC</span>
-                    <span className="text-[10px] text-muted-foreground">cbBTC</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                    <span className="text-xs font-black text-foreground">BTC</span>
+                    <span className="text-[9px] text-muted-foreground">cbBTC</span>
                   </div>
-                  <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 font-mono">
+
+                  <span className="text-xs font-black text-amber-600 dark:text-amber-400 font-mono">
                     {metrics.btcAllocationPercent ?? '...'}
                   </span>
                 </div>
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+
+                <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden border border-black/10 dark:border-white/10">
                   <div
                     className="h-full rounded-full bg-amber-500 transition-all duration-500"
                     style={{ width: `${btcVal}%` }}
@@ -98,17 +112,19 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
 
               {/* ETH */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                    <span className="text-[11px] font-semibold text-foreground">ETH</span>
-                    <span className="text-[10px] text-muted-foreground">WETH</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                    <span className="text-xs font-black text-foreground">ETH</span>
+                    <span className="text-[9px] text-muted-foreground">WETH</span>
                   </div>
-                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 font-mono">
+
+                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-mono">
                     {metrics.ethAllocationPercent ?? '...'}
                   </span>
                 </div>
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+
+                <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden border border-black/10 dark:border-white/10">
                   <div
                     className="h-full rounded-full bg-blue-500 transition-all duration-500"
                     style={{ width: `${ethVal}%` }}
@@ -118,13 +134,17 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
             </div>
           </div>
 
-          {/* Footer: target info */}
-          <div className="flex items-center justify-end mt-1.5 pt-1.5 border-t border-border-subtle">
+          {/* Footer */}
+          <div className="mt-2.5 pt-2 border-t-2 border-black dark:border-white/10 flex items-center justify-between">
             <span className="text-[9px] text-muted-foreground font-mono">
-              {btcVal.toFixed(0)}/{ethVal.toFixed(0)} BTC/ETH
+              Live portfolio allocation
+            </span>
+
+            <span className="text-[9px] font-black font-mono text-[#5f8f00] dark:text-[#BFFF00]">
+              {btcVal.toFixed(0)}% BTC
             </span>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

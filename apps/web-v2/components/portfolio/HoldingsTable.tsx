@@ -25,7 +25,7 @@ export function HoldingsTable() {
           {scope === 'user' ? (
             <UserCheck className="w-5 h-5 text-accent-emerald" />
           ) : (
-            <ShieldCheck className="w-5 h-5 text-accent-blue" />
+            <ShieldCheck className="w-5 h-5 text-[#BFFF00]" />
           )}
           <div>
             <h3 className="text-sm font-bold text-white tracking-tight">
@@ -41,10 +41,10 @@ export function HoldingsTable() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-900/80 p-1.5 rounded-xl border border-border-subtle/80 shrink-0">
+        <div className="flex items-center space-x-2 bg-slate-900/80 p-1 rounded-lg border border-border-subtle/80 shrink-0">
           <button
             onClick={() => setScope('user')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
               scope === 'user'
                 ? 'bg-accent-emerald text-white shadow-glow'
                 : 'text-slate-400 hover:text-white'
@@ -54,9 +54,9 @@ export function HoldingsTable() {
           </button>
           <button
             onClick={() => setScope('protocol')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
               scope === 'protocol'
-                ? 'bg-accent-blue text-white shadow-glow'
+                ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -67,14 +67,14 @@ export function HoldingsTable() {
 
       {/* Zero Shares Notice for User View */}
       {scope === 'user' && !hasUserShares && !isLoading && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
           <span>
             ℹ️ You currently hold 0 $uvBTCETH shares. Personal asset claim values will reflect $0.00
             until you deposit.
           </span>
           <button
             onClick={() => setScope('protocol')}
-            className="text-accent-blue font-bold hover:underline shrink-0 ml-2"
+            className="text-[#5f8f00] dark:text-[#BFFF00] font-bold hover:underline shrink-0 ml-2"
           >
             View Protocol Reserve →
           </button>
@@ -82,7 +82,7 @@ export function HoldingsTable() {
       )}
 
       {/* Portfolio Grid Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {activeHoldings.map((asset) => (
           <TokenCard
             key={asset.symbol}
@@ -112,7 +112,7 @@ export function HoldingsTable() {
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-accent-blue text-white shadow-glow'
+                  ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -122,7 +122,7 @@ export function HoldingsTable() {
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 viewMode === 'table'
-                  ? 'bg-accent-blue text-white shadow-glow'
+                  ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -134,14 +134,14 @@ export function HoldingsTable() {
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-border-subtle/60 text-muted-foreground font-semibold uppercase tracking-wider">
-              <th className="py-3.5 px-3">Asset</th>
-              <th className="py-3.5 px-3">Oracle Unit Price</th>
-              <th className="py-3.5 px-3">
+              <th className="py-2.5 px-3">Asset</th>
+              <th className="py-2.5 px-3">Oracle Unit Price</th>
+              <th className="py-2.5 px-3">
                 {scope === 'user' ? 'Your Claim Balance' : 'Custody Reserve'}
               </th>
-              <th className="py-3.5 px-3">USD Valuation</th>
-              <th className="py-3.5 px-3">Target Weight</th>
-              <th className="py-3.5 px-3">Current Weight</th>
+              <th className="py-2.5 px-3">USD Valuation</th>
+              <th className="py-2.5 px-3">Target Weight</th>
+              <th className="py-2.5 px-3">Current Weight</th>
               <th className="py-3.5 px-3 text-right">Status</th>
             </tr>
           </thead>
@@ -155,29 +155,29 @@ export function HoldingsTable() {
             ) : (
               activeHoldings.map((asset) => (
                 <tr key={asset.symbol} className="hover:bg-card/40 transition-colors">
-                  <td className="py-4 px-3 font-sans font-bold text-foreground flex items-center space-x-3">
-                    <TokenIcon symbol={asset.symbol} size={32} />
+                  <td className="py-3 px-3 font-sans font-bold text-foreground flex items-center space-x-3">
+                    <TokenIcon symbol={asset.symbol} size={28} />
                     <div>
                       <div className="font-bold text-foreground text-sm">{asset.symbol}</div>
                       <div className="text-[10px] text-muted-foreground">{asset.name}</div>
                     </div>
                   </td>
-                  <td className="py-4 px-3 text-muted-foreground font-semibold">
+                  <td className="py-3 px-3 text-muted-foreground font-semibold">
                     {asset.priceUSD}
                   </td>
-                  <td className="py-4 px-3 text-foreground">
+                  <td className="py-3 px-3 text-foreground">
                     {asset.balanceFormatted} {asset.symbol}
                   </td>
-                  <td className="py-4 px-3 font-bold text-emerald-700 dark:text-emerald-400">
+                  <td className="py-3 px-3 font-bold text-emerald-700 dark:text-emerald-400">
                     {asset.valueUSD}
                   </td>
-                  <td className="py-4 px-3 text-muted-foreground font-semibold">
+                  <td className="py-3 px-3 text-muted-foreground font-semibold">
                     {asset.targetWeightPercent || '0.0%'}
                   </td>
-                  <td className="py-4 px-3 text-accent-blue font-bold">
+                  <td className="py-3 px-3 text-[#5f8f00] dark:text-[#BFFF00] font-bold">
                     {asset.currentWeightPercent || asset.weightPercent}
                   </td>
-                  <td className="py-4 px-3 text-right font-sans">
+                  <td className="py-3 px-3 text-right font-sans">
                     <StatusBadge
                       status="Healthy"
                       label={

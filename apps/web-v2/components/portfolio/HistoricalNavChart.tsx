@@ -77,14 +77,14 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!data) return null;
 
   return (
-    <div className="bg-slate-900/95 border border-slate-700/80 p-3.5 rounded-xl shadow-2xl backdrop-blur-md text-xs space-y-2 min-w-[220px]">
+    <div className="bg-slate-900/95 border border-slate-700/80 p-3 rounded-xl shadow-xl backdrop-blur-md text-xs space-y-2 min-w-[220px]">
       <div className="border-b border-slate-800 pb-1.5 font-semibold text-slate-300">
         {formatTooltipDate(data.timestamp)}
       </div>
 
       <div className="space-y-1.5">
         <div className="flex justify-between items-center text-slate-200">
-          <span className="text-cyan-400 font-medium">NAV Value:</span>
+          <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium">NAV Value:</span>
           <span className="font-bold text-white font-mono">
             ${Number(data.nav || data.sharePrice || 0).toFixed(4)}
           </span>
@@ -194,9 +194,9 @@ export function HistoricalNavChart() {
       {/* Activity Overlay Toggle */}
       <button
         onClick={() => setShowMarkers(!showMarkers)}
-        className={`flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold rounded-xl border transition-all ${
+        className={`flex items-center space-x-1 px-2.5 py-1 text-[10px] font-semibold rounded-lg border transition-all ${
           showMarkers
-            ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/30'
+            ? 'bg-[#BFFF00]/10 text-[#BFFF00] border-[#BFFF00]/30'
             : 'bg-surface text-slate-400 border-border-subtle hover:text-white'
         }`}
         title="Toggle User Activity Markers"
@@ -204,23 +204,23 @@ export function HistoricalNavChart() {
         <Filter className="w-3 h-3" />
         <span>Activity Markers</span>
         {userActivityCount > 0 && (
-          <span className="ml-1 px-1.5 py-0.2 rounded-full bg-accent-blue text-white text-[10px]">
+          <span className="ml-1 px-1.5 py-0.2 rounded-full bg-[#BFFF00] text-black text-[10px]">
             {userActivityCount}
           </span>
         )}
       </button>
 
       {/* Period Selector */}
-      <div className="flex items-center space-x-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+      <div className="flex items-center space-x-1 bg-slate-900/60 p-0.5 rounded-lg border border-slate-800">
         {PERIODS.map((p) => {
           const isActive = period === p;
           return (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${
                 isActive
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                  ? 'bg-[#BFFF00] text-black shadow-md shadow-[#BFFF00]/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
@@ -234,8 +234,8 @@ export function HistoricalNavChart() {
 
   return (
     <ChartCard
-      title="Historical Net Asset Value (NAV) & Activity Trajectory"
-      subtitle="On-chain NAV progression curve with user deposit 📥 and redemption 📤 markers"
+      title="Historical NAV & Activity"
+      subtitle="On-chain NAV progression with deposit and redemption markers"
       icon={Activity}
       action={periodSelector}
     >
@@ -251,7 +251,7 @@ export function HistoricalNavChart() {
         />
       ) : (
         <div className="space-y-3">
-          <div className="h-64 w-full pt-2">
+          <div className="h-56 sm:h-64 w-full pt-1">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={navHistory} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
                 <defs>

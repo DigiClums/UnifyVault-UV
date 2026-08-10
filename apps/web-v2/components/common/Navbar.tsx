@@ -39,29 +39,33 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/90 border-b border-border-subtle/80 transition-all">
+    <header className="sticky top-0 z-50 bg-background/95 border-b-2 border-black dark:border-white/10 transition-all">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center space-x-1.5 sm:space-x-2 group min-w-0 shrink">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-accent-cyan p-0.5 shadow-sm flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
+        <Link
+          href="/"
+          className="flex items-center gap-2 sm:gap-2.5 shrink-0 w-[150px] sm:w-[175px] group"
+        >
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#BFFF00] border-2 border-black p-0.5 shadow-[2px_2px_0_#000] flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
             <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-accent-blue" />
+              <ShieldCheck className="w-4 h-4 text-black dark:text-[#BFFF00]" />
             </div>
           </div>
-          <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
-            <span className="text-sm sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white via-slate-700 dark:via-slate-200 to-accent-blue tracking-tight truncate">
+
+          <div className="min-w-0 leading-none">
+            <div className="text-[15px] sm:text-[17px] font-black tracking-tight text-foreground whitespace-nowrap">
               UnifyVault
-            </span>
-            <span className="hidden sm:inline text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0 font-mono">
+            </div>
+            <div className="mt-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground whitespace-nowrap">
               V2 Suite
-            </span>
+            </div>
           </div>
         </Link>
 
         {/* Desktop Navigation Links */}
         <nav
           aria-label="Main Navigation"
-          className="hidden lg:flex items-center space-x-1 bg-slate-100 dark:bg-slate-900/70 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 backdrop-blur-md"
+          className="hidden lg:flex items-center space-x-1 bg-black dark:bg-[#151515] p-1 rounded-xl border-2 border-black dark:border-white/10"
         >
           {navLinks.map((link) => {
             const Icon = link.icon;
@@ -77,8 +81,8 @@ export function Navbar() {
                 className={cn(
                   'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
                   isActive
-                    ? 'bg-accent-blue text-white shadow-xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60',
+                    ? 'bg-[#BFFF00] text-black shadow-[3px_3px_0_#000] font-bold'
+                    : 'text-white/70 hover:text-black dark:hover:text-white hover:bg-[#BFFF00] hover:font-bold',
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -122,7 +126,7 @@ export function Navbar() {
                       onClick={openChainModal}
                       type="button"
                       aria-label="Select Network"
-                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface/80 hover:bg-card border border-border-subtle/80 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm hover:border-accent-blue/40"
+                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-card hover:bg-card-hover border-2 border-black dark:border-white/15 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm hover:border-accent-blue/40"
                     >
                       {chain?.hasIcon ? (
                         <div
@@ -138,7 +142,7 @@ export function Navbar() {
                           )}
                         </div>
                       ) : (
-                        <Globe className="w-3.5 h-3.5 text-accent-blue" />
+                        <Globe className="w-3.5 h-3.5 text-black dark:text-[#BFFF00]" />
                       )}
                       <span>{chain?.name || 'Select Network'}</span>
                       <ChevronDown className="w-3 h-3 text-muted-foreground" />
@@ -151,7 +155,7 @@ export function Navbar() {
                           <button
                             onClick={openConnectModal}
                             type="button"
-                            className="px-3.5 py-1.5 rounded-xl bg-accent-blue hover:bg-accent-blue/90 text-white text-xs font-semibold shadow-glow transition-all shrink-0 cursor-pointer"
+                            className="px-3.5 py-1.5 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black text-xs font-bold border-2 border-black shadow-[3px_3px_0_#000] transition-all shrink-0 cursor-pointer"
                           >
                             Connect Wallet
                           </button>
@@ -174,7 +178,7 @@ export function Navbar() {
                         <button
                           onClick={openAccountModal}
                           type="button"
-                          className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-surface/80 hover:bg-card border border-border-subtle/80 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm"
+                          className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-card hover:bg-card-hover border-2 border-black dark:border-white/15 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm"
                         >
                           <span>{account.displayName}</span>
                         </button>

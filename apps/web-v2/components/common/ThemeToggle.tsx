@@ -36,7 +36,7 @@ export function ThemeToggle() {
     <div className="relative inline-flex items-center shrink-0" ref={menuRef}>
       <button
         onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-        className="p-2.5 rounded-xl bg-surface hover:bg-card border border-border-subtle text-foreground transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-accent-blue/50 flex items-center justify-center min-h-[44px] min-w-[44px] shadow-sm active:scale-95 group"
+        className="p-2.5 rounded-xl bg-surface hover:bg-card border border-border-subtle text-foreground transition-all duration-300 focus:outline-none focus:ring-0 flex items-center justify-center min-h-[44px] min-w-[44px] shadow-sm active:scale-95 group"
         aria-label="Toggle Theme"
         title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} Mode${isSystem ? ' (System Active)' : ''}`}
       >

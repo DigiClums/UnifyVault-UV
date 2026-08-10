@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body
         className={`${inter.className} min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 antialiased`}
       >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <Web3Provider>
             <AppShell shellMode={shellMode}>{children}</AppShell>
           </Web3Provider>

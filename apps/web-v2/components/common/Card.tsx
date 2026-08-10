@@ -11,8 +11,9 @@ export function Card({ children, className, glow = false, ...props }: CardProps)
   return (
     <div
       className={cn(
-        'rounded-2xl p-6 transition-all duration-300 border border-border-subtle bg-glass-gradient backdrop-blur-xl shadow-glass',
-        glow && 'hover:shadow-glow hover:border-accent-blue/40',
+        'rounded-2xl p-6 transition-all duration-200 border-2 border-black dark:border-white/15 bg-glass-gradient shadow-glass',
+        'hover:-translate-y-0.5 hover:shadow-[6px_6px_0_rgba(0,0,0,0.9)] dark:hover:shadow-[6px_6px_0_rgba(0,0,0,0.95)]',
+        glow && 'hover:border-[#BFFF00] dark:hover:border-[#BFFF00]',
         className,
       )}
       {...props}

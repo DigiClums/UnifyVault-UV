@@ -37,10 +37,10 @@ export default function AppHomePage() {
 
       {/* ── Allocation + Actions (side by side on desktop) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 min-w-0">
           <AllocationChart metrics={metrics} />
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <QuickActions />
         </div>
       </div>

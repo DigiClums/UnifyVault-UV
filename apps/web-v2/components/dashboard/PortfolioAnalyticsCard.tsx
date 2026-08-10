@@ -26,7 +26,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       value: metrics.currentValueUSD,
       subtitle: `${metrics.userSharesBalance} UVBTCETH`,
       icon: DollarSign,
-      iconBg: 'bg-accent-blue/10 text-accent-blue',
+      iconBg: 'bg-[#BFFF00]/10 text-[#BFFF00]',
       source: 'userShares × Share Price',
     },
     {
@@ -61,47 +61,49 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       value: metrics.ownershipPercentage,
       subtitle: 'Share of Total Pool Supply',
       icon: PieChart,
-      iconBg: 'bg-indigo-500/10 text-indigo-400',
+      iconBg: 'bg-[#BFFF00]/10 text-[#BFFF00]',
       source: 'User Shares ÷ Total Supply',
     },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
         <div className="flex items-center space-x-2">
-          <ShieldCheck className="w-5 h-5 text-accent-blue" />
-          <h2 className="text-lg font-bold text-foreground tracking-tight">
+          <ShieldCheck className="w-4 h-4 text-[#BFFF00]" />
+          <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
             User Portfolio Analytics
           </h2>
         </div>
-        <div className="text-xs text-muted-foreground font-mono flex items-center space-x-1 bg-surface px-3 py-1 rounded-xl border border-border-subtle shadow-xs">
+        <div className="text-[10px] text-muted-foreground font-mono flex items-center space-x-1 bg-surface px-2.5 py-1 rounded-lg border border-border-subtle shadow-xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Real-time On-Chain Accounting</span>
         </div>
       </div>
 
       {/* Streamlined Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {items.map((item, idx) => {
           const Icon = item.icon;
           return (
             <Card
               key={idx}
               glow
-              className="relative group overflow-hidden p-5 flex flex-col justify-between"
+              className="relative group overflow-hidden p-4 flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-muted-foreground">{item.label}</span>
-                  <div className={`p-2 rounded-xl ${item.iconBg}`}>
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    {item.label}
+                  </span>
+                  <div className={`p-1.5 rounded-lg ${item.iconBg}`}>
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-xl font-bold text-foreground tracking-tight font-mono">
+                  <div className="text-lg sm:text-xl font-black text-foreground tracking-tight font-mono">
                     {metrics.isLoading ? (
                       <div className="h-7 w-28 bg-muted rounded animate-pulse" />
                     ) : (
@@ -119,7 +121,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
                       className={
                         item.isPositive !== undefined
                           ? item.isPositive
-                            ? 'text-emerald-700 dark:text-accent-emerald'
+                            ? 'text-[#5f8f00] dark:text-[#BFFF00]'
                             : 'text-rose-700 dark:text-accent-rose'
                           : ''
                       }
@@ -131,9 +133,9 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
               </div>
 
               {/* Data Provenance Footnote */}
-              <div className="mt-4 pt-2.5 border-t border-border-subtle/50 text-[10px] font-mono text-muted-foreground/80 flex items-center justify-between">
+              <div className="mt-3 pt-2 border-t border-border-subtle/50 text-[10px] font-mono text-muted-foreground/80 flex items-center justify-between">
                 <span>{item.source}</span>
-                <span className="text-accent-blue/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[#BFFF00]/80 opacity-0 group-hover:opacity-100 transition-opacity">
                   Verified
                 </span>
               </div>
