@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAccount, useReadContracts } from 'wagmi';
 import { ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { getChainTokens } from '../../../constants';
+import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD, formatUnits } from '../../../lib/math';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -14,9 +14,10 @@ import { Activity, Zap, RefreshCw, Clock, ShieldCheck } from 'lucide-react';
 export default function AdminOraclePage() {
   const { chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
-  const { oracle } = useProtocolDirectory();
+  const { oracle: directoryOracle } = useProtocolDirectory();
+  const oracle = directoryOracle || DEPLOYED_CONTRACTS_SEPOLIA.OracleManager;
 
-  const { data, refetch } = useReadContracts({
+  const { data, refetch, isFetching } = useReadContracts({
     contracts: [
       {
         address: oracle,
@@ -94,11 +95,11 @@ export default function AdminOraclePage() {
 
         <button
           onClick={() => refetch()}
-          disabled={!oracle}
-          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50"
+          disabled={isFetching}
+          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50 cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Feeds</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[#BFFF00]' : ''}`} />
+          <span>{isFetching ? 'Refreshing...' : 'Refresh Feeds'}</span>
         </button>
       </div>
 
