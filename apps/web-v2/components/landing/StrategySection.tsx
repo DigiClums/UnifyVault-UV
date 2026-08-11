@@ -21,7 +21,7 @@ export function StrategySection() {
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#BFFF00]/80 mb-1 font-mono">
               Primary Strategy
             </p>
-            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">UVBTCETH</h3>
+            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">UVBE</h3>
             <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
               A multi-asset strategy designed around BTC and ETH exposure, managed through on-chain
               portfolio accounting with transparent custody.
@@ -49,7 +49,10 @@ export function StrategySection() {
                     <span className="text-sm font-bold text-[#BFFF00] font-mono">{btcPct}</span>
                   </div>
                   <div className="w-full h-2 bg-white/[0.07] overflow-hidden">
-                    <div className="h-full bg-[#BFFF00] transition-all duration-700" style={{ width: `${btcNum}%` }} />
+                    <div
+                      className="h-full bg-[#BFFF00] transition-all duration-700"
+                      style={{ width: `${btcNum}%` }}
+                    />
                   </div>
                 </div>
 
@@ -62,7 +65,10 @@ export function StrategySection() {
                     <span className="text-sm font-bold text-slate-200 font-mono">{ethPct}</span>
                   </div>
                   <div className="w-full h-2 bg-white/[0.07] overflow-hidden">
-                    <div className="h-full bg-slate-300 transition-all duration-700" style={{ width: `${ethNum}%` }} />
+                    <div
+                      className="h-full bg-slate-300 transition-all duration-700"
+                      style={{ width: `${ethNum}%` }}
+                    />
                   </div>
                 </div>
               </div>

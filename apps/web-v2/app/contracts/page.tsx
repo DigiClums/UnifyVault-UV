@@ -60,13 +60,13 @@ export default function ContractsPage() {
       isErc20: false,
     },
     {
-      name: 'UVBTCETH Token',
+      name: 'UVBE Token',
       description: 'Multi-asset index share token (ERC-20, 18 Decimals)',
       address: directory.token || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
       category: 'Token',
       icon: Coins,
       isErc20: true,
-      symbol: 'UVBTCETH',
+      symbol: 'UVBE',
       decimals: 18,
     },
     {

@@ -60,17 +60,19 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   OracleManager: '0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F' as `0x${string}`,
   ChainlinkOracleProvider: '0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89' as `0x${string}`,
   LiquidityManager: '0xd0542D47176f2869F034e43Efca2C2d540d1fFD3' as `0x${string}`,
-  UVBTCETHToken: '0x5c0C26A825639adc58C6edf3aE864616F1dA94b9' as `0x${string}`,
-  UnifyVaultController: '0x15BF594654f718C6eBF2DCC135750eE8069e293f' as `0x${string}`,
+  UVBTCETHToken: '0xa34596D38Be381A4764141105A91C338Ca5503bB' as `0x${string}`,
+  UnifyVaultController: '0xF66Cfb1233548176cD4bFe8224fB18450Bf3c13e' as `0x${string}`,
   StrategyManager: '0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958' as `0x${string}`,
-  PortfolioManager: '0x8139C575C0b1B067b66c1c3EbC501B81f6253826' as `0x${string}`,
+  PortfolioManager: '0x68c969b758e682B67e99a1ed2CC5753Ff1B2635E' as `0x${string}`,
   SwapAdapter: '0xa0164433c94b68522201e3DcbFDDC391B36c45f3' as `0x${string}`,
   FeeManager: '0xea8e047Fa4981935419B2065095e031b6224AC76' as `0x${string}`,
-  CostBasisManager: '0xDfD7ECD6461Ded7ed63D2ab6D6192D2Dfc232FC9' as `0x${string}`,
-  PerformanceManager: '0xB0F3C1D90B92AfB4e03c06C7411a0741f506FCc6' as `0x${string}`,
+  CostBasisManager: '0xdA57664ef26676369fB5f87286BF8e2FB2cAD6df' as `0x${string}`,
+  PerformanceManager: '0x47e9B5848E9856f6Dfd0169A993115C93e5Cc29C' as `0x${string}`,
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
+  P2PEscrow: (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS ||
+    '0x382A2099A4Ce230A12dCc528827C3649C64d898b') as `0x${string}`,
 };
 
 /**
@@ -78,7 +80,7 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
  */
 export const TOKENS_BY_CHAIN: Record<
   number,
-  { USDC: `0x${string}`; cbBTC: `0x${string}`; WETH: `0x${string}` }
+  { USDC: `0x${string}`; cbBTC: `0x${string}`; WETH: `0x${string}`; UVBTCETH?: `0x${string}` }
 > = {
   [base.id]: {
     USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -89,6 +91,7 @@ export const TOKENS_BY_CHAIN: Record<
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
     cbBTC: '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29',
     WETH: '0xd116ab1c943cf15904ec4c8dd701086f175fa323',
+    UVBTCETH: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
   },
 };
 
@@ -129,6 +132,7 @@ export const MODULE_IDS = {
   PERFORMANCE_MANAGER:
     '0x3cc6e30a00fc20cd55b209638eb88a197234ab24baed9e238b01e2c52159a815' as `0x${string}`,
   CONTROLLER: '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
+  P2P_ESCROW: '0x4d5e9ec2ddae603ed61a153eeaa5905d914ec7a7a505e83ea647904cf72d8a57' as `0x${string}`,
 };
 
 export const DEFAULT_ADMIN_ROLE =

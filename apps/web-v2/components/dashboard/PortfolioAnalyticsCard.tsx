@@ -24,7 +24,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
     {
       label: 'Current Holding Value',
       value: metrics.currentValueUSD,
-      subtitle: `${metrics.userSharesBalance} UVBTCETH`,
+      subtitle: `${metrics.userSharesBalance} UVBE`,
       icon: DollarSign,
       iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
       source: 'userShares × Share Price',

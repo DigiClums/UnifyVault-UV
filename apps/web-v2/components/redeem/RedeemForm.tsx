@@ -92,7 +92,7 @@ export function RedeemForm() {
               <span>Redeem Shares</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Burn UVBTCETH → receive USDC collateral payout
+              Burn UVBE → receive USDC collateral payout
             </p>
           </div>
           <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#BFFF00] text-black border-2 border-black text-xs font-semibold shrink-0">
@@ -107,7 +107,7 @@ export function RedeemForm() {
             <span className="font-semibold text-foreground">You Redeem</span>
             <span className="font-mono">
               Available:{' '}
-              <span className="font-bold text-foreground">{sharesBalFormatted} UVBTCETH</span>
+              <span className="font-bold text-foreground">{sharesBalFormatted} UVBE</span>
             </span>
           </div>
 
@@ -127,7 +127,7 @@ export function RedeemForm() {
                 <div className="w-5 h-5 rounded-full bg-[#BFFF00] border-2 border-black flex items-center justify-center text-[9px] font-black text-black">
                   UV
                 </div>
-                <span className="text-xs font-bold text-foreground">UVBTCETH</span>
+                <span className="text-xs font-bold text-foreground">UVBE</span>
               </div>
             </div>
 
@@ -218,7 +218,7 @@ export function RedeemForm() {
               <span>
                 {stepState === 'preparing' && 'Preparing redemption & validating quote...'}
                 {stepState === 'awaiting_redeem_wallet' && 'Confirm Redeem in your wallet...'}
-                {stepState === 'redeem_pending' && 'Burning UVBTCETH shares & unwinding assets...'}
+                {stepState === 'redeem_pending' && 'Burning UVBE shares & unwinding assets...'}
               </span>
             </div>
             {lastTxHash && (
@@ -260,7 +260,7 @@ export function RedeemForm() {
                   Redemption Executed Successfully
                 </h4>
                 <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                  Your UVBTCETH index shares have been burned and USDC collateral transferred.
+                  Your UVBE index shares have been burned and USDC collateral transferred.
                 </p>
               </div>
             </div>
@@ -268,7 +268,7 @@ export function RedeemForm() {
             <div className="space-y-2 pt-3 border-t-2 border-black/20 dark:border-white/10 font-mono text-foreground">
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400 font-sans">Shares Burned</span>
-                <span className="font-bold">{sharesInput} UVBTCETH</span>
+                <span className="font-bold">{sharesInput} UVBE</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400 font-sans">

@@ -30,6 +30,7 @@ export function Navbar() {
 
   const navLinks: NavItem[] = [
     { href: '/', label: 'Home', icon: Home },
+    { href: '/p2p', label: 'P2P Escrow', icon: ShieldCheck },
     { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
     { href: '/portfolio', label: 'Portfolio', icon: PieChart },
     { href: '/transactions', label: 'Activity', icon: History },

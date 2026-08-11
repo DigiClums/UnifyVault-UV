@@ -12,7 +12,7 @@ export default function RedeemPage() {
           Share Redemption & Collateral Payout
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
-          Burn UVBTCETH index shares to receive USDC payout. Multi-asset vault collateral is unwound
+          Burn UVBE index shares to receive USDC payout. Multi-asset vault collateral is unwound
           automatically via DEX router.
         </p>
       </div>

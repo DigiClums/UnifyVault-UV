@@ -25,9 +25,9 @@ interface AddTokenToWalletProps {
 
 export function AddTokenToWallet({
   address,
-  symbol = 'UVBTCETH',
+  symbol = 'UVBE',
   decimals = 18,
-  name = 'UnifyVault BTC-ETH Index Share',
+  name = 'UnifyVault BTC-ETH',
   compact = false,
 }: AddTokenToWalletProps) {
   const { chain } = useAccount();
@@ -171,7 +171,7 @@ export function AddTokenToWallet({
           <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
           <span>
             {errorMessage ||
-              'Token import was cancelled. UVBTCETH was minted successfully — you can add it anytime.'}
+              'Token import was cancelled. UVBE was minted successfully — you can add it anytime.'}
           </span>
         </div>
       )}
@@ -180,7 +180,7 @@ export function AddTokenToWallet({
         <div className="p-3 rounded-lg bg-muted border border-border-subtle text-foreground text-[11px] space-y-2">
           <div className="flex items-center space-x-1.5 text-amber-600 dark:text-amber-400 font-semibold font-sans">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>Add UVBTCETH manually</span>
+            <span>Add UVBE manually</span>
           </div>
           <p className="text-[11px] text-muted-foreground font-sans">
             Your deposit is confirmed. Use the details below to view or import the token in your

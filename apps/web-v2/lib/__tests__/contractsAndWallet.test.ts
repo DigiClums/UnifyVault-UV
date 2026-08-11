@@ -4,13 +4,13 @@ import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens, getExplorerBaseUrl } from '
 describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   it('should expose all 8 required canonical protocol contract addresses for Base Sepolia', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toBe(
-      '0x5c0C26A825639adc58C6edf3aE864616F1dA94b9',
+      '0xa34596D38Be381A4764141105A91C338Ca5503bB',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toBe(
-      '0x15BF594654f718C6eBF2DCC135750eE8069e293f',
+      '0xF66Cfb1233548176cD4bFe8224fB18450Bf3c13e',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toBe(
-      '0x8139C575C0b1B067b66c1c3EbC501B81f6253826',
+      '0x68c969b758e682B67e99a1ed2CC5753Ff1B2635E',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.OracleManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
@@ -18,10 +18,10 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager).toBe(
-      '0xDfD7ECD6461Ded7ed63D2ab6D6192D2Dfc232FC9',
+      '0xdA57664ef26676369fB5f87286BF8e2FB2cAD6df',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager).toBe(
-      '0xB0F3C1D90B92AfB4e03c06C7411a0741f506FCc6',
+      '0x47e9B5848E9856f6Dfd0169A993115C93e5Cc29C',
     );
   });
 
@@ -51,14 +51,14 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
       type: 'ERC20',
       options: {
         address: tokenAddress,
-        symbol: 'UVBTCETH',
+        symbol: 'UVBE',
         decimals: 18,
       },
     };
 
     expect(watchAssetParams.type).toBe('ERC20');
-    expect(watchAssetParams.options.address).toBe('0x5c0C26A825639adc58C6edf3aE864616F1dA94b9');
-    expect(watchAssetParams.options.symbol).toBe('UVBTCETH');
+    expect(watchAssetParams.options.address).toBe('0xa34596D38Be381A4764141105A91C338Ca5503bB');
+    expect(watchAssetParams.options.symbol).toBe('UVBE');
     expect(watchAssetParams.options.decimals).toBe(18);
   });
 
@@ -69,7 +69,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
         if (
           method === 'wallet_watchAsset' &&
           params.type === 'ERC20' &&
-          params.options.symbol === 'UVBTCETH'
+          params.options.symbol === 'UVBE'
         ) {
           return true;
         }
@@ -83,7 +83,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
         type: 'ERC20',
         options: {
           address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
-          symbol: 'UVBTCETH',
+          symbol: 'UVBE',
           decimals: 18,
         },
       },
@@ -104,7 +104,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
           type: 'ERC20',
           options: {
             address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
-            symbol: 'UVBTCETH',
+            symbol: 'UVBE',
             decimals: 18,
           },
         },
@@ -122,7 +122,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
           type: 'ERC20',
           options: {
             address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
-            symbol: 'UVBTCETH',
+            symbol: 'UVBE',
             decimals: 18,
           },
         },
@@ -145,7 +145,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
           type: 'ERC20',
           options: {
             address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
-            symbol: 'UVBTCETH',
+            symbol: 'UVBE',
             decimals: 18,
           },
         },
@@ -168,7 +168,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
           type: 'ERC20',
           options: {
             address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
-            symbol: 'UVBTCETH',
+            symbol: 'UVBE',
             decimals: 18,
           },
         },

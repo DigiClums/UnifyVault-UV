@@ -90,7 +90,7 @@ export default function PortfolioPage() {
           {metrics.userSharesBalance && (
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
               {metrics.userSharesBalance}{' '}
-              <span className="text-slate-400 dark:text-white/30">UVBTCETH</span>
+              <span className="text-slate-400 dark:text-white/30">UVBE</span>
             </span>
           )}
         </div>

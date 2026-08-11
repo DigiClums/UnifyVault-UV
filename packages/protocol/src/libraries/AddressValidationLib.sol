@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.20;
 
-import '../errors/Errors.sol';
+import { Errors as ProtocolErrors } from '../errors/Errors.sol';
 
 /**
  * @title AddressValidationLib
@@ -14,7 +14,7 @@ library AddressValidationLib {
    */
   function validateNonZeroAddress(address addr) internal pure {
     if (addr == address(0)) {
-      revert Errors.ZeroAddressDetected();
+      revert ProtocolErrors.ZeroAddressDetected();
     }
   }
 }

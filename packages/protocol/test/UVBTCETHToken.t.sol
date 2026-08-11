@@ -31,8 +31,8 @@ contract UVBTCETHTokenTest is Test {
   // --- Unit Tests ---
 
   function testDeploymentAndMetadata() public {
-    assertEq(token.name(), 'UnifyVault BTC ETH Index');
-    assertEq(token.symbol(), 'UVBTCETH');
+    assertEq(token.name(), 'UnifyVault BTC-ETH');
+    assertEq(token.symbol(), 'UVBE');
     assertEq(token.decimals(), 18);
     assertEq(token.totalSupply(), 0);
   }

@@ -26,7 +26,7 @@ export function ProductPreview() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                UVBTCETH
+                UVBE
               </p>
               <p className="text-xs text-muted-foreground">Multi-Asset Index</p>
             </div>

@@ -33,10 +33,10 @@ export function Footer() {
 
   const footerContracts = [
     {
-      name: 'UVBTCETH Token',
+      name: 'UVBE Token',
       address: directory.token || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
       isErc20: true,
-      symbol: 'UVBTCETH',
+      symbol: 'UVBE',
       decimals: 18,
     },
     {

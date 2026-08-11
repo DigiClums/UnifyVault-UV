@@ -224,7 +224,7 @@ export function DepositForm() {
             <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex justify-between items-center font-sans">
               <span className="font-bold text-foreground text-sm">Est. Index Shares Minted</span>
               <span className="font-mono font-bold text-[#5f8f00] dark:text-[#BFFF00] text-base">
-                {estSharesUSD} UVBTCETH
+                {estSharesUSD} UVBE
               </span>
             </div>
 
@@ -319,7 +319,7 @@ export function DepositForm() {
                   Index Shares Minted
                 </span>
                 <span className="font-bold text-[#4d7500] dark:text-[#BFFF00]">
-                  {estSharesUSD} UVBTCETH
+                  {estSharesUSD} UVBE
                 </span>
               </div>
             </div>
@@ -327,7 +327,7 @@ export function DepositForm() {
             {/* Wallet Token Auto-Add CTA */}
             {uvTokenAddress && (
               <div className="pt-2">
-                <AddTokenToWallet address={uvTokenAddress as `0x${string}`} symbol="UVBTCETH" />
+                <AddTokenToWallet address={uvTokenAddress as `0x${string}`} symbol="UVBE" />
               </div>
             )}
 

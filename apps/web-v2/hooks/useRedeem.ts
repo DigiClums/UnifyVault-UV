@@ -169,7 +169,7 @@ export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimal
       }
 
       if (freshShareBal > 0n && sharesRaw > freshShareBal) {
-        throw new Error('Insufficient UVBTCETH balance');
+        throw new Error('Insufficient UVBE balance');
       }
 
       // 2. Fetch fresh previewRedeem / quote directly right before redeem

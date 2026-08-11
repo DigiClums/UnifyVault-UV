@@ -52,4 +52,46 @@ library Events {
     bytes data,
     uint256 eta
   );
+
+  // Escrow Events
+  event TradeCreated(
+    uint256 indexed tradeId,
+    address indexed seller,
+    address indexed buyer,
+    address asset,
+    uint256 amount,
+    uint256 fiatAmount,
+    bytes32 fiatCurrency,
+    uint256 paymentWindow
+  );
+  event EscrowFunded(
+    uint256 indexed tradeId,
+    address indexed seller,
+    uint256 amount,
+    uint256 fundingTimestamp
+  );
+  event PaymentSubmitted(
+    uint256 indexed tradeId,
+    address indexed buyer,
+    bytes32 paymentReference,
+    bytes32 evidenceHash,
+    uint256 paymentTimestamp
+  );
+  event DisputeRaised(uint256 indexed tradeId, address indexed initiator, bytes32 reasonHash);
+  event DisputeResolved(
+    uint256 indexed tradeId,
+    address indexed resolver,
+    uint8 outcome,
+    uint256 payoutAmount
+  );
+  event EscrowReleased(
+    uint256 indexed tradeId,
+    address indexed buyer,
+    uint256 netPayout,
+    uint256 feeCollected
+  );
+  event EscrowRefunded(uint256 indexed tradeId, address indexed seller, uint256 refundAmount);
+  event TradeCancelled(uint256 indexed tradeId, address indexed actor);
+  event FeeConfigUpdated(uint256 oldFeeBps, uint256 newFeeBps);
+  event TreasuryUpdated(address oldTreasury, address newTreasury);
 }

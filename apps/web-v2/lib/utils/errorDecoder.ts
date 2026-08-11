@@ -47,9 +47,10 @@ export function decodeTransactionError(
   }
   if (
     rawMessage.includes('insufficient uvbtceth balance') ||
+    rawMessage.includes('insufficient uvbe balance') ||
     rawMessage.includes('amount exceeds share balance')
   ) {
-    return { message: 'Insufficient UVBTCETH balance', txHash };
+    return { message: 'Insufficient UVBE balance', txHash };
   }
   if (
     rawMessage.includes('exceeds balance') ||

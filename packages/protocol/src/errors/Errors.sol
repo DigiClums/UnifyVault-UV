@@ -39,4 +39,21 @@ library Errors {
   error UnsafePricing(address asset);
   error InsufficientSwapOutput(uint256 expectedUSD, uint256 actualUSD, uint256 minUSD);
   error RouterLiquidityUnavailable(address token, uint256 requested, uint256 available);
+
+  // Escrow Errors
+  error InvalidTradeParty();
+  error InvalidTradeState(uint256 tradeId, uint8 currentState, uint8 expectedState);
+  error TradePaymentWindowExpired(uint256 tradeId, uint256 deadline, uint256 currentTimestamp);
+  error TradePaymentWindowActive(uint256 tradeId, uint256 deadline, uint256 currentTimestamp);
+  error EvidenceHashAlreadyUsed(bytes32 evidenceHash);
+  error InvalidEvidenceHash();
+  error InvalidPaymentReference();
+  error MinimumPaymentWindowNotMet(uint256 provided, uint256 minimum);
+  error TradeAlreadyFunded(uint256 tradeId);
+  error TradeNotFunded(uint256 tradeId);
+  error FeeExceedsMaximum(uint256 feeBps, uint256 maxBps);
+  error IncorrectNativeAmount(uint256 expected, uint256 actual);
+  error TradeDoesNotExist(uint256 tradeId);
+  error UnauthorizedDisputeResolver(address caller);
+  error PaymentReferenceAlreadyUsed(bytes32 paymentReference);
 }

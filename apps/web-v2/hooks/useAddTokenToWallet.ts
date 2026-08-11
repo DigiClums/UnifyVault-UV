@@ -120,7 +120,7 @@ export function useAddTokenToWallet(): UseAddTokenResult {
       if (chain?.id && chain.id !== requiredChainId) {
         setStatus('unsupported');
         setErrorMessage(
-          'Please switch your wallet network to Base Sepolia (Chain ID 84532) before importing UVBTCETH.',
+          'Please switch your wallet network to Base Sepolia (Chain ID 84532) before importing UVBE.',
         );
         return false;
       }

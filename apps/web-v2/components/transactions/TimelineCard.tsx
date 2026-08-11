@@ -725,7 +725,7 @@ function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
       rows.push({
         key: 'shares',
         label: 'Shares minted',
-        value: <strong className="text-white">{formatAmount(sharesMinted, 18)} UVBTCETH</strong>,
+        value: <strong className="text-white">{formatAmount(sharesMinted, 18)} UVBE</strong>,
       });
     }
 
@@ -777,7 +777,7 @@ function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
       rows.push({
         key: 'shares',
         label: 'Shares burned',
-        value: <strong className="text-white">{formatAmount(sharesBurned, 18)} UVBTCETH</strong>,
+        value: <strong className="text-white">{formatAmount(sharesBurned, 18)} UVBE</strong>,
       });
     }
 

@@ -24,6 +24,7 @@ export interface ProtocolAddresses {
   feeManager?: `0x${string}`;
   costBasisManager?: `0x${string}`;
   performanceManager?: `0x${string}`;
+  p2pEscrow?: `0x${string}`;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -37,18 +38,67 @@ export function useProtocolDirectory(): ProtocolAddresses {
     !directoryAddress || directoryAddress === '0x0000000000000000000000000000000000000000';
 
   const moduleKeys = [
-    { key: 'controller', moduleId: MODULE_IDS.CONTROLLER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController },
+    {
+      key: 'controller',
+      moduleId: MODULE_IDS.CONTROLLER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController,
+    },
     { key: 'vault', moduleId: MODULE_IDS.VAULT, fallback: DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault },
-    { key: 'treasury', moduleId: MODULE_IDS.TREASURY, fallback: DEPLOYED_CONTRACTS_SEPOLIA.Treasury },
-    { key: 'oracle', moduleId: MODULE_IDS.ORACLE, fallback: DEPLOYED_CONTRACTS_SEPOLIA.OracleManager },
-    { key: 'token', moduleId: MODULE_IDS.TOKEN, fallback: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken },
-    { key: 'strategyManager', moduleId: MODULE_IDS.STRATEGY_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager },
-    { key: 'portfolioManager', moduleId: MODULE_IDS.PORTFOLIO_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager },
-    { key: 'swapAdapter', moduleId: MODULE_IDS.SWAP_ADAPTER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter },
-    { key: 'liquidityManager', moduleId: MODULE_IDS.LIQUIDITY_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager },
-    { key: 'feeManager', moduleId: MODULE_IDS.FEE_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.FeeManager },
-    { key: 'costBasisManager', moduleId: MODULE_IDS.COST_BASIS_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager },
-    { key: 'performanceManager', moduleId: MODULE_IDS.PERFORMANCE_MANAGER, fallback: DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager },
+    {
+      key: 'treasury',
+      moduleId: MODULE_IDS.TREASURY,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.Treasury,
+    },
+    {
+      key: 'oracle',
+      moduleId: MODULE_IDS.ORACLE,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.OracleManager,
+    },
+    {
+      key: 'token',
+      moduleId: MODULE_IDS.TOKEN,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+    },
+    {
+      key: 'strategyManager',
+      moduleId: MODULE_IDS.STRATEGY_MANAGER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager,
+    },
+    {
+      key: 'portfolioManager',
+      moduleId: MODULE_IDS.PORTFOLIO_MANAGER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager,
+    },
+    {
+      key: 'swapAdapter',
+      moduleId: MODULE_IDS.SWAP_ADAPTER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter,
+    },
+    {
+      key: 'liquidityManager',
+      moduleId: MODULE_IDS.LIQUIDITY_MANAGER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager,
+    },
+    {
+      key: 'feeManager',
+      moduleId: MODULE_IDS.FEE_MANAGER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.FeeManager,
+    },
+    {
+      key: 'costBasisManager',
+      moduleId: MODULE_IDS.COST_BASIS_MANAGER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager,
+    },
+    {
+      key: 'performanceManager',
+      moduleId: MODULE_IDS.PERFORMANCE_MANAGER,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager,
+    },
+    {
+      key: 'p2pEscrow',
+      moduleId: MODULE_IDS.P2P_ESCROW,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow,
+    },
   ];
 
   const contracts = moduleKeys.map((item) => ({
@@ -100,6 +150,7 @@ export function useProtocolDirectory(): ProtocolAddresses {
     feeManager: getResult(9),
     costBasisManager: getResult(10),
     performanceManager: getResult(11),
+    p2pEscrow: getResult(12),
     isLoading: !isZeroAddress && isLoading,
     isError,
     error: error as Error | null,

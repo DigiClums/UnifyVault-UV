@@ -21,10 +21,7 @@ contract UVBTCETHToken is ERC20, ERC20Permit, AccessControl, Pausable, IToken {
 
   error InvalidAmount();
 
-  constructor()
-    ERC20('UnifyVault BTC ETH Index', 'UVBTCETH')
-    ERC20Permit('UnifyVault BTC ETH Index')
-  {
+  constructor() ERC20('UnifyVault BTC-ETH', 'UVBE') ERC20Permit('UnifyVault BTC-ETH') {
     _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _grantRole(GOVERNANCE_ROLE, msg.sender);
     _grantRole(GUARDIAN_ROLE, msg.sender);

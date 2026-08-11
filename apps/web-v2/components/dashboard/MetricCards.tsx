@@ -88,7 +88,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
               {metrics.userSharesBalance && (
                 <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   {metrics.userSharesBalance}{' '}
-                  <span className="text-slate-400 dark:text-white/25">UVBTCETH</span>
+                  <span className="text-slate-400 dark:text-white/25">UVBE</span>
                 </span>
               )}
             </div>
