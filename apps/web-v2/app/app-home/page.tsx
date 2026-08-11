@@ -25,8 +25,8 @@ export default function AppHomePage() {
             {networkName} · Real-time index tracking
           </p>
         </div>
-        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-pulse" />
+        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
           <span className="hidden sm:inline">{networkName} Live</span>
           <span className="sm:hidden">Live</span>
         </div>

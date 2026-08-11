@@ -42,9 +42,17 @@ contract MockDEXWithSlippage {
   // 99 % = 9900 bps
   uint256 public constant SLIPPAGE_BPS = 9900;
 
+  bool public shouldRevert;
+
+  function setShouldRevert(bool _revert) external {
+    shouldRevert = _revert;
+  }
+
   function exactInputSingle(
     IUniswapV3Router.ExactInputSingleParams calldata params
   ) external payable returns (uint256 amountOut) {
+    if (shouldRevert) revert('MockDEXRouter: SWAP_FAILED');
+
     IERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
 
     uint8 inDec = MockTokenWithDecimals(params.tokenIn).decimals();
@@ -99,6 +107,7 @@ contract CostBasisRealizedUSDTest is Test {
 
   address public admin = address(0x1);
   address public user = address(0x2);
+  address public user2 = address(0x3);
 
   function setUp() public {
     directory = new ProtocolDirectory();
@@ -185,17 +194,29 @@ contract CostBasisRealizedUSDTest is Test {
     // Grant Controller roles
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
+    bytes32 costBasisControllerRole = costBasisMgr.CONTROLLER_ROLE();
+    vm.prank(admin);
+    costBasisMgr.grantRole(costBasisControllerRole, address(controller));
     token.grantRole(token.CONTROLLER_ROLE(), address(controller));
 
-    // Fund user
+    // Fund users
     usdc.mint(user, 100000 * 1e6);
+    usdc.mint(user2, 100000 * 1e6);
   }
 
   // --- Helpers to compute expected values ---
 
   /// @dev Computes the realized USD value the controller will derive from a deposit.
-  /// Mimics _executeMultiAssetSwaps + _swapAndDepositTargetAsset logic.
+  /// With execution-based accounting, each swap leg's USD value is derived from the
+  /// input asset amount (what was actually paid), not output × oracle.
+  /// USDC price = 1 * 1e18, USDC decimals = 6.
   function _expectedRealizedUSD(uint256 netDeposit) internal pure returns (uint256) {
+    return (netDeposit * 1e18) / (10 ** 6);
+  }
+
+  /// @dev Computes the output-oracle USD valuation (what the legacy code produced).
+  /// For reference only — the new code uses input-based execution accounting.
+  function _outputOracleValuation(uint256 netDeposit) internal pure returns (uint256) {
     uint256 btcAlloc = (netDeposit * 6000) / 10000;
     uint256 wethAlloc = netDeposit - btcAlloc;
 
@@ -210,12 +231,6 @@ contract CostBasisRealizedUSDTest is Test {
     uint256 ethValue = (ethBought * 3000 * 1e18) / 1e18;
 
     return btcValue + ethValue;
-  }
-
-  /// @dev Computes the old input-oracle USD valuation (what the legacy code produced).
-  function _oldInputOracleUSD(uint256 netDeposit) internal pure returns (uint256) {
-    // depositPrice = 1 * 1e18 (USDC), depositDecimals = 6
-    return (netDeposit * 1e18) / (10 ** 6);
   }
 
   // ---------------------------------------------------------------------------
@@ -239,10 +254,10 @@ contract CostBasisRealizedUSDTest is Test {
   }
 
   // ---------------------------------------------------------------------------
-  // Test 2: Cost basis does NOT use input-oracle valuation
+  // Test 2: Cost basis uses input-based execution valuation (not output × oracle)
   // ---------------------------------------------------------------------------
 
-  function test_CostBasisDoesNotUseInputOracleValuation() public {
+  function test_CostBasisUsesInputBasedExecutionValuation() public {
     uint256 depositAmt = 10000 * 1e6;
     uint256 fee = FeeLib.calculateDepositFee(depositAmt);
     uint256 netDeposit = depositAmt - fee;
@@ -253,18 +268,21 @@ contract CostBasisRealizedUSDTest is Test {
     vm.stopPrank();
 
     uint256 actualCostBasis = costBasisMgr.costBasis(user);
-    uint256 oldStyleValuation = _oldInputOracleUSD(netDeposit);
+    uint256 inputBasedValuation = (netDeposit * 1e18) / (10 ** 6);
 
-    // Because of the 1 % DEX slippage, the two valuations differ
-    assertLt(
+    // Cost basis should equal input-based valuation (actual USD paid for the swap)
+    assertEq(
       actualCostBasis,
-      oldStyleValuation,
-      'Cost basis must be lower than input-oracle valuation'
+      inputBasedValuation,
+      'Cost basis must use input-based execution valuation'
     );
+
+    // Also confirm it does NOT equal the output-oracle valuation (slippage creates a gap)
+    uint256 outputBasedValuation = _outputOracleValuation(netDeposit);
     assertNotEq(
       actualCostBasis,
-      oldStyleValuation,
-      'Cost basis must NOT use input-oracle valuation'
+      outputBasedValuation,
+      'Cost basis must NOT equal output-oracle valuation'
     );
   }
 
@@ -427,5 +445,220 @@ contract CostBasisRealizedUSDTest is Test {
     vm.stopPrank();
 
     assertEq(costBasisMgr.costBasis(user), 0, 'Cost basis resets to zero after full redemption');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 7: SwapExecutionCaptured event emitted with correct data per leg
+  // ---------------------------------------------------------------------------
+
+  event SwapExecutionCaptured(
+    address indexed user,
+    address indexed inputAsset,
+    address indexed targetAsset,
+    uint256 amountIn,
+    uint256 amountOut,
+    uint256 executionPrice
+  );
+
+  function test_SwapExecutionCapturedEvent() public {
+    uint256 depositAmt = 10000 * 1e6;
+    uint256 fee = FeeLib.calculateDepositFee(depositAmt);
+    uint256 netDeposit = depositAmt - fee;
+    uint256 btcAlloc = (netDeposit * 6000) / 10000;
+    uint256 ethAlloc = netDeposit - btcAlloc;
+
+    // USDC price = 1 * 1e18, USDC decimals = 6
+    // cbBTC expected output with 1 % slippage
+    uint256 expectedBtcBought = (((btcAlloc * 1e8) / (60000 * 1e6)) * 9900) / 10000;
+    // executionPrice = amountIn * 1e18 * 10^targetDecimals / (bought * 10^inputDecimals)
+    uint256 expectedBtcExecPrice = (btcAlloc * 1e18 * 1e8) / (expectedBtcBought * 1e6);
+
+    uint256 expectedEthBought = (((ethAlloc * 1e18) / (3000 * 1e6)) * 9900) / 10000;
+    uint256 expectedEthExecPrice = (ethAlloc * 1e18 * 1e18) / (expectedEthBought * 1e6);
+
+    // Approve before expectEmit so the Approval event is not captured by the emitter check
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmt);
+    vm.stopPrank();
+
+    // Expect cbBTC swap leg event
+    vm.expectEmit(true, true, true, true);
+    emit SwapExecutionCaptured(
+      user,
+      address(usdc),
+      address(cbBTC),
+      btcAlloc,
+      expectedBtcBought,
+      expectedBtcExecPrice
+    );
+
+    // Expect WETH swap leg event
+    vm.expectEmit(true, true, true, true);
+    emit SwapExecutionCaptured(
+      user,
+      address(usdc),
+      address(weth),
+      ethAlloc,
+      expectedEthBought,
+      expectedEthExecPrice
+    );
+
+    vm.startPrank(user);
+    controller.deposit(address(usdc), depositAmt, 0, user);
+    vm.stopPrank();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 8: Multiple swap legs aggregate correctly
+  // ---------------------------------------------------------------------------
+
+  function test_MultipleSwapLegsAggregateCorrectly() public {
+    uint256 depositAmt = 10000 * 1e6;
+    uint256 fee = FeeLib.calculateDepositFee(depositAmt);
+    uint256 netDeposit = depositAmt - fee;
+
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmt);
+    controller.deposit(address(usdc), depositAmt, 0, user);
+    vm.stopPrank();
+
+    // Both legs' input values should sum to the realized deposit USD
+    uint256 expectedRealized = (netDeposit * 1e18) / (10 ** 6);
+    uint256 actualCostBasis = costBasisMgr.costBasis(user);
+    assertEq(actualCostBasis, expectedRealized, 'Aggregate cost basis matches input');
+
+    // Verify custody vault received both assets
+    assertGt(vault.totalAssets(address(cbBTC)), 0, 'cbBTC must be received');
+    assertGt(vault.totalAssets(address(weth)), 0, 'WETH must be received');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 9: Historical execution price does not affect current NAV
+  // ---------------------------------------------------------------------------
+
+  function test_HistoricalExecutionDoesNotAffectNAV() public {
+    uint256 depositAmt = 10000 * 1e6;
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmt);
+    controller.deposit(address(usdc), depositAmt, 0, user);
+    vm.stopPrank();
+
+    uint256 costBasisAfterDeposit = costBasisMgr.costBasis(user);
+
+    // Advance time and change oracle prices
+    vm.warp(block.timestamp + 1 days);
+
+    bytes32 btcId = bytes32(uint256(uint160(address(cbBTC))));
+    oracleProvider.setPrice(btcId, 66000 * 1e18);
+    oracleProvider.setTimestamp(btcId, uint32(block.timestamp));
+    bytes32 ethId = bytes32(uint256(uint160(address(weth))));
+    oracleProvider.setPrice(ethId, 4000 * 1e18);
+    oracleProvider.setTimestamp(ethId, uint32(block.timestamp));
+
+    uint256 costBasisAfterOracleChange = costBasisMgr.costBasis(user);
+
+    // Cost basis must NOT change when oracle prices move
+    assertEq(
+      costBasisAfterOracleChange,
+      costBasisAfterDeposit,
+      'Cost basis is historical execution data, unaffected by oracle changes'
+    );
+
+    // But NAV (unrealized PnL) SHOULD reflect the new oracle prices
+    int256 unrealizedPnl = costBasisMgr.unrealizedPnL(user);
+    assertGt(unrealizedPnl, 0, 'NAV/unrealized PnL should reflect new oracle prices');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 10: Later user deposit does NOT change earlier user's cost basis
+  // ---------------------------------------------------------------------------
+
+  function test_SecondUserDoesNotChangeFirstUserCostBasis() public {
+    uint256 deposit1 = 10000 * 1e6;
+    vm.startPrank(user);
+    usdc.approve(address(controller), deposit1);
+    controller.deposit(address(usdc), deposit1, 0, user);
+    vm.stopPrank();
+
+    uint256 user1Basis = costBasisMgr.costBasis(user);
+    assertGt(user1Basis, 0);
+
+    vm.startPrank(user2);
+    usdc.approve(address(controller), 5000 * 1e6);
+    controller.deposit(address(usdc), 5000 * 1e6, 0, user2);
+    vm.stopPrank();
+
+    uint256 user1BasisAfter = costBasisMgr.costBasis(user);
+    uint256 user2Basis = costBasisMgr.costBasis(user2);
+
+    assertEq(user1BasisAfter, user1Basis, 'User1 cost basis unchanged by user2 deposit');
+    assertGt(user2Basis, 0, 'User2 has their own cost basis');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 11: Swap failure atomically reverts (no partial cost basis)
+  // ---------------------------------------------------------------------------
+
+  function test_SwapFailureRevertsAtomically() public {
+    mockRouter.setShouldRevert(true);
+
+    uint256 depositAmt = 10000 * 1e6;
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmt);
+
+    vm.expectRevert('MockDEXRouter: SWAP_FAILED');
+    controller.deposit(address(usdc), depositAmt, 0, user);
+    vm.stopPrank();
+
+    assertEq(costBasisMgr.costBasis(user), 0, 'No cost basis after failed swap');
+    assertEq(token.balanceOf(user), 0, 'No shares after failed swap');
+
+    mockRouter.setShouldRevert(false);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 12: Slippage protection still enforced
+  // ---------------------------------------------------------------------------
+
+  function test_SlippageProtectionStillEnforced() public {
+    uint256 depositAmt = 10000 * 1e6;
+    uint256 impossibleMinShares = 1e30;
+
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmt);
+
+    vm.expectRevert();
+    controller.deposit(address(usdc), depositAmt, impossibleMinShares, user);
+    vm.stopPrank();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test 13: Execution price correct per leg with decimals
+  // ---------------------------------------------------------------------------
+
+  function test_ExecutionPriceDecimals() public {
+    uint256 depositAmt = 10000 * 1e6;
+    uint256 fee = FeeLib.calculateDepositFee(depositAmt);
+    uint256 netDeposit = depositAmt - fee;
+
+    uint256 btcAlloc = (netDeposit * 6000) / 10000;
+    uint256 expectedBtcBought = (((btcAlloc * 1e8) / (60000 * 1e6)) * 9900) / 10000;
+
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmt);
+    controller.deposit(address(usdc), depositAmt, 0, user);
+    vm.stopPrank();
+
+    uint256 actualBtcReceived = vault.totalAssets(address(cbBTC));
+    assertEq(
+      actualBtcReceived,
+      expectedBtcBought,
+      'cbBTC received matches expected execution output'
+    );
+
+    uint256 userShares = token.balanceOf(user);
+    uint256 cps = costBasisMgr.averageEntryPrice(user);
+    uint256 expectedCps = userShares > 0 ? (costBasisMgr.costBasis(user) * 1e18) / userShares : 0;
+    assertEq(cps, expectedCps, 'CPS matches cost basis / shares');
   }
 }

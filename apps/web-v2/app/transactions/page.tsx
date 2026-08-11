@@ -243,7 +243,7 @@ export default function ProtocolExplorerPage() {
               <Activity className="w-7 h-7 text-[#5f8f00] dark:text-[#BFFF00]" />
               <span>Protocol Transactions</span>
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-accent-blue/10 text-[#5f8f00] dark:text-[#BFFF00] border border-accent-blue/20 text-xs font-semibold">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 text-xs font-semibold">
               {chainName}
             </span>
             <LiveIndicator isLive={isLive} syncStatus={syncStatus} lastSyncTime={lastSyncTime} />

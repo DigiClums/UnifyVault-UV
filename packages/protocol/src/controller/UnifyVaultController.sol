@@ -174,6 +174,15 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 navAfter
   );
 
+  event SwapExecutionCaptured(
+    address indexed user,
+    address indexed inputAsset,
+    address indexed targetAsset,
+    uint256 amountIn,
+    uint256 amountOut,
+    uint256 executionPrice
+  );
+
   event RedeemExecuted(
     address indexed user,
     uint256 sharesBurned,
@@ -538,7 +547,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       allocatedSoFar += allocAmount;
 
       if (allocAmount > 0) {
-        (uint256 bought, uint256 valueUSD) = _swapAndDepositTargetAsset(
+        (uint256 bought, uint256 valueUSD, ) = _swapAndDepositTargetAsset(
           asset,
           targetToken,
           allocAmount
@@ -597,7 +606,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address inputAsset,
     address targetToken,
     uint256 allocAmount
-  ) internal returns (uint256 bought, uint256 valueUSD) {
+  ) internal returns (uint256 bought, uint256 valueUSD, uint256 executionPrice) {
     address v = _vault;
     address sa = swapAdapter();
     if (targetToken == inputAsset) {
@@ -616,9 +625,30 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       IERC20(targetToken).forceApprove(v, 0);
     }
 
-    uint256 targetPrice = IOracle(_oracle).getAssetPrice(targetToken);
+    // Execution accounting: value the input (what was actually paid) rather than
+    // the output token at the oracle price.  This gives the true economic cost
+    // of the swap leg for cost-basis purposes.
+    uint256 inputPrice = IOracle(_oracle).getAssetPrice(inputAsset);
+    uint8 inputDecimals = CustodyVault(v).assetConfig(inputAsset).decimals;
+    valueUSD = (allocAmount * inputPrice) / (10 ** inputDecimals);
+
+    // executionPrice = actual DEX execution ratio: amountIn/amountOut (1e18 precision)
+    // Derived purely from executed amounts, NOT oracle — immutable historical record.
+    // For USDC input this equals USD/cbBTC because USDC ≈ $1.
     uint8 targetDecimals = CustodyVault(v).assetConfig(targetToken).decimals;
-    valueUSD = (bought * targetPrice) / (10 ** targetDecimals);
+    executionPrice =
+      bought > 0
+        ? (allocAmount * 1e18 * (10 ** targetDecimals)) / (bought * (10 ** inputDecimals))
+        : 0;
+
+    emit SwapExecutionCaptured(
+      msg.sender,
+      inputAsset,
+      targetToken,
+      allocAmount,
+      bought,
+      executionPrice
+    );
   }
 
   /**

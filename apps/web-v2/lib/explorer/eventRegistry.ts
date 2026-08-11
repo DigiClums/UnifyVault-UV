@@ -5,7 +5,7 @@
  * Includes: Controller, Vault, Treasury, Token, StrategyManager,
  *           SwapAdapter, USDC, cbBTC, WETH, CostBasisManager.
  */
-import { type Address, parseAbi } from 'viem';
+import { type Address, parseAbi, formatUnits } from 'viem';
 import type { ContractEventRegistry } from './types';
 
 // ─── Individual Event ABIs ──────────────────────────────────────────────────
@@ -44,7 +44,7 @@ const COST_BASIS_EVENT_ABI = parseAbi([
   'event CostBasisUpdated(address indexed user, uint256 newCostBasis)',
 ]);
 
-// ─── Human-Readable Display Names ───────────────────────────────────────────
+// ─── Human-Readable Display Names & Token Helpers ────────────────────────────
 
 type EventKey = string;
 
@@ -70,6 +70,44 @@ export const EVENT_DISPLAY_NAMES: Record<EventKey, string> = {
 
 export function getEventDisplayName(contractName: string, eventName: string): string {
   return EVENT_DISPLAY_NAMES[`${contractName}:${eventName}`] ?? `${contractName}: ${eventName}`;
+}
+
+export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> = {
+  // Base Mainnet
+  '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': { symbol: 'USDC', decimals: 6 },
+  '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': { symbol: 'cbBTC', decimals: 8 },
+  '0x4200000000000000000000000000000000000006': { symbol: 'WETH', decimals: 18 },
+  // Base Sepolia
+  '0x036cbd53842c5426634e7929541ec2318f3dcf7e': { symbol: 'USDC', decimals: 6 },
+  '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29': { symbol: 'cbBTC', decimals: 8 },
+  '0xd116ab1c943cf15904ec4c8dd701086f175fa323': { symbol: 'WETH', decimals: 18 },
+  '0x5c0c26a825639adc58c6edf3ae864616f1da94b9': { symbol: 'UVBTCETH', decimals: 18 },
+};
+
+export function getTokenSymbol(addrOrSymbol?: string): string {
+  if (!addrOrSymbol) return '—';
+  const lower = addrOrSymbol.toLowerCase();
+  if (KNOWN_TOKENS[lower]) return KNOWN_TOKENS[lower].symbol;
+  if (addrOrSymbol.startsWith('0x') && addrOrSymbol.length === 42) {
+    return `${addrOrSymbol.slice(0, 6)}…${addrOrSymbol.slice(-4)}`;
+  }
+  return addrOrSymbol;
+}
+
+export function getTokenDecimals(addrOrSymbol?: string): number {
+  if (!addrOrSymbol) return 18;
+  const lower = addrOrSymbol.toLowerCase();
+  if (KNOWN_TOKENS[lower]) return KNOWN_TOKENS[lower].decimals;
+  const sym = getTokenSymbol(addrOrSymbol).toLowerCase();
+  if (sym.includes('cbbtc')) return 8;
+  if (sym.includes('usdc')) return 6;
+  if (sym.includes('weth')) return 18;
+  return 18;
+}
+
+export function formatAmount(value: bigint | undefined, decimals: number = 18): string {
+  if (value === undefined || value === 0n) return '0';
+  return formatUnits(value, decimals);
 }
 
 // ─── Address → Registry Map Builder ─────────────────────────────────────────

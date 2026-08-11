@@ -180,43 +180,57 @@ async function readTokenMetadata(
  * Extracts the main amount and asset from Controller events.
  */
 function buildSummary(group: TransactionGroup) {
-  // Try to find the primary amount from controller events
+  // First pass: Primary deposit/redeem events on Controller (gross / total amount)
   for (const evt of group.events) {
-    if (evt.contractName === 'UnifyVaultController' && evt.eventName === 'DepositExecuted') {
-      const amount = evt.args.depositAmount as bigint | undefined;
-      if (amount) {
-        group.summaryAmount = formatUnits(amount, 6);
-        group.summaryAsset = 'USDC';
-        return;
+    if (evt.contractName === 'UnifyVaultController') {
+      if (evt.eventName === 'DepositCompleted') {
+        const amount = evt.args.grossDeposit as bigint | undefined;
+        if (amount !== undefined) {
+          group.summaryAmount = formatUnits(amount, 6);
+          group.summaryAsset = 'USDC';
+          return;
+        }
+      }
+      if (evt.eventName === 'DepositExecuted') {
+        const amount = evt.args.depositAmount as bigint | undefined;
+        if (amount !== undefined) {
+          group.summaryAmount = formatUnits(amount, 6);
+          group.summaryAsset = 'USDC';
+          return;
+        }
+      }
+      if (evt.eventName === 'RedeemCompleted') {
+        const amount = evt.args.netAssets as bigint | undefined;
+        if (amount !== undefined) {
+          group.summaryAmount = formatUnits(amount, 6);
+          group.summaryAsset = 'USDC';
+          return;
+        }
+      }
+      if (evt.eventName === 'RedeemExecuted') {
+        const amount = evt.args.usdcReturned as bigint | undefined;
+        if (amount !== undefined) {
+          group.summaryAmount = formatUnits(amount, 6);
+          group.summaryAsset = 'USDC';
+          return;
+        }
       }
     }
-    if (evt.contractName === 'UnifyVaultController' && evt.eventName === 'RedeemExecuted') {
-      const amount = evt.args.usdcReturned as bigint | undefined;
-      if (amount) {
-        group.summaryAmount = formatUnits(amount, 6);
-        group.summaryAsset = 'USDC';
-        return;
-      }
-    }
-    if (evt.contractName === 'UnifyVaultController' && evt.eventName === 'DepositCompleted') {
-      const amount = evt.args.grossDeposit as bigint | undefined;
-      if (amount) {
-        group.summaryAmount = formatUnits(amount, 6);
-        group.summaryAsset = 'USDC';
-        return;
-      }
-    }
-    if (evt.contractName === 'UnifyVaultController' && evt.eventName === 'RedeemCompleted') {
-      const amount = evt.args.netAssets as bigint | undefined;
-      if (amount) {
-        group.summaryAmount = formatUnits(amount, 6);
-        group.summaryAsset = 'USDC';
-        return;
-      }
-    }
+  }
+
+  // Second pass: Standalone fee collections
+  for (const evt of group.events) {
     if (evt.contractName === 'UnifyVaultController' && evt.eventName === 'ProtocolFeeCollected') {
       const amount = evt.args.feeAmount as bigint | undefined;
-      if (amount) {
+      if (amount !== undefined) {
+        group.summaryAmount = formatUnits(amount, 6);
+        group.summaryAsset = 'USDC';
+        return;
+      }
+    }
+    if (evt.contractName === 'Treasury' && evt.eventName === 'FeeCollected') {
+      const amount = evt.args.amount as bigint | undefined;
+      if (amount !== undefined) {
         group.summaryAmount = formatUnits(amount, 6);
         group.summaryAsset = 'USDC';
         return;
@@ -224,15 +238,14 @@ function buildSummary(group: TransactionGroup) {
     }
   }
 
-  // Fallback: look for the largest Transfer event with USDC
+  // Fallback: mint/burn of shares from Token
   for (const evt of group.events) {
     if (evt.contractName === 'UVBTCETHToken' && evt.eventName === 'Transfer') {
       const from = evt.args.from as string;
       const to = evt.args.to as string;
       if (from === ZERO_ADDRESS || to === ZERO_ADDRESS) {
-        // mint/burn of shares — use the decoded value
         const value = evt.args.value as bigint | undefined;
-        if (value) {
+        if (value !== undefined) {
           group.summaryAmount = formatUnits(value, 18);
           group.summaryAsset = 'Shares';
           return;

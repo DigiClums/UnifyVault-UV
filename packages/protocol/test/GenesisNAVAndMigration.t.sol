@@ -142,6 +142,7 @@ contract GenesisNAVAndMigrationTest is Test {
     token.grantRole(token.CONTROLLER_ROLE(), address(controller));
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
+    costBasisManager.grantRole(costBasisManager.CONTROLLER_ROLE(), address(controller));
 
     vault.grantRole(vault.CONTROLLER_ROLE(), address(this));
     token.grantRole(token.CONTROLLER_ROLE(), address(this));

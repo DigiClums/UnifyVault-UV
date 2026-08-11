@@ -220,3 +220,72 @@ describe('Duplicate Transaction Prevention', () => {
     expect(unique.size).toBe(2);
   });
 });
+
+// ─── LiveWatcher Protocol Decoder & Formatter ───────────────────────────────
+
+import { getTokenSymbol, getTokenDecimals, formatAmount } from '../explorer/eventRegistry';
+
+describe('LiveWatcher Protocol Transaction Decoder & Formatter', () => {
+  it('a) correctly formats USDC deposit amounts: 20.94 gross / 0.05235 fee / 20.88765 net', () => {
+    const grossDeposit = 20940000n; // 6 decimals
+    const protocolFee = 52350n; // 6 decimals
+    const netDeposit = 20887650n; // 6 decimals
+
+    expect(formatAmount(grossDeposit, 6)).toBe('20.94');
+    expect(formatAmount(protocolFee, 6)).toBe('0.05235');
+    expect(formatAmount(netDeposit, 6)).toBe('20.88765');
+  });
+
+  it('b) converts cbBTC raw 19626 to 0.00019626 (8 decimals)', () => {
+    const rawCbBTC = 19626n;
+    const cbBTCDecimals = getTokenDecimals('cbBTC');
+    const cbBTCAddrDecimals = getTokenDecimals('0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29');
+
+    expect(cbBTCDecimals).toBe(8);
+    expect(cbBTCAddrDecimals).toBe(8);
+    expect(formatAmount(rawCbBTC, cbBTCDecimals)).toBe('0.00019626');
+  });
+
+  it('c) converts WETH raw 4464069467795376 to 0.004464069467795376 (18 decimals)', () => {
+    const rawWETH = 4464069467795376n;
+    const wethDecimals = getTokenDecimals('WETH');
+    const wethAddrDecimals = getTokenDecimals('0xd116ab1c943cf15904ec4c8dd701086f175fa323');
+
+    expect(wethDecimals).toBe(18);
+    expect(wethAddrDecimals).toBe(18);
+    expect(formatAmount(rawWETH, wethDecimals)).toBe('0.004464069467795376');
+  });
+
+  it('d) formats final swap summary with token-aware decimals', () => {
+    const targetAssets = [
+      '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29', // cbBTC
+      '0xd116ab1c943cf15904ec4c8dd701086f175fa323', // WETH
+    ];
+    const assetsBought = [19626n, 4464069467795376n];
+
+    const swapSummary = targetAssets
+      .map(
+        (asset, i) =>
+          `${formatAmount(assetsBought[i], getTokenDecimals(asset))} ${getTokenSymbol(asset)}`,
+      )
+      .join(', ');
+
+    expect(swapSummary).toBe('0.00019626 cbBTC, 0.004464069467795376 WETH');
+  });
+
+  it('e) formats custody deposit cbBTC amount accurately using token decimals', () => {
+    const custodyDepositAsset = '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29';
+    const custodyDepositAmount = 19626n;
+
+    const formattedAmount = formatAmount(
+      custodyDepositAmount,
+      getTokenDecimals(custodyDepositAsset),
+    );
+    const symbol = getTokenSymbol(custodyDepositAsset);
+
+    expect(formattedAmount).toBe('0.00019626');
+    expect(symbol).toBe('cbBTC');
+    expect(`${formattedAmount} ${symbol}`).toBe('0.00019626 cbBTC');
+    expect(`${formattedAmount} ${symbol}`).not.toBe('0.00000000 cbBTC');
+  });
+});

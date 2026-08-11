@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
           </div>
         ) : !hasRealHistoricalData ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-muted-foreground mb-3">
+            <div className="p-3 rounded-xl bg-muted border border-border-subtle text-muted-foreground mb-3">
               <Activity className="w-6 h-6" />
             </div>
             <p className="text-sm font-semibold text-foreground">No historical NAV data yet</p>
@@ -234,11 +234,11 @@ export default function AnalyticsPage() {
               <AreaChart data={navHistory} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="analyticsNavGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#BFFF00" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#BFFF00" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" opacity={0.6} />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.6} />
                 <XAxis
                   dataKey="timestamp"
                   stroke="#64748B"
@@ -341,7 +341,13 @@ export default function AnalyticsPage() {
             {metrics.isLoading ? (
               <div className="h-5 w-16 bg-muted rounded animate-pulse" />
             ) : (
-              <span className={metrics.isProfitable ? 'text-emerald-400' : 'text-rose-400'}>
+              <span
+                className={
+                  metrics.isProfitable
+                    ? 'text-[#5f8f00] dark:text-[#BFFF00]'
+                    : 'text-rose-500 dark:text-rose-400'
+                }
+              >
                 {metrics.pnlUSD}
               </span>
             )}
@@ -380,19 +386,19 @@ export default function AnalyticsPage() {
           </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-          <div className="rounded-lg bg-slate-900/60 border border-slate-800/60 px-3 py-2">
+          <div className="rounded-lg bg-muted border border-border-subtle px-3 py-2">
             <span className="text-muted-foreground">Deposit Fee</span>
-            <div className="text-sm font-bold font-mono text-emerald-400 mt-0.5">
+            <div className="text-sm font-bold font-mono text-[#5f8f00] dark:text-[#BFFF00] mt-0.5">
               0.25% (25 BPS)
             </div>
           </div>
-          <div className="rounded-lg bg-slate-900/60 border border-slate-800/60 px-3 py-2">
+          <div className="rounded-lg bg-muted border border-border-subtle px-3 py-2">
             <span className="text-muted-foreground">Redemption Fee</span>
-            <div className="text-sm font-bold font-mono text-purple-400 mt-0.5">
+            <div className="text-sm font-bold font-mono text-[#5f8f00] dark:text-[#BFFF00] mt-0.5">
               2.00% (200 BPS)
             </div>
           </div>
-          <div className="rounded-lg bg-slate-900/60 border border-slate-800/60 px-3 py-2">
+          <div className="rounded-lg bg-muted border border-border-subtle px-3 py-2">
             <span className="text-muted-foreground">Performance Fee</span>
             <div className="text-sm font-bold font-mono text-muted-foreground mt-0.5">
               0.00% (Disabled)

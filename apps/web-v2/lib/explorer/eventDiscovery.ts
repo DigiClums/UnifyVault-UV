@@ -64,27 +64,20 @@ function tryDecodeLog(
 // ─── Summary Builder ────────────────────────────────────────────────────────
 
 function buildSummary(group: TransactionGroup): void {
+  // First pass: Primary deposit/redeem events on Controller (gross / total amount)
   for (const evt of group.events) {
     if (evt.contractName === 'UnifyVaultController') {
-      if (evt.eventName === 'DepositExecuted') {
-        const amount = evt.args.depositAmount as bigint | undefined;
-        if (amount) {
-          group.summaryAmount = formatUnits(amount, 6);
-          group.summaryAsset = 'USDC';
-          return;
-        }
-      }
       if (evt.eventName === 'DepositCompleted') {
         const amount = evt.args.grossDeposit as bigint | undefined;
-        if (amount) {
+        if (amount !== undefined) {
           group.summaryAmount = formatUnits(amount, 6);
           group.summaryAsset = 'USDC';
           return;
         }
       }
-      if (evt.eventName === 'RedeemExecuted') {
-        const amount = evt.args.usdcReturned as bigint | undefined;
-        if (amount) {
+      if (evt.eventName === 'DepositExecuted') {
+        const amount = evt.args.depositAmount as bigint | undefined;
+        if (amount !== undefined) {
           group.summaryAmount = formatUnits(amount, 6);
           group.summaryAsset = 'USDC';
           return;
@@ -92,19 +85,39 @@ function buildSummary(group: TransactionGroup): void {
       }
       if (evt.eventName === 'RedeemCompleted') {
         const amount = evt.args.netAssets as bigint | undefined;
-        if (amount) {
+        if (amount !== undefined) {
           group.summaryAmount = formatUnits(amount, 6);
           group.summaryAsset = 'USDC';
           return;
         }
       }
-      if (evt.eventName === 'ProtocolFeeCollected') {
-        const amount = evt.args.feeAmount as bigint | undefined;
-        if (amount) {
+      if (evt.eventName === 'RedeemExecuted') {
+        const amount = evt.args.usdcReturned as bigint | undefined;
+        if (amount !== undefined) {
           group.summaryAmount = formatUnits(amount, 6);
           group.summaryAsset = 'USDC';
           return;
         }
+      }
+    }
+  }
+
+  // Second pass: Standalone fee collections
+  for (const evt of group.events) {
+    if (evt.contractName === 'UnifyVaultController' && evt.eventName === 'ProtocolFeeCollected') {
+      const amount = evt.args.feeAmount as bigint | undefined;
+      if (amount !== undefined) {
+        group.summaryAmount = formatUnits(amount, 6);
+        group.summaryAsset = 'USDC';
+        return;
+      }
+    }
+    if (evt.contractName === 'Treasury' && evt.eventName === 'FeeCollected') {
+      const amount = evt.args.amount as bigint | undefined;
+      if (amount !== undefined) {
+        group.summaryAmount = formatUnits(amount, 6);
+        group.summaryAsset = 'USDC';
+        return;
       }
     }
   }
@@ -116,7 +129,7 @@ function buildSummary(group: TransactionGroup): void {
       const to = evt.args.to as string;
       if (from === ZERO_ADDRESS || to === ZERO_ADDRESS) {
         const value = evt.args.value as bigint | undefined;
-        if (value) {
+        if (value !== undefined) {
           group.summaryAmount = formatUnits(value, 18);
           group.summaryAsset = 'Shares';
           return;

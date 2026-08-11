@@ -207,7 +207,7 @@ export function buildAddressToABIMap(
   addresses: Partial<Record<ProtocolContractName, Address | undefined>>,
 ): Map<Address, ContractEventRegistry> {
   const map = new Map<Address, ContractEventRegistry>();
-  const add = (addr: Address | undefined, name: ProtocolContractName, abi: Abi) => {
+  const add = (addr: Address | undefined, name: string, abi: Abi) => {
     if (addr) map.set(addr.toLowerCase() as Address, { name, abi });
   };
   add(addresses.UnifyVaultController, 'UnifyVaultController', CONTROLLER_EVENT_ABIS as Abi);
@@ -215,6 +215,20 @@ export function buildAddressToABIMap(
   add(addresses.Treasury, 'Treasury', TREASURY_EVENT_ABIS as Abi);
   add(addresses.UVBTCETHToken, 'UVBTCETHToken', ERC20_EVENT_ABIS as Abi);
   add(addresses.StrategyManager, 'StrategyManager', STRATEGY_MANAGER_EVENT_ABIS as Abi);
+
+  // Known tokens (Base Mainnet & Sepolia)
+  const tokens: [Address, string][] = [
+    ['0x833589fCD6eDb6E08f4c7C32d4f71b54bdA02913', 'USDC'],
+    ['0x036CbD53842c5426634e7929541eC2318f3dCF7e', 'USDC'],
+    ['0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', 'cbBTC'],
+    ['0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29', 'cbBTC'],
+    ['0x4200000000000000000000000000000000000006', 'WETH'],
+    ['0xd116ab1c943cf15904ec4c8dd701086f175fa323', 'WETH'],
+  ];
+  for (const [addr, name] of tokens) {
+    add(addr, name, ERC20_EVENT_ABIS as Abi);
+  }
+
   return map;
 }
 

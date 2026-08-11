@@ -22,22 +22,13 @@ import {
 } from 'lucide-react';
 import type { TransactionGroup, DecodedTimelineEvent } from '../../hooks/useTransactionExplorer';
 import { formatUnits } from 'viem';
+import { getTokenSymbol, getTokenDecimals, formatAmount } from '../../lib/explorer';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function short(addr?: string): string {
   if (!addr || addr.length < 10) return addr ?? '—';
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-function formatGas(gasWei?: bigint): string {
-  if (!gasWei) return '—';
-  // Convert wei to gwei for display
-  const gwei = Number(gasWei) / 1e9;
-  if (gwei < 0.001) return '<0.001 Gwei';
-  if (gwei < 1) return `${gwei.toFixed(3)} Gwei`;
-  if (gwei < 1000) return `${gwei.toFixed(1)} Gwei`;
-  return `${(gwei / 1000).toFixed(2)}K Gwei`;
 }
 
 function formatGasPrice(gasPriceWei: bigint): string {
@@ -52,33 +43,6 @@ function formatETH(wei: bigint): string {
   if (eth === 0) return '0';
   if (eth < 0.000001) return eth.toExponential(3);
   return eth.toFixed(9);
-}
-
-function formatAmount(value: bigint | undefined, decimals: number = 18): string {
-  if (value === undefined || value === 0n) return '0';
-  const formatted = formatUnits(value, decimals);
-  const num = parseFloat(formatted);
-  if (num === 0) return '0';
-  if (num < 0.0001) return formatted.slice(0, 10);
-  if (num < 1) return num.toFixed(6);
-  if (num < 1000) return num.toFixed(4);
-  return num.toLocaleString('en-US', { maximumFractionDigits: 4 });
-}
-
-// Known token addresses on Base for symbol resolution
-const KNOWN_TOKENS: Record<string, string> = {
-  '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': 'USDC',
-  '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': 'cbBTC',
-  '0x4200000000000000000000000000000000000006': 'WETH',
-  '0x036cbd53842c5426634e7929541ec2318f3dcf7e': 'USDC',
-  '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29': 'cbBTC',
-  '0xd116ab1c943cf15904ec4c8dd701086f175fa323': 'WETH',
-  '0xc83d0a904e1103d8144e9df93cdb5bc05f7cdee6': 'cbBTC',
-  '0xeeaa69db6046f026d88004d0d6946518071ba15c': 'WETH',
-};
-
-function getTokenSymbol(addr: string): string {
-  return KNOWN_TOKENS[addr.toLowerCase()] ?? short(addr);
 }
 
 // ─── Action Badge ───────────────────────────────────────────────────────────
@@ -207,8 +171,15 @@ function renderEventDetails(
 ): React.ReactNode[] {
   const rows: React.ReactNode[] = [];
 
-  // ERC20 Transfer
-  if (contractName === 'UVBTCETHToken' && eventName === 'Transfer') {
+  // ERC20 Transfer (all tokens including UVBTCETHToken, USDC, cbBTC, WETH)
+  if (
+    eventName === 'Transfer' &&
+    (contractName === 'UVBTCETHToken' ||
+      contractName === 'USDC' ||
+      contractName === 'cbBTC' ||
+      contractName === 'WETH' ||
+      args.from !== undefined)
+  ) {
     const from = args.from as string;
     const to = args.to as string;
     const value = args.value as bigint | undefined;
@@ -225,9 +196,14 @@ function renderEventDetails(
         </span>,
       );
       if (value !== undefined) {
+        const decimals = getTokenDecimals(contractName);
+        const symbol = contractName === 'UVBTCETHToken' ? 'Shares' : contractName;
         rows.push(
           <span key="val" className="text-slate-500">
-            Amount: <span className="text-white font-mono">{formatAmount(value)} Shares</span>
+            Amount:{' '}
+            <span className="text-white font-mono">
+              {formatAmount(value, decimals)} {symbol}
+            </span>
           </span>,
         );
       }
@@ -266,13 +242,17 @@ function renderEventDetails(
     if (sharesMinted !== undefined)
       rows.push(
         <span key="sm" className="text-slate-500">
-          Shares Minted: <span className="text-white font-mono">{formatAmount(sharesMinted)}</span>
+          Shares Minted:{' '}
+          <span className="text-white font-mono">{formatAmount(sharesMinted, 18)}</span>
         </span>,
       );
 
     if (targetAssets && assetsBought && targetAssets.length === assetsBought.length) {
       const swapInfo = targetAssets
-        .map((asset, i) => `${formatAmount(assetsBought[i], 18)} ${getTokenSymbol(asset)}`)
+        .map(
+          (asset, i) =>
+            `${formatAmount(assetsBought[i], getTokenDecimals(asset))} ${getTokenSymbol(asset)}`,
+        )
         .join(', ');
       rows.push(
         <span key="sw" className="text-slate-500">
@@ -301,7 +281,8 @@ function renderEventDetails(
     if (sharesBurned !== undefined)
       rows.push(
         <span key="sb" className="text-slate-500">
-          Shares Burned: <span className="text-white font-mono">{formatAmount(sharesBurned)}</span>
+          Shares Burned:{' '}
+          <span className="text-white font-mono">{formatAmount(sharesBurned, 18)}</span>
         </span>,
       );
     if (usdcReturned !== undefined)
@@ -320,7 +301,10 @@ function renderEventDetails(
 
     if (targetAssets && assetsSold && targetAssets.length === assetsSold.length) {
       const swapInfo = targetAssets
-        .map((asset, i) => `${formatAmount(assetsSold[i], 18)} ${getTokenSymbol(asset)}`)
+        .map(
+          (asset, i) =>
+            `${formatAmount(assetsSold[i], getTokenDecimals(asset))} ${getTokenSymbol(asset)}`,
+        )
         .join(', ');
       rows.push(
         <span key="sw" className="text-slate-500">
@@ -366,7 +350,8 @@ function renderEventDetails(
     if (sharesMinted !== undefined)
       rows.push(
         <span key="sm" className="text-slate-500">
-          Shares Minted: <span className="text-white font-mono">{formatAmount(sharesMinted)}</span>
+          Shares Minted:{' '}
+          <span className="text-white font-mono">{formatAmount(sharesMinted, 18)}</span>
         </span>,
       );
     return rows;
@@ -402,7 +387,8 @@ function renderEventDetails(
     if (sharesBurned !== undefined)
       rows.push(
         <span key="sb" className="text-slate-500">
-          Shares Burned: <span className="text-white font-mono">{formatAmount(sharesBurned)}</span>
+          Shares Burned:{' '}
+          <span className="text-white font-mono">{formatAmount(sharesBurned, 18)}</span>
         </span>,
       );
     if (netAssets !== undefined)
@@ -448,7 +434,7 @@ function renderEventDetails(
         <span key="amt" className="text-slate-500">
           Amount:{' '}
           <span className="text-white font-mono">
-            {formatAmount(amount, 18)} {getTokenSymbol(asset ?? '')}
+            {formatAmount(amount, getTokenDecimals(asset))} {getTokenSymbol(asset ?? '')}
           </span>
         </span>,
       );
@@ -651,15 +637,97 @@ interface TimelineCardProps {
 }
 
 function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
-  const depEvent = tx.events.find((e) => e.eventName === 'DepositExecuted');
-  const redEvent = tx.events.find((e) => e.eventName === 'RedeemExecuted');
+  const depExecutedEvent = tx.events.find(
+    (e) => e.contractName === 'UnifyVaultController' && e.eventName === 'DepositExecuted',
+  );
+  const depCompletedEvent = tx.events.find(
+    (e) => e.contractName === 'UnifyVaultController' && e.eventName === 'DepositCompleted',
+  );
 
-  if (tx.actionType === 'deposit' && depEvent) {
-    const depositAmount = depEvent.args.depositAmount as bigint | undefined;
-    const fee = depEvent.args.fee as bigint | undefined;
-    const sharesMinted = depEvent.args.sharesMinted as bigint | undefined;
-    const targetAssets = depEvent.args.targetAssets as string[] | undefined;
-    const assetsBought = depEvent.args.assetsBought as bigint[] | undefined;
+  const redExecutedEvent = tx.events.find(
+    (e) => e.contractName === 'UnifyVaultController' && e.eventName === 'RedeemExecuted',
+  );
+  const redCompletedEvent = tx.events.find(
+    (e) => e.contractName === 'UnifyVaultController' && e.eventName === 'RedeemCompleted',
+  );
+
+  const feeCollectedEvent = tx.events.find(
+    (e) => e.contractName === 'UnifyVaultController' && e.eventName === 'ProtocolFeeCollected',
+  );
+
+  if (tx.actionType === 'deposit' && (depExecutedEvent || depCompletedEvent)) {
+    const grossDeposit =
+      (depCompletedEvent?.args.grossDeposit as bigint | undefined) ??
+      (depExecutedEvent?.args.depositAmount as bigint | undefined);
+
+    const fee =
+      (depCompletedEvent?.args.protocolFee as bigint | undefined) ??
+      (depExecutedEvent?.args.fee as bigint | undefined) ??
+      (feeCollectedEvent?.args.feeAmount as bigint | undefined);
+
+    const netDeposit =
+      (depCompletedEvent?.args.netDeposit as bigint | undefined) ??
+      (grossDeposit !== undefined && fee !== undefined ? grossDeposit - fee : undefined);
+
+    const targetAssets = depExecutedEvent?.args.targetAssets as string[] | undefined;
+    const assetsBought = depExecutedEvent?.args.assetsBought as bigint[] | undefined;
+
+    const sharesMinted =
+      (depCompletedEvent?.args.sharesMinted as bigint | undefined) ??
+      (depExecutedEvent?.args.sharesMinted as bigint | undefined);
+
+    const rows: { key: string; label: string; value: React.ReactNode }[] = [];
+
+    rows.push({
+      key: 'gross',
+      label: 'User deposited',
+      value: (
+        <strong className="text-white">
+          {grossDeposit !== undefined ? formatAmount(grossDeposit, 6) : tx.summaryAmount} USDC
+        </strong>
+      ),
+    });
+
+    if (fee !== undefined && fee > 0n) {
+      rows.push({
+        key: 'fee',
+        label: 'Protocol fee',
+        value: <span className="text-amber-400">{formatAmount(fee, 6)} USDC</span>,
+      });
+    }
+
+    if (netDeposit !== undefined) {
+      rows.push({
+        key: 'net',
+        label: 'Net deposited',
+        value: <strong className="text-white">{formatAmount(netDeposit, 6)} USDC</strong>,
+      });
+    }
+
+    if (targetAssets && assetsBought && targetAssets.length === assetsBought.length) {
+      rows.push({
+        key: 'swapped',
+        label: 'Swapped to',
+        value: (
+          <span className="text-cyan-300">
+            {targetAssets
+              .map(
+                (a, i) =>
+                  `${formatAmount(assetsBought[i], getTokenDecimals(a))} ${getTokenSymbol(a)}`,
+              )
+              .join(', ')}
+          </span>
+        ),
+      });
+    }
+
+    if (sharesMinted !== undefined) {
+      rows.push({
+        key: 'shares',
+        label: 'Shares minted',
+        value: <strong className="text-white">{formatAmount(sharesMinted, 18)} UVBTCETH</strong>,
+      });
+    }
 
     return (
       <div className="mb-4 p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1.5">
@@ -673,60 +741,78 @@ function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
           </span>
         </div>
         <div className="space-y-1 pt-1 text-slate-300">
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-500">├─</span>
-            <span>
-              User deposited:{' '}
-              <strong className="text-white">
-                {depositAmount ? formatAmount(depositAmount, 6) : tx.summaryAmount} USDC
-              </strong>
-            </span>
-          </div>
-          {fee !== undefined && fee > 0n && (
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">├─</span>
+          {rows.map((r, idx) => (
+            <div key={r.key} className="flex items-center space-x-2">
+              <span className="text-slate-500">{idx === rows.length - 1 ? '└─' : '├─'}</span>
               <span>
-                Protocol fee: <span className="text-amber-400">{formatAmount(fee, 6)} USDC</span>
+                {r.label}: {r.value}
               </span>
             </div>
-          )}
-          {targetAssets && assetsBought && targetAssets.length === assetsBought.length && (
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">├─</span>
-              <span>
-                Strategy assets acquired:{' '}
-                <span className="text-cyan-300">
-                  {targetAssets
-                    .map((a, i) => `${formatAmount(assetsBought[i], 18)} ${getTokenSymbol(a)}`)
-                    .join(', ')}
-                </span>
-              </span>
-            </div>
-          )}
-          {sharesMinted !== undefined && (
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">├─</span>
-              <span>
-                Index shares minted:{' '}
-                <strong className="text-white">{formatAmount(sharesMinted)} UVBTCETH</strong>
-              </span>
-            </div>
-          )}
-          <div className="flex items-center space-x-2 pt-0.5">
-            <span className="text-slate-500">└─</span>
-            <span className="text-emerald-400 font-semibold">Transaction successful</span>
-          </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  if (tx.actionType === 'redeem' && redEvent) {
-    const sharesBurned = redEvent.args.sharesBurned as bigint | undefined;
-    const fee = redEvent.args.fee as bigint | undefined;
-    const usdcReturned = redEvent.args.usdcReturned as bigint | undefined;
-    const targetAssets = redEvent.args.targetAssets as string[] | undefined;
-    const assetsSold = redEvent.args.assetsSold as bigint[] | undefined;
+  if (tx.actionType === 'redeem' && (redExecutedEvent || redCompletedEvent)) {
+    const sharesBurned =
+      (redCompletedEvent?.args.sharesBurned as bigint | undefined) ??
+      (redExecutedEvent?.args.sharesBurned as bigint | undefined);
+
+    const targetAssets = redExecutedEvent?.args.targetAssets as string[] | undefined;
+    const assetsSold = redExecutedEvent?.args.assetsSold as bigint[] | undefined;
+
+    const fee =
+      (redCompletedEvent?.args.protocolFee as bigint | undefined) ??
+      (redExecutedEvent?.args.fee as bigint | undefined) ??
+      (feeCollectedEvent?.args.feeAmount as bigint | undefined);
+
+    const netAssets =
+      (redCompletedEvent?.args.netAssets as bigint | undefined) ??
+      (redExecutedEvent?.args.usdcReturned as bigint | undefined);
+
+    const rows: { key: string; label: string; value: React.ReactNode }[] = [];
+
+    if (sharesBurned !== undefined) {
+      rows.push({
+        key: 'shares',
+        label: 'Shares burned',
+        value: <strong className="text-white">{formatAmount(sharesBurned, 18)} UVBTCETH</strong>,
+      });
+    }
+
+    if (targetAssets && assetsSold && targetAssets.length === assetsSold.length) {
+      rows.push({
+        key: 'swapped',
+        label: 'Swapped from',
+        value: (
+          <span className="text-cyan-300">
+            {targetAssets
+              .map(
+                (a, i) =>
+                  `${formatAmount(assetsSold[i], getTokenDecimals(a))} ${getTokenSymbol(a)}`,
+              )
+              .join(', ')}
+          </span>
+        ),
+      });
+    }
+
+    if (fee !== undefined && fee > 0n) {
+      rows.push({
+        key: 'fee',
+        label: 'Protocol fee',
+        value: <span className="text-amber-400">{formatAmount(fee, 6)} USDC</span>,
+      });
+    }
+
+    if (netAssets !== undefined) {
+      rows.push({
+        key: 'net',
+        label: 'USDC payout',
+        value: <strong className="text-white">{formatAmount(netAssets, 6)} USDC</strong>,
+      });
+    }
 
     return (
       <div className="mb-4 p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1.5">
@@ -740,49 +826,14 @@ function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
           </span>
         </div>
         <div className="space-y-1 pt-1 text-slate-300">
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-500">├─</span>
-            <span>
-              Shares burned:{' '}
-              <strong className="text-white">
-                {sharesBurned ? formatAmount(sharesBurned) : tx.summaryAmount} UVBTCETH
-              </strong>
-            </span>
-          </div>
-          {targetAssets && assetsSold && targetAssets.length === assetsSold.length && (
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">├─</span>
+          {rows.map((r, idx) => (
+            <div key={r.key} className="flex items-center space-x-2">
+              <span className="text-slate-500">{idx === rows.length - 1 ? '└─' : '├─'}</span>
               <span>
-                Strategy assets liquidated:{' '}
-                <span className="text-cyan-300">
-                  {targetAssets
-                    .map((a, i) => `${formatAmount(assetsSold[i], 18)} ${getTokenSymbol(a)}`)
-                    .join(', ')}
-                </span>
+                {r.label}: {r.value}
               </span>
             </div>
-          )}
-          {fee !== undefined && fee > 0n && (
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">├─</span>
-              <span>
-                Protocol fee: <span className="text-amber-400">{formatAmount(fee, 6)} USDC</span>
-              </span>
-            </div>
-          )}
-          {usdcReturned !== undefined && (
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">├─</span>
-              <span>
-                USDC payout:{' '}
-                <strong className="text-white">{formatAmount(usdcReturned, 6)} USDC</strong>
-              </span>
-            </div>
-          )}
-          <div className="flex items-center space-x-2 pt-0.5">
-            <span className="text-slate-500">└─</span>
-            <span className="text-emerald-400 font-semibold">Transaction successful</span>
-          </div>
+          ))}
         </div>
       </div>
     );
@@ -835,10 +886,7 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
         {tx.summaryAmount && (
           <div className="flex-shrink-0 hidden sm:block">
             <span className="text-sm font-bold text-white font-mono">
-              {Number(tx.summaryAmount).toLocaleString('en-US', {
-                maximumFractionDigits: 4,
-              })}{' '}
-              {tx.summaryAsset}
+              {tx.summaryAmount} {tx.summaryAsset}
             </span>
           </div>
         )}
