@@ -7,10 +7,10 @@ const TOKENS = {
   USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
 };
 
-// getAssetPrice(address) selector = 0xb35b2e9d
+// getAssetPrice(address) selector = 0xb3596f07
 function getPriceCalldata(tokenAddress) {
   const cleanAddr = tokenAddress.toLowerCase().replace('0x', '').padStart(64, '0');
-  return '0xb35b2e9d' + cleanAddr;
+  return '0xb3596f07' + cleanAddr;
 }
 
 async function callRpc(data) {
