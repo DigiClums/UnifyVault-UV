@@ -1,5 +1,5 @@
 import { validateReceiptFile } from './fileValidator';
-import { computeReceiptHashes } from './receiptHasher';
+import { computeReceiptKeccak256, uploadReceiptEvidence } from './receiptHasher';
 import { extractReceiptDataFromText } from './ocrEngine';
 import {
   EvidenceStatus,
@@ -16,7 +16,7 @@ export interface VerifyEvidenceInput {
 
 /**
  * Executes full evidence verification pipeline:
- * File Validation -> Cryptographic Hashing -> OCR Data Extraction -> Cross-Examination -> Status Calculation
+ * File Validation -> W3UP Real Upload & Keccak256 Hashing -> OCR Data Extraction -> Cross-Examination -> Status Calculation
  */
 export async function verifyPaymentEvidence(
   input: VerifyEvidenceInput,
@@ -27,12 +27,10 @@ export async function verifyPaymentEvidence(
   // 1. File Validation Step
   const fileValidation = validateReceiptFile(file);
   if (!fileValidation.isValid) {
-    const defaultBytes = new Uint8Array([0x00]);
-    const hashes = await computeReceiptHashes(defaultBytes);
     return {
       status: 'INVALID',
-      fileHash: hashes.fileHash,
-      cid: hashes.ipfsCid,
+      fileHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      cid: '',
       extractedData: { confidenceScore: 0.0 },
       discrepancies: [fileValidation.errorMessage || 'Invalid file.'],
       isReleaseAllowed: false,
@@ -41,11 +39,36 @@ export async function verifyPaymentEvidence(
     };
   }
 
-  // 2. Cryptographic Hashing Step
-  const rawBytes =
-    'bytes' in file && file.bytes && typeof file.bytes !== 'function' ? file.bytes : undefined;
-  const bytes = rawBytes || new Uint8Array([0x01, 0x02, 0x03]);
-  const hashes = await computeReceiptHashes(bytes);
+  // 2. Real Upload to W3UP / Keccak256 Hashing Step
+  let fileHash: `0x${string}`;
+  let cid: string = '';
+
+  if (typeof window !== 'undefined' && file instanceof File) {
+    try {
+      const uploadRes = await uploadReceiptEvidence(file);
+      fileHash = uploadRes.fileHash;
+      cid = uploadRes.ipfsCid;
+    } catch (uploadErr: any) {
+      return {
+        status: 'INVALID',
+        fileHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        cid: '',
+        extractedData: { confidenceScore: 0.0 },
+        discrepancies: [uploadErr?.message || 'W3UP IPFS upload failed.'],
+        isReleaseAllowed: false,
+        requiresManualReview: true,
+        statusMessage:
+          uploadErr?.message || 'Evidence upload failed. Payment proof submission blocked.',
+      };
+    }
+  } else {
+    // Non-browser or mock object fallback for unit tests
+    const rawBytes =
+      'bytes' in file && file.bytes && typeof file.bytes !== 'function'
+        ? file.bytes
+        : new TextEncoder().encode(file.name);
+    fileHash = computeReceiptKeccak256(rawBytes);
+  }
 
   // 3. OCR Data Extraction Step
   const textToParse = rawTextOverride || '';
@@ -55,8 +78,8 @@ export async function verifyPaymentEvidence(
   if (extractedData.confidenceScore < 0.4 || (!extractedData.amount && !extractedData.utr)) {
     return {
       status: 'LOW_CONFIDENCE',
-      fileHash: hashes.fileHash,
-      cid: hashes.ipfsCid,
+      fileHash,
+      cid,
       extractedData,
       discrepancies: ['Unreadable receipt text or low OCR extraction confidence.'],
       isReleaseAllowed: false,
@@ -77,8 +100,8 @@ export async function verifyPaymentEvidence(
     );
     return {
       status: 'DUPLICATE_REFERENCE',
-      fileHash: hashes.fileHash,
-      cid: hashes.ipfsCid,
+      fileHash,
+      cid,
       extractedData,
       discrepancies,
       isReleaseAllowed: false,
@@ -129,7 +152,7 @@ export async function verifyPaymentEvidence(
     status = 'MATCH';
     isReleaseAllowed = true;
     requiresManualReview = false;
-    statusMessage = 'Evidence matched on-chain trade parameters.';
+    statusMessage = 'Evidence matched on-chain trade parameters and uploaded to IPFS.';
   } else {
     status = 'MANUAL_REVIEW';
     isReleaseAllowed = false;
@@ -139,8 +162,8 @@ export async function verifyPaymentEvidence(
 
   return {
     status,
-    fileHash: hashes.fileHash,
-    cid: hashes.ipfsCid,
+    fileHash,
+    cid,
     extractedData,
     discrepancies,
     isReleaseAllowed,

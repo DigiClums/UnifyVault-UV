@@ -143,7 +143,7 @@ export function DepositForm() {
                 }}
                 className="w-full bg-transparent text-2xl sm:text-3xl font-black text-foreground placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none font-mono tracking-tight"
               />
-              <div className="flex items-center space-x-2 bg-black dark:bg-[#151515] px-2.5 py-1.5 rounded-lg border-2 border-black dark:border-white/15 shrink-0 shadow-2xs">
+              <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#151515] px-2.5 py-1.5 rounded-lg border-2 border-black dark:border-white/15 shrink-0 shadow-2xs">
                 <div className="w-5 h-5 rounded-full bg-[#BFFF00] border-2 border-black flex items-center justify-center text-[9px] font-black text-black">
                   $
                 </div>

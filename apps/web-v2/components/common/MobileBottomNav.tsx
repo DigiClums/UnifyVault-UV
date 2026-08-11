@@ -13,6 +13,7 @@ import {
   BarChart3,
   Vault,
   FileCode,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
@@ -31,6 +32,7 @@ const mainItems: NavItem[] = [
 ];
 
 const moreItems: NavItem[] = [
+  { href: '/p2p', label: 'P2P Escrow', icon: ShieldCheck },
   { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/treasury', label: 'Treasury', icon: Vault },

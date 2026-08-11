@@ -213,30 +213,73 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
               Payment Window (Minutes)
             </label>
-            <select
-              value={paymentWindowMinutes}
-              onChange={(e) => setPaymentWindowMinutes(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-            >
-              <option value="5">5 Minutes</option>
-              <option value="15">15 Minutes</option>
-              <option value="30">30 Minutes</option>
-              <option value="60">60 Minutes</option>
-            </select>
+            <div className="grid grid-cols-4 gap-2">
+              {['5', '15', '30', '60'].map((mins) => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setPaymentWindowMinutes(mins)}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-bold font-mono transition-all border-2 border-black dark:border-white/20 min-h-[44px] ${
+                    paymentWindowMinutes === mins
+                      ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+                      : 'bg-background text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {mins}m
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Trade Summary Box */}
+          {amount && fiatAmount && buyer && (
+            <div className="p-3.5 rounded-xl border-2 border-black/10 dark:border-white/10 bg-accent/30 space-y-2 text-xs font-mono">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-sans">
+                Trade Pre-flight Summary
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div>
+                  <span className="text-muted-foreground">Asset:</span>{' '}
+                  <span className="font-bold text-foreground">
+                    {assetType === 'UVBTCETH' ? 'UVBE' : assetType}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Crypto Amount:</span>{' '}
+                  <span className="font-bold text-foreground">{amount}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Fiat Expected:</span>{' '}
+                  <span className="font-bold text-foreground">
+                    {fiatAmount} {fiatCurrency}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Window:</span>{' '}
+                  <span className="font-bold text-foreground">{paymentWindowMinutes} Mins</span>
+                </div>
+              </div>
+              <div className="pt-1 border-t border-black/10 dark:border-white/10 truncate">
+                <span className="text-muted-foreground">Buyer:</span>{' '}
+                <span className="font-bold text-foreground">
+                  {buyer.slice(0, 8)}...{buyer.slice(-6)}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="pt-2 flex justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border-2 border-black dark:border-white/10 font-bold text-xs hover:bg-accent transition-colors"
+              className="px-4 py-2.5 rounded-xl border-2 border-black dark:border-white/10 font-bold text-xs hover:bg-accent transition-colors min-h-[44px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 flex items-center gap-2"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>{isPending ? 'Creating Order...' : 'Create & Fund Order'}</span>

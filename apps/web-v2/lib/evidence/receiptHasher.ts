@@ -1,16 +1,27 @@
-import { keccak256, toHex } from 'viem';
+import { keccak256 } from 'viem';
 
 export interface HasherResult {
   fileHash: `0x${string}`;
   ipfsCid: string;
+  size?: number;
+  mimeType?: string;
+}
+
+export interface UploadEvidenceResponse {
+  success: boolean;
+  cid?: string;
+  evidenceHash?: `0x${string}`;
+  size?: number;
+  mimeType?: string;
+  error?: string;
 }
 
 /**
- * Computes deterministic Keccak256 file hash and IPFS CID v1 reference hash from receipt bytes
+ * Computes deterministic Keccak256 file hash from exact receipt bytes
  */
-export async function computeReceiptHashes(
+export function computeReceiptKeccak256(
   fileBytes: Uint8Array | ArrayBuffer | string,
-): Promise<HasherResult> {
+): `0x${string}` {
   let bytes: Uint8Array;
 
   if (typeof fileBytes === 'string') {
@@ -21,15 +32,48 @@ export async function computeReceiptHashes(
     bytes = fileBytes;
   }
 
-  // 1. Keccak256 hash (on-chain commitment anchor)
-  const fileHash = keccak256(bytes);
+  return keccak256(bytes);
+}
 
-  // 2. Deterministic IPFS CID v1 hash simulator (bafy...)
-  const rawHashHex = fileHash.slice(2, 34); // First 16 bytes hex
-  const ipfsCid = `bafybeig${rawHashHex.toLowerCase()}p2pescrowevidence`;
+/**
+ * Uploads exact receipt file bytes to server-side W3UP/IPFS endpoint
+ * Returns real CID and keccak256 evidenceHash. Throws if upload fails.
+ */
+export async function uploadReceiptEvidence(file: File): Promise<HasherResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch('/api/p2p/evidence', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const data: UploadEvidenceResponse = await res.json();
+
+  if (!res.ok || !data.success || !data.cid || !data.evidenceHash) {
+    throw new Error(
+      data.error ||
+        `Evidence upload failed with status ${res.status}. Payment proof submission blocked.`,
+    );
+  }
 
   return {
+    fileHash: data.evidenceHash,
+    ipfsCid: data.cid,
+    size: data.size || file.size,
+    mimeType: data.mimeType || file.type,
+  };
+}
+
+/**
+ * Keccak256 hash helper compatible with existing pipeline
+ */
+export async function computeReceiptHashes(
+  fileBytes: Uint8Array | ArrayBuffer | string,
+): Promise<HasherResult> {
+  const fileHash = computeReceiptKeccak256(fileBytes);
+  return {
     fileHash,
-    ipfsCid,
+    ipfsCid: '', // Empty until uploaded to real W3UP/IPFS
   };
 }

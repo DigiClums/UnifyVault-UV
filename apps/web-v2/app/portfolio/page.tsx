@@ -37,26 +37,35 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* ── Portfolio Value Summary ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-card border-2 border-black dark:border-white/15 px-4 py-3 sm:px-5 sm:py-3.5 shadow-[4px_4px_0_#BFFF00]">
+      {/* ── Position Value Hero ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-card border-2 border-black dark:border-white/15 px-4 py-3.5 sm:px-6 sm:py-5 shadow-[4px_4px_0_#BFFF00]">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#BFFF00]/60 to-transparent" />
 
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Portfolio Value
-          </span>
-          <div className="flex items-center space-x-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+              Position Value
+            </span>
             <span
-              className={`inline-flex items-center space-x-1 text-[9px] font-medium font-mono ${
-                metrics.isLiveSynced !== false ? 'text-[#BFFF00]' : 'text-black/50'
+              className={`inline-flex items-center space-x-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${
+                metrics.isLiveSynced !== false
+                  ? 'bg-[#BFFF00] text-black border-black'
+                  : 'bg-muted text-muted-foreground border-border-subtle'
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  metrics.isLiveSynced !== false ? 'bg-[#BFFF00] animate-pulse' : 'bg-white/30'
+                  metrics.isLiveSynced !== false ? 'bg-black animate-pulse' : 'bg-white/30'
                 }`}
               />
               <span>{metrics.isLiveSynced !== false ? 'LIVE' : 'ON-CHAIN'}</span>
+            </span>
+          </div>
+
+          <div className="text-[10px] sm:text-[11px] font-mono text-muted-foreground flex items-center space-x-1">
+            <span>Vault TVL:</span>
+            <span className="font-bold text-foreground font-mono">
+              {metrics.totalPortfolioValueUSD}
             </span>
           </div>
         </div>
@@ -65,8 +74,8 @@ export default function PortfolioPage() {
           {metrics.isLoading ? (
             <div className="h-9 w-40 bg-white/10 rounded animate-pulse" />
           ) : (
-            <div className="text-[30px] sm:text-[38px] font-black text-slate-950 dark:text-white tracking-tight font-mono leading-tight">
-              {metrics.totalPortfolioValueUSD}
+            <div className="text-[30px] sm:text-[38px] lg:text-[44px] font-black text-slate-950 dark:text-white tracking-tight font-mono leading-tight">
+              {metrics.currentValueUSD}
             </div>
           )}
         </div>
@@ -75,7 +84,9 @@ export default function PortfolioPage() {
           {!metrics.isLoading && (
             <span
               className={`inline-flex items-center space-x-1 text-[11px] font-bold font-mono ${
-                metrics.isProfitable ? 'text-[#BFFF00]' : 'text-rose-400'
+                metrics.isProfitable
+                  ? 'text-[#5f8f00] dark:text-[#BFFF00]'
+                  : 'text-rose-500 dark:text-rose-400'
               }`}
             >
               {metrics.isProfitable ? (
@@ -84,11 +95,11 @@ export default function PortfolioPage() {
                 <TrendingDown className="w-3 h-3" />
               )}
               <span>{metrics.pnlUSD}</span>
-              <span className="opacity-80">{metrics.pnlPercentage}</span>
+              <span className="opacity-80">({metrics.pnlPercentage})</span>
             </span>
           )}
           {metrics.userSharesBalance && (
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+            <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono">
               {metrics.userSharesBalance}{' '}
               <span className="text-slate-400 dark:text-white/30">UVBE</span>
             </span>
@@ -98,11 +109,11 @@ export default function PortfolioPage() {
 
       {/* ── Quick Stats Row ── */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3">
-        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            NAV
+        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
+          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+            NAV / Share
           </span>
-          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
+          <div className="mt-0.5 text-xs sm:text-base font-bold text-foreground font-mono tracking-tight truncate">
             {metrics.isLoading ? (
               <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
@@ -110,11 +121,11 @@ export default function PortfolioPage() {
             )}
           </div>
         </div>
-        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
+          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
             Cost Basis
           </span>
-          <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
+          <div className="mt-0.5 text-xs sm:text-base font-bold text-foreground font-mono tracking-tight truncate">
             {metrics.isLoading ? (
               <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
@@ -122,11 +133,11 @@ export default function PortfolioPage() {
             )}
           </div>
         </div>
-        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
+          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
             PNL
           </span>
-          <div className="mt-0.5 text-sm sm:text-base font-bold font-mono tracking-tight">
+          <div className="mt-0.5 text-xs sm:text-base font-bold font-mono tracking-tight truncate">
             {metrics.isLoading ? (
               <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (
@@ -142,11 +153,11 @@ export default function PortfolioPage() {
             )}
           </div>
         </div>
-        <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
+          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
             Return
           </span>
-          <div className="mt-0.5 text-sm sm:text-base font-bold font-mono tracking-tight">
+          <div className="mt-0.5 text-xs sm:text-base font-bold font-mono tracking-tight truncate">
             {metrics.isLoading ? (
               <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
             ) : (

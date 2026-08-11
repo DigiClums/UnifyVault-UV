@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Wallet,
   TrendingUp,
@@ -9,8 +9,10 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Info,
+  ChevronDown,
+  ChevronUp,
   ShieldCheck,
+  Vault,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { DashboardMetrics } from '../../types';
@@ -20,22 +22,32 @@ interface PortfolioAnalyticsCardProps {
 }
 
 export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps) {
+  const [showCalculationDetails, setShowCalculationDetails] = useState(false);
+
   const items = [
     {
-      label: 'Current Holding Value',
+      label: 'Position Value',
       value: metrics.currentValueUSD,
-      subtitle: `${metrics.userSharesBalance} UVBE`,
+      subtitle: `${metrics.userSharesBalance} UVBE Shares`,
       icon: DollarSign,
       iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
-      source: 'userShares × Share Price',
+      source: 'User Shares × Share Price',
+    },
+    {
+      label: 'Vault TVL (Protocol Total)',
+      value: metrics.totalPortfolioValueUSD,
+      subtitle: 'Total Reserve Assets',
+      icon: Vault,
+      iconBg: 'bg-card text-foreground border border-border-subtle',
+      source: 'Sum of cbBTC + WETH + USDC Reserves',
     },
     {
       label: 'User Cost Basis',
       value: metrics.investedAssetsUSD,
-      subtitle: 'On-chain Recorded Capital',
+      subtitle: 'On-Chain Recorded Capital',
       icon: Wallet,
       iconBg: 'bg-card text-foreground border border-border-subtle',
-      source: 'UnifyVaultController',
+      source: 'CostBasisManager',
     },
     {
       label: 'Portfolio PnL (Unrealized)',
@@ -46,7 +58,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       iconBg: metrics.isProfitable
         ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
         : 'bg-rose-500/10 text-rose-500',
-      source: 'Position Value − Remaining Cost Basis',
+      source: 'Position Value − Cost Basis',
     },
     {
       label: 'Average Entry Price',
@@ -67,55 +79,63 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5 sm:space-y-3">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
+      <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-border-subtle">
         <div className="flex items-center space-x-2">
           <ShieldCheck className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
-          <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
-            User Portfolio Analytics
+          <h2 className="text-sm sm:text-lg font-black text-foreground tracking-tight">
+            Portfolio Analytics
           </h2>
         </div>
-        <div className="text-[10px] text-muted-foreground font-mono flex items-center space-x-1 bg-surface px-2.5 py-1 rounded-lg border border-border-subtle shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-[#BFFF00] animate-pulse" />
-          <span>Real-time On-Chain Accounting</span>
-        </div>
+
+        <button
+          onClick={() => setShowCalculationDetails(!showCalculationDetails)}
+          className="text-[10px] text-muted-foreground hover:text-[#5f8f00] dark:hover:text-[#BFFF00] font-mono flex items-center space-x-1 bg-surface px-2 py-0.5 rounded-lg border border-border-subtle transition-colors cursor-pointer"
+        >
+          <span>{showCalculationDetails ? 'Hide Formulas' : 'How calculated'}</span>
+          {showCalculationDetails ? (
+            <ChevronUp className="w-3 h-3" />
+          ) : (
+            <ChevronDown className="w-3 h-3" />
+          )}
+        </button>
       </div>
 
       {/* Streamlined Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
         {items.map((item, idx) => {
           const Icon = item.icon;
           return (
             <Card
               key={idx}
               glow
-              className="relative group overflow-hidden p-4 flex flex-col justify-between"
+              className="relative group overflow-hidden p-3 sm:p-4 flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[11px] font-semibold text-muted-foreground">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground">
                     {item.label}
                   </span>
-                  <div className={`p-1.5 rounded-lg ${item.iconBg}`}>
-                    <Icon className="w-4 h-4" />
+                  <div className={`p-1 rounded-lg ${item.iconBg}`}>
+                    <Icon className="w-3.5 h-3.5" />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="text-lg sm:text-xl font-black text-foreground tracking-tight font-mono">
+                <div className="space-y-0.5">
+                  <div className="text-base sm:text-xl font-black text-foreground tracking-tight font-mono">
                     {metrics.isLoading ? (
-                      <div className="h-7 w-28 bg-muted rounded animate-pulse" />
+                      <div className="h-6 w-24 bg-muted rounded animate-pulse" />
                     ) : (
                       item.value
                     )}
                   </div>
-                  <div className="flex items-center space-x-1 text-[11px] font-semibold text-muted-foreground">
+                  <div className="flex items-center space-x-1 text-[10px] font-semibold text-muted-foreground">
                     {item.isPositive !== undefined &&
                       (item.isPositive ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00] inline" />
+                        <ArrowUpRight className="w-3 h-3 text-[#5f8f00] dark:text-[#BFFF00] inline" />
                       ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-500 inline" />
+                        <ArrowDownRight className="w-3 h-3 text-rose-500 inline" />
                       ))}
                     <span
                       className={
@@ -133,12 +153,12 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
               </div>
 
               {/* Data Provenance Footnote */}
-              <div className="mt-3 pt-2 border-t border-border-subtle/50 text-[10px] font-mono text-muted-foreground/80 flex items-center justify-between">
-                <span>{item.source}</span>
-                <span className="text-[#BFFF00]/80 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Verified
-                </span>
-              </div>
+              {showCalculationDetails && (
+                <div className="mt-2 pt-1.5 border-t border-border-subtle/50 text-[9px] font-mono text-muted-foreground/80 flex items-center justify-between">
+                  <span>{item.source}</span>
+                  <span className="text-[#BFFF00]/80">Verified</span>
+                </div>
+              )}
             </Card>
           );
         })}

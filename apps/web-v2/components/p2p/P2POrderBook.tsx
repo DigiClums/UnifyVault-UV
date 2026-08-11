@@ -24,7 +24,7 @@ interface P2POrderBookProps {
 }
 
 export function P2POrderBook({ trades, isLoading, onSelectTrade, onRefresh }: P2POrderBookProps) {
-  const { chain } = useAccount();
+  const { address: userAddress, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterState, setFilterState] = useState<string>('ALL');
@@ -105,7 +105,7 @@ export function P2POrderBook({ trades, isLoading, onSelectTrade, onRefresh }: P2
         </div>
       </div>
 
-      {/* Trades Table List */}
+      {/* Trades List (Mobile Cards + Desktop Table) */}
       <div className="bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center text-xs text-muted-foreground font-mono space-y-2">
@@ -118,61 +118,133 @@ export function P2POrderBook({ trades, isLoading, onSelectTrade, onRefresh }: P2
             <p>Create a trade or clear filters to view active orders.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-accent/40 border-b border-black/10 dark:border-white/10 uppercase tracking-wider font-bold text-[10px] text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Order ID</th>
-                  <th className="px-4 py-3">Escrow Amount</th>
-                  <th className="px-4 py-3">Fiat Value</th>
-                  <th className="px-4 py-3">Seller</th>
-                  <th className="px-4 py-3">Buyer</th>
-                  <th className="px-4 py-3">State</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5 dark:divide-white/5 font-mono">
-                {filteredTrades.map((t) => (
-                  <tr
-                    key={t.tradeId}
-                    className="hover:bg-accent/20 transition-colors cursor-pointer"
-                    onClick={() => onSelectTrade(t.tradeId)}
-                  >
-                    <td className="px-4 py-3 font-bold">#{t.tradeId}</td>
-                    <td className="px-4 py-3 font-bold text-foreground">
-                      {formatAssetAmount(t.amount, t.asset)}
-                    </td>
-                    <td className="px-4 py-3 font-bold text-foreground">
-                      {formatFiatAmount(t.fiatAmount, t.fiatCurrency)}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {t.seller.slice(0, 6)}...{t.seller.slice(-4)}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {t.buyer.slice(0, 6)}...{t.buyer.slice(-4)}
-                    </td>
-                    <td className="px-4 py-3">
+          <>
+            {/* Mobile View: Compact Cards (sm:hidden) */}
+            <div className="block sm:hidden divide-y divide-black/10 dark:divide-white/10 font-mono">
+              {filteredTrades.map((t) => (
+                <div
+                  key={t.tradeId}
+                  className="p-4 space-y-3 hover:bg-accent/20 transition-colors cursor-pointer active:bg-accent/40"
+                  onClick={() => onSelectTrade(t.tradeId)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm text-foreground">#{t.tradeId}</span>
+                      {userAddress && t.buyer.toLowerCase() === userAddress.toLowerCase() && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                          BUY
+                        </span>
+                      )}
+                      {userAddress && t.seller.toLowerCase() === userAddress.toLowerCase() && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30">
+                          SELL
+                        </span>
+                      )}
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-accent/40 border-black/10">
                         {STATE_LABELS[t.state]}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectTrade(t.tradeId);
-                        }}
-                        className="px-3 py-1 rounded-lg bg-[#BFFF00] text-black font-black text-[11px] border border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all inline-flex items-center gap-1"
-                      >
-                        <span>Inspect</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </td>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectTrade(t.tradeId);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-[#BFFF00] text-black font-black text-xs border border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-1 min-h-[44px]"
+                    >
+                      <span>Inspect</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded-lg bg-accent/30 border border-black/5 dark:border-white/5 space-y-0.5">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase">
+                        Escrow Crypto
+                      </span>
+                      <p className="font-black text-foreground">
+                        {formatAssetAmount(t.amount, t.asset)}
+                      </p>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-accent/30 border border-black/5 dark:border-white/5 space-y-0.5">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase">
+                        Fiat Value
+                      </span>
+                      <p className="font-black text-foreground">
+                        {formatFiatAmount(t.fiatAmount, t.fiatCurrency)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-black/5 dark:border-white/5">
+                    <span>
+                      Seller: {t.seller.slice(0, 6)}...{t.seller.slice(-4)}
+                    </span>
+                    <span>
+                      Buyer: {t.buyer.slice(0, 6)}...{t.buyer.slice(-4)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Full Table (hidden sm:block) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-accent/40 border-b border-black/10 dark:border-white/10 uppercase tracking-wider font-bold text-[10px] text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Order ID</th>
+                    <th className="px-4 py-3">Escrow Amount</th>
+                    <th className="px-4 py-3">Fiat Value</th>
+                    <th className="px-4 py-3">Seller</th>
+                    <th className="px-4 py-3">Buyer</th>
+                    <th className="px-4 py-3">State</th>
+                    <th className="px-4 py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-black/5 dark:divide-white/5 font-mono">
+                  {filteredTrades.map((t) => (
+                    <tr
+                      key={t.tradeId}
+                      className="hover:bg-accent/20 transition-colors cursor-pointer"
+                      onClick={() => onSelectTrade(t.tradeId)}
+                    >
+                      <td className="px-4 py-3 font-bold">#{t.tradeId}</td>
+                      <td className="px-4 py-3 font-bold text-foreground">
+                        {formatAssetAmount(t.amount, t.asset)}
+                      </td>
+                      <td className="px-4 py-3 font-bold text-foreground">
+                        {formatFiatAmount(t.fiatAmount, t.fiatCurrency)}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {t.seller.slice(0, 6)}...{t.seller.slice(-4)}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {t.buyer.slice(0, 6)}...{t.buyer.slice(-4)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-accent/40 border-black/10">
+                          {STATE_LABELS[t.state]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectTrade(t.tradeId);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-[#BFFF00] text-black font-black text-[11px] border border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all inline-flex items-center gap-1 min-h-[44px]"
+                        >
+                          <span>Inspect</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

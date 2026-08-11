@@ -172,7 +172,6 @@ describe('Decentralized Payment Evidence Pipeline (M3)', () => {
     const hash2 = await computeReceiptHashes(bytes2);
 
     expect(hash1.fileHash).not.toEqual(hash2.fileHash);
-    expect(hash1.ipfsCid).not.toEqual(hash2.ipfsCid);
   });
 
   it('12. Evidence replacement attempt: new hash generated on replacement', async () => {

@@ -151,6 +151,14 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const [disputeReason, setDisputeReason] = useState('');
   const [showDisputeInput, setShowDisputeInput] = useState(false);
 
+  // Confirmation modal states
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
+  const [showRefundConfirm, setShowRefundConfirm] = useState(false);
+  const [showArbitratorConfirm, setShowArbitratorConfirm] = useState<{
+    open: boolean;
+    outcome: 0 | 1;
+  }>({ open: false, outcome: 0 });
+
   const isSeller = userAddress?.toLowerCase() === trade.seller.toLowerCase();
   const isBuyer = userAddress?.toLowerCase() === trade.buyer.toLowerCase();
 
@@ -182,16 +190,27 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const [uploadedCid, setUploadedCid] = useState<string | null>(null);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setReceiptFile(file);
       setIsHashing(true);
+      setReceiptHash(null);
+      setUploadedCid(null);
+      setUserError(null);
+
       try {
-        const hash = await generateReceiptHash(file);
-        setReceiptHash(hash);
-      } catch (err) {
-        setUserError('Failed generating cryptographic receipt hash.');
+        const { uploadReceiptEvidence } = await import('../../lib/evidence/receiptHasher');
+        const res = await uploadReceiptEvidence(file);
+        setReceiptHash(res.fileHash);
+        setUploadedCid(res.ipfsCid);
+      } catch (err: any) {
+        console.error('Real evidence upload error:', err);
+        setUserError(
+          err?.message || 'Failed uploading receipt to W3UP / IPFS. Payment submission blocked.',
+        );
       } finally {
         setIsHashing(false);
       }
@@ -206,7 +225,11 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       return;
     }
     if (!receiptHash) {
-      setUserError('Please upload a payment receipt to generate cryptographic hash.');
+      setUserError('Payment proof upload required before submitting on-chain.');
+      return;
+    }
+    if (isHashing) {
+      setUserError('Please wait for receipt upload to complete.');
       return;
     }
 
@@ -218,8 +241,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
   };
 
-  const handleConfirmRelease = async () => {
+  const handleConfirmReleaseAction = async () => {
     setUserError(null);
+    setShowReleaseConfirm(false);
     try {
       await confirmAndRelease(trade.tradeId);
       if (onRefresh) onRefresh();
@@ -228,8 +252,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
   };
 
-  const handleRefund = async () => {
+  const handleRefundAction = async () => {
     setUserError(null);
+    setShowRefundConfirm(false);
     try {
       await refund(trade.tradeId);
       if (onRefresh) onRefresh();
@@ -250,6 +275,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
   const handleResolveDisputeAction = async (outcome: 0 | 1) => {
     setUserError(null);
+    setShowArbitratorConfirm({ open: false, outcome: 0 });
     try {
       if (publicClient && p2pEscrow) {
         const raw = (await publicClient.readContract({
@@ -273,7 +299,6 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const handleFund = async () => {
     setUserError(null);
     try {
-      // Pre-flight check: read fresh on-chain trade state directly from smart contract
       if (publicClient && p2pEscrow) {
         try {
           const raw = (await publicClient.readContract({
@@ -283,7 +308,6 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             args: [BigInt(trade.tradeId)],
           })) as { state: number };
           if (raw && Number(raw.state) !== TradeState.CREATED) {
-            // Trade is already funded on-chain — refresh UI instead of sending redundant transaction
             if (onRefresh) onRefresh();
             return;
           }
@@ -356,17 +380,23 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     return `${formatUnits(fiatAmount, 2)} ${currency}`;
   };
 
+  // Fee and Payout Calculations for Confirmation Sheets
+  const feeAmount = (trade.amount * 100n) / 10000n; // 1% fee
+  const netPayoutAmount = trade.amount - feeAmount;
+
   return (
-    <div className="bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] p-6 space-y-6">
+    <div className="bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 dark:border-white/10 pb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#BFFF00] border-2 border-black shadow-[2px_2px_0_#000] flex items-center justify-center font-black text-black">
             #{trade.tradeId}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-foreground">Trade Order #{trade.tradeId}</h3>
+              <h3 className="text-base sm:text-lg font-black text-foreground">
+                Trade Order #{trade.tradeId}
+              </h3>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStateBadgeStyle(
                   trade.state,
@@ -401,17 +431,63 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         </div>
       )}
 
+      {/* Compact Trade Lifecycle Stepper */}
+      <div className="p-3 rounded-xl border-2 border-black/10 dark:border-white/10 bg-accent/20 space-y-2">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+          Trade Lifecycle Progress
+        </div>
+        <div className="grid grid-cols-5 gap-1 text-center font-mono">
+          {[
+            { label: 'Create', active: trade.state >= TradeState.CREATED },
+            { label: 'Fund', active: trade.state >= TradeState.FUNDED },
+            { label: 'Payment', active: trade.state >= TradeState.PAYMENT_SUBMITTED },
+            { label: 'Verify', active: trade.state >= TradeState.PAYMENT_SUBMITTED },
+            { label: 'Release', active: trade.state === TradeState.RELEASED },
+          ].map((s, idx) => (
+            <div key={s.label} className="flex flex-col items-center gap-1 min-w-0">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
+                  s.active
+                    ? 'bg-[#BFFF00] text-black border-black shadow-[1px_1px_0_#000]'
+                    : 'bg-background text-muted-foreground border-black/20 dark:border-white/20'
+                }`}
+              >
+                {s.active ? '✓' : idx + 1}
+              </div>
+              <span
+                className={`text-[9px] font-bold truncate max-w-full ${s.active ? 'text-foreground font-black' : 'text-muted-foreground'}`}
+              >
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+        {trade.state === TradeState.REFUNDED && (
+          <div className="text-[10px] font-bold text-amber-500 font-mono text-center pt-1">
+            ● Refunded to Seller (Trade Terminated)
+          </div>
+        )}
+        {trade.state === TradeState.DISPUTED && (
+          <div className="text-[10px] font-bold text-rose-500 font-mono text-center pt-1">
+            ● Under Arbitration Dispute
+          </div>
+        )}
+      </div>
+
       {/* CRITICAL VERIFICATION DISTINCTION BANNER */}
       {trade.state === TradeState.PAYMENT_SUBMITTED && (
-        <div className="p-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 text-purple-900 dark:text-purple-200 space-y-1.5">
+        <div className="p-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 text-purple-900 dark:text-purple-200 space-y-2">
           <div className="flex items-center gap-2 font-black text-sm">
-            <AlertOctagon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <AlertOctagon className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
             <span>PAYMENT CLAIMED (Pending Seller Verification)</span>
           </div>
-          <p className="text-xs leading-relaxed">
-            <strong>Notice:</strong> The buyer has submitted an on-chain payment claim with UTR and
-            receipt hash. This claim is <em>NOT independently verified</em> until the seller
-            manually inspects their bank account and approves release on-chain.
+          <p className="text-xs leading-relaxed font-bold text-amber-600 dark:text-amber-400">
+            ⚠️ DO NOT RELEASE UNTIL PAYMENT IS VERIFIED IN YOUR BANK ACCOUNT.
+          </p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Notice: The buyer has submitted an on-chain payment claim with UTR and receipt hash.
+            This claim is <em>NOT independently verified by smart contracts</em> until you manually
+            inspect your bank account and approve release.
           </p>
         </div>
       )}
@@ -420,7 +496,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-900 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>P2P Trade Performance: P2P Fiat Proceeds − Disposed Share Basis</span>
+            <span>P2P Trade Result: Fiat Proceeds − Disposed Basis</span>
           </div>
           <span className="font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
             {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)} Proceeds
@@ -429,51 +505,63 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       )}
 
       {/* Trade Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-3.5 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Escrow Amount
           </span>
-          <p className="text-sm font-black text-foreground">
+          <p className="text-xs sm:text-sm font-black text-foreground truncate">
             {formatAssetAmount(trade.amount, trade.asset)}
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
+        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Fiat Amount Expected
+            Fiat Amount
           </span>
-          <p className="text-sm font-black text-foreground">
+          <p className="text-xs sm:text-sm font-black text-foreground truncate">
             {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
+        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Seller (Escrow Maker)
+            Seller (Maker)
           </span>
           <p className="text-xs font-mono font-bold text-foreground truncate">
-            {trade.seller} {isSeller && '(You)'}
+            {trade.seller.slice(0, 6)}...{trade.seller.slice(-4)} {isSeller && '(You)'}
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
+        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Buyer (Taker)
           </span>
           <p className="text-xs font-mono font-bold text-foreground truncate">
-            {trade.buyer} {isBuyer && '(You)'}
+            {trade.buyer.slice(0, 6)}...{trade.buyer.slice(-4)} {isBuyer && '(You)'}
           </p>
         </div>
       </div>
 
       {/* Payment Claim Evidence Box (If submitted) */}
       {trade.paymentTimestamp > 0 && (
-        <div className="p-4 rounded-xl border-2 border-black/10 dark:border-white/10 bg-accent/20 space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
-            <FileCheck className="w-4 h-4 text-[#BFFF00]" />
-            On-Chain Payment Claim Evidence
-          </h4>
+        <div className="p-4 rounded-xl border-2 border-black/10 dark:border-white/10 bg-accent/20 space-y-3 font-mono text-xs">
+          <div className="flex items-center justify-between">
+            <h4 className="font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+              <FileCheck className="w-4 h-4 text-[#BFFF00]" />
+              On-Chain Payment Claim Evidence
+            </h4>
+            <a
+              href={`/api/p2p/evidence?hash=${trade.evidenceHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-bold text-[#5f8f00] dark:text-[#BFFF00] underline hover:opacity-80 text-[11px]"
+            >
+              <span>Inspect Stored Payload</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
               <span className="text-muted-foreground font-bold">UTR / Reference:</span>
@@ -481,14 +569,6 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 <p className="font-mono font-bold text-foreground">
                   {formatPaymentReference(trade.paymentReference).text}
                 </p>
-                {formatPaymentReference(trade.paymentReference).isDecoded && (
-                  <span
-                    className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]"
-                    title={trade.paymentReference}
-                  >
-                    ({trade.paymentReference.slice(0, 8)}...)
-                  </span>
-                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -503,11 +583,33 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 </button>
               </div>
             </div>
+
             <div>
-              <span className="text-muted-foreground font-bold">Receipt Hash (SHA256/Keccak):</span>
-              <p className="font-mono text-[11px] text-foreground truncate">{trade.evidenceHash}</p>
+              <span className="text-muted-foreground font-bold">Storage Location:</span>
+              <p className="font-mono text-[11px] text-emerald-500 font-bold">
+                Stored on VPS Filesystem ✓
+              </p>
+            </div>
+
+            <div className="sm:col-span-2 pt-1 border-t border-black/5 dark:border-white/5 truncate">
+              <span className="text-muted-foreground font-bold">Keccak256 Anchor:</span>{' '}
+              <span className="text-foreground">{trade.evidenceHash}</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* BUYER PAYMENT SUBMITTED VIEW */}
+      {isBuyer && trade.state === TradeState.PAYMENT_SUBMITTED && (
+        <div className="p-4 rounded-xl border-2 border-blue-500/30 bg-blue-500/10 space-y-2">
+          <div className="flex items-center gap-2 font-black text-sm text-blue-600 dark:text-blue-400">
+            <CheckCircle2 className="w-5 h-5" />
+            <span>Payment Submitted — Awaiting Seller Verification</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Your payment reference and cryptographic receipt hash have been submitted on-chain. The
+            seller will verify receipt in their bank account before releasing escrowed crypto.
+          </p>
         </div>
       )}
 
@@ -515,11 +617,11 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
       {/* 1. SELLER ACTION: Fund Unfunded Trade */}
       {isSeller && trade.state === TradeState.CREATED && (
-        <div className="pt-2 flex justify-end gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row justify-end gap-3">
           <button
             onClick={() => cancelUnfundedTrade(trade.tradeId)}
             disabled={isPending}
-            className="px-4 py-2 rounded-xl border-2 border-black font-bold text-xs hover:bg-accent"
+            className="w-full sm:w-auto px-4 py-3 rounded-xl border-2 border-black font-bold text-xs hover:bg-accent min-h-[44px]"
           >
             Cancel Order
           </button>
@@ -527,7 +629,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             <button
               onClick={handleApprove}
               disabled={isPending}
-              className="px-5 py-2.5 rounded-xl bg-amber-400 text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-amber-400 text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Approve {getAssetSymbol(trade.asset)}</span>
@@ -536,7 +638,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             <button
               onClick={handleFund}
               disabled={isPending}
-              className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Deposit Crypto to Escrow</span>
@@ -553,7 +655,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         >
           <h4 className="text-sm font-black text-foreground flex items-center gap-2">
             <Upload className="w-4 h-4 text-[#BFFF00]" />
-            Submit Off-Chain Payment Claim
+            Make Payment & Submit Proof
           </h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -566,7 +668,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 placeholder="e.g. UTR987654321"
                 value={utr}
                 onChange={(e) => setUtr(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-mono"
+                className="w-full px-3.5 py-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00] min-h-[44px]"
                 required
               />
             </div>
@@ -579,16 +681,54 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 type="file"
                 accept="image/*,.pdf"
                 onChange={handleFileChange}
-                className="w-full px-3 py-1.5 text-xs font-mono rounded-xl border-2 border-black dark:border-white/20 bg-background"
+                className="w-full px-3 py-2 text-xs font-mono rounded-xl border-2 border-black dark:border-white/20 bg-background min-h-[44px]"
                 required
               />
             </div>
           </div>
 
-          {receiptHash && (
-            <div className="p-2.5 rounded-lg bg-accent/40 font-mono text-[11px] text-muted-foreground flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span className="truncate">Evidence Hash: {receiptHash}</span>
+          {receiptFile && (
+            <div className="p-3 rounded-xl bg-accent/40 font-mono text-xs text-foreground space-y-1.5">
+              <div className="font-bold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-[#BFFF00]" />
+                  <span>Selected File: {receiptFile.name}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {(receiptFile.size / 1024).toFixed(1)} KB ({receiptFile.type || 'binary'})
+                </span>
+              </div>
+
+              {isHashing && (
+                <div className="flex items-center gap-2 text-amber-500 font-bold text-[11px] pt-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>
+                    Uploading exact receipt bytes to VPS filesystem storage & computing Keccak256...
+                  </span>
+                </div>
+              )}
+
+              {uploadedCid && receiptHash && (
+                <div className="space-y-1 pt-1 border-t border-black/10 dark:border-white/10 text-[11px]">
+                  <div className="flex items-center justify-between text-emerald-500 font-bold">
+                    <span>Stored on VPS ✓</span>
+                    <a
+                      href={`/api/p2p/evidence?hash=${receiptHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline flex items-center gap-1 hover:text-[#BFFF00]"
+                    >
+                      Inspect Storage Payload <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="text-muted-foreground truncate">
+                    <span className="font-bold text-foreground">CID Alias:</span> {uploadedCid}
+                  </div>
+                  <div className="text-muted-foreground truncate">
+                    <span className="font-bold text-foreground">Keccak256 Hash:</span> {receiptHash}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -596,7 +736,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             <button
               type="submit"
               disabled={isPending || isHashing || !receiptHash}
-              className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 flex items-center gap-2"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
             >
               {(isPending || isHashing) && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Submit Payment Claim On-Chain</span>
@@ -607,23 +747,23 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
       {/* 3. SELLER ACTION: Confirm and Release */}
       {isSeller && trade.state === TradeState.PAYMENT_SUBMITTED && (
-        <div className="pt-2 flex flex-wrap justify-end gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row justify-end gap-3">
           <button
             onClick={() => setShowDisputeInput(!showDisputeInput)}
             disabled={isPending}
-            className="px-4 py-2.5 rounded-xl bg-destructive/10 text-destructive font-bold text-xs border border-destructive/20 hover:bg-destructive/20"
+            className="w-full sm:w-auto px-4 py-3 rounded-xl bg-destructive/10 text-destructive font-bold text-xs border border-destructive/20 hover:bg-destructive/20 min-h-[44px]"
           >
             Raise Dispute
           </button>
 
           <button
-            onClick={handleConfirmRelease}
+            onClick={() => setShowReleaseConfirm(true)}
             disabled={isPending}
-            className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             <CheckCircle2 className="w-4 h-4" />
-            <span>Confirm Fiat Received & Release Crypto</span>
+            <span>VERIFY PAYMENT & RELEASE</span>
           </button>
         </div>
       )}
@@ -632,9 +772,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       {trade.state === TradeState.FUNDED && timeLeftSeconds === 0 && (
         <div className="pt-2 flex justify-end">
           <button
-            onClick={handleRefund}
+            onClick={() => setShowRefundConfirm(true)}
             disabled={isPending}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-amber-500 text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>Claim Expired Refund (Return to Seller)</span>
@@ -647,44 +787,27 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         <div className="p-4 rounded-xl border-2 border-amber-500 bg-amber-500/10 space-y-4 shadow-[4px_4px_0_#000]">
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-sm">
             <Gavel className="w-5 h-5" />
-            <span>ARBITRATION CONTROL PANEL (Arbitrator Access Authorized)</span>
+            <span>ARBITRATION CONTROL PANEL (Arbitrator Authorized)</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             As a designated Arbitrator, inspect the on-chain evidence hash and payment reference
-            below. Make a final binding decision to release escrowed crypto to the Buyer or refund
-            to the Seller.
+            below. Make a final binding decision.
           </p>
-          <div className="flex flex-wrap justify-end gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    `Are you sure you want to REFUND Trade #${trade.tradeId} to the Seller?`,
-                  )
-                ) {
-                  handleResolveDisputeAction(1); // REFUND_TO_SELLER
-                }
-              }}
+              onClick={() => setShowArbitratorConfirm({ open: true, outcome: 1 })}
               disabled={isPending}
-              className="px-4 py-2.5 rounded-xl bg-rose-500 text-white font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+              className="w-full sm:w-auto px-4 py-3 rounded-xl bg-rose-500 text-white font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>Refund Crypto to Seller</span>
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    `Are you sure you want to RELEASE Trade #${trade.tradeId} to the Buyer?`,
-                  )
-                ) {
-                  handleResolveDisputeAction(0); // RELEASE_TO_BUYER
-                }
-              }}
+              onClick={() => setShowArbitratorConfirm({ open: true, outcome: 0 })}
               disabled={isPending}
-              className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               <CheckCircle2 className="w-4 h-4" />
@@ -705,22 +828,190 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             placeholder="Reason for dispute (e.g. Invalid UTR, Fiat not received)"
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl border border-destructive/30 text-xs bg-background"
+            className="w-full px-3 py-2.5 rounded-xl border border-destructive/30 text-xs bg-background min-h-[44px]"
           />
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowDisputeInput(false)}
-              className="px-3 py-1.5 text-xs font-bold"
+              className="px-3 py-2 text-xs font-bold"
             >
               Cancel
             </button>
             <button
               onClick={handleRaiseDispute}
               disabled={isPending}
-              className="px-4 py-1.5 rounded-lg bg-destructive text-white font-bold text-xs"
+              className="px-4 py-2 rounded-lg bg-destructive text-white font-bold text-xs"
             >
               Submit Dispute
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* RELEASE CONFIRMATION MODAL */}
+      {showReleaseConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] p-6 space-y-4 font-mono">
+            <h3 className="text-base font-black text-foreground font-sans flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#BFFF00]" />
+              Release Trade #{trade.tradeId}?
+            </h3>
+
+            <div className="p-3.5 rounded-xl bg-accent/30 border border-black/10 dark:border-white/10 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Buyer</span>
+                <span className="font-bold text-foreground">
+                  {trade.buyer.slice(0, 6)}...{trade.buyer.slice(-4)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Buyer Receives</span>
+                <span className="font-bold text-emerald-500">
+                  {formatAssetAmount(netPayoutAmount, trade.asset)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Treasury Fee (1%)</span>
+                <span className="font-bold text-foreground">
+                  {formatAssetAmount(feeAmount, trade.asset)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Gross Escrow</span>
+                <span className="font-bold text-foreground">
+                  {formatAssetAmount(trade.amount, trade.asset)}
+                </span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-black/10 dark:border-white/10">
+                <span className="text-muted-foreground font-sans">Fiat Value</span>
+                <span className="font-bold text-foreground">
+                  {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-sans">
+              ⚠️ <strong>Warning:</strong> Only release after independently verifying payment in
+              your bank account.
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 font-sans">
+              <button
+                type="button"
+                onClick={() => setShowReleaseConfirm(false)}
+                className="px-4 py-2.5 rounded-xl border-2 border-black dark:border-white/10 font-bold text-xs hover:bg-accent min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReleaseAction}
+                disabled={isPending}
+                className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2 min-h-[44px]"
+              >
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Confirm Release</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REFUND CONFIRMATION MODAL */}
+      {showRefundConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] p-6 space-y-4 font-mono">
+            <h3 className="text-base font-black text-foreground font-sans flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Refund Trade #{trade.tradeId}?
+            </h3>
+
+            <div className="p-3.5 rounded-xl bg-accent/30 border border-black/10 dark:border-white/10 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Seller Receives</span>
+                <span className="font-bold text-[#BFFF00]">
+                  {formatAssetAmount(trade.amount, trade.asset)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Buyer Receives</span>
+                <span className="font-bold text-foreground">0 {getAssetSymbol(trade.asset)}</span>
+              </div>
+              <div className="pt-1 border-t border-black/10 dark:border-white/10 text-[11px] text-muted-foreground font-sans">
+                Note: No realized P2P sale occurs. Original seller cost basis is restored.
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 font-sans">
+              <button
+                type="button"
+                onClick={() => setShowRefundConfirm(false)}
+                className="px-4 py-2.5 rounded-xl border-2 border-black dark:border-white/10 font-bold text-xs hover:bg-accent min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRefundAction}
+                disabled={isPending}
+                className="px-5 py-2.5 rounded-xl bg-amber-500 text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2 min-h-[44px]"
+              >
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Confirm Refund</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ARBITRATOR CONFIRMATION MODAL */}
+      {showArbitratorConfirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] p-6 space-y-4 font-mono">
+            <h3 className="text-base font-black text-foreground font-sans flex items-center gap-2">
+              <Gavel className="w-5 h-5 text-amber-500" />
+              Arbitration Decision: Trade #{trade.tradeId}
+            </h3>
+
+            <div className="p-3.5 rounded-xl bg-accent/30 border border-black/10 dark:border-white/10 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Outcome</span>
+                <span className="font-bold text-foreground">
+                  {showArbitratorConfirm.outcome === 0 ? 'RELEASE TO BUYER' : 'REFUND TO SELLER'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Trade Amount</span>
+                <span className="font-bold text-foreground">
+                  {formatAssetAmount(trade.amount, trade.asset)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-sans">Fiat Amount</span>
+                <span className="font-bold text-foreground">
+                  {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 font-sans">
+              <button
+                type="button"
+                onClick={() => setShowArbitratorConfirm({ open: false, outcome: 0 })}
+                className="px-4 py-2.5 rounded-xl border-2 border-black dark:border-white/10 font-bold text-xs hover:bg-accent min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResolveDisputeAction(showArbitratorConfirm.outcome)}
+                disabled={isPending}
+                className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2 min-h-[44px]"
+              >
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Execute Binding Resolution</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
