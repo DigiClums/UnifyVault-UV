@@ -27,22 +27,19 @@ export function StatCard({
   glowColor = 'blue',
 }: StatCardProps) {
   const glowStyles = {
-    blue: 'hover:border-accent-blue/40 hover:shadow-[0_0_25px_rgba(59,130,246,0.15)]',
-    emerald: 'hover:border-accent-emerald/40 hover:shadow-[0_0_25px_rgba(16,185,129,0.15)]',
-    purple: 'hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]',
-    cyan: 'hover:border-accent-cyan/40 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]',
-    amber: 'hover:border-amber-500/40 hover:shadow-[0_0_25px_rgba(245,158,11,0.15)]',
+    blue: 'hover:border-[#BFFF00]/40 hover:shadow-[0_0_20px_rgba(191,255,0,0.15)]',
+    emerald: 'hover:border-[#BFFF00]/40 hover:shadow-[0_0_20px_rgba(191,255,0,0.15)]',
+    purple: 'hover:border-[#BFFF00]/40 hover:shadow-[0_0_20px_rgba(191,255,0,0.15)]',
+    cyan: 'hover:border-[#BFFF00]/40 hover:shadow-[0_0_20px_rgba(191,255,0,0.15)]',
+    amber: 'hover:border-[#BFFF00]/40 hover:shadow-[0_0_20px_rgba(191,255,0,0.15)]',
   };
 
   const iconBgStyles = {
-    blue: 'bg-accent-blue/15 dark:bg-accent-blue/10 text-blue-600 dark:text-accent-blue border-accent-blue/30 dark:border-accent-blue/20',
-    emerald:
-      'bg-emerald-500/15 dark:bg-emerald-500/10 text-emerald-700 dark:text-accent-emerald border-emerald-500/30 dark:border-accent-emerald/20',
-    purple:
-      'bg-purple-500/15 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30 dark:border-purple-500/20',
-    cyan: 'bg-accent-cyan/15 dark:bg-accent-cyan/10 text-cyan-700 dark:text-accent-cyan border-accent-cyan/30 dark:border-accent-cyan/20',
-    amber:
-      'bg-amber-500/15 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/20',
+    blue: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border-[#BFFF00]/25',
+    emerald: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border-[#BFFF00]/25',
+    purple: 'bg-card text-foreground border-border-subtle',
+    cyan: 'bg-card text-muted-foreground border-border-subtle',
+    amber: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border-[#BFFF00]/25',
   };
 
   return (
@@ -52,7 +49,7 @@ export function StatCard({
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'p-5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-xs transition-all duration-200',
+        'p-5 rounded-xl bg-card border border-border-subtle shadow-xs transition-all duration-200',
         glowStyles[glowColor],
         className,
       )}

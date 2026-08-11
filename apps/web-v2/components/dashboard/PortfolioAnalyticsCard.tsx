@@ -26,7 +26,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       value: metrics.currentValueUSD,
       subtitle: `${metrics.userSharesBalance} UVBTCETH`,
       icon: DollarSign,
-      iconBg: 'bg-[#BFFF00]/10 text-[#BFFF00]',
+      iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
       source: 'userShares × Share Price',
     },
     {
@@ -34,7 +34,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       value: metrics.investedAssetsUSD,
       subtitle: 'On-chain Recorded Capital',
       icon: Wallet,
-      iconBg: 'bg-accent-emerald/10 text-accent-emerald',
+      iconBg: 'bg-card text-foreground border border-border-subtle',
       source: 'UnifyVaultController',
     },
     {
@@ -44,8 +44,8 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       isPositive: metrics.isProfitable,
       icon: TrendingUp,
       iconBg: metrics.isProfitable
-        ? 'bg-accent-emerald/10 text-accent-emerald'
-        : 'bg-accent-rose/10 text-accent-rose',
+        ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
+        : 'bg-rose-500/10 text-rose-500',
       source: 'Holding Value − Cost Basis',
     },
     {
@@ -53,7 +53,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       value: metrics.averageEntryPriceUSD,
       subtitle: 'Per Index Share ($/Share)',
       icon: Activity,
-      iconBg: 'bg-accent-cyan/10 text-accent-cyan',
+      iconBg: 'bg-card text-muted-foreground border border-border-subtle',
       source: 'Cost Basis ÷ Shares Owned',
     },
     {
@@ -61,7 +61,7 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       value: metrics.ownershipPercentage,
       subtitle: 'Share of Total Pool Supply',
       icon: PieChart,
-      iconBg: 'bg-[#BFFF00]/10 text-[#BFFF00]',
+      iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
       source: 'User Shares ÷ Total Supply',
     },
   ];
@@ -71,13 +71,13 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle">
         <div className="flex items-center space-x-2">
-          <ShieldCheck className="w-4 h-4 text-[#BFFF00]" />
+          <ShieldCheck className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
           <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
             User Portfolio Analytics
           </h2>
         </div>
         <div className="text-[10px] text-muted-foreground font-mono flex items-center space-x-1 bg-surface px-2.5 py-1 rounded-lg border border-border-subtle shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-[#BFFF00] animate-pulse" />
           <span>Real-time On-Chain Accounting</span>
         </div>
       </div>
@@ -113,16 +113,16 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
                   <div className="flex items-center space-x-1 text-[11px] font-semibold text-muted-foreground">
                     {item.isPositive !== undefined &&
                       (item.isPositive ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-accent-emerald inline" />
+                        <ArrowUpRight className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00] inline" />
                       ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-accent-rose inline" />
+                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-500 inline" />
                       ))}
                     <span
                       className={
                         item.isPositive !== undefined
                           ? item.isPositive
                             ? 'text-[#5f8f00] dark:text-[#BFFF00]'
-                            : 'text-rose-700 dark:text-accent-rose'
+                            : 'text-rose-500 dark:text-rose-400'
                           : ''
                       }
                     >

@@ -19,7 +19,7 @@ export function LandingFooter() {
     <footer className="border-t border-slate-800/40 py-8 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-accent-blue shrink-0" />
+          <ShieldCheck className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
           <span className="text-xs font-semibold text-slate-400">UnifyVault.xyz</span>
           <span className="text-slate-700">·</span>
           <span className="text-[11px] text-slate-500">

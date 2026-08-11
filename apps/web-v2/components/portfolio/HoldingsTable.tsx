@@ -20,20 +20,20 @@ export function HoldingsTable() {
   return (
     <div className="space-y-6">
       {/* Scope Selector: User Personal Claim vs Protocol Total Reserve */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-surface/80 border border-border-subtle backdrop-blur-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border-subtle backdrop-blur-xl">
         <div className="flex items-center space-x-2">
           {scope === 'user' ? (
-            <UserCheck className="w-5 h-5 text-accent-emerald" />
+            <UserCheck className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
           ) : (
-            <ShieldCheck className="w-5 h-5 text-[#BFFF00]" />
+            <ShieldCheck className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
           )}
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">
+            <h3 className="text-sm font-bold text-foreground tracking-tight">
               {scope === 'user'
                 ? 'Personal Share Holdings Breakdown'
                 : 'Protocol Custody Vault Inventory'}
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-muted-foreground">
               {scope === 'user'
                 ? 'Your pro-rata ownership claim on underlying strategy collateral assets based on $uvBTCETH shares owned.'
                 : 'Auditable multi-asset pool reserves custodied inside CustodyVault.'}
@@ -41,13 +41,13 @@ export function HoldingsTable() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-900/80 p-1 rounded-lg border border-border-subtle/80 shrink-0">
+        <div className="flex items-center space-x-2 bg-muted p-1 rounded-lg border border-border-subtle shrink-0">
           <button
             onClick={() => setScope('user')}
             className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
               scope === 'user'
-                ? 'bg-accent-emerald text-white shadow-glow'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             My Share Claim

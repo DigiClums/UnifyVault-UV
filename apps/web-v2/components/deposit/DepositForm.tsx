@@ -200,7 +200,7 @@ export function DepositForm() {
 
             <div className="p-2.5 rounded-lg bg-card border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-indigo-700 dark:text-indigo-400">🔷 WETH</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">🔷 WETH</span>
                 <span className="font-bold text-foreground">{targetEthPercent ?? '...'}</span>
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400">

@@ -91,7 +91,9 @@ export function LivePriceTicker() {
 
           <span className="text-slate-500 dark:text-slate-400 hidden sm:inline text-[11px]">
             {livePrices.isUpdating ? (
-              <span className="text-accent-blue font-medium animate-pulse">Syncing...</span>
+              <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium animate-pulse">
+                Syncing...
+              </span>
             ) : (
               <span>Sync: {secondsAgo}s ago</span>
             )}
@@ -110,7 +112,7 @@ export function LivePriceTicker() {
                 'border-rose-500/60 bg-rose-500/10 text-rose-700 dark:text-rose-400 scale-[1.02]',
             )}
           >
-            <span className="font-bold text-amber-600 dark:text-amber-400">BTC</span>
+            <span className="font-bold text-[#5f8f00] dark:text-[#BFFF00]">BTC</span>
             <span className="font-semibold text-slate-900 dark:text-white">
               {formatUSD(livePrices.btcPriceUSD)}
             </span>
@@ -132,7 +134,7 @@ export function LivePriceTicker() {
                 'border-rose-500/60 bg-rose-500/10 text-rose-700 dark:text-rose-400 scale-[1.02]',
             )}
           >
-            <span className="font-bold text-blue-600 dark:text-blue-400">ETH</span>
+            <span className="font-bold text-slate-700 dark:text-slate-300">ETH</span>
             <span className="font-semibold text-slate-900 dark:text-white">
               {formatUSD(livePrices.ethPriceUSD)}
             </span>
@@ -146,7 +148,7 @@ export function LivePriceTicker() {
 
           {/* USDC Peg Badge */}
           <div className="flex items-center space-x-1 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hidden md:flex">
-            <span className="font-bold text-blue-500">USDC</span>
+            <span className="font-bold text-muted-foreground">USDC</span>
             <span className="font-semibold">$1.00</span>
           </div>
         </div>
@@ -158,7 +160,7 @@ export function LivePriceTicker() {
             className={cn(
               'p-1 rounded-md transition-colors text-[10px] flex items-center space-x-1 border',
               notificationsEnabled
-                ? 'bg-accent-blue/10 border-accent-blue/30 text-accent-blue'
+                ? 'bg-[#BFFF00]/10 border-[#BFFF00]/30 text-[#5f8f00] dark:text-[#BFFF00]'
                 : 'bg-slate-800/40 border-slate-700 text-slate-500',
             )}
             title={notificationsEnabled ? 'Mute Price Update Alerts' : 'Enable Price Update Alerts'}
@@ -176,7 +178,10 @@ export function LivePriceTicker() {
             title="Force Price Feed Refresh"
           >
             <RefreshCw
-              className={cn('w-3 h-3 text-accent-blue', livePrices.isUpdating && 'animate-spin')}
+              className={cn(
+                'w-3 h-3 text-[#5f8f00] dark:text-[#BFFF00]',
+                livePrices.isUpdating && 'animate-spin',
+              )}
             />
             <span className="hidden sm:inline">Refresh</span>
           </button>

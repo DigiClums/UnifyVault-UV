@@ -126,7 +126,7 @@ export function Navbar() {
                       onClick={openChainModal}
                       type="button"
                       aria-label="Select Network"
-                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-card hover:bg-card-hover border-2 border-black dark:border-white/15 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm hover:border-accent-blue/40"
+                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-card hover:bg-card-hover border-2 border-black dark:border-white/15 text-xs font-semibold text-foreground transition-all shrink-0 cursor-pointer shadow-sm hover:border-[#BFFF00]/40"
                     >
                       {chain?.hasIcon ? (
                         <div

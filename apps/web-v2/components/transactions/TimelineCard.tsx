@@ -102,34 +102,34 @@ function StatusBadge({ status }: { status: string }) {
 function getContractIcon(contractName: string) {
   switch (contractName) {
     case 'UnifyVaultController':
-      return <Activity className="w-4 h-4 text-accent-blue" />;
+      return <Activity className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />;
     case 'CustodyVault':
-      return <Shield className="w-4 h-4 text-accent-emerald" />;
+      return <Shield className="w-4 h-4 text-foreground" />;
     case 'Treasury':
-      return <Coins className="w-4 h-4 text-accent-amber" />;
+      return <Coins className="w-4 h-4 text-muted-foreground" />;
     case 'UVBTCETHToken':
-      return <Box className="w-4 h-4 text-accent-violet" />;
+      return <Box className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />;
     case 'StrategyManager':
-      return <Layers className="w-4 h-4 text-accent-cyan" />;
+      return <Layers className="w-4 h-4 text-muted-foreground" />;
     default:
-      return <FileText className="w-4 h-4 text-slate-400" />;
+      return <FileText className="w-4 h-4 text-muted-foreground" />;
   }
 }
 
 function getContractColor(contractName: string): string {
   switch (contractName) {
     case 'UnifyVaultController':
-      return 'border-l-accent-blue';
+      return 'border-l-[#BFFF00]';
     case 'CustodyVault':
-      return 'border-l-accent-emerald';
+      return 'border-l-slate-400';
     case 'Treasury':
-      return 'border-l-accent-amber';
-    case 'UVBTCETHToken':
-      return 'border-l-accent-violet';
-    case 'StrategyManager':
-      return 'border-l-accent-cyan';
-    default:
       return 'border-l-slate-500';
+    case 'UVBTCETHToken':
+      return 'border-l-[#BFFF00]/60';
+    case 'StrategyManager':
+      return 'border-l-border-subtle';
+    default:
+      return 'border-l-border-subtle';
   }
 }
 
@@ -919,7 +919,7 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-accent-blue hover:underline font-mono text-xs flex items-center gap-1"
+            className="text-[#5f8f00] dark:text-[#BFFF00] hover:underline font-mono text-xs flex items-center gap-1"
             title="View on block explorer"
           >
             {txShort}
@@ -938,9 +938,9 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="border-t border-slate-800/80 px-4 py-3 bg-slate-950/40">
+            <div className="border-t border-border-subtle px-4 py-3 bg-muted/40">
               {/* Header bar with gas and status info */}
-              <div className="flex items-center gap-4 mb-4 text-xs text-slate-400 flex-wrap">
+              <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1.5">
                   <StatusBadge status={tx.status} />
                 </span>
@@ -949,12 +949,12 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
                   Gas Used: {tx.gasUsed ? tx.gasUsed.toLocaleString() : '—'}
                 </span>
                 {tx.gasPrice !== undefined && tx.gasPrice > 0n && (
-                  <span className="flex items-center gap-1 text-slate-500">
+                  <span className="flex items-center gap-1 text-muted-foreground">
                     Gas Price: {formatGasPrice(tx.gasPrice)}
                   </span>
                 )}
                 {tx.gasFeeWei !== undefined && tx.gasFeeWei > 0n && (
-                  <span className="flex items-center gap-1 text-slate-500">
+                  <span className="flex items-center gap-1 text-muted-foreground">
                     Tx Fee: {formatETH(tx.gasFeeWei)} ETH
                   </span>
                 )}
@@ -963,9 +963,9 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
                     href={`${explorerUrl}/address/${tx.wallet}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-accent-blue hover:underline font-mono"
+                    className="flex items-center gap-1 text-[#5f8f00] dark:text-[#BFFF00] hover:underline font-mono"
                   >
-                    <span className="text-slate-500">User:</span>
+                    <span className="text-muted-foreground">User:</span>
                     {short(tx.wallet)}
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
@@ -979,7 +979,7 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
               <div className="mt-2 mb-3">
                 <button
                   onClick={() => setShowTechnicalEvents(!showTechnicalEvents)}
-                  className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                  className="flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
@@ -996,7 +996,7 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
 
               {/* Raw Technical Events Timeline */}
               {showTechnicalEvents && (
-                <div className="space-y-0 ml-1 border-t border-slate-800/60 pt-3">
+                <div className="space-y-0 ml-1 border-t border-border-subtle pt-3">
                   {tx.events.map((evt) => (
                     <TimelineStep key={evt.id} event={evt} explorerUrl={explorerUrl} />
                   ))}
@@ -1004,13 +1004,13 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
               )}
 
               {/* Legend */}
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-wrap gap-3 text-[10px] text-slate-500">
+              <div className="mt-4 pt-3 border-t border-border-subtle flex flex-wrap gap-3 text-[10px] text-muted-foreground">
                 {[
-                  { name: 'UnifyVaultController', color: 'bg-accent-blue' },
-                  { name: 'CustodyVault', color: 'bg-accent-emerald' },
-                  { name: 'Treasury', color: 'bg-accent-amber' },
-                  { name: 'UVBTCETHToken', color: 'bg-accent-violet' },
-                  { name: 'StrategyManager', color: 'bg-accent-cyan' },
+                  { name: 'UnifyVaultController', color: 'bg-[#BFFF00]' },
+                  { name: 'CustodyVault', color: 'bg-slate-400' },
+                  { name: 'Treasury', color: 'bg-slate-500' },
+                  { name: 'UVBTCETHToken', color: 'bg-[#BFFF00]/70' },
+                  { name: 'StrategyManager', color: 'bg-slate-600' },
                 ].map((c) => (
                   <span key={c.name} className="flex items-center gap-1">
                     <span className={`w-2 h-2 rounded-full ${c.color}`} />

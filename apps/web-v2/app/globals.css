@@ -34,7 +34,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-accent-blue selection:text-white transition-colors duration-200;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-[#BFFF00] selection:text-black transition-colors duration-200;
   }
 }
 

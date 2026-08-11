@@ -67,11 +67,11 @@ export function ThemeToggle() {
             }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors ${
               theme === 'light'
-                ? 'bg-accent-blue/20 text-accent-blue font-semibold'
-                : 'text-muted-foreground hover:text-foreground hover:bg-surface'
+                ? 'bg-[#BFFF00]/20 text-[#5f8f00] dark:text-[#BFFF00] font-semibold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
-            <Sun className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+            <Sun className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
             <span>Light</span>
           </button>
           <button
@@ -81,11 +81,11 @@ export function ThemeToggle() {
             }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors ${
               theme === 'dark'
-                ? 'bg-accent-blue/20 text-accent-blue font-semibold'
-                : 'text-muted-foreground hover:text-foreground hover:bg-surface'
+                ? 'bg-[#BFFF00]/20 text-[#5f8f00] dark:text-[#BFFF00] font-semibold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
-            <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <Moon className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
             <span>Dark</span>
           </button>
           <button
@@ -95,11 +95,11 @@ export function ThemeToggle() {
             }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors ${
               theme === 'system'
-                ? 'bg-accent-blue/20 text-accent-blue font-semibold'
-                : 'text-muted-foreground hover:text-foreground hover:bg-surface'
+                ? 'bg-[#BFFF00]/20 text-[#5f8f00] dark:text-[#BFFF00] font-semibold'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
           >
-            <Monitor className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Monitor className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
             <span>System</span>
           </button>
         </div>
