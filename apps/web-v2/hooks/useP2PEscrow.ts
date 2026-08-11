@@ -224,6 +224,7 @@ export function useP2PTrades() {
 export function useP2PActions() {
   const { p2pEscrow } = useProtocolDirectory();
   const { chain } = useAccount();
+  const publicClient = usePublicClient();
   const explorerUrl = getExplorerBaseUrl(chain?.id);
 
   const { writeContractAsync, isPending } = useWriteContract();
@@ -290,6 +291,9 @@ export function useP2PActions() {
         value: params.valueEth || 0n,
       });
       setTxHash(hash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -301,6 +305,24 @@ export function useP2PActions() {
   const fundTrade = async (tradeId: number, valueEth?: bigint) => {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
+
+    if (publicClient) {
+      try {
+        const raw = (await publicClient.readContract({
+          address: p2pEscrow,
+          abi: P2P_ESCROW_ABI,
+          functionName: 'getTrade',
+          args: [BigInt(tradeId)],
+        })) as { state: number };
+        if (raw && Number(raw.state) !== TradeState.CREATED) {
+          throw new Error('Trade is already funded on-chain.');
+        }
+      } catch (err: unknown) {
+        const msg = (err as { message?: string })?.message || String(err);
+        if (msg.includes('already funded')) throw err;
+      }
+    }
+
     try {
       const hash = await writeContractAsync({
         address: p2pEscrow,
@@ -310,6 +332,9 @@ export function useP2PActions() {
         value: valueEth || 0n,
       });
       setTxHash(hash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -419,6 +444,39 @@ export function useP2PActions() {
     }
   };
 
+  const approveAsset = async (assetAddress: Address, amount: bigint) => {
+    if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
+    setUserError(null);
+    try {
+      const hash = await writeContractAsync({
+        address: assetAddress,
+        abi: [
+          {
+            inputs: [
+              { name: 'spender', type: 'address' },
+              { name: 'amount', type: 'uint256' },
+            ],
+            name: 'approve',
+            outputs: [{ name: '', type: 'bool' }],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ],
+        functionName: 'approve',
+        args: [p2pEscrow, amount],
+      });
+      setTxHash(hash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+      return hash;
+    } catch (err: unknown) {
+      const parsed = parseTxError(err);
+      setUserError(parsed);
+      throw err;
+    }
+  };
+
   const resolveDispute = async (tradeId: number, outcome: 0 | 1) => {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
@@ -430,6 +488,9 @@ export function useP2PActions() {
         args: [BigInt(tradeId), outcome],
       });
       setTxHash(hash);
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -441,6 +502,7 @@ export function useP2PActions() {
   return {
     createTrade,
     fundTrade,
+    approveAsset,
     submitPayment,
     confirmAndRelease,
     refund,

@@ -46,6 +46,8 @@ export interface DashboardMetrics {
   currentValueUSD: string;
   pnlUSD: string;
   pnlPercentage: string;
+  p2pRealizedPnLUSD?: string;
+  rawP2PRealizedPnLUSD?: number;
   isProfitable: boolean;
   userSharesBalance: string;
   userUsdcBalance: string;
@@ -127,6 +129,8 @@ export interface UserPortfolio {
   pnlUSD: string;
   rawPnLUSD: number;
   pnlPercentage: string;
+  p2pRealizedPnLUSD?: string;
+  rawP2PRealizedPnLUSD?: number;
   isProfitable: boolean;
   averageEntryPriceUSD: string;
   ownershipPercentage: string;

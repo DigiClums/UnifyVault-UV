@@ -60,19 +60,19 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   OracleManager: '0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F' as `0x${string}`,
   ChainlinkOracleProvider: '0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89' as `0x${string}`,
   LiquidityManager: '0xd0542D47176f2869F034e43Efca2C2d540d1fFD3' as `0x${string}`,
-  UVBTCETHToken: '0xa34596D38Be381A4764141105A91C338Ca5503bB' as `0x${string}`,
-  UnifyVaultController: '0xF66Cfb1233548176cD4bFe8224fB18450Bf3c13e' as `0x${string}`,
+  UVBTCETHToken: '0x4A33d001D7F81C12c0C9262256Af83000e64457D' as `0x${string}`,
+  UnifyVaultController: '0x9499Ad93fa257D4d20925FDc4B6D6F6b2b565Bc2' as `0x${string}`,
   StrategyManager: '0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958' as `0x${string}`,
   PortfolioManager: '0x68c969b758e682B67e99a1ed2CC5753Ff1B2635E' as `0x${string}`,
   SwapAdapter: '0xa0164433c94b68522201e3DcbFDDC391B36c45f3' as `0x${string}`,
   FeeManager: '0xea8e047Fa4981935419B2065095e031b6224AC76' as `0x${string}`,
-  CostBasisManager: '0xdA57664ef26676369fB5f87286BF8e2FB2cAD6df' as `0x${string}`,
-  PerformanceManager: '0x47e9B5848E9856f6Dfd0169A993115C93e5Cc29C' as `0x${string}`,
+  CostBasisManager: '0x15dd90413BF9379E6B1D50eED34771094f067765' as `0x${string}`,
+  PerformanceManager: '0x83984555065c95E160a1d6e8e35C43C0BBc3d58F' as `0x${string}`,
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
   P2PEscrow: (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS ||
-    '0x382A2099A4Ce230A12dCc528827C3649C64d898b') as `0x${string}`,
+    '0x6B0F46E4dF7Db5a09B98673fcd7af7E708332A44') as `0x${string}`,
 };
 
 /**

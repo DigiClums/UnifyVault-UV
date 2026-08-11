@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '../interfaces/IPerformanceManager.sol';
-import '../interfaces/ICostBasisManager.sol';
+import '../interfaces/ICostBasisManagerV2.sol';
 import '../interfaces/IPortfolioManager.sol';
 import '../interfaces/IOracle.sol';
 import '../interfaces/IProtocolDirectory.sol';
@@ -97,7 +97,7 @@ contract PerformanceManager is AccessControl, IPerformanceManager {
    */
   function investedCapital(address account) public view override returns (uint256) {
     if (costBasisManager == address(0)) return 0;
-    return ICostBasisManager(costBasisManager).costBasis(account);
+    return ICostBasisManagerV2(costBasisManager).costBasis(account);
   }
 
   /**
@@ -126,9 +126,9 @@ contract PerformanceManager is AccessControl, IPerformanceManager {
     perf.currentValueUSD = currentValue(account);
 
     if (costBasisManager != address(0)) {
-      perf.realizedPnL = ICostBasisManager(costBasisManager).realizedPnL(account);
+      perf.realizedPnL = ICostBasisManagerV2(costBasisManager).realizedPnL(account);
 
-      uint256 firstDeposit = ICostBasisManager(costBasisManager).firstDepositTimestamp(account);
+      uint256 firstDeposit = ICostBasisManagerV2(costBasisManager).firstDepositTimestamp(account);
       uint256 userShares = indexToken != address(0) ? IERC20(indexToken).balanceOf(account) : 0;
 
       if (userShares > 0 && firstDeposit > 0 && block.timestamp >= firstDeposit) {

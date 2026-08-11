@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
-import { formatUnits, type Address } from 'viem';
+import { useAccount, usePublicClient, useReadContract } from 'wagmi';
+import { formatUnits, hexToString, type Address } from 'viem';
 import {
   ShieldCheck,
   Clock,
@@ -17,6 +17,8 @@ import {
   ArrowRightLeft,
   UserCheck,
   Ban,
+  Copy,
+  Gavel,
 } from 'lucide-react';
 import {
   TradeDetails,
@@ -25,6 +27,8 @@ import {
   useP2PActions,
   generateReceiptHash,
 } from '../../hooks/useP2PEscrow';
+import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
+import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
 
 interface TradeDetailCardProps {
@@ -32,8 +36,13 @@ interface TradeDetailCardProps {
   onRefresh?: () => void;
 }
 
+const ARBITRATOR_ROLE_HASH =
+  '0x5e54d6824982635921c210d7a8d56b4f738b556f8f533a1f81dff90d1f705e46' as `0x${string}`;
+
 export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const { address: userAddress, chain } = useAccount();
+  const publicClient = usePublicClient();
+  const { p2pEscrow } = useProtocolDirectory();
   const tokens = getChainTokens(chain?.id);
 
   const formatAssetAmount = (amount: bigint, asset: Address) => {
@@ -50,8 +59,23 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     return `${formatUnits(amount, 6)} USDC`;
   };
 
+  const getAssetSymbol = (asset: Address) => {
+    const addr = asset.toLowerCase();
+    const isEth = addr === '0x0000000000000000000000000000000000000000';
+    const uvAddr = (tokens.UVBTCETH || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toLowerCase();
+    const cbBtcAddr = tokens.cbBTC.toLowerCase();
+    const wethAddr = tokens.WETH.toLowerCase();
+
+    if (isEth) return 'ETH';
+    if (addr === uvAddr) return 'UVBE';
+    if (addr === wethAddr) return 'WETH';
+    if (addr === cbBtcAddr) return 'cbBTC';
+    return 'USDC';
+  };
+
   const {
     fundTrade,
+    approveAsset,
     submitPayment,
     confirmAndRelease,
     refund,
@@ -64,6 +88,60 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     txHash,
     explorerUrl,
   } = useP2PActions();
+
+  // Read allowance for seller & P2PEscrow
+  const { data: allowanceData, refetch: refetchAllowance } = useReadContract({
+    address: trade.asset,
+    abi: [
+      {
+        inputs: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+        ],
+        name: 'allowance',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ],
+    functionName: 'allowance',
+    args: p2pEscrow && trade.seller ? [trade.seller, p2pEscrow] : undefined,
+    query: {
+      enabled: Boolean(
+        p2pEscrow &&
+        trade.seller &&
+        trade.asset !== '0x0000000000000000000000000000000000000000' &&
+        trade.state === TradeState.CREATED,
+      ),
+    },
+  });
+
+  // Read Arbitrator Role status for connected wallet
+  const { data: isArbitratorData } = useReadContract({
+    address: p2pEscrow,
+    abi: [
+      {
+        inputs: [
+          { name: 'role', type: 'bytes32' },
+          { name: 'account', type: 'address' },
+        ],
+        name: 'hasRole',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ],
+    functionName: 'hasRole',
+    args: userAddress ? [ARBITRATOR_ROLE_HASH, userAddress] : undefined,
+    query: {
+      enabled: Boolean(p2pEscrow && userAddress),
+    },
+  });
+
+  const isArbitrator = Boolean(isArbitratorData);
+  const sellerAllowance = (allowanceData as bigint | undefined) ?? 0n;
+  const isEthAsset = trade.asset === '0x0000000000000000000000000000000000000000';
+  const needsApproval = !isEthAsset && sellerAllowance < trade.amount;
 
   // Form states for Buyer payment submission
   const [utr, setUtr] = useState('');
@@ -160,9 +238,60 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
   };
 
+  const handleApprove = async () => {
+    setUserError(null);
+    try {
+      await approveAsset(trade.asset, trade.amount);
+      if (refetchAllowance) refetchAllowance();
+    } catch (err) {
+      console.error('Approval failed:', err);
+    }
+  };
+
+  const handleResolveDisputeAction = async (outcome: 0 | 1) => {
+    setUserError(null);
+    try {
+      if (publicClient && p2pEscrow) {
+        const raw = (await publicClient.readContract({
+          address: p2pEscrow,
+          abi: P2P_ESCROW_ABI,
+          functionName: 'getTrade',
+          args: [BigInt(trade.tradeId)],
+        })) as { state: number };
+        if (raw && Number(raw.state) !== TradeState.DISPUTED) {
+          if (onRefresh) onRefresh();
+          return;
+        }
+      }
+      await resolveDispute(trade.tradeId, outcome);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error('Resolve dispute failed:', err);
+    }
+  };
+
   const handleFund = async () => {
     setUserError(null);
     try {
+      // Pre-flight check: read fresh on-chain trade state directly from smart contract
+      if (publicClient && p2pEscrow) {
+        try {
+          const raw = (await publicClient.readContract({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'getTrade',
+            args: [BigInt(trade.tradeId)],
+          })) as { state: number };
+          if (raw && Number(raw.state) !== TradeState.CREATED) {
+            // Trade is already funded on-chain — refresh UI instead of sending redundant transaction
+            if (onRefresh) onRefresh();
+            return;
+          }
+        } catch (readErr) {
+          console.warn('Pre-flight trade state check failed, proceeding:', readErr);
+        }
+      }
+
       const isEth = trade.asset === '0x0000000000000000000000000000000000000000';
       await fundTrade(trade.tradeId, isEth ? trade.amount : 0n);
       if (onRefresh) onRefresh();
@@ -172,17 +301,36 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   };
 
   const handleRaiseDispute = async () => {
-    if (!disputeReason) {
-      setUserError('Please describe the reason for dispute.');
+    setUserError(null);
+    if (!disputeReason || disputeReason.trim().length === 0) {
+      setUserError('Please provide a reason for the dispute.');
       return;
     }
-    setUserError(null);
+
     try {
       await raiseDispute(trade.tradeId, disputeReason);
+      setShowDisputeInput(false);
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Raise dispute failed:', err);
     }
+  };
+
+  const formatPaymentReference = (ref?: string) => {
+    if (!ref || ref === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+      return { text: 'N/A', isDecoded: false, rawHex: 'N/A' };
+    }
+    try {
+      if (ref.startsWith('0x')) {
+        const decoded = hexToString(ref as `0x${string}`)
+          .replace(/\0/g, '')
+          .trim();
+        if (decoded.length > 0 && /^[\x20-\x7E]+$/.test(decoded)) {
+          return { text: decoded, isDecoded: true, rawHex: ref };
+        }
+      }
+    } catch {}
+    return { text: ref, isDecoded: false, rawHex: ref };
   };
 
   const getStateBadgeStyle = (state: TradeState) => {
@@ -268,6 +416,18 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         </div>
       )}
 
+      {trade.state === TradeState.RELEASED && (
+        <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-900 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>P2P Trade Performance: P2P Fiat Proceeds − Disposed Share Basis</span>
+          </div>
+          <span className="font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
+            {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)} Proceeds
+          </span>
+        </div>
+      )}
+
       {/* Trade Overview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-3.5 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
@@ -317,9 +477,31 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
               <span className="text-muted-foreground font-bold">UTR / Reference:</span>
-              <p className="font-mono font-bold text-foreground">
-                {trade.paymentReference || 'N/A'}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="font-mono font-bold text-foreground">
+                  {formatPaymentReference(trade.paymentReference).text}
+                </p>
+                {formatPaymentReference(trade.paymentReference).isDecoded && (
+                  <span
+                    className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]"
+                    title={trade.paymentReference}
+                  >
+                    ({trade.paymentReference.slice(0, 8)}...)
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      formatPaymentReference(trade.paymentReference).text,
+                    );
+                  }}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                  title="Copy Reference"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
             <div>
               <span className="text-muted-foreground font-bold">Receipt Hash (SHA256/Keccak):</span>
@@ -341,14 +523,25 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           >
             Cancel Order
           </button>
-          <button
-            onClick={handleFund}
-            disabled={isPending}
-            className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
-          >
-            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>Deposit Crypto to Escrow</span>
-          </button>
+          {needsApproval ? (
+            <button
+              onClick={handleApprove}
+              disabled={isPending}
+              className="px-5 py-2.5 rounded-xl bg-amber-400 text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+            >
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>Approve {getAssetSymbol(trade.asset)}</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleFund}
+              disabled={isPending}
+              className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+            >
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>Deposit Crypto to Escrow</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -446,6 +639,58 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>Claim Expired Refund (Return to Seller)</span>
           </button>
+        </div>
+      )}
+
+      {/* 5. ARBITRATOR ACTION: Dispute Resolution Control Panel */}
+      {isArbitrator && trade.state === TradeState.DISPUTED && (
+        <div className="p-4 rounded-xl border-2 border-amber-500 bg-amber-500/10 space-y-4 shadow-[4px_4px_0_#000]">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-sm">
+            <Gavel className="w-5 h-5" />
+            <span>ARBITRATION CONTROL PANEL (Arbitrator Access Authorized)</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            As a designated Arbitrator, inspect the on-chain evidence hash and payment reference
+            below. Make a final binding decision to release escrowed crypto to the Buyer or refund
+            to the Seller.
+          </p>
+          <div className="flex flex-wrap justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Are you sure you want to REFUND Trade #${trade.tradeId} to the Seller?`,
+                  )
+                ) {
+                  handleResolveDisputeAction(1); // REFUND_TO_SELLER
+                }
+              }}
+              disabled={isPending}
+              className="px-4 py-2.5 rounded-xl bg-rose-500 text-white font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+            >
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>Refund Crypto to Seller</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Are you sure you want to RELEASE Trade #${trade.tradeId} to the Buyer?`,
+                  )
+                ) {
+                  handleResolveDisputeAction(0); // RELEASE_TO_BUYER
+                }
+              }}
+              disabled={isPending}
+              className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+            >
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Release Crypto to Buyer</span>
+            </button>
+          </div>
         </div>
       )}
 

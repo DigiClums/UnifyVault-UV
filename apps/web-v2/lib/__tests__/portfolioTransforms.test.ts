@@ -182,4 +182,43 @@ describe('portfolioTransforms Domain Transformation Module', () => {
     expect(userPortfolio.averageEntryPriceUSD).toBe('$2.19');
     expect(userPortfolio.pnlPercentage).toBe('-0.3000%');
   });
+
+  it('strictly excludes P2P realized PnL from main portfolio PnL and Return metrics', () => {
+    const protocolMetrics = transformProtocolMetrics(mockRawProtocolData, mockStrategyMetrics);
+
+    const mockSellerWithP2PRealizedPnL = {
+      userAddress: '0x1234567890123456789012345678901234567890' as `0x${string}`,
+      userSharesRaw: 6_000_000_000_000_000_000_000n, // 6,000 shares remaining
+      userUsdcRaw: 0n,
+      contractInvestedAssetsRaw: 6_000_000_000_000_000_000_000n, // $6,000 remaining cost basis
+      // PerformanceManager returns [currentValueUSD, investedCapitalUSD, realizedPnL, unrealizedPnL, netPnL, roiBps, holdingPeriod]
+      // Seller accumulated +$1,000 P2P realized PnL from a previous P2P sale
+      onChainPerformance: [
+        6_000_000_000_000_000_000_000n, // currentValue = $6,000
+        6_000_000_000_000_000_000_000n, // investedCapital = $6,000
+        1_000_000_000_000_000_000_000n, // realizedPnL = +$1,000 (from P2P)
+        0n, // unrealizedPnL = $0
+        1_000_000_000_000_000_000_000n, // netPnL = +$1,000
+        1667n, // net ROI = 16.67%
+        86400n,
+      ] as any,
+    };
+
+    const userPortfolio = transformUserPortfolio(
+      mockSellerWithP2PRealizedPnL,
+      mockRawProtocolData,
+      protocolMetrics,
+    );
+
+    // Main portfolio metrics must represent remaining position ONLY
+    expect(userPortfolio.rawCurrentValueUSD).toBe(6000);
+    expect(userPortfolio.rawInvestedAssetsUSD).toBe(6000);
+    expect(userPortfolio.rawPnLUSD).toBe(0); // Position Value ($6,000) - Remaining Cost Basis ($6,000) = $0
+    expect(userPortfolio.pnlUSD).toBe('$0.0000');
+    expect(userPortfolio.pnlPercentage).toBe('0.0000%');
+
+    // P2P realized PnL must be kept separate
+    expect(userPortfolio.rawP2PRealizedPnLUSD).toBe(1000);
+    expect(userPortfolio.p2pRealizedPnLUSD).toBe('+$1,000.0000');
+  });
 });

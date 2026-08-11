@@ -39,7 +39,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                Portfolio Value
+                Position Value
               </span>
 
               <span
@@ -64,7 +64,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
               <div className="h-10 sm:h-12 w-44 sm:w-56 rounded-lg bg-white/10 animate-pulse" />
             ) : (
               <div className="text-[34px] sm:text-[48px] lg:text-[52px] font-black font-mono leading-none tracking-[-0.04em] text-slate-950 dark:text-white">
-                {metrics.totalPortfolioValueUSD}
+                {metrics.currentValueUSD}
               </div>
             )}
 

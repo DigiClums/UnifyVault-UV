@@ -38,15 +38,15 @@ export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps)
       source: 'UnifyVaultController',
     },
     {
-      label: 'Net Profit / Loss (PNL)',
+      label: 'Portfolio PnL (Unrealized)',
       value: metrics.pnlUSD,
-      subtitle: `${metrics.pnlPercentage} (${metrics.isProfitable ? 'Net Growth' : 'Capital Loss'})`,
+      subtitle: `${metrics.pnlPercentage} (${metrics.isProfitable ? 'Unrealized Gain' : 'Unrealized Loss'})`,
       isPositive: metrics.isProfitable,
       icon: TrendingUp,
       iconBg: metrics.isProfitable
         ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
         : 'bg-rose-500/10 text-rose-500',
-      source: 'Holding Value − Cost Basis',
+      source: 'Position Value − Remaining Cost Basis',
     },
     {
       label: 'Average Entry Price',

@@ -20,6 +20,8 @@ export function useDashboard(): DashboardMetrics {
     currentValueUSD: data.currentValueUSD,
     pnlUSD: data.pnlUSD,
     pnlPercentage: data.pnlPercentage,
+    p2pRealizedPnLUSD: data.p2pRealizedPnLUSD,
+    rawP2PRealizedPnLUSD: data.rawP2PRealizedPnLUSD,
     isProfitable: data.isProfitable,
     userSharesBalance: data.userSharesBalance,
     userUsdcBalance: data.userUsdcBalanceFormatted,

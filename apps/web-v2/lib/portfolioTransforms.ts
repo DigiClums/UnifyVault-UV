@@ -257,6 +257,7 @@ export function transformUserPortfolio(
   let currentValueUSD = 0;
   let pnlUSD = 0;
   let pnlPercent = 0;
+  let p2pRealizedPnLUSD = 0;
 
   if (onChainPerformance && typeof onChainPerformance === 'object') {
     if ('investedCapitalUSD' in onChainPerformance) {
@@ -264,8 +265,10 @@ export function transformUserPortfolio(
       const perf = onChainPerformance as PerformanceStruct;
       investedAssetsUSD = Number(perf.investedCapitalUSD) / 1e18;
       currentValueUSD = Number(perf.currentValueUSD) / 1e18;
-      pnlUSD = Number(perf.netPnL) / 1e18;
-      pnlPercent = Number(perf.roiBps) / 100;
+      p2pRealizedPnLUSD = Number(perf.realizedPnL) / 1e18;
+      const unrealizedUSD = Number(perf.unrealizedPnL) / 1e18;
+      pnlUSD = unrealizedUSD;
+      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
     } else if ('costBasisUSD' in onChainPerformance) {
       // CostBasisManager portfolioPerformance tuple (Viem object or proxy array with named properties)
       const cbm = onChainPerformance as unknown as {
@@ -276,22 +279,26 @@ export function transformUserPortfolio(
       };
       investedAssetsUSD = Number(cbm.costBasisUSD) / 1e18;
       currentValueUSD = Number(cbm.currentValueUSD) / 1e18;
-      pnlUSD = Number(cbm.pnlUSD) / 1e18;
-      pnlPercent = Number(cbm.pnlBps) / 100;
+      const unrealizedUSD = currentValueUSD - investedAssetsUSD;
+      pnlUSD = unrealizedUSD;
+      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
     } else if (Array.isArray(onChainPerformance) && onChainPerformance.length >= 7) {
       // Positional array from PerformanceManager
       // [currentValueUSD, investedCapitalUSD, realizedPnL, unrealizedPnL, netPnL, roiBps, holdingPeriod]
       currentValueUSD = Number(onChainPerformance[0]) / 1e18;
       investedAssetsUSD = Number(onChainPerformance[1]) / 1e18;
-      pnlUSD = Number(onChainPerformance[4]) / 1e18;
-      pnlPercent = Number(onChainPerformance[5]) / 100;
+      p2pRealizedPnLUSD = Number(onChainPerformance[2]) / 1e18;
+      const unrealizedUSD = Number(onChainPerformance[3]) / 1e18;
+      pnlUSD = unrealizedUSD;
+      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
     } else if (Array.isArray(onChainPerformance) && onChainPerformance.length >= 4) {
       // Positional array from CostBasisManager
       // [costBasisUSD, currentValueUSD, pnlUSD, pnlBps]
       investedAssetsUSD = Number(onChainPerformance[0]) / 1e18;
       currentValueUSD = Number(onChainPerformance[1]) / 1e18;
-      pnlUSD = Number(onChainPerformance[2]) / 1e18;
-      pnlPercent = Number(onChainPerformance[3]) / 100;
+      const unrealizedUSD = currentValueUSD - investedAssetsUSD;
+      pnlUSD = unrealizedUSD;
+      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
     } else {
       investedAssetsUSD = calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
       currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
@@ -411,6 +418,8 @@ export function transformUserPortfolio(
     pnlUSD: formatPnLUSD(pnlUSD),
     rawPnLUSD: pnlUSD,
     pnlPercentage: formatPnLPercent(pnlPercent),
+    p2pRealizedPnLUSD: formatPnLUSD(p2pRealizedPnLUSD),
+    rawP2PRealizedPnLUSD: p2pRealizedPnLUSD,
     isProfitable,
     averageEntryPriceUSD: formatUSD(averageEntryPriceUSDNum),
     ownershipPercentage,

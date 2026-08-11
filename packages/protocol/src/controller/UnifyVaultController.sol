@@ -18,7 +18,7 @@ import '../interfaces/IPortfolioManager.sol';
 import '../interfaces/IStrategyManager.sol';
 import '../interfaces/ISwapAdapter.sol';
 import '../interfaces/IFeeManager.sol';
-import '../interfaces/ICostBasisManager.sol';
+import '../interfaces/ICostBasisManagerV2.sol';
 import '../constants/ModuleIds.sol';
 import '../vault/CustodyVault.sol';
 import '../token/UVBTCETHToken.sol';
@@ -1021,9 +1021,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       // Use the exact post-swap realized USD value used to mint shares.
       // This keeps cost basis / CPS aligned with the actual underlying
       // assets acquired by the protocol.
-      try
-        ICostBasisManager(cbm).recordDeposit(quote.receiver, realizedDepositUSD, shares)
-      {} catch {}
+      ICostBasisManagerV2(cbm).recordDeposit(quote.receiver, realizedDepositUSD, shares);
     }
 
     emit DepositExecuted(
@@ -1175,7 +1173,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       uint256 payoutPrice = IOracle(_oracle).getAssetPrice(asset);
       uint8 payoutDecimals = CustodyVault(_vault).assetConfig(asset).decimals;
       uint256 payoutUSD = (netOut * payoutPrice) / (10 ** payoutDecimals);
-      try ICostBasisManager(cbm).recordRedeem(user, userSharesBefore, shares, payoutUSD) {} catch {}
+      ICostBasisManagerV2(cbm).recordRedeem(user, userSharesBefore, shares, payoutUSD);
     }
   }
 
