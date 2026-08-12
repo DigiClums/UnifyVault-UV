@@ -19,6 +19,7 @@ import {
   Ban,
   Copy,
   Gavel,
+  QrCode,
 } from 'lucide-react';
 import {
   TradeDetails,
@@ -30,6 +31,8 @@ import {
 import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import { SmartPaymentQR } from './SmartPaymentQR';
+import { PaymentIntent } from '../../lib/payment/types';
 
 interface TradeDetailCardProps {
   trade: TradeDetails;
@@ -159,8 +162,91 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     outcome: 0 | 1;
   }>({ open: false, outcome: 0 });
 
+  // Phase 2 Off-Chain Payment Intent & Smart QR States
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
+  const [upiUri, setUpiUri] = useState<string>('');
+  const [isFetchingIntent, setIsFetchingIntent] = useState(false);
+  const [isClaimingIntent, setIsClaimingIntent] = useState(false);
+  const [sellerUpiInput, setSellerUpiInput] = useState('');
+
   const isSeller = userAddress?.toLowerCase() === trade.seller.toLowerCase();
   const isBuyer = userAddress?.toLowerCase() === trade.buyer.toLowerCase();
+
+  // Fetch Payment Intent for active trade
+  useEffect(() => {
+    if (
+      !userAddress ||
+      (trade.state !== TradeState.FUNDED && trade.state !== TradeState.PAYMENT_SUBMITTED)
+    ) {
+      return;
+    }
+    async function fetchIntent() {
+      try {
+        setIsFetchingIntent(true);
+        const res = await fetch('/api/p2p/payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tradeId: trade.tradeId, userAddress }),
+        });
+        const data = await res.json();
+        if (data.success && data.paymentIntent) {
+          setPaymentIntent(data.paymentIntent);
+          setUpiUri(data.upiUri || '');
+        }
+      } catch (err) {
+        console.warn('Failed fetching payment intent:', err);
+      } finally {
+        setIsFetchingIntent(false);
+      }
+    }
+    fetchIntent();
+  }, [trade.tradeId, trade.state, userAddress]);
+
+  const handleClaimIntentPayment = async (utrValue: string) => {
+    if (!userAddress) return;
+    try {
+      setIsClaimingIntent(true);
+      const res = await fetch('/api/p2p/payment-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tradeId: trade.tradeId, userAddress, utr: utrValue }),
+      });
+      const data = await res.json();
+      if (data.success && data.paymentIntent) {
+        setPaymentIntent(data.paymentIntent);
+      }
+    } catch (err) {
+      console.error('Failed submitting payment claim:', err);
+    } finally {
+      setIsClaimingIntent(false);
+    }
+  };
+
+  const handleSaveSellerUpi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userAddress || !sellerUpiInput.trim()) return;
+    try {
+      setIsFetchingIntent(true);
+      const res = await fetch('/api/p2p/payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: trade.tradeId,
+          userAddress,
+          sellerUpiId: sellerUpiInput.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.paymentIntent) {
+        setPaymentIntent(data.paymentIntent);
+        setUpiUri(data.upiUri || '');
+      }
+    } catch (err) {
+      console.error('Failed saving seller UPI ID:', err);
+    } finally {
+      setIsFetchingIntent(false);
+    }
+  };
 
   // Deadline countdown calculation
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(0);
@@ -542,6 +628,55 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           </p>
         </div>
       </div>
+
+      {/* PHASE 2: SMART PAYMENT QR & INTENT DISPLAY */}
+      {paymentIntent &&
+        upiUri &&
+        (trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED) && (
+          <SmartPaymentQR
+            paymentIntent={paymentIntent}
+            upiUri={upiUri}
+            onClaimPayment={handleClaimIntentPayment}
+            isClaiming={isClaimingIntent}
+          />
+        )}
+
+      {/* Seller Private UPI Setup Drawer */}
+      {isSeller &&
+        trade.state === TradeState.FUNDED &&
+        !paymentIntent?.sellerPaymentIdentifier.includes('@') && (
+          <form
+            onSubmit={handleSaveSellerUpi}
+            className="p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 space-y-3 font-mono"
+          >
+            <div className="flex items-center gap-2 font-black text-xs text-amber-600 dark:text-amber-400">
+              <QrCode className="w-4 h-4" />
+              <span>CONFIGURE PRIVATE SELLER UPI PAYEE ID</span>
+            </div>
+            <p className="text-xs text-muted-foreground font-sans">
+              Enter your UPI VPA (e.g. yourname@upi or 9876543210@paytm) so the buyer can scan the
+              Smart QR code. This information is kept strictly private and exposed only to your
+              matched buyer.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 font-sans">
+              <input
+                type="text"
+                placeholder="e.g. seller@upi"
+                value={sellerUpiInput}
+                onChange={(e) => setSellerUpiInput(e.target.value)}
+                className="flex-1 px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00] min-h-[44px]"
+                required
+              />
+              <button
+                type="submit"
+                disabled={isFetchingIntent || !sellerUpiInput.trim()}
+                className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 min-h-[44px]"
+              >
+                {isFetchingIntent ? 'Saving...' : 'Set UPI Payee ID'}
+              </button>
+            </div>
+          </form>
+        )}
 
       {/* Payment Claim Evidence Box (If submitted) */}
       {trade.paymentTimestamp > 0 && (

@@ -73,6 +73,8 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
   P2PEscrow: (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS ||
     '0x6B0F46E4dF7Db5a09B98673fcd7af7E708332A44') as `0x${string}`,
+  Marketplace: (process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS ||
+    '0x62C6d71C79244036647970dEEA8D76e6900fB975') as `0x${string}`,
 };
 
 /**
