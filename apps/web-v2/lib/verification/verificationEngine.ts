@@ -36,12 +36,13 @@ export class PaymentVerificationEngine {
   private providers: Map<string, PaymentVerificationProvider> = new Map();
 
   constructor() {
-    // Register Bank Webhook Provider
-    const bankProvider = new BankWebhookVerificationProvider();
-    this.providers.set(bankProvider.name, bankProvider);
-
-    // Register Mock Provider ONLY in dev/test
+    // STRICT PRODUCTION SAFETY RULE:
+    // UnifyVault P2P in production does NOT depend on any bank API, bank webhook, or mock provider.
+    // Bank and mock providers are registered ONLY in development/testing mode when ALLOW_MOCK_VERIFIER is true.
     if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_MOCK_VERIFIER === 'true') {
+      const bankProvider = new BankWebhookVerificationProvider();
+      this.providers.set(bankProvider.name, bankProvider);
+
       const mockProvider = new MockPaymentVerificationProvider();
       this.providers.set(mockProvider.name, mockProvider);
     }

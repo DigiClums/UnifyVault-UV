@@ -10,7 +10,7 @@ import {
 } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
-import { getChainTokens, getExplorerBaseUrl } from '../../../constants';
+import { getChainTokens, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
 import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
@@ -48,7 +48,8 @@ export interface CustodyEventLog {
 
 export default function AdminCustodyPage() {
   const { address: connectedAddress, chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const tokens = getChainTokens(chain?.id);
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { vault, oracle } = useProtocolDirectory();

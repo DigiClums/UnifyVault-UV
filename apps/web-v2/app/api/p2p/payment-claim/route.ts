@@ -129,13 +129,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Trade State Check: Must be in FUNDED state (state == 2)
+    // 4. Trade State Check: Must be in CREATED or FUNDED state (state 1 or 2)
     const tradeState = Number(rawTrade.state);
-    if (tradeState < 2) {
+    if (tradeState < 1) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Trade must be in FUNDED state before submitting a payment claim.',
+          error: 'Trade must be created before submitting a payment claim.',
         },
         { status: 400 },
       );

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { savePaymentIntent, getPaymentIntentStorageRoot } from '../../payment/paymentIntentStore';
 import { PaymentIntent } from '../../payment/types';
@@ -8,6 +9,11 @@ import { PaymentVerificationEngine } from '../verificationEngine';
 import { BankWebhookVerificationProvider } from '../providers/bankWebhookProvider';
 import { getVerificationStorageRoot, consumeProviderReference } from '../verificationStore';
 import { generateSignedAttestation, verifySignedAttestation } from '../attestation';
+
+const testDir = path.join('/tmp', 'test-verif-engine-' + Math.random().toString(36).slice(2));
+process.env.P2P_INTENT_ROOT = path.join(testDir, 'intents');
+process.env.P2P_VERIFICATION_ROOT = path.join(testDir, 'verifications');
+process.env.P2P_PROFILE_ROOT = path.join(testDir, 'profiles');
 
 describe('Phase 4.1 — Verification Adversarial Audit & Security Tests', () => {
   const mockTradeId1 = 99401;
@@ -27,8 +33,26 @@ describe('Phase 4.1 — Verification Adversarial Audit & Security Tests', () => 
     [mockTradeId1, mockTradeId2, mockTradeId3].forEach((tid) => {
       const f1 = path.resolve(intentRoot, `intent-trade-${tid}.json`);
       const f2 = path.resolve(verifRoot, `verification-trade-${tid}.json`);
-      if (fs.existsSync(f1)) fs.unlinkSync(f1);
-      if (fs.existsSync(f2)) fs.unlinkSync(f2);
+      if (fs.existsSync(f1)) try { fs.unlinkSync(f1); } catch {}
+      if (fs.existsSync(f2)) try { fs.unlinkSync(f2); } catch {}
+    });
+
+    const refsToClean = [
+      'BANK-UTR-DEST-A1',
+      'BANK-UTR-DEST-B2',
+      'BANK-UTR-DEST-C3',
+      'REF-CONCURRENT-LOCK-44',
+      'MOCK-REF-100',
+    ];
+    refsToClean.forEach((ref) => {
+      ['MOCK_DEVELOPMENT_PROVIDER', 'BANK_WEBHOOK_PROVIDER'].forEach((prov) => {
+        const refHash = crypto
+          .createHash('sha256')
+          .update(`${prov}:${ref.trim()}`)
+          .digest('hex');
+        const refFile = path.resolve(verifRoot, `provider-ref-${refHash}.json`);
+        if (fs.existsSync(refFile)) try { fs.unlinkSync(refFile); } catch {}
+      });
     });
   };
 

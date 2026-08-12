@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens, getExplorerBaseUrl } from '../../constants';
+import { installProviderInterceptors } from '../utils/providerInterceptor';
+import { createSafeWagmiStorage, getSafeStorage } from '../utils/storageFallback';
 
 describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   it('should expose all 8 required canonical protocol contract addresses for Base Sepolia', () => {
@@ -199,5 +201,64 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(contractsObj).not.toContain('privateKey');
     expect(contractsObj).not.toContain('secret');
     expect(contractsObj).not.toContain('MNEMONIC');
+  });
+
+  it('should verify provider interceptor preserves EIP-1193 event listeners (.on, .removeListener) for wallet reconnect on page refresh', async () => {
+    const listeners: Record<string, Function[]> = {};
+    class DummyProvider {
+      isMetaMask = true;
+      request = async ({ method }: { method: string }) => {
+        if (method === 'eth_accounts') return ['0x1234567890123456789012345678901234567890'];
+        return null;
+      };
+      on(event: string, fn: Function) {
+        if (!listeners[event]) listeners[event] = [];
+        listeners[event].push(fn);
+      }
+      removeListener(event: string, fn: Function) {
+        if (listeners[event]) {
+          listeners[event] = listeners[event].filter((cb) => cb !== fn);
+        }
+      }
+    }
+
+    const originalProvider = new DummyProvider();
+    (global as any).window = {
+      ethereum: originalProvider,
+    };
+
+    installProviderInterceptors();
+
+    const proxiedProvider = (global as any).window.ethereum;
+    expect(proxiedProvider.__uv_proxied).toBe(true);
+
+    // Verify .on and .removeListener work through the Proxy without throwing undefined method error
+    let eventFired = false;
+    const callback = () => {
+      eventFired = true;
+    };
+
+    expect(typeof proxiedProvider.on).toBe('function');
+    expect(typeof proxiedProvider.removeListener).toBe('function');
+
+    proxiedProvider.on('accountsChanged', callback);
+    expect(listeners['accountsChanged']).toHaveLength(1);
+
+    listeners['accountsChanged'][0]();
+    expect(eventFired).toBe(true);
+
+    proxiedProvider.removeListener('accountsChanged', callback);
+    expect(listeners['accountsChanged']).toHaveLength(0);
+
+    // Clean up global window mock
+    delete (global as any).window;
+  });
+
+  it('should verify safe wagmi storage fallback retains keys for auto-reconnecting wallet on page refresh', () => {
+    const storage = createSafeWagmiStorage();
+    expect(storage).toBeDefined();
+    expect(typeof storage.getItem).toBe('function');
+    expect(typeof storage.setItem).toBe('function');
+    expect(typeof storage.removeItem).toBe('function');
   });
 });

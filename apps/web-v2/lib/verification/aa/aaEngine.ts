@@ -9,15 +9,30 @@ export class AccountAggregatorVerificationEngine {
   private aaProviders: Map<string, AccountAggregatorProvider> = new Map();
 
   constructor() {
-    // Register Mock AA Provider ONLY in dev/test/sandbox
-    const mode = process.env.AA_INTEGRATION_MODE || 'sandbox';
-    if (mode === 'sandbox' || process.env.NODE_ENV === 'test') {
-      const mockAa = new MockAccountAggregatorProvider();
-      this.aaProviders.set(mockAa.name, mockAa);
+    // STRICT M3 PRODUCTION ISOLATION:
+    // In production mode without ALLOW_MOCK_VERIFIER, mock AA provider is strictly disallowed.
+    const isProductionNoMock =
+      process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_VERIFIER !== 'true';
+
+    if (!isProductionNoMock) {
+      const mode = process.env.AA_INTEGRATION_MODE || 'sandbox';
+      if (mode === 'sandbox' || process.env.NODE_ENV === 'test') {
+        const mockAa = new MockAccountAggregatorProvider();
+        this.aaProviders.set(mockAa.name, mockAa);
+      }
     }
   }
 
   public getAAProvider(name?: string): AccountAggregatorProvider {
+    const isProductionNoMock =
+      process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_VERIFIER !== 'true';
+
+    if (isProductionNoMock && process.env.AA_INTEGRATION_MODE !== 'production') {
+      throw new Error(
+        'CRITICAL PRODUCTION SAFETY ERROR: Account Aggregator verification is disabled in production environments without active AA production credentials.',
+      );
+    }
+
     const providerName = name || 'MOCK_AA_DEVELOPMENT_PROVIDER';
     const provider = this.aaProviders.get(providerName);
     if (!provider) {

@@ -11,7 +11,7 @@ import {
 import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { usePortfolio } from '../../../hooks/usePortfolio';
 import { STRATEGY_MANAGER_ABI, CONTROLLER_ABI } from '../../../lib/contracts';
-import { getChainTokens } from '../../../constants';
+import { getChainTokens, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -30,7 +30,8 @@ import {
 
 export default function AdminRebalancePage() {
   const { address, chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const tokens = getChainTokens(chain?.id);
   const { holdings } = usePortfolio();
   const { controller, strategyManager } = useProtocolDirectory();

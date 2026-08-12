@@ -6,7 +6,7 @@ import { useAccount, useReadContract, useWriteContract, usePublicClient } from '
 import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { useUnifiedProtocolData } from './useUnifiedProtocolData';
-import { getChainTokens } from '../constants';
+import { getChainTokens, getDefaultChainId } from '../constants';
 import { parseUnits, formatUnits, formatUSD, calculateSlippageMinAssets } from '../lib/math';
 import { invalidateProtocolQueries } from '../lib/utils/cacheInvalidation';
 import { decodeTransactionError } from '../lib/utils/errorDecoder';
@@ -18,9 +18,10 @@ export type RedeemStepState =
 
 export function useRedeem(targetAssetAddressInput?: `0x${string}`, targetDecimals: number = 6) {
   const { address: userAddress, chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
   const tokens = getChainTokens(chain?.id);
   const targetAssetAddress = targetAssetAddressInput || tokens.USDC;
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
   const { controller, token } = useProtocolDirectory();

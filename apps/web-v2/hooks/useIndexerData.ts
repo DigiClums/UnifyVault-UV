@@ -7,6 +7,7 @@ import { useProtocolDirectory } from './useProtocolDirectory';
 import { CONTROLLER_ABI, CUSTODY_VAULT_ABI, ERC20_ABI } from '../lib/contracts';
 import { useOraclePrices } from './useOraclePrices';
 import { NavSnapshot } from '../types';
+import { getDefaultChainId } from '../constants';
 
 export interface IndexedEvent {
   blockNumber: number;
@@ -34,7 +35,9 @@ export interface IndexedEvent {
  * Zero off-chain indexers or database reliance.
  */
 export function useTransactionHistory() {
-  const publicClient = usePublicClient();
+  const { chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const { controller } = useProtocolDirectory();
   const [transactions, setTransactions] = useState<IndexedEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,7 +110,9 @@ export function useProtocolRevenue() {
  * Derives NAV progression trajectory directly from live contract state and block events.
  */
 export function useHistoricalNAV(period: string = 'ALL') {
-  const publicClient = usePublicClient();
+  const { chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const { token } = useProtocolDirectory();
   const [navHistory, setNavHistory] = useState<NavSnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);

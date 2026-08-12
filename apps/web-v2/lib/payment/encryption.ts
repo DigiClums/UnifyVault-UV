@@ -1,23 +1,32 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const SECRET_KEY =
-  process.env.PAYMENT_DATA_ENCRYPTION_KEY ||
-  'unifyvault-p2p-payment-secret-key-32b!!-secure-at-rest';
 
 /**
- * Derives a 32-byte key buffer from secret
+ * Derives a 32-byte key buffer from secret.
+ * Fails closed if PAYMENT_DATA_ENCRYPTION_KEY is missing or invalid.
  */
-function getDerivedKey(): Buffer {
-  return crypto.createHash('sha256').update(SECRET_KEY).digest();
+function getDerivedKey(customSecret?: string): Buffer {
+  const secret = customSecret !== undefined ? customSecret : process.env.PAYMENT_DATA_ENCRYPTION_KEY;
+
+  if (!secret || typeof secret !== 'string' || secret.trim() === '') {
+    throw new Error('PAYMENT_DATA_ENCRYPTION_KEY is missing or invalid');
+  }
+
+  // Key length must be at least 16 characters for cryptographic safety
+  if (secret.length < 16) {
+    throw new Error('PAYMENT_DATA_ENCRYPTION_KEY is missing or invalid');
+  }
+
+  return crypto.createHash('sha256').update(secret).digest();
 }
 
 /**
  * Encrypts sensitive text (e.g. seller UPI ID) at rest using AES-256-GCM
  */
-export function encryptData(text: string): string {
+export function encryptData(text: string, customSecret?: string): string {
   if (!text) return '';
-  const key = getDerivedKey();
+  const key = getDerivedKey(customSecret);
   const iv = crypto.randomBytes(12); // 96-bit IV
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
@@ -32,7 +41,7 @@ export function encryptData(text: string): string {
 /**
  * Decrypts AES-256-GCM encrypted payload
  */
-export function decryptData(encryptedPayload: string): string {
+export function decryptData(encryptedPayload: string, customSecret?: string): string {
   if (!encryptedPayload || !encryptedPayload.startsWith('enc:')) {
     return encryptedPayload; // Return raw string if not encrypted
   }
@@ -41,7 +50,7 @@ export function decryptData(encryptedPayload: string): string {
   if (parts.length !== 4) return encryptedPayload;
 
   const [, ivHex, authTagHex, encryptedHex] = parts;
-  const key = getDerivedKey();
+  const key = getDerivedKey(customSecret);
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
 

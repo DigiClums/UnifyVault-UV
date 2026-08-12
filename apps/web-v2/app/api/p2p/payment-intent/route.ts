@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         userAddress,
         timestamp: Number(timestamp),
         signature,
-        action: sellerUpiId ? 'set-seller-upi' : 'payment-intent',
+        action: body.action || (sellerUpiId ? 'set-seller-upi' : 'payment-intent'),
         tradeId,
       });
 
@@ -157,14 +157,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (caller === buyer && tradeState === 1) {
+    // 6. Payment Intent Retrieval & Immutability Enforcement (M1 Audit Requirement)
+    const existingIntent = await getPaymentIntentByTradeId(tradeId);
+
+    const sellerProfileForTrade = await getSellerPaymentProfile(seller);
+    if (caller === buyer && tradeState === 1 && !existingIntent && !sellerProfileForTrade) {
       return NextResponse.json(
         { success: false, error: 'Trade has not been funded with collateral by seller yet.' },
         { status: 400 },
       );
     }
 
-    // 6. Payment Window Expiry Check
+    // 7. Payment Window Expiry Check
     const fundingTs = Number(rawTrade.fundingTimestamp);
     const windowSecs = Number(rawTrade.paymentWindow);
     const nowSecs = Math.floor(Date.now() / 1000);
@@ -176,34 +180,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 7. Derive trusted fiat parameters from contract state
-    const fiatAmountStr = formatUnits(rawTrade.fiatAmount, 2);
-    const currencyStr = hexToString(rawTrade.fiatCurrency).replace(/\0/g, '') || 'INR';
-
-    // 8. Derive seller payment identifier exclusively from trusted server-side seller profile storage
-    const sellerProfile = await getSellerPaymentProfile(seller);
-    const activeSellerUpi = sellerProfile?.upiId || `${seller.slice(0, 8)}@upi`;
-
-    // 9. Payment Intent Retrieval & Immutability Enforcement
-    const existingIntent = await getPaymentIntentByTradeId(tradeId);
-
+    let sellerPaymentIdentifier: string;
     let reference: string;
     let expiresAt: string;
+    let fiatAmountStr: string;
+    let currencyStr: string;
 
     if (existingIntent) {
-      // Core fields are IMMUTABLE once intent is created
+      // Core fields are 100% IMMUTABLE once intent is created.
+      // Subsequent profile updates by seller do NOT alter existing trade payment intents.
+      sellerPaymentIdentifier = existingIntent.sellerPaymentIdentifier;
       reference = existingIntent.reference;
       expiresAt = existingIntent.expiresAt;
+      fiatAmountStr = existingIntent.fiatAmount;
+      currencyStr = existingIntent.fiatCurrency;
     } else {
+      // Derive initial payee snapshot from trusted server-side seller profile storage
+      const sellerProfile = await getSellerPaymentProfile(seller);
+      sellerPaymentIdentifier = sellerProfile?.upiId || `${seller.slice(0, 8)}@upi`;
+
       reference = generateTradeReference(tradeId);
       const expiryTimestamp =
         fundingTs > 0 ? (fundingTs + windowSecs) * 1000 : Date.now() + windowSecs * 1000;
       expiresAt = new Date(expiryTimestamp).toISOString();
+      fiatAmountStr = formatUnits(rawTrade.fiatAmount, 2);
+      currencyStr = hexToString(rawTrade.fiatCurrency).replace(/\0/g, '') || 'INR';
     }
 
-    // Construct standard URL-encoded UPI Intent payload
+    // Construct standard URL-encoded UPI Intent payload using immutable payee snapshot
     const upiUri = generateUpiUri(
-      activeSellerUpi,
+      sellerPaymentIdentifier,
       'UnifyVault Escrow',
       fiatAmountStr,
       currencyStr,
@@ -217,7 +223,7 @@ export async function POST(req: NextRequest) {
       tradeId,
       buyerAddress: rawTrade.buyer,
       sellerAddress: rawTrade.seller,
-      sellerPaymentIdentifier: activeSellerUpi,
+      sellerPaymentIdentifier,
       fiatAmount: fiatAmountStr,
       fiatCurrency: currencyStr,
       status: intentStatus,

@@ -9,6 +9,11 @@ export const CHAIN_CONFIG = getDefaultChainId() === base.id ? base : baseSepolia
 
 export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'https://app.unifyvault.xyz';
 
+/**
+ * Authoritative Fiat Settlement Currency for P2P UPI Payment Architecture
+ */
+export const DEFAULT_P2P_FIAT_CURRENCY = 'INR';
+
 export function getDefaultChainId(): number {
   if (
     process.env.NEXT_PUBLIC_ACTIVE_CHAIN === 'base' ||
@@ -24,12 +29,17 @@ export const RPC_URL = getRpcUrl();
 export function getRpcUrl(chainId?: number): string {
   const targetChain = chainId || getDefaultChainId();
   if (targetChain === base.id) {
-    return process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET || 'https://mainnet.base.org';
+    return (
+      process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET ||
+      process.env.BASE_MAINNET_RPC_URL ||
+      'https://mainnet.base.org'
+    );
   }
   return (
     process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA ||
     process.env.NEXT_PUBLIC_RPC_URL ||
-    'https://sepolia.base.org'
+    process.env.BASE_SEPOLIA_RPC_URL ||
+    'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8'
   );
 }
 
@@ -50,9 +60,18 @@ export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
 
 export const PROTOCOL_DIRECTORY_ADDRESS = getProtocolDirectoryAddress();
 
-/**
- * Base Sepolia Deployed Contracts (V2 Protocol Deployment)
- */
+export function isNonZeroAddress(addr?: string): boolean {
+  if (!addr) return false;
+  const clean = addr.trim().toLowerCase();
+  return (
+    clean !== '' &&
+    clean !== '0x0000000000000000000000000000000000000000' &&
+    clean !== '0x0' &&
+    clean.startsWith('0x') &&
+    clean.length === 42
+  );
+}
+
 export const DEPLOYED_CONTRACTS_SEPOLIA = {
   ProtocolDirectory: '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D' as `0x${string}`,
   Treasury: '0x8Aa2e812D244b0C30D45035C3C843f4CdD02aCe6' as `0x${string}`,
@@ -71,10 +90,32 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
-  P2PEscrow: (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS ||
-    '0x6B0F46E4dF7Db5a09B98673fcd7af7E708332A44') as `0x${string}`,
-  Marketplace: (process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS ||
-    '0x62C6d71C79244036647970dEEA8D76e6900fB975') as `0x${string}`,
+  P2PEscrow: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA
+    : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
+    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
+    : '0x6B0F46E4dF7Db5a09B98673fcd7af7E708332A44') as `0x${string}`,
+  Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA
+    : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
+    ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
+    : '0x5978273B16467E99f45984Dc8AE9048ba05a30F7') as `0x${string}`,
+};
+
+/**
+ * Base Mainnet Deployed Contracts
+ */
+export const DEPLOYED_CONTRACTS_MAINNET = {
+  P2PEscrow: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET)
+    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET
+    : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
+    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
+    : '0x0000000000000000000000000000000000000000') as `0x${string}`,
+  Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET)
+    ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET
+    : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
+    ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
+    : '0x0000000000000000000000000000000000000000') as `0x${string}`,
 };
 
 /**
@@ -91,8 +132,8 @@ export const TOKENS_BY_CHAIN: Record<
   },
   [baseSepolia.id]: {
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    cbBTC: '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29',
-    WETH: '0xd116ab1c943cf15904ec4c8dd701086f175fa323',
+    cbBTC: '0xB0B47F113Bcab2b0e49fD5d3Bd2CC0e9Aa408b29',
+    WETH: '0xd116ab1c943cf15904eC4c8dd701086f175FA323',
     UVBTCETH: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
   },
 };

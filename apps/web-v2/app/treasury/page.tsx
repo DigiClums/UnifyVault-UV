@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAccount, useReadContracts, usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 import { TREASURY_ABI, CONTROLLER_ABI, ORACLE_MANAGER_ABI } from '../../lib/contracts';
-import { getChainTokens, getExplorerBaseUrl } from '../../constants';
+import { getChainTokens, getExplorerBaseUrl, getDefaultChainId } from '../../constants';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../lib/math';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -33,7 +33,8 @@ export interface PublicTreasuryLog {
 
 export default function PublicTreasuryPage() {
   const { chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const tokens = getChainTokens(chain?.id);
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { treasury, controller, oracle } = useProtocolDirectory();

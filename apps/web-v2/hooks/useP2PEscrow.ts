@@ -19,7 +19,13 @@ import {
 } from 'viem';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { P2P_ESCROW_ABI } from '../lib/contracts/escrow';
-import { getExplorerBaseUrl } from '../constants';
+import {
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  getProtocolDirectoryAddress,
+  getDefaultChainId,
+  getExplorerBaseUrl,
+  DEFAULT_P2P_FIAT_CURRENCY,
+} from '../constants';
 
 export enum TradeState {
   NONE = 0,
@@ -74,6 +80,8 @@ export async function generateReceiptHash(file: File): Promise<`0x${string}`> {
  * Hook to read trade state directly from blockchain without database reliance
  */
 export function useP2PTrade(tradeId?: number) {
+  const { chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
   const { p2pEscrow } = useProtocolDirectory();
 
   const { data, isError, isLoading, refetch } = useReadContract({
@@ -81,6 +89,7 @@ export function useP2PTrade(tradeId?: number) {
     abi: P2P_ESCROW_ABI,
     functionName: 'getTrade',
     args: tradeId ? [BigInt(tradeId)] : undefined,
+    chainId,
     query: {
       enabled: Boolean(p2pEscrow && tradeId && tradeId > 0),
       refetchInterval: 10_000,
@@ -115,8 +124,8 @@ export function useP2PTrade(tradeId?: number) {
         amount: raw.amount,
         fiatAmount: raw.fiatAmount,
         fiatCurrency: raw.fiatCurrency
-          ? hexToString(raw.fiatCurrency).replace(/\0/g, '') || 'USD'
-          : 'USD',
+          ? hexToString(raw.fiatCurrency).replace(/\0/g, '') || DEFAULT_P2P_FIAT_CURRENCY
+          : DEFAULT_P2P_FIAT_CURRENCY,
         state: raw.state as TradeState,
         paymentWindow: Number(raw.paymentWindow),
         fundingTimestamp: Number(raw.fundingTimestamp),
@@ -134,7 +143,9 @@ export function useP2PTrade(tradeId?: number) {
  * Hook to query all protocol P2P trades live from Base RPC event logs
  */
 export function useP2PTrades() {
-  const publicClient = usePublicClient();
+  const { chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const { p2pEscrow } = useProtocolDirectory();
   const [trades, setTrades] = useState<TradeDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,8 +198,8 @@ export function useP2PTrades() {
               amount: raw.amount,
               fiatAmount: raw.fiatAmount,
               fiatCurrency: raw.fiatCurrency
-                ? hexToString(raw.fiatCurrency).replace(/\0/g, '') || 'USD'
-                : 'USD',
+                ? hexToString(raw.fiatCurrency).replace(/\0/g, '') || DEFAULT_P2P_FIAT_CURRENCY
+                : DEFAULT_P2P_FIAT_CURRENCY,
               state: raw.state as TradeState,
               paymentWindow: Number(raw.paymentWindow),
               fundingTimestamp: Number(raw.fundingTimestamp),
@@ -224,7 +235,8 @@ export function useP2PTrades() {
 export function useP2PActions() {
   const { p2pEscrow } = useProtocolDirectory();
   const { chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const explorerUrl = getExplorerBaseUrl(chain?.id);
 
   const { writeContractAsync, isPending } = useWriteContract();

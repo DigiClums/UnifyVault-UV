@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { saveSellerProfile, getSellerProfileStorageRoot } from '../../payment/paymentProfileStore';
 import {
@@ -15,6 +16,11 @@ import { AccountAggregatorVerificationEngine } from '../aa/aaEngine';
 import { MockAccountAggregatorProvider } from '../aa/mockAaProvider';
 import { getVerificationStorageRoot } from '../verificationStore';
 import { generateSignedAttestation, verifySignedAttestation } from '../attestation';
+
+const testDir = path.join('/tmp', 'test-verif-e2e-' + Math.random().toString(36).slice(2));
+process.env.P2P_INTENT_ROOT = path.join(testDir, 'intents');
+process.env.P2P_VERIFICATION_ROOT = path.join(testDir, 'verifications');
+process.env.P2P_PROFILE_ROOT = path.join(testDir, 'profiles');
 
 describe('Phase 6 — End-to-End P2P Lifecycle & Failure-Safety Test Suite', () => {
   const mockTradeId1 = 99701;
@@ -34,13 +40,30 @@ describe('Phase 6 — End-to-End P2P Lifecycle & Failure-Safety Test Suite', () 
     const verifRoot = getVerificationStorageRoot();
 
     const profFile = path.resolve(profileRoot, `profile-${mockSeller.toLowerCase()}.json`);
-    if (fs.existsSync(profFile)) fs.unlinkSync(profFile);
+    if (fs.existsSync(profFile)) try { fs.unlinkSync(profFile); } catch {}
 
     [mockTradeId1, mockTradeId2, mockTradeId3].forEach((tid) => {
       const f1 = path.resolve(intentRoot, `intent-trade-${tid}.json`);
       const f2 = path.resolve(verifRoot, `verification-trade-${tid}.json`);
-      if (fs.existsSync(f1)) fs.unlinkSync(f1);
-      if (fs.existsSync(f2)) fs.unlinkSync(f2);
+      if (fs.existsSync(f1)) try { fs.unlinkSync(f1); } catch {}
+      if (fs.existsSync(f2)) try { fs.unlinkSync(f2); } catch {}
+    });
+
+    const refsToClean = [
+      'BANK-UTR-E2E-001',
+      'BANK-UTR-REUSE-ISOLATE-66',
+      'BANK-UTR-EXPIRED',
+      'BANK-UTR-AA-MATCH-001',
+    ];
+    refsToClean.forEach((ref) => {
+      ['MOCK_DEVELOPMENT_PROVIDER', 'BANK_WEBHOOK_PROVIDER', 'ACCOUNT_AGGREGATOR_FALLBACK'].forEach((prov) => {
+        const refHash = crypto
+          .createHash('sha256')
+          .update(`${prov}:${ref.trim()}`)
+          .digest('hex');
+        const refFile = path.resolve(verifRoot, `provider-ref-${refHash}.json`);
+        if (fs.existsSync(refFile)) try { fs.unlinkSync(refFile); } catch {}
+      });
     });
   };
 

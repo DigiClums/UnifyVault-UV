@@ -15,6 +15,17 @@ export async function POST(
   { params }: { params: Promise<{ provider: string }> },
 ) {
   try {
+    // Production Safety Guard: Reject all bank webhook ingestion in production
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_VERIFIER !== 'true') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Forbidden: Bank webhook integration is disabled in production. UnifyVault P2P does not rely on bank APIs or webhooks.',
+        },
+        { status: 403 },
+      );
+    }
+
     const { provider: rawProviderName } = await params;
     const providerName = rawProviderName.toUpperCase();
     const rawBody = await req.text();
@@ -22,23 +33,34 @@ export async function POST(
     const signature = req.headers.get('x-webhook-signature') || '';
     const timestamp = req.headers.get('x-webhook-timestamp') || '';
 
-    // 1. Authenticate Webhook Payload for Bank Webhook Provider
-    if (providerName.includes('BANK')) {
-      const bankProvider = new BankWebhookVerificationProvider();
-      const isAuthentic = bankProvider.verifyWebhookAuthenticity(rawBody, {
-        signature,
-        timestamp,
-      });
+    // 1. Provider Registration Guard: Reject unregistered / untrusted providers immediately
+    const engine = getPaymentVerificationEngine();
+    const provider = engine.getProvider(providerName);
 
-      if (!isAuthentic) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Unauthorized: Invalid webhook signature or expired timestamp.',
-          },
-          { status: 401 },
-        );
-      }
+    if (!provider) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Forbidden: Verification provider '${providerName}' is not registered or supported.`,
+        },
+        { status: 403 },
+      );
+    }
+
+    // 2. Mandatory Webhook Authentication Guard for all providers
+    const isAuthentic =
+      typeof provider.verifyWebhookAuthenticity === 'function'
+        ? provider.verifyWebhookAuthenticity(rawBody, { signature, timestamp })
+        : false;
+
+    if (!isAuthentic) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized: Invalid webhook signature or expired/missing timestamp.',
+        },
+        { status: 401 },
+      );
     }
 
     let bodyData: any;
@@ -67,8 +89,7 @@ export async function POST(
       );
     }
 
-    // 2. Invoke Payment Verification Engine
-    const engine = getPaymentVerificationEngine();
+    // 3. Invoke Payment Verification Engine
     const verificationResult = await engine.processVerification({
       tradeId,
       providerName,

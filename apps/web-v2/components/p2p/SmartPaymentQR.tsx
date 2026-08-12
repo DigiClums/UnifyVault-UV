@@ -64,6 +64,22 @@ export function SmartPaymentQR({
     paymentIntent.status !== 'PAYMENT_CLAIMED' &&
     paymentIntent.status !== 'WAITING_VERIFICATION';
 
+  const isNonInr = (paymentIntent.fiatCurrency || '').trim().toUpperCase() !== 'INR';
+
+  if (isNonInr) {
+    return (
+      <div className="bg-rose-500/10 border-2 border-rose-500/30 rounded-2xl p-5 font-mono space-y-3">
+        <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold font-sans">
+          <ShieldAlert className="w-5 h-5" />
+          <span>Invalid Settlement Currency for UPI</span>
+        </div>
+        <p className="text-xs text-rose-700 dark:text-rose-300">
+          This trade uses non-INR fiat currency ({paymentIntent.fiatCurrency}). UPI payment intents and QR code generation strictly require INR fiat settlement.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[6px_6px_0_#000] p-5 space-y-5 font-mono">
       {/* Header */}

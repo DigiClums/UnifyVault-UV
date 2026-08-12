@@ -1,29 +1,157 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useAccount, usePublicClient, useWriteContract, useReadContract } from 'wagmi';
-import { parseUnits, stringToHex, hexToString, type Address } from 'viem';
+import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
+import { parseUnits, stringToHex, hexToString, getAddress, type Address } from 'viem';
+import { base, baseSepolia } from 'viem/chains';
 import {
   MARKETPLACE_ABI,
   OrderDetails,
   OrderSide,
   OrderStatus,
 } from '../lib/contracts/marketplace';
-import { DEPLOYED_CONTRACTS_SEPOLIA } from '../constants';
+import {
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
+  getDefaultChainId,
+} from '../constants';
 
-export function getMarketplaceAddress(): `0x${string}` {
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+function isNonZeroAddress(addr?: string): boolean {
+  if (!addr) return false;
+  const clean = addr.trim().toLowerCase();
   return (
-    (process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS as `0x${string}`) ||
-    DEPLOYED_CONTRACTS_SEPOLIA.Marketplace
+    clean !== '' &&
+    clean !== ZERO_ADDRESS &&
+    clean !== '0x0' &&
+    clean.startsWith('0x') &&
+    clean.length === 42
   );
+}
+
+/**
+ * Hardened Chain-Specific Marketplace Address Resolver
+ * Maps chainId to network-specific marketplace deployment.
+ * Fails fast with clean error on unsupported networks or zero address.
+ */
+export function getMarketplaceAddress(chainId?: number): `0x${string}` {
+  const targetChain = chainId || getDefaultChainId();
+  if (targetChain === baseSepolia.id) {
+    const raw =
+      [
+        process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA,
+        process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS,
+        DEPLOYED_CONTRACTS_SEPOLIA.Marketplace,
+      ].find(isNonZeroAddress) || '0x5978273B16467E99f45984Dc8AE9048ba05a30F7';
+
+    const address = getAddress(raw) as `0x${string}`;
+    if (!isNonZeroAddress(address)) {
+      throw new Error(
+        `Marketplace contract address is zero or unconfigured for Base Sepolia (Chain ID: 84532).`,
+      );
+    }
+    return address;
+  }
+  if (targetChain === base.id) {
+    const raw = [
+      process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET,
+      process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS,
+      DEPLOYED_CONTRACTS_MAINNET.Marketplace,
+    ].find(isNonZeroAddress);
+
+    if (!raw || !isNonZeroAddress(raw)) {
+      throw new Error(
+        `Marketplace contract address is zero or unconfigured for Base Mainnet (Chain ID: 8453).`,
+      );
+    }
+    const address = getAddress(raw) as `0x${string}`;
+    if (!isNonZeroAddress(address)) {
+      throw new Error(
+        `Marketplace contract address is zero or unconfigured for Base Mainnet (Chain ID: 8453).`,
+      );
+    }
+    return address;
+  }
+  throw new Error(
+    `Unsupported network (Chain ID: ${targetChain}). Please switch your wallet network to Base Sepolia (84532) or Base Mainnet (8453).`,
+  );
+}
+
+/**
+ * Gas & Zero-Address Preflight Verification Function
+ * Checks native ETH balance and simulates transaction execution BEFORE calling writeContract.
+ */
+export async function performMarketplaceGasPreflight(params: {
+  publicClient: any;
+  userAddress?: `0x${string}`;
+  marketplaceAddress: `0x${string}`;
+  abi: any;
+  functionName: string;
+  args: any[];
+}) {
+  const { publicClient, userAddress, marketplaceAddress, abi, functionName, args } = params;
+
+  if (
+    !marketplaceAddress ||
+    marketplaceAddress === ZERO_ADDRESS ||
+    marketplaceAddress.toLowerCase() === ZERO_ADDRESS
+  ) {
+    throw new Error('Marketplace contract address is zero or unconfigured.');
+  }
+
+  if (!publicClient || !userAddress) return;
+
+  let nativeBalance = 0n;
+  try {
+    nativeBalance = await publicClient.getBalance({ address: userAddress });
+  } catch (balErr) {
+    console.warn('Failed to fetch native ETH balance for gas preflight:', balErr);
+  }
+
+  if (nativeBalance === 0n) {
+    throw new Error('Insufficient ETH for Base network gas.');
+  }
+
+  try {
+    await publicClient.simulateContract({
+      account: userAddress,
+      address: marketplaceAddress,
+      abi,
+      functionName,
+      args,
+    });
+  } catch (simErr: any) {
+    const simMsg = (simErr?.message || simErr?.shortMessage || '').toLowerCase();
+    if (
+      simMsg.includes('insufficient') ||
+      simMsg.includes('gas') ||
+      simMsg.includes('miners') ||
+      simMsg.includes('exceeds balance') ||
+      simMsg.includes('funds') ||
+      simMsg.includes('eth(base) is not enough')
+    ) {
+      throw new Error('Insufficient ETH for Base network gas.');
+    }
+    throw simErr;
+  }
 }
 
 /**
  * Hook to read all orders from the Marketplace smart contract
  */
 export function useMarketplaceOrders() {
-  const publicClient = usePublicClient();
-  const marketplaceAddress = getMarketplaceAddress();
+  const { chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
+
+  let marketplaceAddress: `0x${string}`;
+  try {
+    marketplaceAddress = getMarketplaceAddress(chainId);
+  } catch {
+    marketplaceAddress = DEPLOYED_CONTRACTS_SEPOLIA.Marketplace;
+  }
+
   const [orders, setOrders] = useState<OrderDetails[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,15 +230,27 @@ export function useMarketplaceOrders() {
 
 /**
  * Hook to execute Marketplace write transactions (Create, Cancel, Match)
+ * Enforces strict chain validation before broadcasting transactions.
  */
 export function useMarketplaceActions() {
-  const { address: userAddress } = useAccount();
-  const publicClient = usePublicClient();
+  const { address: userAddress, chain } = useAccount();
+  const activeChainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId: activeChainId });
   const { writeContractAsync } = useWriteContract();
-  const marketplaceAddress = getMarketplaceAddress();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const validateChain = useCallback(() => {
+    if (!userAddress) throw new Error('Wallet not connected.');
+    const currentChainId = chain?.id || activeChainId;
+    if (currentChainId !== baseSepolia.id && currentChainId !== base.id) {
+      throw new Error(
+        `Unsupported network (Chain ID: ${currentChainId}). Please switch your wallet network to Base Sepolia (84532) or Base Mainnet (8453).`,
+      );
+    }
+    return currentChainId;
+  }, [userAddress, chain?.id, activeChainId]);
 
   const createBuyOrder = async (params: {
     asset: `0x${string}`;
@@ -120,7 +260,15 @@ export function useMarketplaceActions() {
     minLimit?: bigint;
     maxLimit?: bigint;
   }) => {
-    if (!userAddress) throw new Error('Wallet not connected.');
+    const currentChainId = validateChain();
+    const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    if (!isNonZeroAddress(marketplaceAddress)) {
+      const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
+      setError(msg);
+      throw new Error(msg);
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -130,26 +278,64 @@ export function useMarketplaceActions() {
         66,
       ) as `0x${string}`;
 
+      const args: [`0x${string}`, bigint, bigint, `0x${string}`, bigint, bigint] = [
+        params.asset,
+        params.amount,
+        params.price,
+        currencyBytes32,
+        params.minLimit || 0n,
+        params.maxLimit || params.amount,
+      ];
+
+      await performMarketplaceGasPreflight({
+        publicClient,
+        userAddress,
+        marketplaceAddress,
+        abi: MARKETPLACE_ABI,
+        functionName: 'createBuyOrder',
+        args,
+      });
+
       const txHash = await writeContractAsync({
         address: marketplaceAddress,
         abi: MARKETPLACE_ABI,
         functionName: 'createBuyOrder',
-        args: [
-          params.asset,
-          params.amount,
-          params.price,
-          currencyBytes32,
-          params.minLimit || 0n,
-          params.maxLimit || params.amount,
-        ],
+        args,
       });
 
+      let orderId: number | null = null;
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+        for (const log of receipt.logs) {
+          try {
+            if (log.address.toLowerCase() === marketplaceAddress.toLowerCase() && log.topics[1]) {
+              orderId = Number(BigInt(log.topics[1]));
+              break;
+            }
+          } catch {
+            // Ignore non-matching logs
+          }
+        }
+
+        if (!orderId) {
+          try {
+            const countBigInt = (await publicClient.readContract({
+              address: marketplaceAddress,
+              abi: MARKETPLACE_ABI,
+              functionName: 'getOrderCount',
+            })) as bigint;
+            orderId = Number(countBigInt);
+          } catch {
+            // Ignore
+          }
+        }
       }
-      return txHash;
+
+      return { txHash, orderId };
     } catch (err: any) {
-      setError(err?.message || 'Create buy order transaction failed.');
+      const errMsg = err?.message || 'Create buy order transaction failed.';
+      setError(errMsg);
       throw err;
     } finally {
       setIsSubmitting(false);
@@ -164,7 +350,15 @@ export function useMarketplaceActions() {
     minLimit?: bigint;
     maxLimit?: bigint;
   }) => {
-    if (!userAddress) throw new Error('Wallet not connected.');
+    const currentChainId = validateChain();
+    const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    if (!isNonZeroAddress(marketplaceAddress)) {
+      const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
+      setError(msg);
+      throw new Error(msg);
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -174,26 +368,64 @@ export function useMarketplaceActions() {
         66,
       ) as `0x${string}`;
 
+      const args: [`0x${string}`, bigint, bigint, `0x${string}`, bigint, bigint] = [
+        params.asset,
+        params.amount,
+        params.price,
+        currencyBytes32,
+        params.minLimit || 0n,
+        params.maxLimit || params.amount,
+      ];
+
+      await performMarketplaceGasPreflight({
+        publicClient,
+        userAddress,
+        marketplaceAddress,
+        abi: MARKETPLACE_ABI,
+        functionName: 'createSellOrder',
+        args,
+      });
+
       const txHash = await writeContractAsync({
         address: marketplaceAddress,
         abi: MARKETPLACE_ABI,
         functionName: 'createSellOrder',
-        args: [
-          params.asset,
-          params.amount,
-          params.price,
-          currencyBytes32,
-          params.minLimit || 0n,
-          params.maxLimit || params.amount,
-        ],
+        args,
       });
 
+      let orderId: number | null = null;
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+        for (const log of receipt.logs) {
+          try {
+            if (log.address.toLowerCase() === marketplaceAddress.toLowerCase() && log.topics[1]) {
+              orderId = Number(BigInt(log.topics[1]));
+              break;
+            }
+          } catch {
+            // Ignore non-matching logs
+          }
+        }
+
+        if (!orderId) {
+          try {
+            const countBigInt = (await publicClient.readContract({
+              address: marketplaceAddress,
+              abi: MARKETPLACE_ABI,
+              functionName: 'getOrderCount',
+            })) as bigint;
+            orderId = Number(countBigInt);
+          } catch {
+            // Ignore
+          }
+        }
       }
-      return txHash;
+
+      return { txHash, orderId };
     } catch (err: any) {
-      setError(err?.message || 'Create sell order transaction failed.');
+      const errMsg = err?.message || 'Create sell order transaction failed.';
+      setError(errMsg);
       throw err;
     } finally {
       setIsSubmitting(false);
@@ -201,16 +433,35 @@ export function useMarketplaceActions() {
   };
 
   const cancelOrder = async (orderId: number) => {
-    if (!userAddress) throw new Error('Wallet not connected.');
+    const currentChainId = validateChain();
+    const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    if (!isNonZeroAddress(marketplaceAddress)) {
+      const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
+      setError(msg);
+      throw new Error(msg);
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
+
+      const args: [bigint] = [BigInt(orderId)];
+
+      await performMarketplaceGasPreflight({
+        publicClient,
+        userAddress,
+        marketplaceAddress,
+        abi: MARKETPLACE_ABI,
+        functionName: 'cancelOrder',
+        args,
+      });
 
       const txHash = await writeContractAsync({
         address: marketplaceAddress,
         abi: MARKETPLACE_ABI,
         functionName: 'cancelOrder',
-        args: [BigInt(orderId)],
+        args,
       });
 
       if (publicClient) {
@@ -218,7 +469,8 @@ export function useMarketplaceActions() {
       }
       return txHash;
     } catch (err: any) {
-      setError(err?.message || 'Cancel order transaction failed.');
+      const errMsg = err?.message || 'Cancel order transaction failed.';
+      setError(errMsg);
       throw err;
     } finally {
       setIsSubmitting(false);
@@ -230,16 +482,39 @@ export function useMarketplaceActions() {
     sellOrderId: number;
     matchAmount: bigint;
   }) => {
-    if (!userAddress) throw new Error('Wallet not connected.');
+    const currentChainId = validateChain();
+    const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    if (!isNonZeroAddress(marketplaceAddress)) {
+      const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
+      setError(msg);
+      throw new Error(msg);
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
+
+      const args: [bigint, bigint, bigint] = [
+        BigInt(params.buyOrderId),
+        BigInt(params.sellOrderId),
+        params.matchAmount,
+      ];
+
+      await performMarketplaceGasPreflight({
+        publicClient,
+        userAddress,
+        marketplaceAddress,
+        abi: MARKETPLACE_ABI,
+        functionName: 'matchOrders',
+        args,
+      });
 
       const txHash = await writeContractAsync({
         address: marketplaceAddress,
         abi: MARKETPLACE_ABI,
         functionName: 'matchOrders',
-        args: [BigInt(params.buyOrderId), BigInt(params.sellOrderId), params.matchAmount],
+        args,
       });
 
       let escrowTradeId: number | null = null;
@@ -247,11 +522,9 @@ export function useMarketplaceActions() {
       if (publicClient) {
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-        // Parse EscrowTradeLinked event from logs
         for (const log of receipt.logs) {
           try {
             if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
-              // Log event topic matching EscrowTradeLinked
               const tradeIdHex = log.topics[2];
               if (tradeIdHex) {
                 escrowTradeId = Number(BigInt(tradeIdHex));
@@ -266,7 +539,8 @@ export function useMarketplaceActions() {
 
       return { txHash, escrowTradeId };
     } catch (err: any) {
-      setError(err?.message || 'Match orders transaction failed.');
+      const errMsg = err?.message || 'Match orders transaction failed.';
+      setError(errMsg);
       throw err;
     } finally {
       setIsSubmitting(false);

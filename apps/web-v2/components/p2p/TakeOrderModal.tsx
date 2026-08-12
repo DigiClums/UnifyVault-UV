@@ -6,6 +6,7 @@ import { parseUnits, formatUnits } from 'viem';
 import { X, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
 import { useMarketplaceActions, useMarketplaceOrders } from '../../hooks/useMarketplace';
+import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
 
 interface TakeOrderModalProps {
   order: OrderDetails | null;
@@ -16,13 +17,11 @@ interface TakeOrderModalProps {
 
 export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeOrderModalProps) {
   const { address: userAddress } = useAccount();
-  const { matchOrders, isSubmitting } = useMarketplaceActions();
+  const { createBuyOrder, createSellOrder, matchOrders, isSubmitting } = useMarketplaceActions();
   const { orders: allOrders } = useMarketplaceOrders();
 
   const [tradeAmountStr, setTradeAmountStr] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
 
   if (!isOpen || !order) return null;
 
@@ -48,7 +47,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     }
 
     if (isMaker) {
-      setError('You cannot take your own order.');
+      setError('You cannot take your own order (self-matching prohibited).');
       return;
     }
 
@@ -82,19 +81,47 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
       let sellOrderId: number;
 
       if (isBuy) {
-        // Taking a BUY order means user is SELLER
-        buyOrderId = order.orderId;
+        // Taking a BUY order -> Connected user is SELLER -> Create a counter SELL order
+        const sellRes = await createSellOrder({
+          asset: order.asset,
+          amount: matchAmountBigInt,
+          price: order.price,
+          fiatCurrency: order.fiatCurrency,
+          minLimit: order.minLimit,
+          maxLimit: matchAmountBigInt,
+        });
 
-        // Find or create matching order ID pair
-        // In our Marketplace, matchOrders takes (buyOrderId, sellOrderId, matchAmount)
-        // If taker has an existing sell order, use it; otherwise create compatible sell order
-        sellOrderId = order.orderId; // Contract handles order lookup
-      } else {
-        // Taking a SELL order means user is BUYER
-        sellOrderId = order.orderId;
+        if (!sellRes?.orderId) {
+          throw new Error('Failed to obtain new counter SELL order ID after transaction execution.');
+        }
+
         buyOrderId = order.orderId;
+        sellOrderId = sellRes.orderId;
+      } else {
+        // Taking a SELL order -> Connected user is BUYER -> Create a counter BUY order
+        const buyRes = await createBuyOrder({
+          asset: order.asset,
+          amount: matchAmountBigInt,
+          price: order.price,
+          fiatCurrency: order.fiatCurrency,
+          minLimit: order.minLimit,
+          maxLimit: matchAmountBigInt,
+        });
+
+        if (!buyRes?.orderId) {
+          throw new Error('Failed to obtain new counter BUY order ID after transaction execution.');
+        }
+
+        buyOrderId = buyRes.orderId;
+        sellOrderId = order.orderId;
       }
 
+      // Hard safety check: ensure buyOrderId and sellOrderId are distinct IDs
+      if (buyOrderId === sellOrderId) {
+        throw new Error('Invalid order match: Counter-order ID cannot equal target order ID.');
+      }
+
+      // Execute on-chain matchOrders on Marketplace contract
       const result = await matchOrders({
         buyOrderId,
         sellOrderId,
@@ -104,7 +131,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
       if (result.escrowTradeId) {
         onMatchSuccess(result.escrowTradeId);
       } else {
-        // Fallback: If event not indexed immediately, refresh and close
+        // Fallback if event indexing is delayed
         onClose();
       }
     } catch (err: any) {

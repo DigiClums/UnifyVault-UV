@@ -51,10 +51,17 @@ export function generateUpiUri(
   fiatCurrency: string,
   tradeReference: string,
 ): string {
+  const normalizedCurrency = (fiatCurrency || 'INR').trim().toUpperCase();
+  if (normalizedCurrency !== 'INR') {
+    throw new Error(
+      `Invalid UPI currency: UPI payment flows strictly require INR fiat settlement currency (received '${fiatCurrency}').`,
+    );
+  }
+
   const pa = encodeURIComponent(sellerUpiId.trim());
   const pn = encodeURIComponent(payeeName.trim());
   const am = encodeURIComponent(fiatAmountStr.trim());
-  const cu = encodeURIComponent((fiatCurrency || 'INR').trim());
+  const cu = encodeURIComponent(normalizedCurrency);
   const tn = encodeURIComponent(tradeReference.trim());
 
   return `upi://pay?pa=${pa}&pn=${pn}&am=${am}&cu=${cu}&tn=${tn}`;

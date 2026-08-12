@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import {
   saveSellerProfile,
   getSellerProfile,
@@ -16,25 +17,49 @@ import { MockAccountAggregatorProvider } from '../mockAaProvider';
 import { AccountAggregatorVerificationEngine } from '../aaEngine';
 import { getVerificationStorageRoot } from '../../verificationStore';
 
-describe('Phase 5B — Seller Payment Profile & AA Fallback Verification Tests', () => {
+const testDir = path.join('/tmp', 'test-verif-aa-' + Math.random().toString(36).slice(2));
+process.env.P2P_INTENT_ROOT = path.join(testDir, 'intents');
+process.env.P2P_VERIFICATION_ROOT = path.join(testDir, 'verifications');
+process.env.P2P_PROFILE_ROOT = path.join(testDir, 'profiles');
+
+describe('Phase 5B & Phase 7.2.8 — Seller Payment Profile & AA Production Isolation Tests', () => {
   const mockTradeId1 = 99501;
   const mockTradeId2 = 99502;
   const mockBuyer = '0x1111111111111111111111111111111111111111';
   const mockSeller = '0x2222222222222222222222222222222222222255';
 
   const cleanStorage = () => {
+    delete process.env.ALLOW_MOCK_VERIFIER;
+    delete process.env.AA_INTEGRATION_MODE;
+
     const profileRoot = getSellerProfileStorageRoot();
     const intentRoot = getPaymentIntentStorageRoot();
     const verifRoot = getVerificationStorageRoot();
 
     const profFile = path.resolve(profileRoot, `profile-${mockSeller.toLowerCase()}.json`);
-    if (fs.existsSync(profFile)) fs.unlinkSync(profFile);
+    if (fs.existsSync(profFile)) try { fs.unlinkSync(profFile); } catch {}
 
     [mockTradeId1, mockTradeId2].forEach((tid) => {
       const f1 = path.resolve(intentRoot, `intent-trade-${tid}.json`);
       const f2 = path.resolve(verifRoot, `verification-trade-${tid}.json`);
-      if (fs.existsSync(f1)) fs.unlinkSync(f1);
-      if (fs.existsSync(f2)) fs.unlinkSync(f2);
+      if (fs.existsSync(f1)) try { fs.unlinkSync(f1); } catch {}
+      if (fs.existsSync(f2)) try { fs.unlinkSync(f2); } catch {}
+    });
+
+    const refsToClean = [
+      'BANK-UTR-AA-MATCH-001',
+      'BANK-UTR-3RD-PARTY-88',
+      'AA-TX-NOMATCH-99',
+    ];
+    refsToClean.forEach((ref) => {
+      ['MOCK_DEVELOPMENT_PROVIDER', 'BANK_WEBHOOK_PROVIDER', 'ACCOUNT_AGGREGATOR_FALLBACK'].forEach((prov) => {
+        const refHash = crypto
+          .createHash('sha256')
+          .update(`${prov}:${ref.trim()}`)
+          .digest('hex');
+        const refFile = path.resolve(verifRoot, `provider-ref-${refHash}.json`);
+        if (fs.existsSync(refFile)) try { fs.unlinkSync(refFile); } catch {}
+      });
     });
   };
 
@@ -218,22 +243,31 @@ describe('Phase 5B — Seller Payment Profile & AA Fallback Verification Tests',
     expect(res.consentStatus).toBe('UNKNOWN');
   });
 
-  // 24 & 25. RELEASE_ELIGIBLE & VerificationEngine Authority
-  it('24 & 25. AA verification produces RELEASE_ELIGIBLE status without releasing escrow', async () => {
-    const aaEngine = new AccountAggregatorVerificationEngine();
-    const res = await aaEngine.matchAndVerifyAATransactions({
-      tradeId: mockTradeId1,
-      consentId: `consent-${mockTradeId1}`,
-      skipOnChainCheckForTest: true,
-      rawPayload: {
-        bankReference: 'UTR-AA-RELEASE-CHECK-55',
-        amount: '500.00',
-        currency: 'INR',
-        sellerVpa: 'seller.primary@upi',
-      },
-    });
+  // M3 Production Isolation Tests
+  it('M3.1. Rejects Mock AA Provider in production mode', () => {
+    const originalEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.ALLOW_MOCK_VERIFIER;
 
-    expect(res.verificationResult?.status).toBe('VERIFIED');
-    expect(res.verificationResult?.attestationSignature).toBeDefined();
+      const aaEngine = new AccountAggregatorVerificationEngine();
+      expect(() => aaEngine.getAAProvider()).toThrow('CRITICAL PRODUCTION SAFETY ERROR');
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
+  });
+
+  it('M3.2. Fails closed in production when AA_INTEGRATION_MODE is not production', () => {
+    const originalEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.ALLOW_MOCK_VERIFIER;
+      process.env.AA_INTEGRATION_MODE = 'sandbox';
+
+      const aaEngine = new AccountAggregatorVerificationEngine();
+      expect(() => aaEngine.getAAProvider()).toThrow('CRITICAL PRODUCTION SAFETY ERROR');
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
   });
 });

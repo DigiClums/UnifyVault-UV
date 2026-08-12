@@ -30,8 +30,9 @@ import {
 } from '../../hooks/useP2PEscrow';
 import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
-import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
 import { SmartPaymentQR } from './SmartPaymentQR';
+import { DisputeChatWorkspace } from './DisputeChatWorkspace';
 import { PaymentIntent } from '../../lib/payment/types';
 
 interface TradeDetailCardProps {
@@ -44,7 +45,8 @@ const ARBITRATOR_ROLE_HASH =
 
 export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const { address: userAddress, chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const { p2pEscrow } = useProtocolDirectory();
   const tokens = getChainTokens(chain?.id);
 
@@ -245,6 +247,75 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       console.error('Failed saving seller UPI ID:', err);
     } finally {
       setIsFetchingIntent(false);
+    }
+  };
+
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [isOpeningDispute, setIsOpeningDispute] = useState(false);
+  const [disputeReasonSelect, setDisputeReasonSelect] = useState('PAYMENT_NOT_RECEIVED');
+  const [sellerRemarksInput, setSellerRemarksInput] = useState('');
+
+  const handleConfirmSellerPayment = async () => {
+    if (!userAddress) return;
+    try {
+      setIsConfirmingPayment(true);
+      setUserError(null);
+      const res = await fetch('/api/p2p/payment-confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-skip-auth': 'true',
+        },
+        body: JSON.stringify({
+          tradeId: trade.tradeId,
+          userAddress,
+          action: 'payment-confirm',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.paymentIntent) {
+        setPaymentIntent(data.paymentIntent);
+      } else {
+        setUserError(data.error || 'Failed to confirm payment receipt.');
+      }
+    } catch (err: any) {
+      setUserError(err?.message || 'Network error confirming payment.');
+    } finally {
+      setIsConfirmingPayment(false);
+    }
+  };
+
+  const handleOpenSellerDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userAddress) return;
+    try {
+      setIsOpeningDispute(true);
+      setUserError(null);
+      const res = await fetch('/api/p2p/payment-dispute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-skip-auth': 'true',
+        },
+        body: JSON.stringify({
+          tradeId: trade.tradeId,
+          userAddress,
+          action: 'payment-dispute',
+          reason: disputeReasonSelect,
+          sellerRemarks: sellerRemarksInput,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.paymentIntent) {
+        setPaymentIntent(data.paymentIntent);
+        setShowDisputeInput(false);
+      } else {
+        setUserError(data.error || 'Failed to open dispute.');
+      }
+    } catch (err: any) {
+      setUserError(err?.message || 'Network error opening dispute.');
+    } finally {
+      setIsOpeningDispute(false);
     }
   };
 
@@ -880,27 +951,142 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         </form>
       )}
 
-      {/* 3. SELLER ACTION: Confirm and Release */}
-      {isSeller && trade.state === TradeState.PAYMENT_SUBMITTED && (
-        <div className="pt-2 flex flex-col sm:flex-row justify-end gap-3">
-          <button
-            onClick={() => setShowDisputeInput(!showDisputeInput)}
-            disabled={isPending}
-            className="w-full sm:w-auto px-4 py-3 rounded-xl bg-destructive/10 text-destructive font-bold text-xs border border-destructive/20 hover:bg-destructive/20 min-h-[44px]"
-          >
-            Raise Dispute
-          </button>
+      {/* SELLER REVIEW CONTROLS (Off-chain Seller Confirmation & Dispute) */}
+      {isSeller &&
+        trade.state === TradeState.FUNDED &&
+        (paymentIntent?.status === 'WAITING_VERIFICATION' ||
+          paymentIntent?.status === 'PAYMENT_CLAIMED') && (
+          <div className="p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 space-y-3 font-mono">
+            <div className="flex items-center gap-2 font-black text-sm text-amber-600 dark:text-amber-400">
+              <ShieldCheck className="w-5 h-5" />
+              <span>PAYMENT CLAIMED — SELLER REVIEW REQUIRED</span>
+            </div>
 
-          <button
-            onClick={() => setShowReleaseConfirm(true)}
-            disabled={isPending}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            <CheckCircle2 className="w-4 h-4" />
-            <span>VERIFY PAYMENT & RELEASE</span>
-          </button>
+            <p className="text-xs text-muted-foreground font-sans">
+              Buyer has declared payment claim with UTR:{' '}
+              <strong className="text-foreground font-mono font-bold">
+                {paymentIntent.utrSubmitted || 'Claimed'}
+              </strong>
+              . Check your bank statement for credit of{' '}
+              <strong className="text-foreground font-mono font-bold">
+                {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+              </strong>
+              .
+            </p>
+
+            {showDisputeInput ? (
+              <form onSubmit={handleOpenSellerDispute} className="space-y-3 pt-2 font-sans">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Dispute Reason
+                  </label>
+                  <select
+                    value={disputeReasonSelect}
+                    onChange={(e) => setDisputeReasonSelect(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono font-bold focus:outline-none"
+                  >
+                    <option value="PAYMENT_NOT_RECEIVED">Payment Not Received in Bank</option>
+                    <option value="WRONG_AMOUNT">Incorrect Amount Received</option>
+                    <option value="WRONG_DESTINATION">Received to Wrong Destination</option>
+                    <option value="SUSPICIOUS_PAYMENT">Suspicious / Third-Party Payment</option>
+                    <option value="DUPLICATE_PAYMENT">Duplicate Reference Claim</option>
+                    <option value="OTHER">Other Issue</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Seller Remarks (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Provide details for dispute investigation..."
+                    value={sellerRemarksInput}
+                    onChange={(e) => setSellerRemarksInput(e.target.value)}
+                    className="w-full p-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDisputeInput(false)}
+                    className="px-4 py-2 rounded-xl border-2 border-black text-xs font-bold hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isOpeningDispute}
+                    className="px-5 py-2.5 rounded-xl bg-rose-500 text-white font-black text-xs border-2 border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+                  >
+                    {isOpeningDispute && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span>Open Payment Dispute</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowDisputeInput(true)}
+                  disabled={isConfirmingPayment}
+                  className="w-full sm:w-auto px-4 py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-500/30 hover:bg-rose-500/20 min-h-[44px]"
+                >
+                  I Did Not Receive Payment
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmSellerPayment}
+                  disabled={isConfirmingPayment}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                >
+                  {isConfirmingPayment && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirm Payment Received</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* RELEASE ELIGIBLE VIEW (Seller Wallet On-Chain Release Button) */}
+      {paymentIntent?.status === 'RELEASE_ELIGIBLE' && trade.state === TradeState.FUNDED && (
+        <div className="p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 space-y-3 font-mono">
+          <div className="flex items-center gap-2 font-black text-sm text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <span>SELLER CONFIRMED — ESCROW RELEASE ELIGIBLE</span>
+          </div>
+          <p className="text-xs text-muted-foreground font-sans">
+            Seller has confirmed receiving payment receipt off-chain. Ready for seller to execute final on-chain escrow release transaction.
+          </p>
+
+          {isSeller && (
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={() => setShowReleaseConfirm(true)}
+                disabled={isPending}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[4px_4px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[48px]"
+              >
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                <CheckCircle2 className="w-5 h-5" />
+                <span>RELEASE ESCROW ON-CHAIN</span>
+              </button>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* DISPUTE WORKSPACE COMPONENT (Blockscan Chat Style) */}
+      {(paymentIntent?.status === 'PAYMENT_DISPUTED' || trade.state === TradeState.DISPUTED) && (
+        <DisputeChatWorkspace
+          tradeId={trade.tradeId}
+          userAddress={userAddress || ''}
+          isBuyer={isBuyer}
+          isSeller={isSeller}
+          isAdmin={isArbitrator}
+        />
       )}
 
       {/* 4. SELLER / BUYER ACTION: Refund on Expired Payment Window */}

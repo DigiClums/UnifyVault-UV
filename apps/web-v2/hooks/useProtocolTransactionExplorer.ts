@@ -13,6 +13,7 @@ import {
 import { useAccount, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
+import { getDefaultChainId } from '../constants';
 import {
   buildAddressToABIMap,
   classifyTransaction,
@@ -287,7 +288,8 @@ function flattenToEvents(groups: TransactionGroup[]): ProtocolTransaction[] {
 
 export function useProtocolTransactionExplorer(page: number) {
   const { chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const {
     controller,
@@ -298,7 +300,6 @@ export function useProtocolTransactionExplorer(page: number) {
     isLoading: isDirectoryLoading,
     isError: isDirectoryError,
   } = useProtocolDirectory();
-  const chainId = chain?.id;
   const supported = Boolean(chainId && publicClient && controller);
 
   // Build address→ABI map once directory resolves

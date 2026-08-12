@@ -14,6 +14,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { OrderDetails, OrderSide, OrderStatus } from '../../lib/contracts/marketplace';
+import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
 
 interface MarketplaceOrderBookProps {
   orders: OrderDetails[];
@@ -58,8 +59,6 @@ export function MarketplaceOrderBook({
     setCopiedAddress(addr);
     setTimeout(() => setCopiedAddress(null), 2000);
   };
-
-  import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
 
   const formatPrice = (priceBigInt: bigint) => {
     return Number(priceBigInt).toLocaleString('en-IN', {

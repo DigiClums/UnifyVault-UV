@@ -29,6 +29,7 @@ export interface VerificationResult {
  */
 export interface PaymentVerificationProvider {
   name: string;
+  verifyWebhookAuthenticity?: (rawBody: string, headers: WebhookHeaderAuth) => boolean;
   verifyPayment(params: {
     tradeId: number;
     paymentIntentId: string;

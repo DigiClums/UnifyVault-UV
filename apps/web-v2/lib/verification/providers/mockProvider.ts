@@ -1,4 +1,4 @@
-import { PaymentVerificationProvider, VerificationResult } from '../types';
+import { PaymentVerificationProvider, VerificationResult, WebhookHeaderAuth } from '../types';
 
 /**
  * Development & Testing Mock Verification Provider.
@@ -9,6 +9,13 @@ import { PaymentVerificationProvider, VerificationResult } from '../types';
  */
 export class MockPaymentVerificationProvider implements PaymentVerificationProvider {
   public name = 'MOCK_DEVELOPMENT_PROVIDER';
+
+  public verifyWebhookAuthenticity(rawBody: string, headers: WebhookHeaderAuth): boolean {
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_VERIFIER !== 'true') {
+      return false;
+    }
+    return headers.signature === 'mock-valid-signature';
+  }
 
   async verifyPayment(params: {
     tradeId: number;

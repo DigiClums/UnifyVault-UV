@@ -7,7 +7,7 @@ import { baseSepolia } from 'viem/chains';
 import type { Address } from 'viem';
 
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { getChainTokens } from '../constants';
+import { getChainTokens, getDefaultChainId } from '../constants';
 import {
   discoverTransactions,
   type TransactionGroup,
@@ -44,13 +44,13 @@ const POLL_INTERVAL_MS = 30_000; // 30 seconds – conservative
 
 export function useTransactionExplorer(pageIndex: number) {
   const { chain } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('syncing');
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const chainId = chain?.id || baseSepolia.id;
   const tokens = getChainTokens(chainId);
 
   const {

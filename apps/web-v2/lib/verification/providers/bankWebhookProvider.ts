@@ -7,19 +7,25 @@ import { PaymentVerificationProvider, VerificationResult, WebhookHeaderAuth } fr
  */
 export class BankWebhookVerificationProvider implements PaymentVerificationProvider {
   public name = 'BANK_WEBHOOK_PROVIDER';
-  private webhookSecret: string;
+  private webhookSecret?: string;
 
   constructor(webhookSecret?: string) {
-    this.webhookSecret =
-      webhookSecret ||
-      process.env.BANK_WEBHOOK_SECRET ||
-      'unifyvault-bank-webhook-hmac-secret-32b!';
+    this.webhookSecret = webhookSecret || process.env.BANK_WEBHOOK_SECRET;
   }
 
   /**
-   * Verifies incoming webhook HMAC-SHA256 signature
+   * Verifies incoming webhook HMAC-SHA256 signature (Development / Testing Only)
    */
   public verifyWebhookAuthenticity(rawBody: string, headers: WebhookHeaderAuth): boolean {
+    // Production Safety Guard: Bank webhook integration is disabled in production
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_VERIFIER !== 'true') {
+      return false;
+    }
+
+    if (!this.webhookSecret || typeof this.webhookSecret !== 'string' || this.webhookSecret.trim() === '') {
+      return false;
+    }
+
     if (!headers.signature || !headers.timestamp) return false;
 
     // Check timestamp freshness (5 minute tolerance)
@@ -34,7 +40,14 @@ export class BankWebhookVerificationProvider implements PaymentVerificationProvi
       .update(payloadToSign)
       .digest('hex');
 
-    return crypto.timingSafeEqual(Buffer.from(headers.signature), Buffer.from(expectedSignature));
+    const sigBuf = Buffer.from(headers.signature);
+    const expBuf = Buffer.from(expectedSignature);
+
+    if (sigBuf.length !== expBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(sigBuf, expBuf);
   }
 
   async verifyPayment(params: {
@@ -46,6 +59,11 @@ export class BankWebhookVerificationProvider implements PaymentVerificationProvi
     providerReference: string;
     rawPayload?: any;
   }): Promise<VerificationResult> {
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_VERIFIER !== 'true') {
+      throw new Error(
+        'CRITICAL PRODUCTION SAFETY ERROR: Bank webhook verification is disabled in production environments.',
+      );
+    }
     const {
       tradeId,
       paymentIntentId,

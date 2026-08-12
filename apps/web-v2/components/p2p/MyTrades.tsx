@@ -167,7 +167,9 @@ export function MyTrades({ trades, isLoading, onSelectTrade, onRefresh }: MyTrad
                         {(Number(t.fiatAmount) / 100).toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
                         })}{' '}
-                        {hexToString(t.fiatCurrency).replace(/\0/g, '') || 'INR'}
+                        {t.fiatCurrency?.startsWith('0x')
+                          ? hexToString(t.fiatCurrency as `0x${string}`).replace(/\0/g, '') || 'INR'
+                          : t.fiatCurrency || 'INR'}
                       </strong>
                     </span>
                     <span>

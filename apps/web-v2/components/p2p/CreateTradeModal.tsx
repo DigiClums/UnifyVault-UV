@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { parseUnits, isAddress, type Address } from 'viem';
 import { ShieldCheck, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { useP2PActions } from '../../hooks/useP2PEscrow';
-import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA, DEFAULT_P2P_FIAT_CURRENCY } from '../../constants';
 
 interface CreateTradeModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
   );
   const [amount, setAmount] = useState('');
   const [fiatAmount, setFiatAmount] = useState('');
-  const [fiatCurrency, setFiatCurrency] = useState('USD');
+  const [fiatCurrency, setFiatCurrency] = useState(DEFAULT_P2P_FIAT_CURRENCY);
   const [paymentWindowMinutes, setPaymentWindowMinutes] = useState('15');
 
   if (!isOpen) return null;

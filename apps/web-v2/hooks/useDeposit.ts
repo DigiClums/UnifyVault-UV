@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { getChainTokens } from '../constants';
+import { getChainTokens, getDefaultChainId } from '../constants';
 import {
   parseUnits,
   formatUnits,
@@ -32,9 +32,10 @@ export type DepositStepState =
 
 export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: number = 6) {
   const { address: userAddress, chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
   const tokens = getChainTokens(chain?.id);
   const selectedTokenAddress = selectedTokenAddressInput || tokens.USDC;
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
   const { controller } = useProtocolDirectory();

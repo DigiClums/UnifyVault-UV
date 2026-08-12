@@ -2,7 +2,15 @@
  * Off-chain Payment Intent lifecycle states (Strictly separate from on-chain escrow states)
  */
 export type PaymentIntentStatus =
-  'CREATED' | 'QR_READY' | 'PAYMENT_CLAIMED' | 'WAITING_VERIFICATION' | 'EXPIRED';
+  | 'CREATED'
+  | 'QR_READY'
+  | 'PAYMENT_CLAIMED'
+  | 'WAITING_VERIFICATION'
+  | 'SELLER_CONFIRMED'
+  | 'RELEASE_ELIGIBLE'
+  | 'PAYMENT_DISPUTED'
+  | 'DISPUTE_OPEN'
+  | 'EXPIRED';
 
 /**
  * Trade-specific Payment Intent data model
@@ -20,6 +28,8 @@ export interface PaymentIntent {
   expiresAt: string; // ISO timestamp string
   createdAt: string; // ISO timestamp string
   paymentClaimedAt?: string;
+  sellerConfirmedAt?: string;
+  confirmationReference?: string;
   utrSubmitted?: string;
   evidenceHashSubmitted?: string;
 }

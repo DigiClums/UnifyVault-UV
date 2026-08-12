@@ -1,4 +1,4 @@
-import { signTypedData, recoverTypedDataAddress, keccak256, toBytes } from 'viem';
+import { recoverTypedDataAddress, keccak256, toBytes } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { VerificationResult } from './types';
 
@@ -34,12 +34,23 @@ export async function generateSignedAttestation(
   chainId: number = 84532,
   signerPrivateKey?: string,
 ): Promise<string> {
-  const privateKey =
-    signerPrivateKey ||
-    process.env.VERIFIER_SIGNER_PRIVATE_KEY ||
-    '0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f3623f8'; // Default dev key
+  const privateKey = signerPrivateKey || process.env.VERIFIER_SIGNER_PRIVATE_KEY;
 
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  if (!privateKey || typeof privateKey !== 'string' || privateKey.trim() === '') {
+    throw new Error('VERIFIER_SIGNER_PRIVATE_KEY is missing or invalid');
+  }
+
+  const normalizedKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(normalizedKey)) {
+    throw new Error('VERIFIER_SIGNER_PRIVATE_KEY is missing or invalid');
+  }
+
+  let account;
+  try {
+    account = privateKeyToAccount(normalizedKey as `0x${string}`);
+  } catch {
+    throw new Error('VERIFIER_SIGNER_PRIVATE_KEY is missing or invalid');
+  }
   const domain = getAttestationDomain(escrowAddress, chainId);
 
   const verifiedAtTimestamp = Math.floor(new Date(result.verifiedAt).getTime() / 1000);

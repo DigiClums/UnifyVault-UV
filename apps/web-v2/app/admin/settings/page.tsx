@@ -10,7 +10,7 @@ import {
   usePublicClient,
 } from 'wagmi';
 import { CONTROLLER_ABI, FEE_MANAGER_ABI, PROTOCOL_DIRECTORY_ABI } from '../../../lib/contracts';
-import { MODULE_IDS } from '../../../constants';
+import { MODULE_IDS, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -26,8 +26,9 @@ import {
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
-  const { address } = useAccount();
-  const publicClient = usePublicClient();
+  const { address, chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const publicClient = usePublicClient({ chainId });
   const {
     directory,
     controller,

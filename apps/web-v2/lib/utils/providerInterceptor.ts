@@ -91,32 +91,41 @@ function proxyProvider(provider: ProviderProxy, providerName: string): ProviderP
     return provider;
   }
 
-  const originalRequest = provider.request.bind(provider);
+  const proxied = new Proxy(provider, {
+    get(target, prop, receiver) {
+      if (prop === '__uv_proxied') {
+        return true;
+      }
+      if (prop === 'request') {
+        return async (args: { method: string; params: unknown[] }) => {
+          if (args && args.method && TX_METHODS.has(args.method)) {
+            deepLogTxParams('OUTGOING TX', providerName, args.method, args.params);
+          }
 
-  const proxied: ProviderProxy & { __uv_proxied?: boolean } = {
-    ...provider,
-    __uv_proxied: true,
-    request: async (args: { method: string; params: unknown[] }) => {
-      if (TX_METHODS.has(args.method)) {
-        deepLogTxParams('OUTGOING TX', providerName, args.method, args.params);
+          try {
+            const result = await target.request(args);
+
+            if (args && args.method && TX_METHODS.has(args.method)) {
+              console.log(`[UV EIP-1193 INTERCEPTOR] ${providerName} ${args.method} → RESULT:`, result);
+            }
+
+            return result;
+          } catch (err) {
+            if (args && args.method && TX_METHODS.has(args.method)) {
+              console.error(`[UV EIP-1193 INTERCEPTOR] ${providerName} ${args.method} → ERROR:`, err);
+            }
+            throw err;
+          }
+        };
       }
 
-      try {
-        const result = await originalRequest(args);
-
-        if (TX_METHODS.has(args.method)) {
-          console.log(`[UV EIP-1193 INTERCEPTOR] ${providerName} ${args.method} → RESULT:`, result);
-        }
-
-        return result;
-      } catch (err) {
-        if (TX_METHODS.has(args.method)) {
-          console.error(`[UV EIP-1193 INTERCEPTOR] ${providerName} ${args.method} → ERROR:`, err);
-        }
-        throw err;
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value === 'function') {
+        return value.bind(target);
       }
+      return value;
     },
-  };
+  });
 
   return proxied;
 }

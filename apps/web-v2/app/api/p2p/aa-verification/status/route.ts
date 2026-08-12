@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
-import { getPaymentIntentByTradeId } from '../../../../lib/payment/paymentIntentStore';
-import { verifyWalletAuth } from '../../../../lib/payment/walletAuth';
-import { getAAEngine } from '../../../../lib/verification/aa/aaEngine';
+import { getPaymentIntentByTradeId } from '@/lib/payment/paymentIntentStore';
+import { verifyWalletAuth } from '@/lib/payment/walletAuth';
+import { getAAEngine } from '@/lib/verification/aa/aaEngine';
 
 /**
  * GET /api/p2p/aa-verification/status?tradeId=123&consentId=...&userAddress=0x...&signature=0x...&timestamp=...
@@ -10,6 +10,22 @@ import { getAAEngine } from '../../../../lib/verification/aa/aaEngine';
  */
 export async function GET(req: NextRequest) {
   try {
+    // Production Safety Guard: Reject AA status in production without active production AA credentials
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ALLOW_MOCK_VERIFIER !== 'true' &&
+      process.env.AA_INTEGRATION_MODE !== 'production'
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Forbidden: Account Aggregator verification is disabled in production environments without production credentials.',
+        },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const tradeIdStr = searchParams.get('tradeId');
     const consentId = searchParams.get('consentId');
