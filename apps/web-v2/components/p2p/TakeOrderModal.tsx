@@ -7,6 +7,7 @@ import { X, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from '
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
 import { useMarketplaceActions, useMarketplaceOrders } from '../../hooks/useMarketplace';
 import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
+import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface TakeOrderModalProps {
   order: OrderDetails | null;
@@ -17,7 +18,8 @@ interface TakeOrderModalProps {
 
 export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeOrderModalProps) {
   const { address: userAddress } = useAccount();
-  const { createBuyOrder, createSellOrder, matchOrders, isSubmitting } = useMarketplaceActions();
+  const { createBuyOrder, createSellOrder, matchOrders, isSubmitting, txManager } =
+    useMarketplaceActions();
   const { orders: allOrders } = useMarketplaceOrders();
 
   const [tradeAmountStr, setTradeAmountStr] = useState('');
@@ -274,6 +276,19 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
           </div>
         </form>
       </div>
+
+      <TransactionStatusModal
+        isOpen={txManager.progressState.state !== 'IDLE'}
+        onClose={() => txManager.resetTransactionState()}
+        progressState={txManager.progressState}
+        onRetry={() => txManager.retryLastTransaction()}
+        onCancel={() => txManager.resetTransactionState()}
+        onContinue={() => {
+          txManager.resetTransactionState();
+          onClose();
+        }}
+        onOpenWallet={txManager.openMobileWallet}
+      />
     </div>
   );
 }

@@ -34,6 +34,7 @@ import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '.
 import { SmartPaymentQR } from './SmartPaymentQR';
 import { DisputeChatWorkspace } from './DisputeChatWorkspace';
 import { PaymentIntent } from '../../lib/payment/types';
+import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface TradeDetailCardProps {
   trade: TradeDetails;
@@ -92,6 +93,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     setUserError,
     txHash,
     explorerUrl,
+    txManager,
   } = useP2PActions();
 
   // Read allowance for seller & P2PEscrow
@@ -1352,6 +1354,20 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           </a>
         </div>
       )}
+
+      <TransactionStatusModal
+        isOpen={txManager.progressState.state !== 'IDLE'}
+        onClose={() => txManager.resetTransactionState()}
+        progressState={txManager.progressState}
+        onRetry={() => txManager.retryLastTransaction()}
+        onCancel={() => txManager.resetTransactionState()}
+        onContinue={() => {
+          txManager.resetTransactionState();
+          if (onRefresh) onRefresh();
+        }}
+        onOpenWallet={txManager.openMobileWallet}
+      />
     </div>
   );
 }
+

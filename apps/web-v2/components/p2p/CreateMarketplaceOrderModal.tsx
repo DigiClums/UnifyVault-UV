@@ -19,6 +19,7 @@ import { useMarketplaceActions } from '../../hooks/useMarketplace';
 import { useSellOrderPreflight } from '../../hooks/useSellOrderPreflight';
 import { getDefaultChainId } from '../../constants';
 import { getSupportedP2PAssetsForChain } from '../../lib/p2p/assetValidation';
+import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface CreateMarketplaceOrderModalProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export function CreateMarketplaceOrderModal({
   const activeChainId = chain?.id || targetChainId;
   const supportedAssets = getSupportedP2PAssetsForChain(activeChainId);
 
-  const { createBuyOrder, createSellOrder, isSubmitting } = useMarketplaceActions();
+  const { createBuyOrder, createSellOrder, isSubmitting, txManager } = useMarketplaceActions();
 
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [priceStr, setPriceStr] = useState('');
@@ -570,6 +571,21 @@ export function CreateMarketplaceOrderModal({
           </div>
         </form>
       </div>
+
+      <TransactionStatusModal
+        isOpen={txManager.progressState.state !== 'IDLE'}
+        onClose={() => txManager.resetTransactionState()}
+        progressState={txManager.progressState}
+        onRetry={() => txManager.retryLastTransaction()}
+        onCancel={() => txManager.resetTransactionState()}
+        onContinue={() => {
+          txManager.resetTransactionState();
+          onSuccess();
+          onClose();
+        }}
+        onOpenWallet={txManager.openMobileWallet}
+      />
     </div>
   );
 }
+

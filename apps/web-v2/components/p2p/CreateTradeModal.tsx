@@ -6,6 +6,7 @@ import { parseUnits, isAddress, type Address } from 'viem';
 import { ShieldCheck, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { useP2PActions } from '../../hooks/useP2PEscrow';
 import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA, DEFAULT_P2P_FIAT_CURRENCY } from '../../constants';
+import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface CreateTradeModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface CreateTradeModalProps {
 export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModalProps) {
   const { address: userAddress, chain } = useAccount();
   const tokens = getChainTokens(chain?.id);
-  const { createTrade, isPending, userError, setUserError } = useP2PActions();
+  const { createTrade, isPending, userError, setUserError, txManager } = useP2PActions();
 
   const [buyer, setBuyer] = useState('');
   const [assetType, setAssetType] = useState<'ETH' | 'USDC' | 'WETH' | 'cbBTC' | 'UVBTCETH'>(
@@ -287,6 +288,21 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
           </div>
         </form>
       </div>
+
+      <TransactionStatusModal
+        isOpen={txManager.progressState.state !== 'IDLE'}
+        onClose={() => txManager.resetTransactionState()}
+        progressState={txManager.progressState}
+        onRetry={() => txManager.retryLastTransaction()}
+        onCancel={() => txManager.resetTransactionState()}
+        onContinue={() => {
+          txManager.resetTransactionState();
+          if (onSuccess) onSuccess();
+          onClose();
+        }}
+        onOpenWallet={txManager.openMobileWallet}
+      />
     </div>
   );
 }
+

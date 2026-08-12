@@ -229,6 +229,8 @@ export function useP2PTrades() {
   return { trades, isLoading, refetch: fetchTrades };
 }
 
+import { useTransactionManager } from './useTransactionManager';
+
 /**
  * State-changing Wagmi write actions for P2PEscrow
  */
@@ -240,6 +242,7 @@ export function useP2PActions() {
   const explorerUrl = getExplorerBaseUrl(chain?.id);
 
   const { writeContractAsync, isPending } = useWriteContract();
+  const txManager = useTransactionManager();
 
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [userError, setUserError] = useState<string | null>(null);
@@ -285,27 +288,31 @@ export function useP2PActions() {
     setUserError(null);
     try {
       const currencyBytes32 = stringToHex(params.fiatCurrency, { size: 32 });
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'createTrade',
-        args: [
-          {
-            buyer: params.buyer,
-            seller: params.seller,
-            asset: params.asset,
-            amount: params.amount,
-            fiatAmount: params.fiatAmount,
-            fiatCurrency: currencyBytes32,
-            paymentWindow: BigInt(params.paymentWindowSeconds),
-          },
-        ],
-        value: params.valueEth || 0n,
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'createTrade',
+            args: [
+              {
+                buyer: params.buyer,
+                seller: params.seller,
+                asset: params.asset,
+                amount: params.amount,
+                fiatAmount: params.fiatAmount,
+                fiatCurrency: currencyBytes32,
+                paymentWindow: BigInt(params.paymentWindowSeconds),
+              },
+            ],
+            value: params.valueEth || 0n,
+          }),
+        {
+          stepName: 'Create Escrow Trade',
+          stepDescription: 'Creating non-custodial smart contract trade lock on-chain...',
+        },
+      );
       setTxHash(hash);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -336,17 +343,21 @@ export function useP2PActions() {
     }
 
     try {
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'fundTrade',
-        args: [BigInt(tradeId)],
-        value: valueEth || 0n,
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'fundTrade',
+            args: [BigInt(tradeId)],
+            value: valueEth || 0n,
+          }),
+        {
+          stepName: 'Fund Escrow Collateral',
+          stepDescription: `Funding crypto collateral for Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -364,12 +375,19 @@ export function useP2PActions() {
     setUserError(null);
     try {
       const utrBytes32 = stringToHex(utrReference, { size: 32 });
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'submitPayment',
-        args: [BigInt(tradeId), utrBytes32, evidenceHash],
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'submitPayment',
+            args: [BigInt(tradeId), utrBytes32, evidenceHash],
+          }),
+        {
+          stepName: 'Submit Payment Claim',
+          stepDescription: `Submitting UTR reference & evidence hash on-chain for Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
       return hash;
     } catch (err: unknown) {
@@ -383,12 +401,19 @@ export function useP2PActions() {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
     try {
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'confirmAndRelease',
-        args: [BigInt(tradeId)],
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'confirmAndRelease',
+            args: [BigInt(tradeId)],
+          }),
+        {
+          stepName: 'Confirm & Release Escrow',
+          stepDescription: `Releasing locked crypto collateral to Buyer for Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
       return hash;
     } catch (err: unknown) {
@@ -402,12 +427,19 @@ export function useP2PActions() {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
     try {
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'refund',
-        args: [BigInt(tradeId)],
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'refund',
+            args: [BigInt(tradeId)],
+          }),
+        {
+          stepName: 'Refund Escrow',
+          stepDescription: `Refunding locked crypto collateral to Seller for Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
       return hash;
     } catch (err: unknown) {
@@ -421,12 +453,19 @@ export function useP2PActions() {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
     try {
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'cancelUnfundedTrade',
-        args: [BigInt(tradeId)],
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'cancelUnfundedTrade',
+            args: [BigInt(tradeId)],
+          }),
+        {
+          stepName: 'Cancel Unfunded Trade',
+          stepDescription: `Cancelling unfunded Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
       return hash;
     } catch (err: unknown) {
@@ -441,12 +480,19 @@ export function useP2PActions() {
     setUserError(null);
     try {
       const reasonBytes32 = stringToHex(reasonText, { size: 32 });
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'raiseDispute',
-        args: [BigInt(tradeId), reasonBytes32],
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'raiseDispute',
+            args: [BigInt(tradeId), reasonBytes32],
+          }),
+        {
+          stepName: 'Raise On-Chain Dispute',
+          stepDescription: `Initiating dispute for Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
       return hash;
     } catch (err: unknown) {
@@ -460,27 +506,31 @@ export function useP2PActions() {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
     try {
-      const hash = await writeContractAsync({
-        address: assetAddress,
-        abi: [
-          {
-            inputs: [
-              { name: 'spender', type: 'address' },
-              { name: 'amount', type: 'uint256' },
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: assetAddress,
+            abi: [
+              {
+                inputs: [
+                  { name: 'spender', type: 'address' },
+                  { name: 'amount', type: 'uint256' },
+                ],
+                name: 'approve',
+                outputs: [{ name: '', type: 'bool' }],
+                stateMutability: 'nonpayable',
+                type: 'function',
+              },
             ],
-            name: 'approve',
-            outputs: [{ name: '', type: 'bool' }],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ],
-        functionName: 'approve',
-        args: [p2pEscrow, amount],
-      });
+            functionName: 'approve',
+            args: [p2pEscrow, amount],
+          }),
+        {
+          stepName: 'Approve Token Allowance',
+          stepDescription: 'Approving P2PEscrow contract spending allowance...',
+        },
+      );
       setTxHash(hash);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -493,16 +543,20 @@ export function useP2PActions() {
     if (!p2pEscrow) throw new Error('P2P Escrow contract address not available.');
     setUserError(null);
     try {
-      const hash = await writeContractAsync({
-        address: p2pEscrow,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'resolveDispute',
-        args: [BigInt(tradeId), outcome],
-      });
+      const hash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: p2pEscrow,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'resolveDispute',
+            args: [BigInt(tradeId), outcome],
+          }),
+        {
+          stepName: 'Resolve Dispute',
+          stepDescription: `Executing dispute outcome for Trade #${tradeId}...`,
+        },
+      );
       setTxHash(hash);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
       return hash;
     } catch (err: unknown) {
       const parsed = parseTxError(err);
@@ -521,11 +575,17 @@ export function useP2PActions() {
     cancelUnfundedTrade,
     raiseDispute,
     resolveDispute,
-    isPending: isPending || isWaiting,
-    isSuccess,
-    txHash,
+    isPending:
+      isPending ||
+      isWaiting ||
+      txManager.progressState.state === 'WALLET_REQUEST' ||
+      txManager.progressState.state === 'PREPARING' ||
+      txManager.progressState.state === 'CONFIRMING',
+    isSuccess: isSuccess || txManager.progressState.state === 'CONFIRMED',
+    txHash: txHash || txManager.progressState.txHash || undefined,
     explorerUrl,
     userError,
     setUserError,
+    txManager,
   };
 }

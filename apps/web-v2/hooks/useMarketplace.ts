@@ -228,15 +228,18 @@ export function useMarketplaceOrders() {
   return { orders, isLoading, error, refetch: fetchOrders };
 }
 
+import { useTransactionManager } from './useTransactionManager';
+
 /**
  * Hook to execute Marketplace write transactions (Create, Cancel, Match)
- * Enforces strict chain validation before broadcasting transactions.
+ * Enforces strict chain validation & uses production Web3 transaction state machine.
  */
 export function useMarketplaceActions() {
   const { address: userAddress, chain } = useAccount();
   const activeChainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId: activeChainId });
   const { writeContractAsync } = useWriteContract();
+  const txManager = useTransactionManager();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -296,26 +299,38 @@ export function useMarketplaceActions() {
         args,
       });
 
-      const txHash = await writeContractAsync({
-        address: marketplaceAddress,
-        abi: MARKETPLACE_ABI,
-        functionName: 'createBuyOrder',
-        args,
-      });
-
       let orderId: number | null = null;
-      if (publicClient) {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-        for (const log of receipt.logs) {
-          try {
-            if (log.address.toLowerCase() === marketplaceAddress.toLowerCase() && log.topics[1]) {
-              orderId = Number(BigInt(log.topics[1]));
-              break;
+      const txHash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: marketplaceAddress,
+            abi: MARKETPLACE_ABI,
+            functionName: 'createBuyOrder',
+            args,
+          }),
+        {
+          stepName: 'Create Buy Order',
+          stepDescription: 'Broadcasting limit buy order to Marketplace smart contract...',
+        },
+      );
+
+      if (publicClient) {
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+          for (const log of receipt.logs) {
+            try {
+              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase() && log.topics[1]) {
+                orderId = Number(BigInt(log.topics[1]));
+                break;
+              }
+            } catch {
+              // Ignore non-matching logs
             }
-          } catch {
-            // Ignore non-matching logs
           }
+        } catch {
+          // Receipt warning handled by txManager
         }
 
         if (!orderId) {
@@ -386,26 +401,38 @@ export function useMarketplaceActions() {
         args,
       });
 
-      const txHash = await writeContractAsync({
-        address: marketplaceAddress,
-        abi: MARKETPLACE_ABI,
-        functionName: 'createSellOrder',
-        args,
-      });
-
       let orderId: number | null = null;
-      if (publicClient) {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-        for (const log of receipt.logs) {
-          try {
-            if (log.address.toLowerCase() === marketplaceAddress.toLowerCase() && log.topics[1]) {
-              orderId = Number(BigInt(log.topics[1]));
-              break;
+      const txHash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: marketplaceAddress,
+            abi: MARKETPLACE_ABI,
+            functionName: 'createSellOrder',
+            args,
+          }),
+        {
+          stepName: 'Create Sell Order',
+          stepDescription: 'Broadcasting limit sell order to Marketplace smart contract...',
+        },
+      );
+
+      if (publicClient) {
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+          for (const log of receipt.logs) {
+            try {
+              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase() && log.topics[1]) {
+                orderId = Number(BigInt(log.topics[1]));
+                break;
+              }
+            } catch {
+              // Ignore non-matching logs
             }
-          } catch {
-            // Ignore non-matching logs
           }
+        } catch {
+          // Ignore
         }
 
         if (!orderId) {
@@ -457,16 +484,20 @@ export function useMarketplaceActions() {
         args,
       });
 
-      const txHash = await writeContractAsync({
-        address: marketplaceAddress,
-        abi: MARKETPLACE_ABI,
-        functionName: 'cancelOrder',
-        args,
-      });
+      const txHash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: marketplaceAddress,
+            abi: MARKETPLACE_ABI,
+            functionName: 'cancelOrder',
+            args,
+          }),
+        {
+          stepName: 'Cancel Order',
+          stepDescription: `Cancelling order #${orderId} on Marketplace contract...`,
+        },
+      );
 
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-      }
       return txHash;
     } catch (err: any) {
       const errMsg = err?.message || 'Cancel order transaction failed.';
@@ -510,30 +541,41 @@ export function useMarketplaceActions() {
         args,
       });
 
-      const txHash = await writeContractAsync({
-        address: marketplaceAddress,
-        abi: MARKETPLACE_ABI,
-        functionName: 'matchOrders',
-        args,
-      });
-
       let escrowTradeId: number | null = null;
 
-      if (publicClient) {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const txHash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: marketplaceAddress,
+            abi: MARKETPLACE_ABI,
+            functionName: 'matchOrders',
+            args,
+          }),
+        {
+          stepName: 'Match Orders',
+          stepDescription: `Matching Buy #${params.buyOrderId} with Sell #${params.sellOrderId}...`,
+        },
+      );
 
-        for (const log of receipt.logs) {
-          try {
-            if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
-              const tradeIdHex = log.topics[2];
-              if (tradeIdHex) {
-                escrowTradeId = Number(BigInt(tradeIdHex));
-                break;
+      if (publicClient) {
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+          for (const log of receipt.logs) {
+            try {
+              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
+                const tradeIdHex = log.topics[2];
+                if (tradeIdHex) {
+                  escrowTradeId = Number(BigInt(tradeIdHex));
+                  break;
+                }
               }
+            } catch {
+              // Ignore non-matching logs
             }
-          } catch {
-            // Ignore non-matching logs
           }
+        } catch {
+          // Ignore
         }
       }
 
@@ -552,7 +594,9 @@ export function useMarketplaceActions() {
     createSellOrder,
     cancelOrder,
     matchOrders,
-    isSubmitting,
+    isSubmitting: isSubmitting || txManager.progressState.state === 'WALLET_REQUEST' || txManager.progressState.state === 'PREPARING' || txManager.progressState.state === 'CONFIRMING',
     error,
+    txManager,
   };
 }
+
