@@ -84,7 +84,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 
       <div className="space-y-1.5">
         <div className="flex justify-between items-center text-slate-200">
-          <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium">NAV Value:</span>
+          <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium">UV Price:</span>
           <span className="font-bold text-white font-mono">
             ${Number(data.nav || data.sharePrice || 0).toFixed(4)}
           </span>
@@ -234,8 +234,8 @@ export function HistoricalNavChart() {
 
   return (
     <ChartCard
-      title="Historical NAV & Activity"
-      subtitle="On-chain NAV progression with deposit and redemption markers"
+      title="UV Price History & Activity"
+      subtitle="Historical UV price progression with deposit and redemption markers"
       icon={Activity}
       action={periodSelector}
     >
@@ -245,8 +245,8 @@ export function HistoricalNavChart() {
         </div>
       ) : !hasRealHistoricalData ? (
         <EmptyState
-          title="No historical NAV data yet"
-          description="Your NAV history will appear after portfolio activity is recorded on-chain. Deposits and redemptions create NAV snapshots over time."
+          title="No historical price data yet"
+          description="Your UV price history will appear after portfolio activity is recorded on-chain."
           icon={History}
         />
       ) : (

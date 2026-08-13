@@ -214,7 +214,7 @@ contract BaseMainnetForkTest is Test {
   }
 
   // =========================================================================
-  // Scenario 1: Deposit USDC -> Swaps -> CustodyVault -> Mint UVBTCETH
+  // Scenario 1: Deposit USDC -> Swaps -> CustodyVault -> Mint UVBE
   // =========================================================================
 
   function testFork_01_DepositUSDC_SwapsAndMints() public {
@@ -246,10 +246,10 @@ contract BaseMainnetForkTest is Test {
   }
 
   // =========================================================================
-  // Scenario 2: Redeem UVBTCETH -> Release Assets -> Swap to USDC -> Return USDC
+  // Scenario 2: Redeem UVBE -> Release Assets -> Swap to USDC -> Return USDC
   // =========================================================================
 
-  function testFork_02_RedeemUVBTCETH_SwapsBackToUSDC() public {
+  function testFork_02_RedeemUVBE_SwapsBackToUSDC() public {
     uint256 depositAmt = 10000 * 1e6;
     usdc.mint(alice, depositAmt);
 

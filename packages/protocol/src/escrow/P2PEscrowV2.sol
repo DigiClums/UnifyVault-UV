@@ -12,11 +12,10 @@ import '../libraries/AccessRoles.sol';
 import '../libraries/AddressValidationLib.sol';
 import '../types/EscrowTypes.sol';
 import '../interfaces/IP2PEscrow.sol';
-import '../interfaces/ICostBasisManagerV2.sol';
 
 /**
  * @title P2PEscrowV2
- * @notice Non-custodial P2P escrow protocol V2 for UnifyVault, integrated with CostBasisManagerV2.
+ * @notice Standalone non-custodial P2P escrow protocol V2 for UnifyVault.
  */
 contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
   using SafeERC20 for IERC20;
@@ -31,8 +30,6 @@ contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
 
   address public treasury;
   uint256 public feeBps;
-
-  ICostBasisManagerV2 public costBasisManager;
 
   modifier onlyTradeParty(uint256 tradeId) {
     EscrowTypes.Trade memory trade = _trades[tradeId];
@@ -78,7 +75,7 @@ contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
     _;
   }
 
-  constructor(address initialTreasury, uint256 initialFeeBps, address cbmAddress) {
+  constructor(address initialTreasury, uint256 initialFeeBps) {
     AddressValidationLib.validateNonZeroAddress(initialTreasury);
     if (initialFeeBps > MAX_FEE_BPS) {
       revert ProtocolErrors.FeeExceedsMaximum(initialFeeBps, MAX_FEE_BPS);
@@ -90,16 +87,9 @@ contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
 
     treasury = initialTreasury;
     feeBps = initialFeeBps;
-    if (cbmAddress != address(0)) {
-      costBasisManager = ICostBasisManagerV2(cbmAddress);
-    }
   }
 
   receive() external payable {}
-
-  function setCostBasisManager(address cbmAddress) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
-    costBasisManager = ICostBasisManagerV2(cbmAddress);
-  }
 
   function createTrade(
     EscrowTypes.CreateTradeParams calldata params
@@ -202,10 +192,6 @@ contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
     address asset,
     uint256 amount
   ) private {
-    if (address(costBasisManager) != address(0) && asset == costBasisManager.indexToken()) {
-      costBasisManager.setFundContext(tradeId, seller, address(this), amount);
-    }
-
     uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
     IERC20(asset).safeTransferFrom(seller, address(this), amount);
     uint256 balanceAfter = IERC20(asset).balanceOf(address(this));
@@ -387,19 +373,6 @@ contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
       (bool s2, ) = payable(buyer).call{ value: netPayout }('');
       if (!s2) revert Errors.TransferExecutionFailed(asset, buyer, netPayout);
     } else {
-      if (address(costBasisManager) != address(0) && asset == costBasisManager.indexToken()) {
-        costBasisManager.setReleaseContext(
-          tradeId,
-          trade.seller,
-          buyer,
-          treasury,
-          totalAmount,
-          netPayout,
-          feeCollected,
-          trade.fiatAmount
-        );
-      }
-
       IERC20(asset).safeTransfer(buyer, netPayout);
       if (feeCollected > 0 && treasury != address(0)) {
         IERC20(asset).safeTransfer(treasury, feeCollected);
@@ -422,9 +395,6 @@ contract P2PEscrowV2 is IP2PEscrow, AccessControl, ReentrancyGuard, Pausable {
       (bool s3, ) = payable(seller).call{ value: refundAmount }('');
       if (!s3) revert Errors.TransferExecutionFailed(asset, seller, refundAmount);
     } else {
-      if (address(costBasisManager) != address(0) && asset == costBasisManager.indexToken()) {
-        costBasisManager.setRefundContext(tradeId, seller, address(this), refundAmount);
-      }
       IERC20(asset).safeTransfer(seller, refundAmount);
     }
 

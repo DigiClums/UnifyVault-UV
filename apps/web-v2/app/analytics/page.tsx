@@ -72,7 +72,7 @@ function ChartTooltip({ active, payload }: CustomTooltipProps) {
       </div>
       <div className="space-y-1">
         <div className="flex justify-between items-center">
-          <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium">NAV:</span>
+          <span className="text-[#5f8f00] dark:text-[#BFFF00] font-medium">UVBE Price:</span>
           <span className="font-bold text-foreground font-mono">
             ${Number(data.nav || data.sharePrice || 0).toFixed(4)}
           </span>
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-            Portfolio performance &amp; historical NAV
+            Portfolio performance &amp; UV price history
           </p>
         </div>
         <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 shrink-0">
@@ -155,12 +155,12 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ── Current NAV Hero ── */}
+      {/* ── Current UV Price Hero ── */}
       <div className="relative overflow-hidden rounded-2xl bg-card border-2 border-black dark:border-white/15 shadow-[4px_4px_0_#BFFF00] px-4 py-3 sm:px-5 sm:py-3.5">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#BFFF00]/60 to-transparent" />
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Current NAV
+            Current UV Price
           </span>
           <span className="text-[10px] font-mono text-[#5f8f00] dark:text-[#BFFF00]">
             {metrics.sharePriceUSD}
@@ -223,9 +223,9 @@ export default function AnalyticsPage() {
             <div className="p-3 rounded-xl bg-muted border border-border-subtle text-muted-foreground mb-3">
               <Activity className="w-6 h-6" />
             </div>
-            <p className="text-sm font-semibold text-foreground">No historical NAV data yet</p>
+            <p className="text-sm font-semibold text-foreground">No historical price data yet</p>
             <p className="text-[11px] text-muted-foreground max-w-xs mt-1 leading-relaxed">
-              Your NAV history will appear after portfolio activity is recorded.
+              Your UV price history will appear after portfolio activity is recorded.
             </p>
           </div>
         ) : (
@@ -356,7 +356,7 @@ export default function AnalyticsPage() {
 
         <div className="rounded-xl bg-card border border-border-subtle px-3 py-2.5 sm:px-4 sm:py-3">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            NAV / Share
+            Current UVBE Price
           </span>
           <div className="mt-0.5 text-sm sm:text-base font-bold text-foreground font-mono tracking-tight">
             {metrics.isLoading ? (

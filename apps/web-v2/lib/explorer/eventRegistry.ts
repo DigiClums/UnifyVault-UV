@@ -82,7 +82,9 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> 
   '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29': { symbol: 'cbBTC', decimals: 8 },
   '0xd116ab1c943cf15904ec4c8dd701086f175fa323': { symbol: 'WETH', decimals: 18 },
   '0xa34596d38be381a4764141105a91c338ca5503bb': { symbol: 'UVBE', decimals: 18 },
-  '0x5c0c26a825639adc58c6edf3ae864616f1da94b9': { symbol: 'UVBTCETH', decimals: 18 },
+  '0x5c0c26a825639adc58c6edf3ae864616f1da94b9': { symbol: 'UVBE', decimals: 18 },
+  '0x4a33d001d7f81c12c0c9262256af83000e64457d': { symbol: 'UVBE', decimals: 18 },
+  '0x006c5df13c716e5224b33956651c4356bb90dec0': { symbol: 'UVBE', decimals: 18 },
 };
 
 export function getTokenSymbol(addrOrSymbol?: string): string {
@@ -144,6 +146,7 @@ export function buildEventRegistry(
   add(addresses.controller, 'UnifyVaultController', CONTROLLER_EVENT_ABI);
   add(addresses.vault, 'CustodyVault', VAULT_EVENT_ABI);
   add(addresses.treasury, 'Treasury', TREASURY_EVENT_ABI);
+  add(addresses.token, 'UVBEToken', TOKEN_EVENT_ABI);
   add(addresses.token, 'UVBTCETHToken', TOKEN_EVENT_ABI);
   add(addresses.strategyManager, 'StrategyManager', STRATEGY_EVENT_ABI);
   add(addresses.costBasisManager, 'CostBasisManager', COST_BASIS_EVENT_ABI);
@@ -167,6 +170,21 @@ export function buildEventRegistry(
  */
 export function classifyTransaction(eventNames: string[]): string {
   for (const name of eventNames) {
+    if (
+      name === 'TradeCreated' ||
+      name === 'EscrowFunded' ||
+      name === 'PaymentSubmitted' ||
+      name === 'DisputeRaised' ||
+      name === 'TradeDisputed' ||
+      name === 'DisputeResolved' ||
+      name === 'EscrowReleased' ||
+      name === 'EscrowRefunded' ||
+      name === 'TradeCancelled'
+    ) {
+      return 'p2p_settlement';
+    }
+  }
+  for (const name of eventNames) {
     if (name === 'DepositExecuted' || name === 'DepositCompleted') return 'deposit';
   }
   for (const name of eventNames) {
@@ -185,6 +203,9 @@ export function classifyTransaction(eventNames: string[]): string {
   for (const name of eventNames) {
     if (name === 'EmergencyPaused' || name === 'EmergencyResumed' || name === 'StrategyRebalanced')
       return 'admin';
+  }
+  if (eventNames.includes('Transfer')) {
+    return 'wallet_transfer';
   }
   // Any transaction involving protocol contracts is "other" (never discard)
   if (eventNames.length > 0) return 'other';

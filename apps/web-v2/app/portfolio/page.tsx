@@ -111,7 +111,7 @@ export default function PortfolioPage() {
       <div className="grid grid-cols-4 gap-2 sm:gap-3">
         <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
           <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            NAV / Share
+            Current UVBE Price
           </span>
           <div className="mt-0.5 text-xs sm:text-base font-bold text-foreground font-mono tracking-tight truncate">
             {metrics.isLoading ? (
@@ -190,9 +190,6 @@ export default function PortfolioPage() {
           <HoldingsTable />
         </div>
       </div>
-
-      {/* ── Debug Logger (dev only) ── */}
-      <NavDebugLogger data={metrics} />
     </div>
   );
 }

@@ -15,6 +15,16 @@ export const PORTFOLIO_MANAGER_ABI = [
   },
   {
     type: 'function',
+    name: 'calculateUVPrice',
+    inputs: [],
+    outputs: [
+      { name: 'totalPortfolioValueUSD', type: 'uint256', internalType: 'uint256' },
+      { name: 'currentUVPrice', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'calculateNAV',
     inputs: [],
     outputs: [

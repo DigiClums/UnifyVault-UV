@@ -107,6 +107,8 @@ function getContractIcon(contractName: string) {
       return <Shield className="w-4 h-4 text-foreground" />;
     case 'Treasury':
       return <Coins className="w-4 h-4 text-muted-foreground" />;
+    case 'UVBEToken':
+    case 'UVBE':
     case 'UVBTCETHToken':
       return <Box className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />;
     case 'StrategyManager':
@@ -124,6 +126,8 @@ function getContractColor(contractName: string): string {
       return 'border-l-slate-400';
     case 'Treasury':
       return 'border-l-slate-500';
+    case 'UVBEToken':
+    case 'UVBE':
     case 'UVBTCETHToken':
       return 'border-l-[#BFFF00]/60';
     case 'StrategyManager':
@@ -174,7 +178,9 @@ function renderEventDetails(
   // ERC20 Transfer (all tokens including UVBTCETHToken, USDC, cbBTC, WETH)
   if (
     eventName === 'Transfer' &&
-    (contractName === 'UVBTCETHToken' ||
+    (contractName === 'UVBEToken' ||
+      contractName === 'UVBE' ||
+      contractName === 'UVBTCETHToken' ||
       contractName === 'USDC' ||
       contractName === 'cbBTC' ||
       contractName === 'WETH' ||
@@ -197,7 +203,12 @@ function renderEventDetails(
       );
       if (value !== undefined) {
         const decimals = getTokenDecimals(contractName);
-        const symbol = contractName === 'UVBTCETHToken' ? 'Shares' : contractName;
+        const symbol =
+          contractName === 'UVBTCETHToken' ||
+          contractName === 'UVBEToken' ||
+          contractName === 'UVBE'
+            ? 'UVBE'
+            : contractName;
         rows.push(
           <span key="val" className="text-slate-500">
             Amount:{' '}
@@ -1009,7 +1020,7 @@ export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
                   { name: 'UnifyVaultController', color: 'bg-[#BFFF00]' },
                   { name: 'CustodyVault', color: 'bg-slate-400' },
                   { name: 'Treasury', color: 'bg-slate-500' },
-                  { name: 'UVBTCETHToken', color: 'bg-[#BFFF00]/70' },
+                  { name: 'UVBEToken', color: 'bg-[#BFFF00]/70' },
                   { name: 'StrategyManager', color: 'bg-slate-600' },
                 ].map((c) => (
                   <span key={c.name} className="flex items-center gap-1">

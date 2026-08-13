@@ -56,18 +56,7 @@ contract RevertingCBMV2 is ICostBasisManagerV2 {
   }
 
   function onTokenTransfer(address, address, uint256, uint256) external pure override {}
-  function setFundContext(uint256, address, address, uint256) external override {}
-  function setReleaseContext(
-    uint256,
-    address,
-    address,
-    address,
-    uint256,
-    uint256,
-    uint256,
-    uint256
-  ) external override {}
-  function setRefundContext(uint256, address, address, uint256) external override {}
+  function setEscrowStatus(address, bool) external override {}
   function migrateAccounting(address, uint256, int256, uint256) external override {}
   function costBasis(address) external pure override returns (uint256) {
     return 0;
@@ -82,9 +71,6 @@ contract RevertingCBMV2 is ICostBasisManagerV2 {
     return 0;
   }
   function firstDepositTimestamp(address) external pure override returns (uint256) {
-    return 0;
-  }
-  function escrowTradeBasis(uint256) external pure override returns (uint256) {
     return 0;
   }
   function isEscrow(address) external pure override returns (bool) {
@@ -131,7 +117,7 @@ contract Phase2IntegrationTest is Test {
     token = new UVBEV2(admin);
     cbm = new CostBasisManagerV2(admin, address(directory));
     perfManager = new PerformanceManager(admin, address(directory));
-    escrow = new P2PEscrowV2(treasuryAddr, 100, address(cbm)); // 1% fee
+    escrow = new P2PEscrowV2(treasuryAddr, 100); // 1% fee
 
     usdc = new MockUSDCForPhase2();
 
@@ -303,8 +289,7 @@ contract Phase2IntegrationTest is Test {
     vm.stopPrank();
 
     assertEq(token.balanceOf(address(escrow)), sellerShares);
-    assertEq(cbm.escrowTradeBasis(tradeId), expectedNetUSD);
-    assertEq(cbm.costBasis(seller), 0);
+    assertEq(cbm.costBasis(seller), expectedNetUSD);
   }
 
   function test_P2PEscrow_ManualFund() public {
@@ -336,7 +321,7 @@ contract Phase2IntegrationTest is Test {
     vm.stopPrank();
 
     assertEq(token.balanceOf(address(escrow)), sellerShares);
-    assertEq(cbm.escrowTradeBasis(tradeId), expectedNetUSD);
+    assertEq(cbm.costBasis(seller), expectedNetUSD);
   }
 
   function test_P2PEscrow_ConfirmAndRelease() public {
@@ -369,15 +354,14 @@ contract Phase2IntegrationTest is Test {
     vm.prank(seller);
     escrow.confirmAndRelease(tradeId);
 
-    // Seller realized PnL = $1200 - $997.50 = +$202.50
-    int256 expectedPnL = int256(fiatProceeds) - int256(expectedNetUSD);
-    assertEq(cbm.realizedPnL(seller), expectedPnL);
+    // P2P settlement does NOT generate investment realized PnL for seller or mutate buyer basis
+    assertEq(cbm.realizedPnL(seller), 0);
 
-    // Buyer receives net shares and $1200 acquisition basis
+    // Buyer receives net shares
     uint256 feeShares = (sellerShares * 100) / 10000; // 1% fee
     uint256 netBuyerShares = sellerShares - feeShares;
     assertEq(token.balanceOf(buyer), netBuyerShares);
-    assertEq(cbm.costBasis(buyer), fiatProceeds);
+    assertEq(cbm.costBasis(buyer), 0);
     assertEq(token.balanceOf(treasuryAddr), feeShares);
     assertEq(cbm.costBasis(treasuryAddr), 0);
   }
@@ -449,9 +433,8 @@ contract Phase2IntegrationTest is Test {
     vm.prank(admin);
     escrow.resolveDispute(tradeId, EscrowTypes.DisputeOutcome.RELEASE_TO_BUYER);
 
-    int256 expectedPnL = int256(fiatProceeds) - int256(expectedNetUSD);
-    assertEq(cbm.realizedPnL(seller), expectedPnL);
-    assertEq(cbm.costBasis(buyer), fiatProceeds);
+    assertEq(cbm.realizedPnL(seller), 0);
+    assertEq(cbm.costBasis(buyer), 0);
   }
 
   function test_P2PEscrow_DisputeRefund() public {
@@ -567,9 +550,9 @@ contract Phase2IntegrationTest is Test {
     vm.prank(seller);
     escrow.confirmAndRelease(tradeId);
 
-    int256 expectedPnL = int256(600 * 1e18) - int256(halfBasis); // $600 - $498.75 = +$101.25
-    assertEq(cbm.realizedPnL(seller), expectedPnL);
-    assertEq(cbm.costBasis(buyer), 600 * 1e18);
+    assertEq(cbm.realizedPnL(seller), 0);
+    assertEq(cbm.costBasis(seller), halfBasis);
+    assertEq(cbm.costBasis(buyer), 0);
   }
 
   function test_Integration_NAVAndPerformance() public {

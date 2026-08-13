@@ -171,6 +171,8 @@ export function useHistoricalNAV(period: string = 'ALL') {
   return { navHistory, isLoading };
 }
 
+export const useHistoricalUVPrice = useHistoricalNAV;
+
 export function useHistoricalTVL() {
   const { navHistory, isLoading } = useHistoricalNAV('ALL');
   const tvlHistory = navHistory.map((n) => ({

@@ -161,6 +161,13 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
   /**
    * @notice Alias for calculatePortfolioValue returning total portfolio USD (18 decimals)
    */
+  function backingValueUSD() external view override returns (uint256) {
+    return calculatePortfolioValue();
+  }
+
+  /**
+   * @notice Alias for calculatePortfolioValue returning total portfolio USD (18 decimals)
+   */
   function totalPortfolioValueUSD() external view override returns (uint256) {
     return calculatePortfolioValue();
   }
@@ -179,17 +186,70 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
   }
 
   /**
-   * @notice Alias for calculateNAV returning total portfolio value and NAV per share (18 decimals)
+   * @notice Calculates current UV token price and total backing value in USD (18 decimals)
+   * @return totalBackingUSD Aggregate USD value of all backing assets in CustodyVault
+   * @return tokenPriceUSD Price per UV token in USD (18 decimals)
    */
-  function nav() external view override returns (uint256 totalValueUSD, uint256 navPerShare) {
-    return calculateNAV();
+  function calculateUVPrice()
+    public
+    view
+    override
+    returns (uint256 totalBackingUSD, uint256 tokenPriceUSD)
+  {
+    totalBackingUSD = calculatePortfolioValue();
+    uint256 totalShares = IERC20(indexToken).totalSupply();
+
+    if (totalShares == 0) {
+      // Genesis reference price: $1.00 USD per initial token
+      tokenPriceUSD = INITIAL_NAV_PER_SHARE;
+    } else {
+      tokenPriceUSD = (totalBackingUSD * 1e18) / totalShares;
+    }
   }
 
   /**
-   * @notice Returns price per share / NAV per share in 18 decimals
+   * @notice Returns current UV token price in USD (18 decimals)
+   */
+  function currentUVPrice() external view override returns (uint256 price) {
+    (, price) = calculateUVPrice();
+  }
+
+  /**
+   * @notice Alias for calculateUVPrice
+   */
+  function getUVPrice()
+    external
+    view
+    override
+    returns (uint256 totalBackingUSD, uint256 tokenPriceUSD)
+  {
+    return calculateUVPrice();
+  }
+
+  /**
+   * @notice Legacy alias for calculateUVPrice returning total backing value and price per share (18 decimals)
+   */
+  function calculateNAV()
+    public
+    view
+    override
+    returns (uint256 portfolioValUSD, uint256 navPerShare)
+  {
+    return calculateUVPrice();
+  }
+
+  /**
+   * @notice Legacy alias for calculateUVPrice
+   */
+  function nav() external view override returns (uint256 totalValueUSD, uint256 navPerShare) {
+    return calculateUVPrice();
+  }
+
+  /**
+   * @notice Returns price per UV token in 18 decimals
    */
   function sharePrice() external view override returns (uint256 pricePerShare) {
-    (, pricePerShare) = calculateNAV();
+    (, pricePerShare) = calculateUVPrice();
   }
 
   /**
@@ -202,28 +262,6 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     returns (address[] memory targetAssets, uint256[] memory weightsBps)
   {
     return IStrategyManager(strategyManager).getTargetWeights();
-  }
-
-  /**
-   * @notice Calculates current Net Asset Value (NAV) per index share (18 decimals)
-   * @return portfolioValUSD Aggregate USD value of all vault assets
-   * @return navPerShare Net Asset Value per share in USD (18 decimals)
-   */
-  function calculateNAV()
-    public
-    view
-    override
-    returns (uint256 portfolioValUSD, uint256 navPerShare)
-  {
-    portfolioValUSD = calculatePortfolioValue();
-    uint256 totalShares = IERC20(indexToken).totalSupply();
-
-    if (totalShares == 0 || totalShares <= 1000) {
-      // Genesis / Bootstrap case: $1.00 USD per initial share
-      navPerShare = INITIAL_NAV_PER_SHARE;
-    } else {
-      navPerShare = (portfolioValUSD * 1e18) / totalShares;
-    }
   }
 
   /**
@@ -245,15 +283,15 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     uint8 depositDecimals = IERC20Metadata(depositAsset).decimals();
     uint256 depositValueUSD = (depositAmount * depositPrice) / (10 ** depositDecimals);
 
-    (uint256 portfolioValUSD, ) = calculateNAV();
+    (uint256 backingValUSD, ) = calculateUVPrice();
     uint256 totalShares = IERC20(indexToken).totalSupply();
 
     uint256 sharesToMint;
-    if (totalShares == 0 || totalShares <= 1000 || portfolioValUSD == 0) {
-      // Initial mint: 1 Share per 1.00 USD value
+    if (totalShares == 0 || backingValUSD == 0) {
+      // Genesis mint: 1 Share per 1.00 USD value
       sharesToMint = depositValueUSD;
     } else {
-      sharesToMint = ShareLib.calculateShares(depositValueUSD, totalShares, portfolioValUSD, 18);
+      sharesToMint = ShareLib.calculateShares(depositValueUSD, totalShares, backingValUSD, 18);
     }
 
     (address[] memory targetAssets, uint256[] memory allocationAmounts) = this.calculateAllocation(
@@ -286,8 +324,8 @@ contract PortfolioManager is AccessControl, IPortfolioManager {
     uint256 totalShares = IERC20(indexToken).totalSupply();
     if (totalShares == 0) return RedeemPreview(0, 0);
 
-    (, uint256 navPerShare) = calculateNAV();
-    uint256 userShareUSDValue = (sharesToBurn * navPerShare) / 1e18;
+    (, uint256 price) = calculateUVPrice();
+    uint256 userShareUSDValue = (sharesToBurn * price) / 1e18;
 
     uint256 payoutPrice = IOracle(oracleManager).getAssetPrice(payoutAsset);
     if (payoutPrice == 0) revert AssetNotSupportedByOracle(payoutAsset);

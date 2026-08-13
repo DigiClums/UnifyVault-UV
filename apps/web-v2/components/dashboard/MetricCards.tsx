@@ -105,7 +105,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {[
           {
-            label: 'NAV / Share',
+            label: 'Current UV Price',
             value: metrics.sharePriceUSD,
             loading: metrics.isLoading,
           },
@@ -187,8 +187,8 @@ export function MetricCards({ metrics }: MetricCardsProps) {
                 <span>PortfolioManager.calculatePortfolioValue()</span>
               </div>
               <div>
-                <span className="text-muted-foreground">NAV:</span>{' '}
-                <span>PortfolioManager.calculateNAV()</span>
+                <span className="text-muted-foreground">UV Price:</span>{' '}
+                <span>PortfolioManager.calculateUVPrice()</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Cost Basis:</span>{' '}

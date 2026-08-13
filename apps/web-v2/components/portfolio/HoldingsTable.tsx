@@ -35,7 +35,7 @@ export function HoldingsTable() {
             </h3>
             <p className="text-[11px] text-muted-foreground">
               {scope === 'user'
-                ? 'Your pro-rata ownership claim on underlying strategy collateral assets based on $uvBTCETH shares owned.'
+                ? 'Your pro-rata ownership claim on underlying strategy collateral assets based on UVBE shares owned.'
                 : 'Auditable multi-asset pool reserves custodied inside CustodyVault.'}
             </p>
           </div>
@@ -69,7 +69,7 @@ export function HoldingsTable() {
       {scope === 'user' && !hasUserShares && !isLoading && (
         <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
           <span>
-            ℹ️ You currently hold 0 $uvBTCETH shares. Personal asset claim values will reflect $0.00
+            ℹ️ You currently hold 0 UVBE shares. Personal asset claim values will reflect $0.00
             until you deposit.
           </span>
           <button

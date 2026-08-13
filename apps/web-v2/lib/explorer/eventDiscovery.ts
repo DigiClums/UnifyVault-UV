@@ -124,7 +124,12 @@ function buildSummary(group: TransactionGroup): void {
 
   // Fallback: mint/burn from Token
   for (const evt of group.events) {
-    if (evt.contractName === 'UVBTCETHToken' && evt.eventName === 'Transfer') {
+    if (
+      (evt.contractName === 'UVBEToken' ||
+        evt.contractName === 'UVBE' ||
+        evt.contractName === 'UVBTCETHToken') &&
+      evt.eventName === 'Transfer'
+    ) {
       const from = evt.args.from as string;
       const to = evt.args.to as string;
       if (from === ZERO_ADDRESS || to === ZERO_ADDRESS) {

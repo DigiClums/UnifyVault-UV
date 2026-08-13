@@ -88,8 +88,8 @@ contract PerformanceManager is AccessControl, IPerformanceManager {
     uint256 userShares = IERC20(indexToken).balanceOf(account);
     if (userShares == 0) return 0;
 
-    (, uint256 navPerShare) = IPortfolioManager(portfolioManager).calculateNAV();
-    return (userShares * navPerShare) / 1e18;
+    (, uint256 currentUVPrice) = IPortfolioManager(portfolioManager).calculateUVPrice();
+    return (userShares * currentUVPrice) / 1e18;
   }
 
   /**

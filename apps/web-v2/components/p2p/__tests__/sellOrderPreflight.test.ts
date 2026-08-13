@@ -11,7 +11,7 @@ describe('Phase 7.1.4 — Sell Order Hardening & Pre-Flight Tests', () => {
   const mockUSDC = '0x036cbd53842c5426634e7929541ec2318f3dcf7e' as `0x${string}`; // 6 decimals
   const mockcbBTC = '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29' as `0x${string}`; // 8 decimals
   const mockWETH = '0xd116ab1c943cf15904ec4c8dd701086f175fa323' as `0x${string}`; // 18 decimals
-  const mockUVBE = '0x4A33d001D7F81C12c0C9262256Af83000e64457D' as `0x${string}`; // 18 decimals
+  const mockUVBE = '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as `0x${string}`; // 18 decimals
   const targetChainId = 84532; // Base Sepolia
 
   // 1. Sufficient balance test
@@ -262,7 +262,9 @@ describe('Phase 7.1.4 — Sell Order Hardening & Pre-Flight Tests', () => {
 
     expect(res.isInsufficientBalance).toBe(false);
     expect(res.isInsufficientAllowance).toBe(true);
-    expect(res.warningMessage).toBe('Token approval will be required before this order can be funded.');
+    expect(res.warningMessage).toBe(
+      'Token approval will be required before this order can be funded.',
+    );
     expect(res.canSubmitSellOrder).toBe(true); // Warning only — does NOT hard block order creation
   });
 
@@ -298,7 +300,9 @@ describe('Phase 7.1.4 — Sell Order Hardening & Pre-Flight Tests', () => {
     });
 
     expect(res.canSubmitSellOrder).toBe(false);
-    expect(res.errorMessage).toBe('Failed to read token contract state (bytecode/decimals) from chain.');
+    expect(res.errorMessage).toBe(
+      'Failed to read token contract state (bytecode/decimals) from chain.',
+    );
   });
 
   // 15. BUY side invariant test

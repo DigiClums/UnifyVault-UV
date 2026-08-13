@@ -185,9 +185,11 @@ export function transformProtocolMetrics(
   return {
     totalPortfolioValueUSD: formatUSD(totalPortfolioValueUSDNumber),
     totalVaultNAVUSD: formatUSD(totalVaultNAVUSD),
+    backingValueUSD: formatUSD(totalVaultNAVUSD),
     totalPortfolioValueUSDNumber,
     navPerShareUSD: formatNAVUSD(sharePriceUSD),
     sharePriceUSD: formatNAVUSD(sharePriceUSD),
+    currentUVPriceUSD: formatNAVUSD(sharePriceUSD),
     sharePriceNumber: sharePriceUSD,
     totalSharesRaw,
     totalSharesFormatted: formatShares(totalSharesRaw),
@@ -257,7 +259,6 @@ export function transformUserPortfolio(
   let currentValueUSD = 0;
   let pnlUSD = 0;
   let pnlPercent = 0;
-  let p2pRealizedPnLUSD = 0;
 
   if (onChainPerformance && typeof onChainPerformance === 'object') {
     if ('investedCapitalUSD' in onChainPerformance) {
@@ -265,7 +266,6 @@ export function transformUserPortfolio(
       const perf = onChainPerformance as PerformanceStruct;
       investedAssetsUSD = Number(perf.investedCapitalUSD) / 1e18;
       currentValueUSD = Number(perf.currentValueUSD) / 1e18;
-      p2pRealizedPnLUSD = Number(perf.realizedPnL) / 1e18;
       const unrealizedUSD = Number(perf.unrealizedPnL) / 1e18;
       pnlUSD = unrealizedUSD;
       pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
@@ -287,7 +287,6 @@ export function transformUserPortfolio(
       // [currentValueUSD, investedCapitalUSD, realizedPnL, unrealizedPnL, netPnL, roiBps, holdingPeriod]
       currentValueUSD = Number(onChainPerformance[0]) / 1e18;
       investedAssetsUSD = Number(onChainPerformance[1]) / 1e18;
-      p2pRealizedPnLUSD = Number(onChainPerformance[2]) / 1e18;
       const unrealizedUSD = Number(onChainPerformance[3]) / 1e18;
       pnlUSD = unrealizedUSD;
       pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
@@ -418,8 +417,6 @@ export function transformUserPortfolio(
     pnlUSD: formatPnLUSD(pnlUSD),
     rawPnLUSD: pnlUSD,
     pnlPercentage: formatPnLPercent(pnlPercent),
-    p2pRealizedPnLUSD: formatPnLUSD(p2pRealizedPnLUSD),
-    rawP2PRealizedPnLUSD: p2pRealizedPnLUSD,
     isProfitable,
     averageEntryPriceUSD: formatUSD(averageEntryPriceUSDNum),
     ownershipPercentage,

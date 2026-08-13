@@ -120,11 +120,11 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         abi: STRATEGY_MANAGER_ABI,
         functionName: 'getTargetWeights',
       },
-      // 11. PortfolioManager On-Chain NAV
+      // 11. PortfolioManager On-Chain UV Price & Valuation
       {
         address: portfolioManager,
         abi: PORTFOLIO_MANAGER_ABI,
-        functionName: 'calculateNAV',
+        functionName: 'calculateUVPrice',
       },
       // 12. Performance / CostBasis Performance Struct
       {

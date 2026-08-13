@@ -5,14 +5,15 @@ import { createSafeWagmiStorage, getSafeStorage } from '../utils/storageFallback
 
 describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   it('should expose all 8 required canonical protocol contract addresses for Base Sepolia', () => {
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0x006c5DF13C716E5224b33956651C4356BB90DEc0');
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toBe(
-      '0x4A33d001D7F81C12c0C9262256Af83000e64457D',
+      '0x006c5DF13C716E5224b33956651C4356BB90DEc0',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toBe(
-      '0x9499Ad93fa257D4d20925FDc4B6D6F6b2b565Bc2',
+      '0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toBe(
-      '0x68c969b758e682B67e99a1ed2CC5753Ff1B2635E',
+      '0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.OracleManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
@@ -20,10 +21,10 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager).toBe(
-      '0x15dd90413BF9379E6B1D50eED34771094f067765',
+      '0x57869372AFbd7b61752f2f8d3e7F37701e28517B',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager).toBe(
-      '0x83984555065c95E160a1d6e8e35C43C0BBc3d58F',
+      '0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6',
     );
   });
 
@@ -32,6 +33,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(tokens.USDC).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(tokens.cbBTC).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(tokens.WETH).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(tokens.UVBE).toBe('0x006c5DF13C716E5224b33956651C4356BB90DEc0');
   });
 
   it('should generate accurate BaseScan explorer URLs based on chain ID 84532', () => {
@@ -41,14 +43,14 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     const mainnetExplorer = getExplorerBaseUrl(8453);
     expect(mainnetExplorer).toBe('https://basescan.org');
 
-    const tokenUrl = `${sepoliaExplorer}/address/${DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken}`;
+    const tokenUrl = `${sepoliaExplorer}/address/${DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken}`;
     expect(tokenUrl).toBe(
-      `https://sepolia.basescan.org/address/${DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken}`,
+      `https://sepolia.basescan.org/address/${DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken}`,
     );
   });
 
-  it('should format wallet_watchAsset ERC20 parameters accurately for UVBTCETH token', () => {
-    const tokenAddress = DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken;
+  it('should format wallet_watchAsset ERC20 parameters accurately for UVBE token', () => {
+    const tokenAddress = DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken;
     const watchAssetParams = {
       type: 'ERC20',
       options: {
@@ -59,7 +61,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     };
 
     expect(watchAssetParams.type).toBe('ERC20');
-    expect(watchAssetParams.options.address).toBe('0x4A33d001D7F81C12c0C9262256Af83000e64457D');
+    expect(watchAssetParams.options.address).toBe('0x006c5DF13C716E5224b33956651C4356BB90DEc0');
     expect(watchAssetParams.options.symbol).toBe('UVBE');
     expect(watchAssetParams.options.decimals).toBe(18);
   });
@@ -84,7 +86,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
       params: {
         type: 'ERC20',
         options: {
-          address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+          address: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken,
           symbol: 'UVBE',
           decimals: 18,
         },
@@ -204,18 +206,18 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   });
 
   it('should verify provider interceptor preserves EIP-1193 event listeners (.on, .removeListener) for wallet reconnect on page refresh', async () => {
-    const listeners: Record<string, Function[]> = {};
+    const listeners: Record<string, ((...args: any[]) => void)[]> = {};
     class DummyProvider {
       isMetaMask = true;
       request = async ({ method }: { method: string }) => {
         if (method === 'eth_accounts') return ['0x1234567890123456789012345678901234567890'];
         return null;
       };
-      on(event: string, fn: Function) {
+      on(event: string, fn: (...args: any[]) => void) {
         if (!listeners[event]) listeners[event] = [];
         listeners[event].push(fn);
       }
-      removeListener(event: string, fn: Function) {
+      removeListener(event: string, fn: (...args: any[]) => void) {
         if (listeners[event]) {
           listeners[event] = listeners[event].filter((cb) => cb !== fn);
         }

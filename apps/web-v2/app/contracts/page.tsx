@@ -71,7 +71,7 @@ export default function ContractsPage() {
     },
     {
       name: 'PortfolioManager',
-      description: 'On-chain portfolio valuation, total asset accounting & NAV calculator',
+      description: 'On-chain portfolio valuation, total asset accounting & UV price engine',
       address: directory.portfolioManager || DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager,
       category: 'Accounting',
       icon: ShieldCheck,

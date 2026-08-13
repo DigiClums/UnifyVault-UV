@@ -21,6 +21,8 @@ export type ProtocolContractName =
   | 'UnifyVaultController'
   | 'CustodyVault'
   | 'Treasury'
+  | 'UVBEToken'
+  | 'UVBE'
   | 'UVBTCETHToken'
   | 'StrategyManager'
   | 'PortfolioManager'

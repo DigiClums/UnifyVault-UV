@@ -8,7 +8,11 @@ import { TableCard } from '../../components/ui/TableCard';
 import { useDashboard } from '../../hooks/useDashboard';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
-import { getExplorerBaseUrl, getProtocolDirectoryAddress, DIRECTORY_ADDRESS_SEPOLIA } from '../../constants';
+import {
+  getExplorerBaseUrl,
+  getProtocolDirectoryAddress,
+  DIRECTORY_ADDRESS_SEPOLIA,
+} from '../../constants';
 import { ShieldCheck, Vault, Activity, RefreshCw, ArrowUpRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 
@@ -49,7 +53,7 @@ export default function AdminOverviewPage() {
           glowColor="blue"
         />
         <StatCard
-          title="Current NAV / Share"
+          title="Current UVBE Price"
           value={sharePriceUSD}
           subtitle="OracleManager valuation"
           icon={Activity}

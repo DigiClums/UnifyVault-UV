@@ -29,9 +29,6 @@ contract CostBasisManagerV2 is AccessControl, ICostBasisManagerV2 {
   mapping(address => bool) private _accountingMigrated;
 
   mapping(address => bool) private _isEscrow;
-  mapping(uint256 => uint256) private _escrowTradeBasis;
-
-  P2PContext private _currentContext;
 
   uint256 private _reentrancyStatus;
   uint256 private constant _NOT_ENTERED = 1;
@@ -89,110 +86,6 @@ contract CostBasisManagerV2 is AccessControl, ICostBasisManagerV2 {
     emit EscrowStatusUpdated(escrowAddress, status);
   }
 
-  // --- P2P Escrow Context Setters ---
-
-  function setFundContext(
-    uint256 tradeId,
-    address seller,
-    address escrow,
-    uint256 amount
-  ) external override onlyEscrow nonReentrantGuard {
-    if (seller == address(0) || escrow == address(0)) revert ZeroAddressDetected();
-    if (amount == 0) revert ZeroAmountDetected();
-    if (_currentContext.active) revert ContextAlreadyActive();
-
-    _currentContext = P2PContext({
-      contextType: ContextType.FUND,
-      tradeId: tradeId,
-      seller: seller,
-      buyer: address(0),
-      treasury: address(0),
-      escrow: escrow,
-      grossAmount: amount,
-      netAmount: 0,
-      feeAmount: 0,
-      fiatProceedsUSD18: 0,
-      finalized: false,
-      active: true
-    });
-
-    emit P2PFundContextSet(tradeId, seller, escrow, amount);
-  }
-
-  function setReleaseContext(
-    uint256 tradeId,
-    address seller,
-    address buyer,
-    address treasury,
-    uint256 grossAmount,
-    uint256 netAmount,
-    uint256 feeAmount,
-    uint256 fiatProceedsUSD18
-  ) external override onlyEscrow nonReentrantGuard {
-    if (seller == address(0) || buyer == address(0)) revert ZeroAddressDetected();
-    if (grossAmount == 0 || netAmount == 0) revert ZeroAmountDetected();
-    if (grossAmount != netAmount + feeAmount) revert InvalidContext();
-    if (_currentContext.active) revert ContextAlreadyActive();
-
-    _currentContext = P2PContext({
-      contextType: ContextType.RELEASE,
-      tradeId: tradeId,
-      seller: seller,
-      buyer: buyer,
-      treasury: treasury,
-      escrow: msg.sender,
-      grossAmount: grossAmount,
-      netAmount: netAmount,
-      feeAmount: feeAmount,
-      fiatProceedsUSD18: fiatProceedsUSD18,
-      finalized: false,
-      active: true
-    });
-
-    emit P2PReleaseContextSet(
-      tradeId,
-      seller,
-      buyer,
-      treasury,
-      grossAmount,
-      netAmount,
-      feeAmount,
-      fiatProceedsUSD18
-    );
-  }
-
-  function setRefundContext(
-    uint256 tradeId,
-    address seller,
-    address escrow,
-    uint256 amount
-  ) external override onlyEscrow nonReentrantGuard {
-    if (seller == address(0) || escrow == address(0)) revert ZeroAddressDetected();
-    if (amount == 0) revert ZeroAmountDetected();
-    if (_currentContext.active) revert ContextAlreadyActive();
-
-    _currentContext = P2PContext({
-      contextType: ContextType.REFUND,
-      tradeId: tradeId,
-      seller: seller,
-      buyer: address(0),
-      treasury: address(0),
-      escrow: escrow,
-      grossAmount: amount,
-      netAmount: 0,
-      feeAmount: 0,
-      fiatProceedsUSD18: 0,
-      finalized: false,
-      active: true
-    });
-
-    emit P2PRefundContextSet(tradeId, seller, escrow, amount);
-  }
-
-  function clearP2PContext() external onlyEscrow nonReentrantGuard {
-    delete _currentContext;
-  }
-
   // --- Core Pre-Transfer Hook ---
 
   /**
@@ -218,114 +111,26 @@ contract CostBasisManagerV2 is AccessControl, ICostBasisManagerV2 {
       return;
     }
 
-    bool involvedEscrow = _isEscrow[from] || _isEscrow[to];
-
-    if (involvedEscrow) {
-      if (!_currentContext.active) revert EscrowTransferWithoutContext();
-
-      if (_currentContext.contextType == ContextType.FUND) {
-        if (
-          from != _currentContext.seller ||
-          to != _currentContext.escrow ||
-          amount != _currentContext.grossAmount
-        ) {
-          revert InvalidContext();
-        }
-
-        uint256 basisMoved =
-          (amount == senderBalanceBefore)
-            ? _costBasisUSD[from]
-            : Math.mulDiv(_costBasisUSD[from], amount, senderBalanceBefore);
-
-        _costBasisUSD[from] -= basisMoved;
-        _escrowTradeBasis[_currentContext.tradeId] += basisMoved;
-
-        delete _currentContext;
-      } else if (_currentContext.contextType == ContextType.REFUND) {
-        if (
-          from != _currentContext.escrow ||
-          to != _currentContext.seller ||
-          amount != _currentContext.grossAmount
-        ) {
-          revert InvalidContext();
-        }
-
-        uint256 restoredBasis = _escrowTradeBasis[_currentContext.tradeId];
-        _costBasisUSD[to] += restoredBasis;
-        _escrowTradeBasis[_currentContext.tradeId] = 0;
-
-        delete _currentContext;
-      } else if (_currentContext.contextType == ContextType.RELEASE) {
-        if (from != _currentContext.escrow) {
-          revert InvalidContext();
-        }
-
-        if (to == _currentContext.buyer) {
-          if (amount != _currentContext.netAmount || _currentContext.finalized) {
-            revert InvalidContext();
-          }
-
-          uint256 sellerBasisRemoved = _escrowTradeBasis[_currentContext.tradeId];
-          _escrowTradeBasis[_currentContext.tradeId] = 0;
-
-          int256 sellerRealizedPnL =
-            int256(_currentContext.fiatProceedsUSD18) - int256(sellerBasisRemoved);
-          _realizedPnLUSD[_currentContext.seller] += sellerRealizedPnL;
-
-          _costBasisUSD[to] += _currentContext.fiatProceedsUSD18;
-          _currentContext.finalized = true;
-
-          emit CostBasisUpdated(
-            to,
-            _costBasisUSD[to],
-            IERC20(indexToken).balanceOf(to),
-            block.timestamp
-          );
-          emit RealizedPnLRecorded(
-            _currentContext.seller,
-            sellerRealizedPnL,
-            amount,
-            block.timestamp
-          );
-
-          if (_currentContext.feeAmount == 0) {
-            delete _currentContext;
-          }
-        } else if (to == _currentContext.treasury) {
-          if (amount != _currentContext.feeAmount || !_currentContext.finalized) {
-            revert InvalidContext();
-          }
-
-          // Treasury receives fee amount of shares with 0 user investment basis
-          delete _currentContext;
-        } else {
-          revert InvalidContext();
-        }
-      } else {
-        revert InvalidContext();
-      }
-    } else {
-      // Ordinary Transfer
-      if (amount > senderBalanceBefore) revert InsufficientShares();
-
-      uint256 basisMoved =
-        (amount == senderBalanceBefore)
-          ? _costBasisUSD[from]
-          : Math.mulDiv(_costBasisUSD[from], amount, senderBalanceBefore);
-
-      _costBasisUSD[from] -= basisMoved;
-      _costBasisUSD[to] += basisMoved;
-
-      uint256 toBalanceAfter =
-        (indexToken != address(0)) ? IERC20(indexToken).balanceOf(to) + amount : amount;
-      emit CostBasisUpdated(
-        from,
-        _costBasisUSD[from],
-        senderBalanceBefore - amount,
-        block.timestamp
-      );
-      emit CostBasisUpdated(to, _costBasisUSD[to], toBalanceAfter, block.timestamp);
+    // 3. P2P Escrow settlement transfers do NOT alter investment cost basis
+    if (_isEscrow[from] || _isEscrow[to]) {
+      return;
     }
+
+    // 4. Ordinary Transfer: Move proportional cost basis
+    if (amount > senderBalanceBefore) revert InsufficientShares();
+
+    uint256 basisMoved =
+      (amount == senderBalanceBefore)
+        ? _costBasisUSD[from]
+        : Math.mulDiv(_costBasisUSD[from], amount, senderBalanceBefore);
+
+    _costBasisUSD[from] -= basisMoved;
+    _costBasisUSD[to] += basisMoved;
+
+    uint256 toBalanceAfter =
+      (indexToken != address(0)) ? IERC20(indexToken).balanceOf(to) + amount : amount;
+    emit CostBasisUpdated(from, _costBasisUSD[from], senderBalanceBefore - amount, block.timestamp);
+    emit CostBasisUpdated(to, _costBasisUSD[to], toBalanceAfter, block.timestamp);
   }
 
   // --- Controller Accounting Functions ---
@@ -433,8 +238,8 @@ contract CostBasisManagerV2 is AccessControl, ICostBasisManagerV2 {
     uint256 userShares = IERC20(indexToken).balanceOf(account);
     if (userShares == 0) return 0;
 
-    (, uint256 navPerShare) = IPortfolioManager(portfolioManager).calculateNAV();
-    uint256 currentValueUSD = (userShares * navPerShare) / 1e18;
+    (, uint256 currentUVPrice) = IPortfolioManager(portfolioManager).calculateUVPrice();
+    uint256 currentValueUSD = (userShares * currentUVPrice) / 1e18;
 
     return int256(currentValueUSD) - int256(basis);
   }
@@ -443,10 +248,6 @@ contract CostBasisManagerV2 is AccessControl, ICostBasisManagerV2 {
     address account
   ) external view override returns (uint256 timestamp) {
     return _firstDepositTimestamp[account];
-  }
-
-  function escrowTradeBasis(uint256 tradeId) external view override returns (uint256 basisUSD) {
-    return _escrowTradeBasis[tradeId];
   }
 
   function isEscrow(address account) external view override returns (bool) {

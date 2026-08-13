@@ -5,7 +5,11 @@ import { useAccount } from 'wagmi';
 import { parseUnits, isAddress, type Address } from 'viem';
 import { ShieldCheck, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { useP2PActions } from '../../hooks/useP2PEscrow';
-import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA, DEFAULT_P2P_FIAT_CURRENCY } from '../../constants';
+import {
+  getChainTokens,
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEFAULT_P2P_FIAT_CURRENCY,
+} from '../../constants';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface CreateTradeModalProps {
@@ -20,9 +24,7 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
   const { createTrade, isPending, userError, setUserError, txManager } = useP2PActions();
 
   const [buyer, setBuyer] = useState('');
-  const [assetType, setAssetType] = useState<'ETH' | 'USDC' | 'WETH' | 'cbBTC' | 'UVBTCETH'>(
-    'USDC',
-  );
+  const [assetType, setAssetType] = useState<'ETH' | 'USDC' | 'WETH' | 'cbBTC' | 'UVBE'>('USDC');
   const [amount, setAmount] = useState('');
   const [fiatAmount, setFiatAmount] = useState('');
   const [fiatCurrency, setFiatCurrency] = useState(DEFAULT_P2P_FIAT_CURRENCY);
@@ -35,8 +37,8 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
     if (assetType === 'USDC') return tokens.USDC;
     if (assetType === 'WETH') return tokens.WETH;
     if (assetType === 'cbBTC') return tokens.cbBTC;
-    if (assetType === 'UVBTCETH')
-      return (tokens.UVBTCETH || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken) as Address;
+    if (assetType === 'UVBE')
+      return (tokens.UVBE || DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken) as Address;
     return tokens.USDC;
   };
 
@@ -149,7 +151,7 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
               <select
                 value={assetType}
                 onChange={(e) =>
-                  setAssetType(e.target.value as 'ETH' | 'USDC' | 'WETH' | 'cbBTC' | 'UVBTCETH')
+                  setAssetType(e.target.value as 'ETH' | 'USDC' | 'WETH' | 'cbBTC' | 'UVBE')
                 }
                 className="w-full px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
               >
@@ -157,7 +159,7 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
                 <option value="ETH">ETH (Native)</option>
                 <option value="WETH">WETH</option>
                 <option value="cbBTC">cbBTC</option>
-                <option value="UVBTCETH">UVBTCETH (Index Shares)</option>
+                <option value="UVBE">UVBE (Index Shares)</option>
               </select>
             </div>
 
@@ -241,9 +243,7 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <div>
                   <span className="text-muted-foreground">Asset:</span>{' '}
-                  <span className="font-bold text-foreground">
-                    {assetType === 'UVBTCETH' ? 'UVBE' : assetType}
-                  </span>
+                  <span className="font-bold text-foreground">{assetType}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Crypto Amount:</span>{' '}
@@ -305,4 +305,3 @@ export function CreateTradeModal({ isOpen, onClose, onSuccess }: CreateTradeModa
     </div>
   );
 }
-

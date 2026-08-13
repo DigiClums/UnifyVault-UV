@@ -197,7 +197,12 @@ export interface ContractEventRegistry {
 }
 
 export type ProtocolContractName =
-  'UnifyVaultController' | 'CustodyVault' | 'Treasury' | 'UVBTCETHToken' | 'StrategyManager';
+  | 'UnifyVaultController'
+  | 'CustodyVault'
+  | 'Treasury'
+  | 'UVBEToken'
+  | 'UVBTCETHToken'
+  | 'StrategyManager';
 
 /**
  * Build a mapping from contract address to its event ABI and human-readable
@@ -213,7 +218,10 @@ export function buildAddressToABIMap(
   add(addresses.UnifyVaultController, 'UnifyVaultController', CONTROLLER_EVENT_ABIS as Abi);
   add(addresses.CustodyVault, 'CustodyVault', CUSTODY_VAULT_EVENT_ABIS as Abi);
   add(addresses.Treasury, 'Treasury', TREASURY_EVENT_ABIS as Abi);
-  add(addresses.UVBTCETHToken, 'UVBTCETHToken', ERC20_EVENT_ABIS as Abi);
+  add(addresses.UVBEToken || addresses.UVBTCETHToken, 'UVBEToken', ERC20_EVENT_ABIS as Abi);
+  if (addresses.UVBTCETHToken) {
+    add(addresses.UVBTCETHToken, 'UVBTCETHToken', ERC20_EVENT_ABIS as Abi);
+  }
   add(addresses.StrategyManager, 'StrategyManager', STRATEGY_MANAGER_EVENT_ABIS as Abi);
 
   // Known tokens (Base Mainnet & Sepolia)
@@ -224,6 +232,8 @@ export function buildAddressToABIMap(
     ['0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29', 'cbBTC'],
     ['0x4200000000000000000000000000000000000006', 'WETH'],
     ['0xd116ab1c943cf15904ec4c8dd701086f175fa323', 'WETH'],
+    ['0x006c5DF13C716E5224b33956651C4356BB90DEc0', 'UVBE'],
+    ['0x4A33d001D7F81C12c0C9262256Af83000e64457D', 'UVBE'],
   ];
   for (const [addr, name] of tokens) {
     add(addr, name, ERC20_EVENT_ABIS as Abi);
@@ -253,8 +263,10 @@ export const EVENT_DISPLAY_NAMES: Record<EventSignature, string> = {
   'Treasury:FeeCollected': 'Fee Sent To Treasury',
   'Treasury:TreasuryWithdrawal': 'Treasury Withdrawal',
   'Treasury:NativeWithdrawn': 'Native Withdrawn',
-  'UVBTCETHToken:Transfer': 'Token Transfer',
-  'UVBTCETHToken:Approval': 'Token Approval',
+  'UVBEToken:Transfer': 'UVBE Token Transfer',
+  'UVBEToken:Approval': 'UVBE Token Approval',
+  'UVBTCETHToken:Transfer': 'UVBE Token Transfer',
+  'UVBTCETHToken:Approval': 'UVBE Token Approval',
   'StrategyManager:StrategyRebalanced': 'Strategy Rebalanced',
 };
 
@@ -266,7 +278,10 @@ export function getEventDisplayName(contractName: string, eventName: string): st
  * Ordering priority for timeline sorting. Lower = appears first.
  */
 export const EVENT_DISPLAY_ORDER: Record<EventSignature, number> = {
+  'UVBEToken:Transfer': 1,
+  'UVBEToken:Approval': 1,
   'UVBTCETHToken:Transfer': 1,
+  'UVBTCETHToken:Approval': 1,
   'Treasury:FeeCollected': 2,
   'CustodyVault:DepositExecuted': 4,
   'CustodyVault:WithdrawalExecuted': 4,
@@ -279,21 +294,39 @@ export const EVENT_DISPLAY_ORDER: Record<EventSignature, number> = {
   'UnifyVaultController:EmergencyResumed': 5,
   'Treasury:TreasuryWithdrawal': 4,
   'Treasury:NativeWithdrawn': 4,
-  'UVBTCETHToken:Approval': 1,
   'StrategyManager:StrategyRebalanced': 5,
 };
 
 // ─── Action Type Detection ──────────────────────────────────────────────────
 
-export type ProtocolActionType = 'deposit' | 'redeem' | 'fee' | 'admin' | 'unknown';
+export type ProtocolActionType =
+  'deposit' | 'redeem' | 'fee' | 'admin' | 'p2p_settlement' | 'wallet_transfer' | 'unknown';
 
 export function classifyTransaction(eventNames: string[]): ProtocolActionType {
   for (const name of eventNames) {
+    if (
+      name === 'TradeCreated' ||
+      name === 'EscrowFunded' ||
+      name === 'PaymentSubmitted' ||
+      name === 'DisputeRaised' ||
+      name === 'TradeDisputed' ||
+      name === 'DisputeResolved' ||
+      name === 'EscrowReleased' ||
+      name === 'EscrowRefunded' ||
+      name === 'TradeCancelled'
+    ) {
+      return 'p2p_settlement';
+    }
     if (name === 'DepositExecuted' || name === 'DepositCompleted') return 'deposit';
     if (name === 'RedeemExecuted' || name === 'RedeemCompleted') return 'redeem';
     if (name === 'ProtocolFeeCollected' || name === 'FeeCollected') return 'fee';
     if (name === 'EmergencyPaused' || name === 'EmergencyResumed' || name === 'StrategyRebalanced')
       return 'admin';
   }
+
+  if (eventNames.includes('Transfer')) {
+    return 'wallet_transfer';
+  }
+
   return 'unknown';
 }

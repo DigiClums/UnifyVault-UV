@@ -216,9 +216,5 @@ describe('portfolioTransforms Domain Transformation Module', () => {
     expect(userPortfolio.rawPnLUSD).toBe(0); // Position Value ($6,000) - Remaining Cost Basis ($6,000) = $0
     expect(userPortfolio.pnlUSD).toBe('$0.0000');
     expect(userPortfolio.pnlPercentage).toBe('0.0000%');
-
-    // P2P realized PnL must be kept separate
-    expect(userPortfolio.rawP2PRealizedPnLUSD).toBe(1000);
-    expect(userPortfolio.p2pRealizedPnLUSD).toBe('+$1,000.0000');
   });
 });

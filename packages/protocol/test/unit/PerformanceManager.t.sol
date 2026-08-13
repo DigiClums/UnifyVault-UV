@@ -16,7 +16,7 @@ contract MockPortfolioManager {
     mockNavPerShare = navPerShare;
   }
 
-  function calculateNAV() external view returns (uint256, uint256) {
+  function calculateUVPrice() external view returns (uint256, uint256) {
     return (mockTotalValueUSD, mockNavPerShare);
   }
 }

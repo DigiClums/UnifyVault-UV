@@ -30,9 +30,9 @@ export function getSupportedP2PAssetsForChain(chainId?: number): P2PAssetInfo[] 
     const tokens = TOKENS_BY_CHAIN[baseSepolia.id];
     return [
       {
-        symbol: 'UVBTCETH',
-        name: 'Vault Basket Token',
-        address: getAddress(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken),
+        symbol: 'UVBE',
+        name: 'UnifyVault BTC-ETH Index',
+        address: getAddress(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken),
         isNative: false,
       },
       {
@@ -169,7 +169,7 @@ export function validateP2PAsset(asset: string, chainId?: number): ValidateAsset
 
   // Match against supported assets for this specific active chain
   const matchedAsset = supportedAssets.find(
-    (a) => !a.isNative && getAddress(a.address) === checksummed
+    (a) => !a.isNative && getAddress(a.address) === checksummed,
   );
 
   if (!matchedAsset) {

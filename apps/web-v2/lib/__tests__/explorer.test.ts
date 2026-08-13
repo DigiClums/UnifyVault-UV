@@ -172,8 +172,23 @@ describe('Transaction Classification', () => {
     expect(classifyTransaction(['EmergencyPaused'])).not.toBe('fee');
   });
 
-  it('classifies unknown events as other', () => {
-    expect(classifyTransaction(['Transfer', 'Approval'])).toBe('other');
+  it('classifies P2P events as p2p_settlement', () => {
+    expect(classifyTransaction(['TradeCreated'])).toBe('p2p_settlement');
+    expect(classifyTransaction(['EscrowFunded'])).toBe('p2p_settlement');
+    expect(classifyTransaction(['PaymentSubmitted'])).toBe('p2p_settlement');
+    expect(classifyTransaction(['EscrowReleased'])).toBe('p2p_settlement');
+    expect(classifyTransaction(['EscrowRefunded'])).toBe('p2p_settlement');
+    expect(classifyTransaction(['TradeDisputed'])).toBe('p2p_settlement');
+    expect(classifyTransaction(['TradeCancelled'])).toBe('p2p_settlement');
+  });
+
+  it('classifies standard ERC20 transfers as wallet_transfer', () => {
+    expect(classifyTransaction(['Transfer'])).toBe('wallet_transfer');
+    expect(classifyTransaction(['Transfer', 'Approval'])).toBe('wallet_transfer');
+  });
+
+  it('classifies unknown non-transfer events as other', () => {
+    expect(classifyTransaction(['Approval'])).toBe('other');
   });
 
   it('classifies empty event list as unknown', () => {

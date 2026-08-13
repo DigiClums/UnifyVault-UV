@@ -39,15 +39,15 @@ export interface FormattedDepositQuote {
 export interface DashboardMetrics {
   totalPortfolioValueUSD: string;
   totalVaultNAVUSD: string;
+  backingValueUSD?: string;
   navPerShareUSD: string;
   sharePriceUSD: string;
+  currentUVPriceUSD?: string;
   sharePriceNumber: number;
   investedAssetsUSD: string;
   currentValueUSD: string;
   pnlUSD: string;
   pnlPercentage: string;
-  p2pRealizedPnLUSD?: string;
-  rawP2PRealizedPnLUSD?: number;
   isProfitable: boolean;
   userSharesBalance: string;
   userUsdcBalance: string;
@@ -93,14 +93,16 @@ export interface StrategyMetrics {
 }
 
 /**
- * Global Protocol Level Metrics (TVL, NAV, Share Price, Total Supply, Strategy Allocation).
+ * Global Protocol Level Metrics (TVL, Backing Value, UV Price, Total Supply, Strategy Allocation).
  */
 export interface ProtocolMetrics {
   totalPortfolioValueUSD: string;
   totalVaultNAVUSD: string;
+  backingValueUSD?: string;
   totalPortfolioValueUSDNumber: number;
   navPerShareUSD: string;
   sharePriceUSD: string;
+  currentUVPriceUSD?: string;
   sharePriceNumber: number;
   totalSharesRaw: bigint;
   totalSharesFormatted: string;
@@ -129,8 +131,6 @@ export interface UserPortfolio {
   pnlUSD: string;
   rawPnLUSD: number;
   pnlPercentage: string;
-  p2pRealizedPnLUSD?: string;
-  rawP2PRealizedPnLUSD?: number;
   isProfitable: boolean;
   averageEntryPriceUSD: string;
   ownershipPercentage: string;

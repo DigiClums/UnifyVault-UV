@@ -48,7 +48,7 @@ export const DIRECTORY_ADDRESS_MAINNET = (process.env.NEXT_PUBLIC_DIRECTORY_ADDR
   '0x7EF5D93f83995228efFc63dbe513367a719f0633') as `0x${string}`;
 
 export const DIRECTORY_ADDRESS_SEPOLIA = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA ||
-  '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D') as `0x${string}`;
+  '0x8040006d6907a84911aaC0a9aC08278311B156e2') as `0x${string}`;
 
 export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
   const targetChain = chainId || getDefaultChainId();
@@ -72,34 +72,38 @@ export function isNonZeroAddress(addr?: string): boolean {
   );
 }
 
+/**
+ * Base Sepolia Deployed Contracts (Fresh V2 Protocol Deployment)
+ */
 export const DEPLOYED_CONTRACTS_SEPOLIA = {
-  ProtocolDirectory: '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D' as `0x${string}`,
-  Treasury: '0x8Aa2e812D244b0C30D45035C3C843f4CdD02aCe6' as `0x${string}`,
-  CustodyVault: '0xa9284887B8670890F675386dA85877c34b40EE44' as `0x${string}`,
-  OracleManager: '0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F' as `0x${string}`,
-  ChainlinkOracleProvider: '0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89' as `0x${string}`,
-  LiquidityManager: '0xd0542D47176f2869F034e43Efca2C2d540d1fFD3' as `0x${string}`,
-  UVBTCETHToken: '0x4A33d001D7F81C12c0C9262256Af83000e64457D' as `0x${string}`,
-  UnifyVaultController: '0x9499Ad93fa257D4d20925FDc4B6D6F6b2b565Bc2' as `0x${string}`,
-  StrategyManager: '0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958' as `0x${string}`,
-  PortfolioManager: '0x68c969b758e682B67e99a1ed2CC5753Ff1B2635E' as `0x${string}`,
-  SwapAdapter: '0xa0164433c94b68522201e3DcbFDDC391B36c45f3' as `0x${string}`,
-  FeeManager: '0xea8e047Fa4981935419B2065095e031b6224AC76' as `0x${string}`,
-  CostBasisManager: '0x15dd90413BF9379E6B1D50eED34771094f067765' as `0x${string}`,
-  PerformanceManager: '0x83984555065c95E160a1d6e8e35C43C0BBc3d58F' as `0x${string}`,
+  ProtocolDirectory: '0x8040006d6907a84911aaC0a9aC08278311B156e2' as `0x${string}`,
+  Treasury: '0xB8c8113a042f39936dD966A5983fAaE2bF7b7290' as `0x${string}`,
+  CustodyVault: '0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0' as `0x${string}`,
+  OracleManager: '0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF' as `0x${string}`,
+  ChainlinkOracleProvider: '0xCF46A80BbF2e92c16f7e1953F9AC73935340f69B' as `0x${string}`,
+  LiquidityManager: '0xd1DCd311ACD1176E35823360652FCb356a7F227F' as `0x${string}`,
+  UVBEToken: '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as `0x${string}`,
+  UVBTCETHToken: '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as `0x${string}`,
+  UnifyVaultController: '0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec' as `0x${string}`,
+  StrategyManager: '0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb' as `0x${string}`,
+  PortfolioManager: '0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b' as `0x${string}`,
+  SwapAdapter: '0xbc97337dE85654aCD96182C93841f21168da65B4' as `0x${string}`,
+  FeeManager: '0x07f8BD7DAf5002C3C62B3c1280e9258AbBEfA2f1' as `0x${string}`,
+  CostBasisManager: '0x57869372AFbd7b61752f2f8d3e7F37701e28517B' as `0x${string}`,
+  PerformanceManager: '0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6' as `0x${string}`,
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
   P2PEscrow: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA)
     ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
-    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
-    : '0x6B0F46E4dF7Db5a09B98673fcd7af7E708332A44') as `0x${string}`,
+      ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
+      : '0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb') as `0x${string}`,
   Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA)
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
-    ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
-    : '0x5978273B16467E99f45984Dc8AE9048ba05a30F7') as `0x${string}`,
+      ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
+      : '0x5978273B16467E99f45984Dc8AE9048ba05a30F7') as `0x${string}`,
 };
 
 /**
@@ -109,13 +113,13 @@ export const DEPLOYED_CONTRACTS_MAINNET = {
   P2PEscrow: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET
     : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
-    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
-    : '0x0000000000000000000000000000000000000000') as `0x${string}`,
+      ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
+      : '0x0000000000000000000000000000000000000000') as `0x${string}`,
   Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET
     : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
-    ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
-    : '0x0000000000000000000000000000000000000000') as `0x${string}`,
+      ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
+      : '0x0000000000000000000000000000000000000000') as `0x${string}`,
 };
 
 /**
@@ -123,7 +127,13 @@ export const DEPLOYED_CONTRACTS_MAINNET = {
  */
 export const TOKENS_BY_CHAIN: Record<
   number,
-  { USDC: `0x${string}`; cbBTC: `0x${string}`; WETH: `0x${string}`; UVBTCETH?: `0x${string}` }
+  {
+    USDC: `0x${string}`;
+    cbBTC: `0x${string}`;
+    WETH: `0x${string}`;
+    UVBE?: `0x${string}`;
+    UVBTCETH?: `0x${string}`;
+  }
 > = {
   [base.id]: {
     USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -134,7 +144,8 @@ export const TOKENS_BY_CHAIN: Record<
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
     cbBTC: '0xB0B47F113Bcab2b0e49fD5d3Bd2CC0e9Aa408b29',
     WETH: '0xd116ab1c943cf15904eC4c8dd701086f175FA323',
-    UVBTCETH: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+    UVBE: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken,
+    UVBTCETH: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken,
   },
 };
 

@@ -104,7 +104,7 @@ contract DeployV2ProductionScript is Script {
     CostBasisManagerV2 v2CBM = new CostBasisManagerV2(ADMIN, DIRECTORY);
     console2.log('2. CostBasisManagerV2 deployed at: ', address(v2CBM));
 
-    P2PEscrowV2 v2Escrow = new P2PEscrowV2(TREASURY, 100, address(v2CBM));
+    P2PEscrowV2 v2Escrow = new P2PEscrowV2(TREASURY, 100);
     console2.log('3. P2PEscrowV2 deployed at:        ', address(v2Escrow));
 
     PerformanceManager v2Perf = new PerformanceManager(ADMIN, DIRECTORY);
@@ -128,7 +128,6 @@ contract DeployV2ProductionScript is Script {
 
     require(v2Escrow.treasury() == TREASURY, 'V2 Escrow treasury mismatch');
     require(v2Escrow.feeBps() == 100, 'V2 Escrow feeBps mismatch');
-    require(address(v2Escrow.costBasisManager()) == address(v2CBM), 'V2 Escrow CBM mismatch');
     require(v2Controller.token() == address(v2Token), 'V2 Controller token mismatch');
 
     console2.log('[OK] STEP 1 DEPLOYMENT & CONSTRUCTOR VERIFICATION SUCCEEDED');

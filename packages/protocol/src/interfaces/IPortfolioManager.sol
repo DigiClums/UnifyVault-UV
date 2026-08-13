@@ -3,10 +3,11 @@ pragma solidity >=0.8.20;
 
 /**
  * @title IPortfolioManager
- * @notice Interface for UnifyVault PortfolioManager coordinating portfolio accounting, NAV, and asset allocations
+ * @notice Interface for UnifyVault PortfolioManager coordinating backing valuation, UV Price Engine, and asset allocations
  */
 interface IPortfolioManager {
   // Events
+  event UVPriceUpdated(uint256 backingValueUSD, uint256 currentUVPrice, uint256 timestamp);
   event NAVUpdated(uint256 totalPortfolioValueUSD, uint256 navPerShare, uint256 timestamp);
   event AllocationCalculated(
     address indexed depositAsset,
@@ -47,12 +48,23 @@ interface IPortfolioManager {
 
   function calculatePortfolioValue() external view returns (uint256 totalPortfolioValueUSD);
 
+  function calculateUVPrice()
+    external
+    view
+    returns (uint256 totalBackingUSD, uint256 tokenPriceUSD);
+
   function calculateNAV()
     external
     view
     returns (uint256 totalPortfolioValueUSD, uint256 navPerShare);
 
+  function backingValueUSD() external view returns (uint256);
+
   function totalPortfolioValueUSD() external view returns (uint256);
+
+  function getUVPrice() external view returns (uint256 totalBackingUSD, uint256 tokenPriceUSD);
+
+  function currentUVPrice() external view returns (uint256 price);
 
   function nav() external view returns (uint256 totalPortfolioValueUSD, uint256 navPerShare);
 

@@ -181,7 +181,7 @@ contract DepositMintingTest is Test {
   }
 
   function testUnauthorizedMintRevert() public {
-    // Rando tries to mint UVBTCETHToken
+    // Rando tries to mint UVBE token
     vm.prank(user);
     vm.expectRevert();
     token.mint(user, 100);

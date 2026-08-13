@@ -29,7 +29,7 @@ contract UVBEV2 is ERC20, ERC20Permit, AccessControl, Pausable, IToken {
 
   constructor(
     address admin
-  ) ERC20('UnifyVault BTC-ETH V2', 'UVBEV2') ERC20Permit('UnifyVault BTC-ETH V2') {
+  ) ERC20('UnifyVault BTC-ETH V2', 'UVBE') ERC20Permit('UnifyVault BTC-ETH V2') {
     _grantRole(DEFAULT_ADMIN_ROLE, admin);
     _grantRole(GOVERNANCE_ROLE, admin);
     _grantRole(GUARDIAN_ROLE, admin);

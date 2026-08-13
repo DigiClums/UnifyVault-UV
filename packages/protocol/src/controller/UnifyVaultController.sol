@@ -1050,7 +1050,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     totalAssetsBefore = CustodyVault(_vault).totalAssets(asset);
     address pm = portfolioManager();
     if (pm != address(0)) {
-      (totalPortfolioValueBefore, ) = IPortfolioManager(pm).calculateNAV();
+      (totalPortfolioValueBefore, ) = IPortfolioManager(pm).calculateUVPrice();
     }
   }
 
@@ -1066,9 +1066,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   ) private returns (uint256 shares, uint256 navAfter) {
     address pm = portfolioManager();
     if (pm != address(0)) {
-      if (
-        totalSharesBefore == 0 || totalSharesBefore <= DEAD_SHARES || totalPortfolioValueBefore == 0
-      ) {
+      if (totalSharesBefore == 0 || totalPortfolioValueBefore == 0) {
         shares = realizedDepositUSD;
       } else {
         shares = (realizedDepositUSD * totalSharesBefore) / totalPortfolioValueBefore;
@@ -1092,7 +1090,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
     navAfter = 1e18;
     if (pm != address(0)) {
-      (, navAfter) = IPortfolioManager(pm).calculateNAV();
+      (, navAfter) = IPortfolioManager(pm).calculateUVPrice();
     }
 
     UVBTCETHToken(_token).mint(receiver, shares);
@@ -1145,7 +1143,7 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint256 navAfter = 1e18;
     address pm = portfolioManager();
     if (pm != address(0)) {
-      (, navAfter) = IPortfolioManager(pm).calculateNAV();
+      (, navAfter) = IPortfolioManager(pm).calculateUVPrice();
     }
 
     uint256 controllerBal = IERC20(p.asset).balanceOf(address(this));

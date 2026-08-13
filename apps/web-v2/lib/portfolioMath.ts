@@ -110,6 +110,17 @@ export function calculateNAVPerShareUSD(
 }
 
 /**
+ * Calculates UV Token Price in USD.
+ * Alias for calculateSharePriceUSD.
+ */
+export function calculateUVTokenPriceUSD(
+  totalPortfolioValueUSD: number,
+  totalSharesRaw: bigint,
+): number {
+  return calculateSharePriceUSD(totalPortfolioValueUSD, totalSharesRaw);
+}
+
+/**
  * Calculates user ownership ratio of the vault pool as a decimal between 0.0 and 1.0.
  * Uses high-precision BigInt scaled division (1e16) to avoid premature float truncation.
  *

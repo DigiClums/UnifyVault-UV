@@ -22,8 +22,6 @@ export function useUserPortfolio(_protocolMetrics?: ProtocolMetrics): UseUserPor
     pnlUSD: data.pnlUSD,
     rawPnLUSD: data.rawPnLUSD,
     pnlPercentage: data.pnlPercentage,
-    p2pRealizedPnLUSD: data.p2pRealizedPnLUSD,
-    rawP2PRealizedPnLUSD: data.rawP2PRealizedPnLUSD,
     isProfitable: data.isProfitable,
     averageEntryPriceUSD: data.averageEntryPriceUSD,
     ownershipPercentage: data.ownershipPercentage,

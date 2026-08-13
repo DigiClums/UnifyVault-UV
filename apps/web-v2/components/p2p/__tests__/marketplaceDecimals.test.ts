@@ -20,7 +20,7 @@ describe('Phase 3.1 — Marketplace Decimals & Settlement Precision Audit Tests'
     expect(getTokenSymbol(addressWETH)).toBe('WETH');
 
     expect(getTokenDecimals(addressUVBE)).toBe(18);
-    expect(getTokenSymbol(addressUVBE)).toBe('UVBTCETH');
+    expect(getTokenSymbol(addressUVBE)).toBe('UVBE');
   });
 
   // 3 & 7. Fiat Calculation Alignment with Marketplace.sol

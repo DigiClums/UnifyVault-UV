@@ -57,7 +57,7 @@ export function useProtocolDirectory(): ProtocolAddresses {
     {
       key: 'token',
       moduleId: MODULE_IDS.TOKEN,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+      fallback: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
     },
     {
       key: 'strategyManager',

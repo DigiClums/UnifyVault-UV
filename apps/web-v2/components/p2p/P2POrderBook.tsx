@@ -50,12 +50,12 @@ export function P2POrderBook({ trades, isLoading, onSelectTrade, onRefresh }: P2
   const formatAssetAmount = (amount: bigint, asset: Address) => {
     const addr = asset.toLowerCase();
     const isEth = addr === '0x0000000000000000000000000000000000000000';
-    const uvAddr = (tokens.UVBTCETH || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toLowerCase();
+    const uvAddr = (tokens.UVBE || DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toLowerCase();
     const cbBtcAddr = tokens.cbBTC.toLowerCase();
     const wethAddr = tokens.WETH.toLowerCase();
 
     if (isEth) return `${formatUnits(amount, 18)} ETH`;
-    if (addr === uvAddr) return `${formatUnits(amount, 18)} UVBTCETH`;
+    if (addr === uvAddr) return `${formatUnits(amount, 18)} UVBE`;
     if (addr === wethAddr) return `${formatUnits(amount, 18)} WETH`;
     if (addr === cbBtcAddr) return `${formatUnits(amount, 8)} cbBTC`;
     return `${formatUnits(amount, 6)} USDC`;
