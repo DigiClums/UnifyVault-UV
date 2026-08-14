@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 
 import { AddTokenToWallet } from '../common/AddTokenToWallet';
+import { SmartAccountBadge } from '../common/SmartAccountBadge';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 
 export function DepositForm() {
@@ -103,6 +104,9 @@ export function DepositForm() {
           </div>
         </div>
       )}
+
+      {/* Smart Account & Gasless Status */}
+      {isConnected && <SmartAccountBadge />}
 
       <Card className="space-y-4 relative overflow-hidden bg-card border-2 border-black dark:border-white/15 shadow-glass p-4 sm:p-5 rounded-2xl">
         {/* Header */}

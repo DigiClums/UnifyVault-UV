@@ -1,4 +1,14 @@
-import { verifyMessage, isAddress } from 'viem';
+import {
+  verifyMessage,
+  isAddress,
+  hashMessage,
+  createPublicClient,
+  http,
+  type PublicClient,
+  type Address,
+  type Hex,
+} from 'viem';
+import { getRpcUrl, CHAIN_CONFIG } from '../../constants';
 
 export interface WalletAuthPayload {
   userAddress: string;
@@ -8,6 +18,31 @@ export interface WalletAuthPayload {
   tradeId?: number;
 }
 
+export interface VerifyWalletAuthOptions {
+  publicClient?: any;
+}
+
+/**
+ * Standard ERC-1271 magic value: bytes4(keccak256("isValidSignature(bytes32,bytes)"))
+ */
+export const ERC1271_MAGIC_VALUE = '0x1626ba7e';
+
+/**
+ * Minimal ABI for ERC-1271 standard isValidSignature
+ */
+export const ERC1271_ABI = [
+  {
+    type: 'function',
+    name: 'isValidSignature',
+    inputs: [
+      { name: 'hash', type: 'bytes32' },
+      { name: 'signature', type: 'bytes' },
+    ],
+    outputs: [{ name: 'magicValue', type: 'bytes4' }],
+    stateMutability: 'view',
+  },
+] as const;
+
 /**
  * Constructs canonical message string for wallet authentication signing
  */
@@ -15,13 +50,32 @@ export function constructAuthMessage(action: string, tradeId: number, timestamp:
   return `UnifyVault Authentication\nAction: ${action}\nTrade ID: ${tradeId}\nTimestamp: ${timestamp}`;
 }
 
+let defaultPublicClient: any = undefined;
+
+function getDefaultPublicClient(): any {
+  if (!defaultPublicClient) {
+    defaultPublicClient = createPublicClient({
+      chain: CHAIN_CONFIG,
+      transport: http(getRpcUrl(), {
+        timeout: 1200,
+        retryCount: 0,
+      }),
+    });
+  }
+  return defaultPublicClient;
+}
+
 /**
- * Cryptographically verifies wallet control via Viem verifyMessage.
- * Prevents userAddress spoofing.
+ * Cryptographically verifies wallet control via:
+ * 1. Viem verifyMessage (ECDSA / EOA)
+ * 2. ERC-1271 isValidSignature (Smart Account contract validation)
+ *
+ * Prevents userAddress spoofing for both EOA and Smart Accounts.
  */
 export async function verifyWalletAuth(
   payload: WalletAuthPayload,
-): Promise<{ isValid: boolean; error?: string }> {
+  options?: VerifyWalletAuthOptions,
+): Promise<{ isValid: boolean; error?: string; isSmartAccount?: boolean }> {
   const { userAddress, timestamp, signature, action, tradeId = 0 } = payload;
 
   if (!userAddress || !isAddress(userAddress)) {
@@ -45,19 +99,46 @@ export async function verifyWalletAuth(
   // Reconstruct canonical message string
   const message = constructAuthMessage(action, tradeId, timestamp);
 
+  // 1. Primary path: EOA ECDSA verification
   try {
-    const isAuthentic = await verifyMessage({
-      address: userAddress as `0x${string}`,
+    const isAuthenticEOA = await verifyMessage({
+      address: userAddress as Address,
       message,
-      signature: signature as `0x${string}`,
+      signature: signature as Hex,
     });
 
-    if (!isAuthentic) {
-      return { isValid: false, error: 'Cryptographic signature verification failed.' };
+    if (isAuthenticEOA) {
+      return { isValid: true, isSmartAccount: false };
+    }
+  } catch {
+    // If EOA verification throws (e.g. non-standard signature length from Smart Account),
+    // proceed to check ERC-1271 contract verification.
+  }
+
+  // 2. Secondary path: ERC-1271 Smart Account contract signature verification
+  try {
+    const client = options?.publicClient || getDefaultPublicClient();
+    const hash = hashMessage(message);
+
+    const magicValue = await client.readContract({
+      address: userAddress as Address,
+      abi: ERC1271_ABI,
+      functionName: 'isValidSignature',
+      args: [hash, signature as Hex],
+    });
+
+    if (magicValue === ERC1271_MAGIC_VALUE) {
+      return { isValid: true, isSmartAccount: true };
     }
 
-    return { isValid: true };
+    return {
+      isValid: false,
+      error: 'Cryptographic signature verification failed (ERC-1271 invalid magic value).',
+    };
   } catch (err: any) {
-    return { isValid: false, error: err?.message || 'Signature verification error.' };
+    return {
+      isValid: false,
+      error: 'Cryptographic signature verification failed.',
+    };
   }
 }

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  alto-bundler:
+    image: ghcr.io/pimlicolabs/alto:latest
+    container_name: unifyvault-alto-bundler
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:4337:4337' # ERC-4337 JSON-RPC (Bound to localhost for reverse-proxy security)
+    command:
+      - --entrypoints
+      - '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
+      - --rpc-url
+      - '${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}'
+      - --executor-private-keys
+      - '${BUNDLER_SIGNER_PRIVATE_KEY}'
+      - --chain-type
+      - op-stack
+      - --port
+      - '4337'
+      - --safe-mode
+      - 'false'
+      - --deploy-simulations-contract
+      - 'false'
+    depends_on:
+      - redis
+    networks:
+      - aa-net
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4337/health']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: unifyvault-aa-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - aa-redis-data:/data
+    networks:
+      - aa-net
+
+networks:
+  aa-net:
+    driver: bridge
+
+volumes:
+  aa-redis-data:

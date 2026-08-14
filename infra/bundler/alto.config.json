@@ -1,0 +1,36 @@
+{
+  "entrypoints": ["0x0000000071727De22E5E9d8BAf0edAc6f37da032"],
+  "chains": {
+    "84532": {
+      "name": "base-sepolia",
+      "rpcUrl": "${BASE_SEPOLIA_RPC_URL}",
+      "minPriorityFeePerGas": 1000000,
+      "maxPriorityFeePerGas": 5000000000,
+      "bundleIntervalMs": 3000,
+      "maxBundleSize": 10,
+      "gasPriceMarkupPercent": 10,
+      "receiptPollingIntervalMs": 1000,
+      "receiptTimeoutMs": 60000
+    },
+    "8453": {
+      "name": "base",
+      "rpcUrl": "${BASE_MAINNET_RPC_URL}",
+      "minPriorityFeePerGas": 1000000,
+      "maxPriorityFeePerGas": 5000000000,
+      "bundleIntervalMs": 2000,
+      "maxBundleSize": 25,
+      "gasPriceMarkupPercent": 10,
+      "receiptPollingIntervalMs": 1000,
+      "receiptTimeoutMs": 60000
+    }
+  },
+  "mempool": {
+    "maxPendingUserOps": 500,
+    "userOpTtlMs": 300000,
+    "replacementMinFeeMarkupPercent": 10
+  },
+  "monitoring": {
+    "metricsEnabled": true,
+    "metricsPort": 9090
+  }
+}

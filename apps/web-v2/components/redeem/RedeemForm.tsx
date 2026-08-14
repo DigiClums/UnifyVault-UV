@@ -23,6 +23,7 @@ import {
   Sliders,
   Wallet,
 } from 'lucide-react';
+import { SmartAccountBadge } from '../common/SmartAccountBadge';
 
 export function RedeemForm() {
   const { isConnected, chain } = useAccount();
@@ -82,6 +83,9 @@ export function RedeemForm() {
           </div>
         </div>
       )}
+
+      {/* Smart Account & Gasless Status */}
+      {isConnected && <SmartAccountBadge />}
 
       <Card className="space-y-4 relative overflow-hidden bg-card border-2 border-black dark:border-white/15 shadow-glass p-4 sm:p-5 rounded-2xl">
         {/* Header */}
