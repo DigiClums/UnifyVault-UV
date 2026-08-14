@@ -1,15 +1,15 @@
 # Deployment Guide & Verification
 
-This document specifies the exact deployment sequence, environment variables, deployment scripts, supported networks, verification processes, and post-deployment validation steps for UnifyVault V2.
+This document specifies the deployment sequence, environment variables, deployment scripts, supported networks, verification processes, and post-deployment validation steps for UnifyVault V2.
 
 ---
 
 ## 1. Supported Networks
 
-| Network Name | Chain ID | RPC URL Environment Variable | Block Explorer |
-| :--- | :--- | :--- | :--- |
-| **Base Mainnet** | `8453` | `BASE_MAINNET_RPC_URL` | https://basescan.org |
-| **Base Sepolia** | `84532` | `BASE_SEPOLIA_RPC_URL` | https://sepolia.basescan.org |
+| Network Name     | Chain ID | RPC URL Environment Variable | Block Explorer               |
+| :--------------- | :------- | :--------------------------- | :--------------------------- |
+| **Base Mainnet** | `8453`   | `BASE_MAINNET_RPC_URL`       | https://basescan.org         |
+| **Base Sepolia** | `84532`  | `BASE_SEPOLIA_RPC_URL`       | https://sepolia.basescan.org |
 
 ---
 
@@ -25,29 +25,29 @@ BASE_MAINNET_RPC_URL=https://mainnet.base.org
 # Deployer & Admin Accounts
 PRIVATE_KEY=0x... # Deployer private key
 NEXT_PUBLIC_ADMIN_ADDRESS=0xd905920c91853039060246Ed5724AA72B91a96DA
-GNOSIS_SAFE_ADDRESS=0x... # Multi-sig proposal manager for Timelock
+GNOSIS_SAFE_ADDRESS=0x1111111111111111111111111111111111111111 # Multi-sig proposal manager for Timelock
 
 # Etherscan / Basescan Verification API Key
-BASESCAN_API_KEY=YI8JH3STSF6...
+BASESCAN_API_KEY=your_basescan_api_key
 ```
 
 ---
 
-## 3. Mandatory Deployment Order
-
-Due to strict dependency validation in contract constructors, contracts must be deployed in the following order:
+## 3. Mandatory Deployment Sequence
 
 ```mermaid
 flowchart TD
     Step1[1. Deploy ProtocolDirectory] --> Step2[2. Deploy OracleManager & ChainlinkOracleProvider]
     Step2 --> Step3[3. Deploy Treasury & FeeManager]
     Step3 --> Step4[4. Deploy CustodyVault & LiquidityManager]
-    Step4 --> Step5[5. Deploy UVBTCETHToken]
-    Step5 --> Step6[6. Deploy UnifyVaultTimelock 48h Delay]
-    Step6 --> Step7[7. Deploy StrategyManager, PortfolioManager, & SwapAdapter]
-    Step7 --> Step8[8. Deploy UnifyVaultController]
-    Step8 --> Step9[9. Register Module Addresses in ProtocolDirectory]
-    Step9 --> Step10[10. Grant Roles to Controller & Transfer Admin to Timelock]
+    Step4 --> Step5[5. Deploy CostBasisManagerV2 & PerformanceManager]
+    Step5 --> Step6[6. Deploy UVBEV2 Token & Attach CostBasisManager Hook]
+    Step6 --> Step7[7. Deploy UnifyVaultTimelock 48h Delay]
+    Step7 --> Step8[8. Deploy StrategyManager, PortfolioManager, & SwapAdapter]
+    Step8 --> Step9[9. Deploy UnifyVaultController]
+    Step9 --> Step10[10. Deploy P2PEscrowV2 & Marketplace]
+    Step10 --> Step11[11. Register Modules in ProtocolDirectory & Set Escrow Status]
+    Step11 --> Step12[12. Grant Controller Roles & Transfer Admin to Timelock]
 ```
 
 ---
@@ -56,9 +56,9 @@ flowchart TD
 
 Primary deployment scripts are located in `packages/protocol/script/`:
 
-- **`DeployV2.s.sol`**: Complete V2 protocol deployment including test tokens and mock aggregators (for testnet/staging).
+- **`DeployV2Production.s.sol`**: Complete V2 production deployment including `CostBasisManagerV2`, `UVBEV2`, `P2PEscrowV2`, and `Marketplace`.
 - **`DeployMainnet.s.sol`**: Production deployment script for Base Mainnet utilizing real Chainlink oracle feeds and DEX routers.
-- **`RegisterAndConfigureV2.s.sol`**: Helper script to register module addresses in `ProtocolDirectory`.
+- **`ReconcileBaseSepoliaState.s.sol`**: State reconciliation and configuration script for Base Sepolia testnet.
 - **`mainnet/GrantAdminRoles.s.sol`**: Assigns `GOVERNANCE_ROLE` and `DEFAULT_ADMIN_ROLE` to `UnifyVaultTimelock`.
 - **`mainnet/RenounceOldAdmin.s.sol`**: Revokes deployer permissions after governance transfer.
 
@@ -70,14 +70,14 @@ Primary deployment scripts are located in `packages/protocol/script/`:
 
 ```bash
 cd packages/protocol
-forge script script/DeployV2.s.sol:DeployV2Script
+forge script script/DeployV2Production.s.sol:DeployV2ProductionScript
 ```
 
 ### 5.2 Testnet Deployment (Base Sepolia)
 
 ```bash
 cd packages/protocol
-forge script script/DeployV2.s.sol:DeployV2Script \
+forge script script/DeployV2Production.s.sol:DeployV2ProductionScript \
   --rpc-url $BASE_SEPOLIA_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast \
@@ -99,49 +99,35 @@ forge script script/DeployMainnet.s.sol:DeployMainnetScript \
 
 ---
 
-## 6. Verification & Ownership Transfer
+## 6. Canonical Deployment Addresses (Base Sepolia Testnet - Chain ID 84532)
 
-After broadcasting deployment transactions:
-
-1. **Verify Contracts on Basescan**:
-   If automatic verification failed during `forge script`, run:
-   ```bash
-   forge verify-contract <CONTRACT_ADDRESS> <CONTRACT_NAME> \
-     --chain base-sepolia \
-     --watch
-   ```
-2. **Transfer Governance Control to Timelock**:
-   Run `GrantAdminRoles.s.sol` and `RenounceOldAdmin.s.sol` to ensure the deployer account no longer possesses single-signature administrative rights.
+| Contract Module             | Canonical Address                            |
+| :-------------------------- | :------------------------------------------- |
+| **ProtocolDirectory**       | `0x8040006d6907a84911aaC0a9aC08278311B156e2` |
+| **Treasury**                | `0xB8c8113a042f39936dD966A5983fAaE2bF7b7290` |
+| **FeeManager**              | `0x07f8BD7DAf5002C3C62B3c1280e9258AbBEfA2f1` |
+| **CustodyVault**            | `0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0` |
+| **OracleManager**           | `0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF` |
+| **ChainlinkOracleProvider** | `0xCF46A80BbF2e92c16f7e1953F9AC73935340f69B` |
+| **LiquidityManager**        | `0xd1DCd311ACD1176E35823360652FCb356a7F227F` |
+| **UVBEV2 (UVBEToken)**      | `0x006c5DF13C716E5224b33956651C4356BB90DEc0` |
+| **UnifyVaultController**    | `0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec` |
+| **StrategyManager**         | `0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb` |
+| **PortfolioManager**        | `0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b` |
+| **SwapAdapter**             | `0xbc97337dE85654aCD96182C93841f21168da65B4` |
+| **CostBasisManagerV2**      | `0x57869372AFbd7b61752f2f8d3e7F37701e28517B` |
+| **PerformanceManager**      | `0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6` |
+| **P2PEscrowV2**             | `0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb` |
+| **Marketplace**             | `0x5978273B16467E99f45984Dc8AE9048ba05a30F7` |
+| **TimelockController**      | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
 
 ---
 
 ## 7. Post-Deployment Checklist
 
-- [ ] Every module address (`TREASURY`, `VAULT`, `DEPOSIT_MANAGER`, `ORACLE`, `TOKEN`, `STRATEGY_MANAGER`, `PORTFOLIO_MANAGER`, `SWAP_ADAPTER`, `LIQUIDITY_MANAGER`, `FEE_MANAGER`) registered in `ProtocolDirectory`.
-- [ ] Oracles configured with active feeds and non-zero heartbeat limits.
-- [ ] `CONTROLLER_ROLE` granted to `UnifyVaultController` on `CustodyVault`, `Treasury`, `UVBTCETHToken`, and `LiquidityManager`.
-- [ ] Deployer `CONTROLLER_ROLE` revoked on `UVBTCETHToken`.
-- [ ] Initial deposit executed to mint and burn `DEAD_SHARES` (`1000` wei).
-- [x] Frontend environment variables updated with the new `NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA` or `NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET`.
-
----
-
-## 8. Latest Deployment Addresses (Base Sepolia Testnet - V2)
-
-| Contract / Role | Address |
-| :--- | :--- |
-| **ProtocolDirectory** | `0x329158A24DdC8ED267cc5D3f3D9C2905149C596D` |
-| **OracleManager** | `0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F` |
-| **ChainlinkOracleProvider** | `0x8e4b6759fF62Bd6C819803aABF056Cef64Bc0F89` |
-| **Treasury** | `0x8Aa2e812D244b0C30D45035C3C843f4CdD02aCe6` |
-| **CustodyVault** | `0xa9284887B8670890F675386dA85877c34b40EE44` |
-| **LiquidityManager** | `0xd0542D47176f2869F034e43Efca2C2d540d1fFD3` |
-| **UVBTCETHToken** | `0x5c0C26A825639adc58C6edf3aE864616F1dA94b9` |
-| **CostBasisManager** | `0xef0637a3d2080749bbcd5d98e6c68d9944c700a6` |
-| **SwapAdapter** | `0xa0164433c94b68522201e3DcbFDDC391B36c45f3` |
-| **StrategyManager** | `0x50DA43Ebf007d7580140871ACF81e5FBAEF5E958` |
-| **PortfolioManager** | `0x5d597C08F5f2B2A7870b081dC741A776Ed730601` |
-| **UnifyVaultController** | `0xC99868355790A58A737a4841B963CB32030DdBab` |
-| **FeeManager** | `0xea8e047Fa4981935419B2065095e031b6224AC76` |
-| **TimelockController / UnifyVaultTimelock** | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
-| **Gnosis Safe Proposer** | `0x1111111111111111111111111111111111111111` |
+- [x] Every module address registered in `ProtocolDirectory`.
+- [x] Oracles configured with active feeds and non-zero heartbeat limits.
+- [x] `CONTROLLER_ROLE` granted to `UnifyVaultController` on `CustodyVault`, `Treasury`, `UVBEV2`, and `CostBasisManagerV2`.
+- [x] `CostBasisManagerV2.setEscrowStatus(P2PEscrowAddress, true)` executed to isolate P2P transfers.
+- [x] Initial deposit executed to mint and burn `DEAD_SHARES` (`1000` wei).
+- [x] Frontend environment variables updated with canonical contract addresses.

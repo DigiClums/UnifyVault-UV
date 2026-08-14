@@ -66,6 +66,8 @@ export interface DashboardMetrics {
   isLiveSynced?: boolean;
 }
 
+export type OracleFeedStatus = 'LIVE' | 'STALE' | 'REVERTED' | 'UNAVAILABLE';
+
 export interface AssetHolding {
   symbol: string;
   name: string;
@@ -79,6 +81,7 @@ export interface AssetHolding {
   weightPercent: string;
   targetWeightPercent?: string;
   currentWeightPercent?: string;
+  oracleStatus?: OracleFeedStatus;
 }
 
 /**
@@ -113,6 +116,10 @@ export interface ProtocolMetrics {
   custodyBtcPercent: string;
   custodyEthPercent: string;
   protocolHoldings: AssetHolding[];
+  btcOracleStatus?: OracleFeedStatus;
+  ethOracleStatus?: OracleFeedStatus;
+  usdcOracleStatus?: OracleFeedStatus;
+  isOracleFresh?: boolean;
 }
 
 /**

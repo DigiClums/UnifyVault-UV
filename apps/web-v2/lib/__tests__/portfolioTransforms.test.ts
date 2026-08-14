@@ -217,4 +217,58 @@ describe('portfolioTransforms Domain Transformation Module', () => {
     expect(userPortfolio.pnlUSD).toBe('$0.0000');
     expect(userPortfolio.pnlPercentage).toBe('0.0000%');
   });
+
+  describe('Oracle State & Staleness Protection', () => {
+    it('handles LIVE oracle prices with exact formatting', () => {
+      const liveData = {
+        ...mockRawProtocolData,
+        btcStatus: 'LIVE' as const,
+        ethStatus: 'LIVE' as const,
+        usdcStatus: 'LIVE' as const,
+      };
+      const metrics = transformProtocolMetrics(liveData, mockStrategyMetrics);
+      const btcHolding = metrics.protocolHoldings.find((h) => h.symbol === 'BTC');
+      expect(btcHolding?.priceUSD).toBe('$60,000.00');
+      expect(btcHolding?.oracleStatus).toBe('LIVE');
+    });
+
+    it('handles STALE oracle without displaying false $0 price', () => {
+      const staleData = {
+        ...mockRawProtocolData,
+        priceWBTC: 60_000_000_000_000_000_000_000n,
+        btcStatus: 'STALE' as const,
+      };
+      const metrics = transformProtocolMetrics(staleData, mockStrategyMetrics);
+      const btcHolding = metrics.protocolHoldings.find((h) => h.symbol === 'BTC');
+      expect(btcHolding?.priceUSD).toBe('Price unavailable');
+      expect(btcHolding?.oracleStatus).toBe('STALE');
+      expect(btcHolding?.priceUSD).not.toBe('$0.00');
+    });
+
+    it('handles REVERTED oracle without displaying false $0 price', () => {
+      const revertedData = {
+        ...mockRawProtocolData,
+        priceWBTC: null,
+        btcStatus: 'REVERTED' as const,
+      };
+      const metrics = transformProtocolMetrics(revertedData, mockStrategyMetrics);
+      const btcHolding = metrics.protocolHoldings.find((h) => h.symbol === 'BTC');
+      expect(btcHolding?.priceUSD).toBe('Price unavailable');
+      expect(btcHolding?.oracleStatus).toBe('REVERTED');
+      expect(btcHolding?.priceUSD).not.toBe('$0.00');
+    });
+
+    it('handles UNAVAILABLE feed without displaying false $0 price', () => {
+      const unavailData = {
+        ...mockRawProtocolData,
+        priceWBTC: 0n,
+        btcStatus: 'UNAVAILABLE' as const,
+      };
+      const metrics = transformProtocolMetrics(unavailData, mockStrategyMetrics);
+      const btcHolding = metrics.protocolHoldings.find((h) => h.symbol === 'BTC');
+      expect(btcHolding?.priceUSD).toBe('Price unavailable');
+      expect(btcHolding?.oracleStatus).toBe('UNAVAILABLE');
+      expect(btcHolding?.priceUSD).not.toBe('$0.00');
+    });
+  });
 });

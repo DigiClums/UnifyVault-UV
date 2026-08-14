@@ -7,6 +7,7 @@ This guide provides instructions for setting up a local development environment,
 ## 1. Prerequisites
 
 Ensure your system has the following dependencies installed:
+
 - **Node.js**: `>= 18.0.0`
 - **pnpm**: `>= 9.4.0`
 - **Foundry (`forge`, `cast`, `anvil`)**: `>= 0.2.0`
@@ -46,7 +47,9 @@ NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=146781145b65a1c63ffcd7d6eaf03bd1
 NEXT_PUBLIC_APP_DOMAIN=https://app.unifyvault.xyz
 NEXT_PUBLIC_ACTIVE_CHAIN=base-sepolia
 NEXT_PUBLIC_RPC_URL=https://sepolia.base.org
-NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA=0x329158A24DdC8ED267cc5D3f3D9C2905149C596D
+NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA=0x8040006d6907a84911aaC0a9aC08278311B156e2
+NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA=0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb
+NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA=0x5978273B16467E99f45984Dc8AE9048ba05a30F7
 ```
 
 ---
@@ -74,11 +77,11 @@ cd packages/protocol && forge test -vvv
 ### 3.3 Format & Lint Contracts
 
 ```bash
-# Run Solhint linter
-pnpm --filter @unifyvault/protocol lint
-
 # Format Solidity code
 pnpm format
+
+# Run Solhint linter
+pnpm --filter @unifyvault/protocol lint
 ```
 
 ---
@@ -92,7 +95,14 @@ pnpm format
 pnpm dev
 ```
 
-### 4.2 Production Build & Preview
+### 4.2 Run Frontend Unit & Integration Tests
+
+```bash
+# Run Vitest test suites
+cd apps/web-v2 && npx vitest run
+```
+
+### 4.3 Production Build & Preview
 
 ```bash
 # Build production bundle

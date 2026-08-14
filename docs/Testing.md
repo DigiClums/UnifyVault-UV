@@ -1,92 +1,89 @@
 # Testing Strategy & Specification
 
-This document describes the testing architecture, test suites, coverage metrics, and mock infrastructure for UnifyVault V2 (`packages/protocol`).
+This document describes the testing architecture, test suites, coverage metrics, and mock infrastructure for UnifyVault V2 across both smart contracts (`packages/protocol`) and the web application (`apps/web-v2`).
 
 ---
 
 ## 1. Overview
 
-UnifyVault V2 relies on **Foundry (`forge`)** as its primary smart contract testing framework. The test suite includes unit tests, integration tests, fuzzing suites, invariant tests, and live testnet fork validation tests.
+UnifyVault V2 implements a defense-in-depth testing strategy:
+
+- **Foundry (`forge`)**: Used for smart contract unit testing, fuzzing, invariant testing, and adversarial attack simulation.
+- **Vitest**: Used for frontend unit testing, math transformations, oracle multi-state refresh testing, marketplace decimals validation, and cryptographic payment verification testing.
 
 ---
 
-## 2. Test Architecture & Directory Structure
+## 2. Smart Contract Test Suites (`packages/protocol`)
 
 Test files are located in `packages/protocol/test/`:
 
 ```
 packages/protocol/test/
-├── ProtocolDirectory.t.sol           # Registry unit tests
-├── UnifyVaultController.t.sol        # Controller unit & integration tests
-├── CustodyVault.t.sol                # Vault balance & donation immunity tests
-├── Treasury.t.sol                     # Fee collection & treasury tests
-├── FeeManager.t.sol                   # Fee calculation tests
-├── LiquidityManager.t.sol             # Liquidity threshold & sweep tests
-├── OracleManager.t.sol                # Price aggregator & staleness tests
-├── ChainlinkOracleProvider.t.sol      # Chainlink feed adapter tests
-├── StrategyManager.t.sol              # Target allocation BPS tests
-├── PortfolioManager.t.sol             # NAV calculation & rebalance tests
-├── SwapAdapter.t.sol                  # DEX router & slippage tests
-├── UVBTCETHToken.t.sol                # Share token minting & burning tests
-├── UnifyVaultTimelock.t.sol           # 48h timelock governance tests
-├── RedemptionFuzz.t.sol               # Property-based fuzzing tests
-├── invariant/                         # System invariant test suite
+├── unit/
+│   ├── ProtocolDirectory.t.sol           # Registry unit tests
+│   ├── UnifyVaultController.t.sol        # Controller unit & integration tests
+│   ├── CustodyVault.t.sol                # Vault balance & donation immunity tests
+│   ├── Treasury.t.sol                     # Fee collection & treasury tests
+│   ├── FeeManager.t.sol                   # Fee calculation tests
+│   ├── LiquidityManager.t.sol             # Liquidity threshold & sweep tests
+│   ├── OracleManager.t.sol                # Price aggregator & staleness tests
+│   ├── ChainlinkOracleProvider.t.sol      # Chainlink feed adapter tests
+│   ├── StrategyManager.t.sol              # Target allocation BPS tests
+│   ├── PortfolioManager.t.sol             # NAV calculation & rebalance tests
+│   ├── SwapAdapter.t.sol                  # DEX router & slippage tests
+│   ├── UVBEV2.t.sol                       # Share token mint/burn & hook tests
+│   ├── CostBasisManagerV2.t.sol           # Cost basis conservation & P2P isolation tests
+│   ├── P2PEscrow.t.sol                    # P2P Escrow lifecycle & settlement tests
+│   ├── P2PEscrowAdversarial.t.sol         # Reentrancy & unauthorized release tests
+│   ├── Marketplace.t.sol                  # Limit orderbook matching tests
+│   └── UnifyVaultTimelock.t.sol           # 48h timelock governance tests
+├── invariant/                             # System invariant test suite
 │   ├── Handlers.sol
-│   └── ProtocolInvariants.t.sol
-└── fork/                              # On-chain fork validation
+│   ├── ProtocolInvariants.t.sol
+│   └── P2PEscrowInvariant.t.sol          # Solvency and balance match invariants
+├── fuzz/
+│   └── RedemptionFuzz.t.sol               # Property-based fuzzing tests
+└── fork/                                  # On-chain fork validation
     └── MainnetDeploymentValidation.t.sol
 ```
 
 ---
 
-## 3. Test Suite Metrics
+## 3. Frontend Test Suites (`apps/web-v2`)
 
-As of current build verification:
-- **Total Test Suites**: `55`
-- **Total Tests Passed**: `380`
-- **Total Failures**: `0`
-- **Execution Time**: `~11.8 seconds`
+Located across `apps/web-v2/`:
 
----
-
-## 4. Test Categories
-
-### 4.1 Unit Tests
-Test individual contract functions in isolation against expected behavior, access control reverts, and zero-address input validations.
-
-### 4.2 Property-Based Fuzzing Tests
-Utilize Foundry fuzzing (`vm.assume`, random seed execution) to test deposit/redemption math across extreme uint256 ranges (`RedemptionFuzz.t.sol`).
-
-### 4.3 Invariant Tests
-Ensure critical system properties hold under arbitrary call sequences:
-- `totalAssets(asset) >= 0`
-- `token.totalSupply()` matches total active shares minus burned dead shares.
-- Internal vault balances remain strictly equal to calculated deposit totals regardless of direct token donations.
-
-### 4.4 Live Network Fork Tests
-`MainnetDeploymentValidation.t.sol` executes deployment simulation against Base Sepolia / Base Mainnet forks to verify real Chainlink feeds and live contract interactions.
+- **`oracleFeedRefresh.test.ts`**: Verifies multi-query atomic refresh, staleness error handling, and deviation guard preservation.
+- **`portfolioTransforms.test.ts`**: Verifies graceful `'Price unavailable'` and `'Value unavailable'` rendering for non-live feeds.
+- **`marketplaceDecimals.test.ts`**: Verifies exact decimal scaling and price calculations for USDC (6), cbBTC (8), WETH (18), and UVBE (18).
+- **`paymentVerification.test.ts`**: Verifies single-authority payment verification, replay prevention, and wallet signature authentication.
 
 ---
 
-## 5. Mock Infrastructure
+## 4. Test Execution Commands
 
-For deterministic testing without external RPC dependencies, the test suite utilizes:
-- **`MockChainlinkAggregator`**: Simulates Chainlink `AggregatorV3Interface` feeds with configurable decimals, prices, and timestamps.
-- **`MockOracleProvider`**: Implements `IOracleProvider` to inject test price data into `OracleManager`.
-- **`TestSwapRouter`**: Simulates DEX swap execution with slippage checking.
-- **`TestToken`**: Standard ERC20 token with public `mint()` for funding test accounts.
-
----
-
-## 6. Execution Commands
+### 4.1 Run Smart Contract Tests
 
 ```bash
-# Run all tests
+# Run all Foundry tests
 cd packages/protocol && forge test
+
+# Run P2P Escrow & Marketplace test suites
+forge test --match-contract "P2P"
+
+# Run CostBasisManager tests
+forge test --match-path "test/unit/CostBasisManagerV2.t.sol"
 
 # Run with gas report
 forge test --gas-report
+```
 
-# Run specific test function
-forge test --match-test test_Deposit_Success -vvvv
+### 4.2 Run Frontend Tests
+
+```bash
+# Run all Vitest suites
+cd apps/web-v2 && npx vitest run
+
+# Run specific test suite
+npx vitest run hooks/__tests__/oracleFeedRefresh.test.ts
 ```

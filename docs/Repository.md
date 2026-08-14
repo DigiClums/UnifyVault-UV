@@ -33,12 +33,16 @@ UnifyVault-UV/
 ## Directory Descriptions
 
 ### 1. `/apps`
+
 Contains deployable applications:
-- **`apps/web-v2`**: The main user-facing decentralized web application (`app.unifyvault.xyz`). Built using Next.js 15 App Router, React 19, TailwindCSS, Wagmi v2, Viem v2, and RainbowKit v2. Features complete deposit/redeem flows, portfolio analytics, and admin management dashboards.
+
+- **`apps/web-v2`**: The main user-facing decentralized web application (`app.unifyvault.xyz`). Built using Next.js 15 App Router, React 19, TailwindCSS, Wagmi v2, Viem v2, and RainbowKit v2. Features complete deposit/redeem flows, portfolio cost basis & P&L analytics, P2P Marketplace orderbook, and admin management dashboards.
 - **`apps/web-v2-testnet`**: Isolated staging environment build configured specifically for Base Sepolia testnet testing.
 
 ### 2. `/packages`
+
 Contains shared monorepo packages and smart contract suites:
+
 - **`packages/protocol`**: Core EVM smart contract implementation written in Solidity 0.8.24. Includes Foundry scripts (`script/`), unit/invariant/fork tests (`test/`), ABI artifacts (`out/`), and contract source code (`src/`).
 - **`packages/design-system`**: UI component library containing reusable atomic components (buttons, badges, modal dialogs, cards) standardizing visual presentation across apps.
 - **`packages/sdk`**: TypeScript SDK providing strongly-typed contract wrappers, NAV calculation helpers, and transaction builders for external integrations.
@@ -46,20 +50,23 @@ Contains shared monorepo packages and smart contract suites:
 - **`packages/eslint-config`**, **`packages/prettier-config`**, **`packages/tsconfig`**: Shared developer tooling configurations enforcing consistent code style across the monorepo.
 
 ### 3. `/scripts`
+
 Contains automation scripts:
-- **`scripts/run_qa_audit.js`**: Operational script performing end-to-end static quality checks, ABI validations, and deployment state checks.
+
+- **`scripts/run_qa_audit.js`**: Operational script performing static quality checks, ABI validations, and deployment state checks.
 
 ### 4. `/docs`
+
 Contains the complete, single-source-of-truth documentation set for the UnifyVault V2 protocol.
 
 ---
 
 ## Workspace Scripts Summary
 
-| Command | Workspace Target | Description |
-| :--- | :--- | :--- |
-| `pnpm build` | All Workspaces | Builds all smart contracts, packages, and Next.js applications via Turbo. |
-| `pnpm dev` | `apps/web-v2` | Starts Next.js development server on port 3005. |
-| `pnpm test` | `packages/protocol` | Runs Foundry smart contract test suite. |
-| `pnpm format` | All Workspaces | Applies Prettier code formatting across all files. |
-| `pnpm lint` | All Workspaces | Runs ESLint and Solhint across frontend and contract codebases. |
+| Command       | Workspace Target    | Description                                                               |
+| :------------ | :------------------ | :------------------------------------------------------------------------ |
+| `pnpm build`  | All Workspaces      | Builds all smart contracts, packages, and Next.js applications via Turbo. |
+| `pnpm dev`    | `apps/web-v2`       | Starts Next.js development server on port 3005.                           |
+| `pnpm test`   | `packages/protocol` | Runs Foundry smart contract test suite.                                   |
+| `pnpm format` | All Workspaces      | Applies Prettier code formatting across all files.                        |
+| `pnpm lint`   | All Workspaces      | Runs ESLint and Solhint across frontend and contract codebases.           |

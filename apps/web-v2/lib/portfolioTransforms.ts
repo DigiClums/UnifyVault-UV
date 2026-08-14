@@ -6,7 +6,13 @@
  */
 
 import { getChainTokens } from '../constants';
-import { AssetHolding, ProtocolMetrics, StrategyMetrics, UserPortfolio } from '../types';
+import {
+  AssetHolding,
+  OracleFeedStatus,
+  ProtocolMetrics,
+  StrategyMetrics,
+  UserPortfolio,
+} from '../types';
 import {
   calculateAllocationBps,
   calculateAllocationPercent,
@@ -41,9 +47,12 @@ export interface RawProtocolContractData {
   wbtcTotalAssets: bigint;
   wethTotalAssets: bigint;
   usdcTotalAssets: bigint;
-  priceWBTC: bigint;
-  priceWETH: bigint;
-  priceUSDC: bigint;
+  priceWBTC: bigint | null;
+  priceWETH: bigint | null;
+  priceUSDC: bigint | null;
+  btcStatus?: OracleFeedStatus;
+  ethStatus?: OracleFeedStatus;
+  usdcStatus?: OracleFeedStatus;
   totalSharesRaw: bigint;
   onChainNAV?: readonly [bigint, bigint];
 }
@@ -82,13 +91,24 @@ export function transformProtocolMetrics(
     priceWBTC,
     priceWETH,
     priceUSDC,
+    btcStatus = priceWBTC && priceWBTC > 0n ? 'LIVE' : 'UNAVAILABLE',
+    ethStatus = priceWETH && priceWETH > 0n ? 'LIVE' : 'UNAVAILABLE',
+    usdcStatus = priceUSDC && priceUSDC > 0n ? 'LIVE' : 'UNAVAILABLE',
     totalSharesRaw,
     onChainNAV,
   } = rawData;
 
-  const wbtcUSDValue18 = calculateAssetUSDValue18(wbtcTotalAssets, 8, priceWBTC);
-  const wethUSDValue18 = calculateAssetUSDValue18(wethTotalAssets, 18, priceWETH);
-  const usdcUSDValue18 = calculateAssetUSDValue18(usdcTotalAssets, 6, priceUSDC);
+  const isBtcValid = btcStatus === 'LIVE' && priceWBTC !== null && priceWBTC > 0n;
+  const isEthValid = ethStatus === 'LIVE' && priceWETH !== null && priceWETH > 0n;
+  const isUsdcValid = usdcStatus === 'LIVE' && priceUSDC !== null && priceUSDC > 0n;
+
+  const wbtcUSDValue18 = isBtcValid ? calculateAssetUSDValue18(wbtcTotalAssets, 8, priceWBTC!) : 0n;
+  const wethUSDValue18 = isEthValid
+    ? calculateAssetUSDValue18(wethTotalAssets, 18, priceWETH!)
+    : 0n;
+  const usdcUSDValue18 = isUsdcValid
+    ? calculateAssetUSDValue18(usdcTotalAssets, 6, priceUSDC!)
+    : 0n;
 
   const wbtcUSDValue = Number(wbtcUSDValue18) / 1e18;
   const wethUSDValue = Number(wethUSDValue18) / 1e18;
@@ -145,12 +165,17 @@ export function transformProtocolMetrics(
       decimals: 8,
       balanceRaw: wbtcTotalAssets,
       balanceFormatted: formatUnits(wbtcTotalAssets, 8),
-      priceUSD: formatUSD(Number(formatUnits(priceWBTC, 18))),
-      valueUSD: formatUSD(wbtcUSDValue),
+      priceUSD: isBtcValid ? formatUSD(Number(formatUnits(priceWBTC!, 18))) : 'Price unavailable',
+      valueUSD: isBtcValid
+        ? formatUSD(wbtcUSDValue)
+        : wbtcTotalAssets > 0n
+          ? 'Value unavailable'
+          : '$0.00',
       weightBps: calculateAllocationBps(wbtcUSDValue, totalPortfolioValueUSDNumber),
       weightPercent: `${custodyBtcPercent}%`,
       currentWeightPercent: `${custodyBtcPercent}%`,
       targetWeightPercent: strategy.targetBtcPercent ?? '...',
+      oracleStatus: btcStatus,
     },
     {
       symbol: 'ETH',
@@ -159,12 +184,17 @@ export function transformProtocolMetrics(
       decimals: 18,
       balanceRaw: wethTotalAssets,
       balanceFormatted: formatUnits(wethTotalAssets, 18),
-      priceUSD: formatUSD(Number(formatUnits(priceWETH, 18))),
-      valueUSD: formatUSD(wethUSDValue),
+      priceUSD: isEthValid ? formatUSD(Number(formatUnits(priceWETH!, 18))) : 'Price unavailable',
+      valueUSD: isEthValid
+        ? formatUSD(wethUSDValue)
+        : wethTotalAssets > 0n
+          ? 'Value unavailable'
+          : '$0.00',
       weightBps: calculateAllocationBps(wethUSDValue, totalPortfolioValueUSDNumber),
       weightPercent: `${custodyEthPercent}%`,
       currentWeightPercent: `${custodyEthPercent}%`,
       targetWeightPercent: strategy.targetEthPercent ?? '...',
+      oracleStatus: ethStatus,
     },
     {
       symbol: 'USDC',
@@ -173,12 +203,17 @@ export function transformProtocolMetrics(
       decimals: 6,
       balanceRaw: usdcTotalAssets,
       balanceFormatted: formatUnits(usdcTotalAssets, 6),
-      priceUSD: formatUSD(Number(formatUnits(priceUSDC, 18))),
-      valueUSD: formatUSD(usdcUSDValue),
+      priceUSD: isUsdcValid ? formatUSD(Number(formatUnits(priceUSDC!, 18))) : 'Price unavailable',
+      valueUSD: isUsdcValid
+        ? formatUSD(usdcUSDValue)
+        : usdcTotalAssets > 0n
+          ? 'Value unavailable'
+          : '$0.00',
       weightBps: calculateAllocationBps(usdcUSDValue, totalPortfolioValueUSDNumber),
       weightPercent: `${custodyUsdcPercent}%`,
       currentWeightPercent: `${custodyUsdcPercent}%`,
       targetWeightPercent: '0.0%',
+      oracleStatus: usdcStatus,
     },
   ];
 
@@ -245,9 +280,9 @@ export function transformUserPortfolio(
     totalSharesRaw,
   );
 
-  const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC);
-  const wethUSDValue = calculateAssetUSDValue(wethTotalAssets, 18, priceWETH);
-  const usdcUSDValue = calculateAssetUSDValue(usdcTotalAssets, 6, priceUSDC);
+  const wbtcUSDValue = calculateAssetUSDValue(wbtcTotalAssets, 8, priceWBTC || 0n);
+  const wethUSDValue = calculateAssetUSDValue(wethTotalAssets, 18, priceWETH || 0n);
+  const usdcUSDValue = calculateAssetUSDValue(usdcTotalAssets, 6, priceUSDC || 0n);
 
   const userWbtcUSD = calculateUserProRataUSD(wbtcUSDValue, ownershipRatio);
   const userWethUSD = calculateUserProRataUSD(wethUSDValue, ownershipRatio);
@@ -341,6 +376,17 @@ export function transformUserPortfolio(
     });
   }
 
+  const btcStatus =
+    rawProtocolData.btcStatus ?? (priceWBTC && priceWBTC > 0n ? 'LIVE' : 'UNAVAILABLE');
+  const ethStatus =
+    rawProtocolData.ethStatus ?? (priceWETH && priceWETH > 0n ? 'LIVE' : 'UNAVAILABLE');
+  const usdcStatus =
+    rawProtocolData.usdcStatus ?? (priceUSDC && priceUSDC > 0n ? 'LIVE' : 'UNAVAILABLE');
+
+  const isBtcValid = btcStatus === 'LIVE' && priceWBTC !== null && priceWBTC > 0n;
+  const isEthValid = ethStatus === 'LIVE' && priceWETH !== null && priceWETH > 0n;
+  const isUsdcValid = usdcStatus === 'LIVE' && priceUSDC !== null && priceUSDC > 0n;
+
   const userHoldings: AssetHolding[] = [
     {
       symbol: 'BTC',
@@ -349,8 +395,12 @@ export function transformUserPortfolio(
       decimals: 8,
       balanceRaw: userWbtcBalRaw,
       balanceFormatted: formatUnits(userWbtcBalRaw, 8),
-      priceUSD: formatUSD(Number(formatUnits(priceWBTC, 18))),
-      valueUSD: formatUSD(userWbtcUSD),
+      priceUSD: isBtcValid ? formatUSD(Number(formatUnits(priceWBTC!, 18))) : 'Price unavailable',
+      valueUSD: isBtcValid
+        ? formatUSD(userWbtcUSD)
+        : userWbtcBalRaw > 0n
+          ? 'Value unavailable'
+          : '$0.00',
       weightBps: calculateAllocationBps(userWbtcUSD, userTotalUSDNumber),
       weightPercent:
         userTotalUSDNumber > 0
@@ -361,6 +411,7 @@ export function transformUserPortfolio(
           ? `${calculateAllocationPercent(userWbtcUSD, userTotalUSDNumber).toFixed(1)}%`
           : '0.0%',
       targetWeightPercent: protocolMetrics.targetBtcPercent ?? '...',
+      oracleStatus: btcStatus,
     },
     {
       symbol: 'ETH',
@@ -369,8 +420,12 @@ export function transformUserPortfolio(
       decimals: 18,
       balanceRaw: userWethBalRaw,
       balanceFormatted: formatUnits(userWethBalRaw, 18),
-      priceUSD: formatUSD(Number(formatUnits(priceWETH, 18))),
-      valueUSD: formatUSD(userWethUSD),
+      priceUSD: isEthValid ? formatUSD(Number(formatUnits(priceWETH!, 18))) : 'Price unavailable',
+      valueUSD: isEthValid
+        ? formatUSD(userWethUSD)
+        : userWethBalRaw > 0n
+          ? 'Value unavailable'
+          : '$0.00',
       weightBps: calculateAllocationBps(userWethUSD, userTotalUSDNumber),
       weightPercent:
         userTotalUSDNumber > 0
@@ -381,6 +436,7 @@ export function transformUserPortfolio(
           ? `${calculateAllocationPercent(userWethUSD, userTotalUSDNumber).toFixed(1)}%`
           : '0.0%',
       targetWeightPercent: protocolMetrics.targetEthPercent ?? '...',
+      oracleStatus: ethStatus,
     },
     {
       symbol: 'USDC',
@@ -389,8 +445,12 @@ export function transformUserPortfolio(
       decimals: 6,
       balanceRaw: userUsdcBalRaw,
       balanceFormatted: formatUnits(userUsdcBalRaw, 6),
-      priceUSD: formatUSD(Number(formatUnits(priceUSDC, 18))),
-      valueUSD: formatUSD(userUsdcUSD),
+      priceUSD: isUsdcValid ? formatUSD(Number(formatUnits(priceUSDC!, 18))) : 'Price unavailable',
+      valueUSD: isUsdcValid
+        ? formatUSD(userUsdcUSD)
+        : userUsdcBalRaw > 0n
+          ? 'Value unavailable'
+          : '$0.00',
       weightBps: calculateAllocationBps(userUsdcUSD, userTotalUSDNumber),
       weightPercent:
         userTotalUSDNumber > 0
@@ -401,6 +461,7 @@ export function transformUserPortfolio(
           ? `${calculateAllocationPercent(userUsdcUSD, userTotalUSDNumber).toFixed(1)}%`
           : '0.0%',
       targetWeightPercent: '0.0%',
+      oracleStatus: usdcStatus,
     },
   ];
 

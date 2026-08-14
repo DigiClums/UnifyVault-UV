@@ -22,10 +22,26 @@ export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
   dataUpdatedAt: number;
   secondsAgo: number | null;
   isLiveSynced: boolean;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 }
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+
+function deriveFeedStatus(
+  readItem: { status?: 'success' | 'failure'; result?: unknown; error?: Error } | undefined,
+  freshItem: { status?: 'success' | 'failure'; result?: unknown } | undefined,
+): { status: 'LIVE' | 'STALE' | 'REVERTED' | 'UNAVAILABLE'; price18: bigint | null } {
+  if (!readItem) return { status: 'UNAVAILABLE', price18: null };
+  if (readItem.status === 'failure' || readItem.error) return { status: 'REVERTED', price18: null };
+
+  const val = readItem.result as bigint | undefined;
+  if (val === undefined || val === 0n) return { status: 'UNAVAILABLE', price18: null };
+
+  const isFresh = Boolean(freshItem?.result ?? true);
+  if (!isFresh) return { status: 'STALE', price18: val };
+
+  return { status: 'LIVE', price18: val };
+}
 
 export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress, chain } = useAccount();
@@ -43,7 +59,13 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
 
   const activePerformanceContract = performanceManager || costBasisManager;
 
-  const { data, isLoading, isError, refetch, dataUpdatedAt } = useReadContracts({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch: contractsRefetch,
+    dataUpdatedAt,
+  } = useReadContracts({
     contracts: [
       // 0. CustodyVault total WBTC
       {
@@ -133,6 +155,27 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
         functionName: performanceManager ? 'performance' : 'portfolioPerformance',
         args: [activeUser],
       },
+      // 13. isPriceFresh cbBTC
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'isPriceFresh',
+        args: [tokens.cbBTC],
+      },
+      // 14. isPriceFresh WETH
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'isPriceFresh',
+        args: [tokens.WETH],
+      },
+      // 15. isPriceFresh USDC
+      {
+        address: oracle,
+        abi: ORACLE_MANAGER_ABI,
+        functionName: 'isPriceFresh',
+        args: [tokens.USDC],
+      },
     ],
     query: {
       enabled: !!vault && !!oracle && !!token,
@@ -143,17 +186,20 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     },
   });
 
-  const priceWBTC = (data?.[3]?.result as bigint) || 0n;
-  const priceWETH = (data?.[4]?.result as bigint) || 0n;
-  const priceUSDC = (data?.[5]?.result as bigint) || 0n;
+  const btcFeed = deriveFeedStatus(data?.[3], data?.[13]);
+  const ethFeed = deriveFeedStatus(data?.[4], data?.[14]);
+  const usdcFeed = deriveFeedStatus(data?.[5], data?.[15]);
 
   const rawProtocolData = {
     wbtcTotalAssets: (data?.[0]?.result as bigint) || 0n,
     wethTotalAssets: (data?.[1]?.result as bigint) || 0n,
     usdcTotalAssets: (data?.[2]?.result as bigint) || 0n,
-    priceWBTC,
-    priceWETH,
-    priceUSDC,
+    priceWBTC: btcFeed.price18,
+    priceWETH: ethFeed.price18,
+    priceUSDC: usdcFeed.price18,
+    btcStatus: btcFeed.status,
+    ethStatus: ethFeed.status,
+    usdcStatus: usdcFeed.status,
     totalSharesRaw: (data?.[6]?.result as bigint) || 0n,
     onChainNAV: data?.[11]?.result as readonly [bigint, bigint] | undefined,
   };
@@ -201,6 +247,10 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const secondsAgo = dataAgeMs !== null ? Math.max(0, Math.floor(dataAgeMs / 1000)) : null;
   const isLiveSynced =
     !isLoading && !isError && dataUpdatedAt > 0 && (dataAgeMs === null || dataAgeMs < 30_000);
+
+  const refetch = async () => {
+    await contractsRefetch();
+  };
 
   return {
     ...protocolMetrics,
