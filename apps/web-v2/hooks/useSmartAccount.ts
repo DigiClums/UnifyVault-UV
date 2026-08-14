@@ -318,6 +318,13 @@ export function useSmartAccount() {
     [walletClient, publicClient, chainId],
   );
 
+  const reset = useCallback(() => {
+    setStatus('idle');
+    setLastUserOpHash(null);
+    setLastTxHash(null);
+    setError(null);
+  }, []);
+
   return {
     eoaAddress,
     smartAccountAddress,
@@ -327,6 +334,7 @@ export function useSmartAccount() {
     lastUserOpHash,
     lastTxHash,
     error,
+    reset,
     depositGasless,
     redeemGasless,
     transferGasless,

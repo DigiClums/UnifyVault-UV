@@ -104,6 +104,11 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
     : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
       ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
       : '0x5978273B16467E99f45984Dc8AE9048ba05a30F7') as `0x${string}`,
+  Paymaster: (isNonZeroAddress(process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS_SEPOLIA
+    : isNonZeroAddress(process.env.PAYMASTER_ADDRESS)
+      ? process.env.PAYMASTER_ADDRESS
+      : '0x42c6342516714CFd64474bd41Ce360605b9fEA88') as `0x${string}`,
 };
 
 /**

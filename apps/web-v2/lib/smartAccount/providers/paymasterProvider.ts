@@ -5,6 +5,12 @@ import { SmartAccountCall, SponsorshipValidationResult } from '../types';
 import { IPaymasterProvider, PaymasterSponsorshipData } from './types';
 import { ENTRYPOINT_ADDRESS_V07 } from '../constants';
 
+function stringifyWithBigInt(obj: any): string {
+  return JSON.stringify(obj, (_key, value) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
+}
+
 /**
  * Paymaster Provider for UnifyVault Account Abstraction.
  * Connects to UnifyVault's self-managed paymaster backend (/api/smart-account/sponsor)
@@ -79,7 +85,7 @@ export class PaymasterProvider implements IPaymasterProvider {
       const response = await fetch(this.rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: stringifyWithBigInt({
           chainId: this.chainId,
           entryPoint,
           userOperation: userOp,
@@ -113,7 +119,11 @@ export class PaymasterProvider implements IPaymasterProvider {
       // If backend approved policy without remote signer (pure on-chain paymaster)
       return await this.getPaymasterStubData(userOp, entryPoint);
     } catch (err: any) {
-      // In local dev/test fallback to valid stub
+      console.error('[PaymasterProvider Error]', err);
+      // In browser/production, rethrow descriptive error
+      if (typeof window !== 'undefined' && !err?.message?.includes('mock')) {
+        throw new Error(`Gas sponsorship authorization failed: ${err?.message || 'Server error'}`);
+      }
       return await this.getPaymasterStubData(userOp, entryPoint);
     }
   }

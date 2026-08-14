@@ -48,7 +48,7 @@ describe('Phase 2A.5 — Account Abstraction Provider Configuration Tests', () =
     delete process.env.NEXT_PUBLIC_BUNDLER_RPC_URL;
 
     const defaultUrl = getBundlerRpcUrl(baseSepolia.id);
-    expect(defaultUrl).toBe('http://127.0.0.1:4337');
+    expect(defaultUrl).toBe('/api/smart-account/bundler');
 
     process.env.BUNDLER_RPC_URL = 'https://bundler.unifyvault.xyz/rpc';
     expect(getBundlerRpcUrl(baseSepolia.id)).toBe('https://bundler.unifyvault.xyz/rpc');

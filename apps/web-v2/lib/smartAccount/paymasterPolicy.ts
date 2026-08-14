@@ -548,3 +548,64 @@ function validateP2PEscrowCall(callData: Hex): SponsorshipValidationResult {
     };
   }
 }
+
+const EXECUTE_ABI = [
+  {
+    type: 'function',
+    name: 'execute',
+    inputs: [
+      { name: 'dest', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'func', type: 'bytes' },
+    ],
+    outputs: [{ name: '', type: 'bytes' }],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'executeBatch',
+    inputs: [
+      { name: 'dests', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'funcs', type: 'bytes[]' },
+    ],
+    outputs: [{ name: '', type: 'bytes[]' }],
+    stateMutability: 'payable',
+  },
+] as const;
+
+/**
+ * Extracts individual calls from SimpleAccount execution calldata
+ */
+export function extractCallsFromCallData(callData: Hex): SmartAccountCall[] | null {
+  try {
+    if (!callData || callData.length < 10) return null;
+    const selector = callData.slice(0, 10).toLowerCase();
+    if (selector === '0xb61d27f6') {
+      const decoded = decodeFunctionData({
+        abi: EXECUTE_ABI,
+        data: callData,
+      });
+      if (decoded.functionName === 'execute') {
+        const [dest, value, func] = decoded.args as [string, bigint, Hex];
+        return [{ to: dest as `0x${string}`, value, data: func }];
+      }
+    } else if (selector === '0x47e1da2a') {
+      const decoded = decodeFunctionData({
+        abi: EXECUTE_ABI,
+        data: callData,
+      });
+      if (decoded.functionName === 'executeBatch') {
+        const [dests, values, funcs] = decoded.args as [string[], bigint[], Hex[]];
+        return dests.map((dest, i) => ({
+          to: dest as `0x${string}`,
+          value: values[i],
+          data: funcs[i],
+        }));
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}

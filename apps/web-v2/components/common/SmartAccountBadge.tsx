@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useSmartAccount } from '../../hooks/useSmartAccount';
-import { Zap, ShieldCheck, Copy, Check, Info } from 'lucide-react';
+import { getExplorerBaseUrl } from '../../constants';
+import { Zap, Copy, Check, ExternalLink } from 'lucide-react';
 
 export function SmartAccountBadge() {
+  const { chain } = useAccount();
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { eoaAddress, smartAccountAddress, isAccountLoading, isGaslessSupported } =
     useSmartAccount();
   const [copiedType, setCopiedType] = useState<'eoa' | 'smart' | null>(null);
@@ -22,6 +26,10 @@ export function SmartAccountBadge() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
+  const smartExplorerUrl = smartAccountAddress
+    ? `${explorerBaseUrl}/address/${smartAccountAddress}`
+    : '#';
+
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border text-xs">
       <div className="flex items-center gap-1.5 font-medium">
@@ -35,17 +43,28 @@ export function SmartAccountBadge() {
           <span className="font-mono text-muted-foreground">{truncate(smartAccountAddress)}</span>
         )}
         {smartAccountAddress && (
-          <button
-            onClick={() => copyToClipboard(smartAccountAddress, 'smart')}
-            className="p-1 hover:text-foreground text-muted-foreground transition-colors"
-            title="Copy Smart Account Address"
-          >
-            {copiedType === 'smart' ? (
-              <Check className="w-3.5 h-3.5 text-green-500" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-          </button>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => copyToClipboard(smartAccountAddress, 'smart')}
+              className="p-1 hover:text-foreground text-muted-foreground transition-colors"
+              title="Copy Smart Account Address"
+            >
+              {copiedType === 'smart' ? (
+                <Check className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+            <a
+              href={smartExplorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 hover:text-foreground text-muted-foreground transition-colors"
+              title="View Smart Account on BaseScan"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         )}
       </div>
 

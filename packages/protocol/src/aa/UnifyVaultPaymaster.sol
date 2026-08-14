@@ -87,6 +87,7 @@ contract UnifyVaultPaymaster is IPaymasterV07, Ownable {
   error InvalidSignatureLength(uint256 length);
   error SignatureExpired(uint48 validUntil, uint48 currentTimestamp);
   error SignatureNotYetValid(uint48 validAfter, uint48 currentTimestamp);
+  error VerifyingSignerRequired();
 
   modifier onlyEntryPoint() {
     if (msg.sender != address(entryPoint)) revert OnlyEntryPoint();
@@ -109,7 +110,7 @@ contract UnifyVaultPaymaster is IPaymasterV07, Ownable {
     verifyingSigner = _verifyingSigner;
     maxCostPerUserOp = _maxCostPerUserOp > 0 ? _maxCostPerUserOp : 0.05 ether;
     maxFeePerGasCap = 100 gwei;
-    requireSigner = false; // By default pure policy check + signature check if provided
+    requireSigner = _verifyingSigner != address(0);
   }
 
   /**
@@ -352,6 +353,9 @@ contract UnifyVaultPaymaster is IPaymasterV07, Ownable {
     uint256 _userOpCooldown,
     bool _requireSigner
   ) external onlyOwner {
+    if (_requireSigner && verifyingSigner == address(0)) {
+      revert VerifyingSignerRequired();
+    }
     maxCostPerUserOp = _maxCostPerUserOp;
     maxFeePerGasCap = _maxFeePerGasCap;
     userOpCooldown = _userOpCooldown;

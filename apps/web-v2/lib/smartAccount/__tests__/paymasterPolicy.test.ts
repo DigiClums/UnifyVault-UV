@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { encodeFunctionData, parseUnits, getAddress } from 'viem';
 import { baseSepolia, base } from 'viem/chains';
-import { validateSponsorshipPolicy } from '../paymasterPolicy';
+import { validateSponsorshipPolicy, extractCallsFromCallData } from '../paymasterPolicy';
 import { buildGaslessDepositCalls } from '../deposit';
 import { buildGaslessRedeemCalls } from '../redeem';
 import {
@@ -502,5 +502,34 @@ describe('Phase 2A — Paymaster Sponsorship Policy Engine Tests', () => {
 
     expect(result.isApproved).toBe(false);
     expect(result.reason).toContain('Invalid batch targets');
+  });
+
+  // 17. extractCallsFromCallData for execute and executeBatch
+  it('extracts calls correctly from execute and executeBatch calldata', () => {
+    // Single execute
+    const executeCallData = encodeFunctionData({
+      abi: [
+        {
+          type: 'function',
+          name: 'execute',
+          inputs: [
+            { name: 'dest', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'func', type: 'bytes' },
+          ],
+        },
+      ],
+      functionName: 'execute',
+      args: [usdcAddress, 0n, '0x12345678'],
+    });
+
+    const extracted = extractCallsFromCallData(executeCallData);
+    expect(extracted).toHaveLength(1);
+    expect(extracted[0].to.toLowerCase()).toBe(usdcAddress.toLowerCase());
+    expect(extracted[0].value).toBe(0n);
+    expect(extracted[0].data).toBe('0x12345678');
+
+    // Invalid/malformed calldata
+    expect(extractCallsFromCallData('0x00')).toBeNull();
   });
 });

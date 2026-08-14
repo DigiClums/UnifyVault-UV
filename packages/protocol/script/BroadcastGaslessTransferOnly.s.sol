@@ -18,7 +18,7 @@ interface IEntryPointV07SingleTransfer {
 contract BroadcastGaslessTransferOnly is Script {
   address public constant CANONICAL_ENTRYPOINT_V07 = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
   address public constant DEPLOYED_TOKEN = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
-  address public constant DEPLOYED_PAYMASTER = 0x3477e6c6aaa1E28E5A0227adED1055ca1A3A84d6;
+  address public constant DEPLOYED_PAYMASTER = 0x42c6342516714CFd64474bd41Ce360605b9fEA88;
   address public constant SENDER_SMART_ACCOUNT = 0x7d7a2FbCc9ee851a58B179E15f55ED83195511C0;
   address public constant RECIPIENT_SMART_ACCOUNT = 0x63b81Fc51688F89b479f90f08b09510D62cB9B18;
   address public constant DEPLOYED_CBM = 0x57869372AFbd7b61752f2f8d3e7F37701e28517B;
@@ -88,8 +88,9 @@ contract BroadcastGaslessTransferOnly is Script {
     PackedUserOperation[] memory ops = new PackedUserOperation[](1);
     ops[0] = userOp;
 
+    address payable beneficiary = payable(0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1);
     vm.startBroadcast();
-    entryPoint.handleOps(ops, payable(relayer));
+    entryPoint.handleOps(ops, beneficiary);
     vm.stopBroadcast();
 
     console.log('=== VERIFYING POST-TRANSFER ON-CHAIN INVARIANTS ===');

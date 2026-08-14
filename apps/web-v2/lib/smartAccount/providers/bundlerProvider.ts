@@ -3,6 +3,12 @@ import { baseSepolia } from 'viem/chains';
 import { getRpcUrl } from '../../../constants';
 import { IBundlerProvider, UserOperationGasPrice } from './types';
 
+function stringifyWithBigInt(obj: any): string {
+  return JSON.stringify(obj, (_key, value) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
+}
+
 /**
  * Standard ERC-4337 v0.7 Bundler Provider.
  * Connects seamlessly to UnifyVault self-hosted Alto/Rundler/Skandha bundlers
@@ -25,7 +31,8 @@ export class BundlerProvider implements IBundlerProvider {
       const res = await fetch(this.rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        signal: AbortSignal.timeout(1500),
+        body: stringifyWithBigInt({
           jsonrpc: '2.0',
           id: Date.now(),
           method,

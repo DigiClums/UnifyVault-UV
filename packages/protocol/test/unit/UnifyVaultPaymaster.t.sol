@@ -109,7 +109,7 @@ contract UnifyVaultPaymasterTest is Test {
     usdc = new MockERC20USDC();
     uvbe = new UVBEV2(address(this));
 
-    // Deploy Paymaster
+    // Deploy Paymaster with requireSigner = true
     paymaster = new UnifyVaultPaymaster(
       address(entryPoint),
       owner,
@@ -167,7 +167,7 @@ contract UnifyVaultPaymasterTest is Test {
     gasTreasury.refillPaymaster(0.6 ether);
   }
 
-  // 3. Valid Batched Deposit Sponsorship
+  // 3. Valid Batched Deposit Sponsorship with Valid Signature
   function test_Paymaster_SponsorsValidBatchedDeposit() public {
     uint256 amount = 100 * 1e6;
     uint256 minShares = 99 * 1e18;
@@ -201,7 +201,7 @@ contract UnifyVaultPaymasterTest is Test {
       0.01 ether
     );
 
-    assertEq(validationData, 0, 'Validation should succeed with 0 (no sig failure)');
+    assertEq(uint160(validationData), 0, 'Validation should succeed with 0 (no sig failure)');
     (address sender, ) = abi.decode(context, (address, bytes32));
     assertEq(sender, userSmartAccount);
   }
@@ -234,7 +234,7 @@ contract UnifyVaultPaymasterTest is Test {
       0.005 ether
     );
 
-    assertEq(validationData, 0);
+    assertEq(uint160(validationData), 0);
   }
 
   // 5. Valid UVBE Transfer Sponsorship
@@ -256,7 +256,7 @@ contract UnifyVaultPaymasterTest is Test {
       0.005 ether
     );
 
-    assertEq(validationData, 0);
+    assertEq(uint160(validationData), 0);
   }
 
   // 6. Reverts on Unauthorized Target Contract
@@ -281,7 +281,6 @@ contract UnifyVaultPaymasterTest is Test {
 
   // 7. Reverts on Unauthorized Selector on Approved Target
   function test_Paymaster_Revert_UnauthorizedSelector() public {
-    // Attempt to call transfer on mockController (which only allows deposit & redeem)
     bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10);
     bytes memory callData = abi.encodeWithSelector(
       paymaster.EXECUTE_SELECTOR(),
@@ -461,7 +460,7 @@ contract UnifyVaultPaymasterTest is Test {
       0.005 ether
     );
 
-    assertEq(validationData, 0);
+    assertEq(uint160(validationData), 0);
   }
 
   // 15. Sponsors valid P2P confirmAndRelease call
@@ -483,7 +482,7 @@ contract UnifyVaultPaymasterTest is Test {
       0.005 ether
     );
 
-    assertEq(validationData, 0);
+    assertEq(uint160(validationData), 0);
   }
 
   // 16. Reverts on unapproved P2P admin selector (e.g. resolveDispute)
@@ -509,22 +508,352 @@ contract UnifyVaultPaymasterTest is Test {
     paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(13)), 0.005 ether);
   }
 
-  // Helper to construct PackedUserOperation
+  // =========================================================================
+  // ECDSA SIGNATURE HARDENING TESTS (PHASE 1)
+  // =========================================================================
+
+  // 17. Revert on Missing Signature (Direct EntryPoint Bypass Attempt)
+  function test_Paymaster_Revert_MissingSignature() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    // Construct userOp WITHOUT signature in paymasterAndData
+    PackedUserOperation memory userOp = PackedUserOperation({
+      sender: userSmartAccount,
+      nonce: 0,
+      initCode: '',
+      callData: callData,
+      accountGasLimits: bytes32(abi.encodePacked(uint128(100000), uint128(100000))),
+      preVerificationGas: 50000,
+      gasFees: bytes32(abi.encodePacked(uint128(2 gwei), uint128(20 gwei))),
+      paymasterAndData: abi.encodePacked(address(paymaster), uint128(100000), uint128(50000)), // Only 52 bytes
+      signature: ''
+    });
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert(
+      abi.encodeWithSelector(UnifyVaultPaymaster.InvalidSignatureLength.selector, 52)
+    );
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(14)), 0.005 ether);
+  }
+
+  // 18. Revert on Wrong Signer (Unauthorized Signer Key)
+  function test_Paymaster_Revert_WrongSigner() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint256 rogueSignerKey = 0x99999;
+    address rogueSigner = vm.addr(rogueSignerKey);
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      rogueSignerKey,
+      validUntil,
+      validAfter
+    );
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert(
+      abi.encodeWithSelector(UnifyVaultPaymaster.InvalidSigner.selector, rogueSigner, signerAddress)
+    );
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(15)), 0.005 ether);
+  }
+
+  // 19. Revert on Modified Sender (Signature Binding Integrity)
+  function test_Paymaster_Revert_ModifiedSender() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    // Signed for userSmartAccount
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    // Attacker modifies sender to attackerSmartAccount
+    userOp.sender = address(0x999111);
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert(); // Recovered address will not match signerAddress
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(16)), 0.005 ether);
+  }
+
+  // 20. Revert on Modified Nonce (Replay Attack Prevention)
+  function test_Paymaster_Revert_ModifiedNonce() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    // Attacker changes nonce from 0 to 1
+    userOp.nonce = 1;
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert();
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(17)), 0.005 ether);
+  }
+
+  // 21. Revert on Modified CallData
+  function test_Paymaster_Revert_ModifiedCallData() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    // Attacker increases transfer amount to 100 tokens
+    bytes memory modifiedFunc = abi.encodeWithSelector(
+      IERC20.transfer.selector,
+      receiver,
+      100 * 1e18
+    );
+    userOp.callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      modifiedFunc
+    );
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert();
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(18)), 0.005 ether);
+  }
+
+  // 22. Revert on Modified Gas Limits
+  function test_Paymaster_Revert_ModifiedGasLimits() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    // Attacker modifies accountGasLimits
+    userOp.accountGasLimits = bytes32(abi.encodePacked(uint128(200000), uint128(200000)));
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert();
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(19)), 0.005 ether);
+  }
+
+  // 23. Revert on Modified Gas Fees
+  function test_Paymaster_Revert_ModifiedGasFees() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    // Attacker modifies gasFees
+    userOp.gasFees = bytes32(abi.encodePacked(uint128(5 gwei), uint128(50 gwei)));
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert();
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(20)), 0.005 ether);
+  }
+
+  // 24. Revert on Expired Signature
+  function test_Paymaster_Revert_ExpiredSignature() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    // Fast forward past validUntil
+    vm.warp(block.timestamp + 301);
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        UnifyVaultPaymaster.SignatureExpired.selector,
+        validUntil,
+        uint48(block.timestamp)
+      )
+    );
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(21)), 0.005 ether);
+  }
+
+  // 25. Revert on Not Yet Valid Signature
+  function test_Paymaster_Revert_NotYetValidSignature() public {
+    bytes memory func = abi.encodeWithSelector(IERC20.transfer.selector, receiver, 10 * 1e18);
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      address(uvbe),
+      0,
+      func
+    );
+
+    uint48 validUntil = uint48(block.timestamp + 600);
+    uint48 validAfter = uint48(block.timestamp + 100);
+
+    PackedUserOperation memory userOp = _buildUserOpWithSigner(
+      userSmartAccount,
+      callData,
+      signerPrivateKey,
+      validUntil,
+      validAfter
+    );
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        UnifyVaultPaymaster.SignatureNotYetValid.selector,
+        validAfter,
+        uint48(block.timestamp)
+      )
+    );
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(22)), 0.005 ether);
+  }
+
+  // 26. Revert when requireSigner is enabled with zero verifyingSigner
+  function test_Paymaster_Revert_VerifyingSignerRequired() public {
+    paymaster.setVerifyingSigner(address(0));
+
+    vm.expectRevert(UnifyVaultPaymaster.VerifyingSignerRequired.selector);
+    paymaster.setPolicyConfig(0.05 ether, 100 gwei, 0, true);
+  }
+
+  // =========================================================================
+  // HELPER FUNCTIONS
+  // =========================================================================
+
   function _buildUserOp(
     address sender,
     bytes memory callData
-  ) internal view returns (PackedUserOperation memory) {
-    return
-      PackedUserOperation({
-        sender: sender,
-        nonce: 0,
-        initCode: '',
-        callData: callData,
-        accountGasLimits: bytes32(abi.encodePacked(uint128(100000), uint128(100000))),
-        preVerificationGas: 50000,
-        gasFees: bytes32(abi.encodePacked(uint128(2 gwei), uint128(20 gwei))),
-        paymasterAndData: abi.encodePacked(address(paymaster), uint128(100000), uint128(50000)),
-        signature: ''
-      });
+  ) internal returns (PackedUserOperation memory) {
+    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validAfter = 0;
+    return _buildUserOpWithSigner(sender, callData, signerPrivateKey, validUntil, validAfter);
+  }
+
+  function _buildUserOpWithSigner(
+    address sender,
+    bytes memory callData,
+    uint256 signingKey,
+    uint48 validUntil,
+    uint48 validAfter
+  ) internal returns (PackedUserOperation memory) {
+    PackedUserOperation memory userOp = PackedUserOperation({
+      sender: sender,
+      nonce: 0,
+      initCode: '',
+      callData: callData,
+      accountGasLimits: bytes32(abi.encodePacked(uint128(100000), uint128(100000))),
+      preVerificationGas: 50000,
+      gasFees: bytes32(abi.encodePacked(uint128(2 gwei), uint128(20 gwei))),
+      paymasterAndData: '',
+      signature: ''
+    });
+
+    bytes32 hashToSign = paymaster.getHash(userOp, validUntil, validAfter);
+    bytes32 ethSignedHash = hashToSign.toEthSignedMessageHash();
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey, ethSignedHash);
+    bytes memory signature = abi.encodePacked(r, s, v);
+
+    bytes memory paymasterData = abi.encodePacked(
+      bytes6(validUntil),
+      bytes6(validAfter),
+      signature
+    );
+
+    userOp.paymasterAndData = abi.encodePacked(
+      address(paymaster),
+      uint128(100000),
+      uint128(50000),
+      paymasterData
+    );
+
+    return userOp;
   }
 }

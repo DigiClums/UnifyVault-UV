@@ -14,12 +14,8 @@ export function getBundlerRpcUrl(chainId: number = baseSepolia.id): string {
     return customRpc;
   }
 
-  // Chain-specific default self-hosted / public endpoints
-  if (chainId === baseSepolia.id) {
-    return 'http://127.0.0.1:4337'; // Local/VPS self-hosted Alto bundler default
-  }
-
-  return 'http://127.0.0.1:4337';
+  // Next.js API Bundler / Relayer endpoint
+  return '/api/smart-account/bundler';
 }
 
 /**
@@ -42,7 +38,10 @@ export function getPaymasterAddress(chainId: number = baseSepolia.id): Address {
 
   if (customAddr) return customAddr;
 
-  // Placeholder / deployed address on Base Sepolia
+  if (chainId === baseSepolia.id) {
+    return DEPLOYED_CONTRACTS_SEPOLIA.Paymaster;
+  }
+
   return '0x0000000000000000000000000000000000000000' as Address;
 }
 
