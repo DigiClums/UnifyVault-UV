@@ -15,6 +15,7 @@ import {
   History,
   ChevronDown,
   Globe,
+  Send,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
@@ -32,6 +33,7 @@ export function Navbar() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/p2p', label: 'P2P Escrow', icon: ShieldCheck },
     { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
+    { href: '/transfer', label: 'Transfer', icon: Send },
     { href: '/portfolio', label: 'Portfolio', icon: PieChart },
     { href: '/transactions', label: 'Activity', icon: History },
     { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },

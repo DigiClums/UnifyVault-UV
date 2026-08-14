@@ -7,8 +7,16 @@ import { Address, Hash } from 'viem';
 import { createSimpleAccount, getSponsoredSmartAccountClient } from '../lib/smartAccount/client';
 import { buildGaslessDepositCalls } from '../lib/smartAccount/deposit';
 import { buildGaslessRedeemCalls } from '../lib/smartAccount/redeem';
+import {
+  buildSmartAccountTransferCall,
+  SmartAccountTransferParams,
+} from '../lib/smartAccount/transfer';
 import { isGaslessSponsorshipEnabled } from '../lib/smartAccount/config';
-import { GaslessDepositParams, GaslessRedeemParams } from '../lib/smartAccount/types';
+import {
+  GaslessDepositParams,
+  GaslessRedeemParams,
+  SmartAccountCall,
+} from '../lib/smartAccount/types';
 
 export type SmartAccountActionStatus =
   | 'idle'
@@ -192,6 +200,124 @@ export function useSmartAccount() {
     [walletClient, publicClient, chainId],
   );
 
+  /**
+   * Executes a sponsored gasless UVBE token transfer (UVBE.transfer)
+   */
+  const transferGasless = useCallback(
+    async (params: SmartAccountTransferParams): Promise<{ userOpHash?: Hash; txHash?: Hash }> => {
+      if (!walletClient || !publicClient) {
+        throw new Error('Wallet not connected. Connect an EOA wallet first.');
+      }
+
+      setError(null);
+      setStatus('preparing_calls');
+
+      try {
+        const call = buildSmartAccountTransferCall(params);
+
+        setStatus('requesting_sponsorship');
+        const smartAccountClient = await getSponsoredSmartAccountClient({
+          owner: walletClient,
+          publicClient,
+          chainId: chainId || baseSepolia.id,
+        });
+
+        setStatus('awaiting_signature');
+        const userOpHash = await smartAccountClient.sendUserOperation({
+          calls: [
+            {
+              to: call.to,
+              value: call.value || 0n,
+              data: call.data,
+            },
+          ],
+        });
+
+        setLastUserOpHash(userOpHash);
+        setStatus('submitting_user_op');
+
+        setStatus('confirming');
+        const receipt = await smartAccountClient.waitForUserOperationReceipt({
+          hash: userOpHash,
+        });
+
+        setLastTxHash(receipt.receipt.transactionHash);
+        setStatus('success');
+
+        return {
+          userOpHash,
+          txHash: receipt.receipt.transactionHash,
+        };
+      } catch (err: any) {
+        console.error('[useSmartAccount] Gasless transfer failed:', err);
+        const errorMsg = err?.message || 'Gasless transfer execution failed.';
+        setError(errorMsg);
+        setStatus('error');
+        throw err;
+      }
+    },
+    [walletClient, publicClient, chainId],
+  );
+
+  /**
+   * Executes a sponsored gasless P2P Escrow action (single call or 2-call batch)
+   */
+  const executeGaslessP2PAction = useCallback(
+    async (
+      callsInput: SmartAccountCall | SmartAccountCall[],
+    ): Promise<{ userOpHash?: Hash; txHash?: Hash }> => {
+      if (!walletClient || !publicClient) {
+        throw new Error('Wallet not connected. Connect an EOA wallet first.');
+      }
+
+      const calls = Array.isArray(callsInput) ? callsInput : [callsInput];
+
+      setError(null);
+      setStatus('preparing_calls');
+
+      try {
+        setStatus('requesting_sponsorship');
+        const smartAccountClient = await getSponsoredSmartAccountClient({
+          owner: walletClient,
+          publicClient,
+          chainId: chainId || baseSepolia.id,
+        });
+
+        setStatus('awaiting_signature');
+        const userOpHash = await smartAccountClient.sendUserOperation({
+          calls: calls.map((c) => ({
+            to: c.to,
+            value: c.value || 0n,
+            data: c.data,
+          })),
+        });
+
+        setLastUserOpHash(userOpHash);
+        setStatus('submitting_user_op');
+
+        setStatus('confirming');
+        const receipt = await smartAccountClient.waitForUserOperationReceipt({
+          hash: userOpHash,
+        });
+
+        setLastTxHash(receipt.receipt.transactionHash);
+        setStatus('success');
+
+        return {
+          userOpHash,
+          txHash: receipt.receipt.transactionHash,
+        };
+      } catch (err: any) {
+        console.error('[useSmartAccount] Gasless P2P action failed:', err);
+        const errorMsg = err?.message || 'Gasless P2P execution failed.';
+        setError(errorMsg);
+        setStatus('error');
+        throw err;
+      }
+    },
+    [walletClient, publicClient, chainId],
+  );
+
   return {
     eoaAddress,
     smartAccountAddress,
@@ -203,5 +329,7 @@ export function useSmartAccount() {
     error,
     depositGasless,
     redeemGasless,
+    transferGasless,
+    executeGaslessP2PAction,
   };
 }

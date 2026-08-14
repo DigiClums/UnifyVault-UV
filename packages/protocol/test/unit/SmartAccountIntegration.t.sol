@@ -366,6 +366,7 @@ contract SmartAccountIntegrationTest is Test {
     // Deposit to get UVBE
     _performSmartAccountDeposit(1000 * 1e6);
     uint256 escrowAmount = 100 * 1e18;
+    uint256 initialSellerBasis = costBasisManager.costBasis(address(smartAccount));
 
     // Smart Account approves UVBE to P2PEscrowV2
     bytes memory approveCalldata = abi.encodeWithSelector(
@@ -392,12 +393,96 @@ contract SmartAccountIntegrationTest is Test {
     vm.prank(ownerAddress);
     smartAccount.execute(address(escrow), 0, createTradeCalldata);
 
-    // Cost basis should remain with seller during escrow hold (Escrow isolation invariant)
-    assertGt(
+    // 1. Seller -> Escrow: Cost basis must remain strictly with seller (Escrow isolation)
+    assertEq(
       costBasisManager.costBasis(address(smartAccount)),
-      0,
-      'Cost basis not lost during escrow funding'
+      initialSellerBasis,
+      'Seller cost basis unchanged during escrow funding'
     );
+
+    // 2. Buyer submits payment evidence
+    bytes32 utrHash = keccak256('UTR-123456');
+    bytes32 receiptHash = keccak256('RECEIPT-HASH-789');
+    vm.prank(bob);
+    escrow.submitPayment(1, utrHash, receiptHash);
+
+    // 3. Seller confirms and releases escrow to buyer
+    bytes memory releaseCalldata = abi.encodeWithSelector(escrow.confirmAndRelease.selector, 1);
+    vm.prank(ownerAddress);
+    smartAccount.execute(address(escrow), 0, releaseCalldata);
+
+    // Invariants post-release:
+    // Buyer received tokens without P&L mutation
+    assertGt(token.balanceOf(bob), 0, 'Bob received UVBE');
+    assertEq(costBasisManager.realizedPnL(address(smartAccount)), 0, 'Zero P&L for seller');
+    assertEq(costBasisManager.realizedPnL(bob), 0, 'Zero P&L for buyer');
+
+    // 4. Test: What happens when Buyer later redeems UVBE acquired via P2P
+    // Bob redeems 50 UVBE shares for USDC
+    uint256 bobSharesToRedeem = 50 * 1e18;
+    vm.prank(bob);
+    token.approve(address(controller), bobSharesToRedeem);
+
+    uint256 bobUsdcBefore = usdc.balanceOf(bob);
+    vm.prank(bob);
+    controller.redeem(address(usdc), bobSharesToRedeem, 0, bob, block.timestamp + 3600);
+    uint256 bobUsdcAfter = usdc.balanceOf(bob);
+
+    assertGt(bobUsdcAfter, bobUsdcBefore, 'Bob received USDC upon redeeming P2P shares');
+    // Bob's cost basis in protocol was 0, so entire redemption payout is recorded as realizedPnL
+    assertGt(
+      costBasisManager.realizedPnL(bob),
+      0,
+      'Bob realized P&L equals full redemption asset value'
+    );
+  }
+
+  // 6. Test P2P Refund path preserves seller cost basis
+  function test_SmartAccount_P2PEscrowRefundPreservesBasis() public {
+    _performSmartAccountDeposit(500 * 1e6);
+    uint256 escrowAmount = 50 * 1e18;
+    uint256 initialSellerBasis = costBasisManager.costBasis(address(smartAccount));
+
+    // Approve & create trade
+    vm.prank(ownerAddress);
+    smartAccount.execute(
+      address(token),
+      0,
+      abi.encodeWithSelector(IERC20.approve.selector, address(escrow), escrowAmount)
+    );
+
+    EscrowTypes.CreateTradeParams memory params = EscrowTypes.CreateTradeParams({
+      buyer: bob,
+      seller: address(smartAccount),
+      asset: address(token),
+      amount: escrowAmount,
+      fiatAmount: 50 * 1e6,
+      fiatCurrency: keccak256('INR'),
+      paymentWindow: 3600
+    });
+
+    vm.prank(ownerAddress);
+    smartAccount.execute(
+      address(escrow),
+      0,
+      abi.encodeWithSelector(escrow.createTrade.selector, params)
+    );
+
+    // Warp past payment window
+    vm.warp(block.timestamp + 3601);
+
+    // Seller executes refund
+    bytes memory refundCalldata = abi.encodeWithSelector(escrow.refund.selector, 1);
+    vm.prank(ownerAddress);
+    smartAccount.execute(address(escrow), 0, refundCalldata);
+
+    // Invariant: Seller basis remains 100% intact, zero P&L
+    assertEq(
+      costBasisManager.costBasis(address(smartAccount)),
+      initialSellerBasis,
+      'Seller cost basis 100% intact after refund'
+    );
+    assertEq(costBasisManager.realizedPnL(address(smartAccount)), 0, 'No P&L on refund');
   }
 
   // 6. ERC-1271 Signature Validation

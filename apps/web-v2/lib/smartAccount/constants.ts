@@ -72,10 +72,87 @@ export const ERC20_ABI = [
 ] as const;
 
 /**
+ * Standard P2P Escrow Minimal ABI for user operations
+ */
+export const P2P_ESCROW_ABI = [
+  {
+    type: 'function',
+    name: 'createTrade',
+    inputs: [
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          { name: 'buyer', type: 'address' },
+          { name: 'seller', type: 'address' },
+          { name: 'asset', type: 'address' },
+          { name: 'amount', type: 'uint256' },
+          { name: 'fiatAmount', type: 'uint256' },
+          { name: 'fiatCurrency', type: 'bytes32' },
+          { name: 'paymentWindow', type: 'uint256' },
+        ],
+      },
+    ],
+    outputs: [{ name: 'tradeId', type: 'uint256' }],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'fundTrade',
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'submitPayment',
+    inputs: [
+      { name: 'tradeId', type: 'uint256' },
+      { name: 'paymentReference', type: 'bytes32' },
+      { name: 'evidenceHash', type: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'confirmAndRelease',
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'refund',
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'cancelUnfundedTrade',
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'raiseDispute',
+    inputs: [
+      { name: 'tradeId', type: 'uint256' },
+      { name: 'reasonHash', type: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const;
+
+/**
  * Approved contract addresses for Base Sepolia sponsorship
  */
 export const APPROVED_SEPOLIA_TARGETS = {
   USDC: TOKENS_BY_CHAIN[baseSepolia.id].USDC.toLowerCase(),
   CONTROLLER: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController.toLowerCase(),
   UVBE: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase(),
+  P2P_ESCROW: DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow.toLowerCase(),
 } as const;

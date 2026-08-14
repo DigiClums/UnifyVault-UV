@@ -141,7 +141,10 @@ contract UnifyVaultPaymasterTest is Test {
     paymaster.setApprovedSelector(mockController, 0x49903d4a, true); // redeem(address,uint256,uint256,address,uint256)
     paymaster.setApprovedSelector(address(uvbe), IERC20.transfer.selector, true);
     paymaster.setApprovedSelector(address(uvbe), IERC20.approve.selector, true);
-    paymaster.setApprovedSelector(mockEscrow, 0x12345678, true); // mock escrow function
+    paymaster.setApprovedSelector(mockEscrow, 0x00867bd2, true); // submitPayment(uint256,bytes32,bytes32)
+    paymaster.setApprovedSelector(mockEscrow, 0xe307b694, true); // confirmAndRelease(uint256)
+    paymaster.setApprovedSelector(mockEscrow, 0x278ecde1, true); // refund(uint256)
+    paymaster.setApprovedSelector(mockEscrow, 0x636bf26d, true); // raiseDispute(uint256,bytes32)
   }
 
   // 1. Gas Treasury top up Paymaster on EntryPoint
@@ -432,6 +435,78 @@ contract UnifyVaultPaymasterTest is Test {
 
     assertEq(paymaster.getDeposit(), 0.4 ether);
     assertEq(coldWallet.balance, 0.6 ether);
+  }
+
+  // 14. Sponsors valid P2P submitPayment call
+  function test_Paymaster_SponsorsP2PSubmitPayment() public {
+    bytes memory func = abi.encodeWithSelector(
+      0x00867bd2,
+      uint256(1),
+      keccak256('UTR-123'),
+      keccak256('EVIDENCE-456')
+    );
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      mockEscrow,
+      0,
+      func
+    );
+
+    PackedUserOperation memory userOp = _buildUserOp(userSmartAccount, callData);
+
+    vm.prank(address(entryPoint));
+    (, uint256 validationData) = paymaster.validatePaymasterUserOp(
+      userOp,
+      bytes32(uint256(11)),
+      0.005 ether
+    );
+
+    assertEq(validationData, 0);
+  }
+
+  // 15. Sponsors valid P2P confirmAndRelease call
+  function test_Paymaster_SponsorsP2PConfirmAndRelease() public {
+    bytes memory func = abi.encodeWithSelector(0xe307b694, uint256(1));
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      mockEscrow,
+      0,
+      func
+    );
+
+    PackedUserOperation memory userOp = _buildUserOp(userSmartAccount, callData);
+
+    vm.prank(address(entryPoint));
+    (, uint256 validationData) = paymaster.validatePaymasterUserOp(
+      userOp,
+      bytes32(uint256(12)),
+      0.005 ether
+    );
+
+    assertEq(validationData, 0);
+  }
+
+  // 16. Reverts on unapproved P2P admin selector (e.g. resolveDispute)
+  function test_Paymaster_Revert_P2PAdminFunction() public {
+    bytes memory func = abi.encodeWithSelector(0xe55e4211, uint256(1), uint8(0));
+    bytes memory callData = abi.encodeWithSelector(
+      paymaster.EXECUTE_SELECTOR(),
+      mockEscrow,
+      0,
+      func
+    );
+
+    PackedUserOperation memory userOp = _buildUserOp(userSmartAccount, callData);
+
+    vm.prank(address(entryPoint));
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        UnifyVaultPaymaster.InvalidSelector.selector,
+        mockEscrow,
+        bytes4(0xe55e4211)
+      )
+    );
+    paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(13)), 0.005 ether);
   }
 
   // Helper to construct PackedUserOperation

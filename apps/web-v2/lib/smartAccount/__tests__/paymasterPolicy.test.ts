@@ -4,7 +4,12 @@ import { baseSepolia, base } from 'viem/chains';
 import { validateSponsorshipPolicy } from '../paymasterPolicy';
 import { buildGaslessDepositCalls } from '../deposit';
 import { buildGaslessRedeemCalls } from '../redeem';
-import { ENTRYPOINT_ADDRESS_V07, ERC20_ABI, APPROVED_SEPOLIA_TARGETS } from '../constants';
+import {
+  ENTRYPOINT_ADDRESS_V07,
+  ERC20_ABI,
+  P2P_ESCROW_ABI,
+  APPROVED_SEPOLIA_TARGETS,
+} from '../constants';
 import { CONTROLLER_ABI } from '../../contracts/controller';
 
 describe('Phase 2A — Paymaster Sponsorship Policy Engine Tests', () => {
@@ -218,7 +223,7 @@ describe('Phase 2A — Paymaster Sponsorship Policy Engine Tests', () => {
     });
 
     expect(result.isApproved).toBe(false);
-    expect(result.reason).toContain('not approved UnifyVaultController contract');
+    expect(result.reason).toContain('is not an approved contract for sponsorship');
   });
 
   // 9. Rejects Invalid / Unrecognized Functions
@@ -244,5 +249,258 @@ describe('Phase 2A — Paymaster Sponsorship Policy Engine Tests', () => {
 
     expect(result.isApproved).toBe(false);
     expect(result.reason).toContain('Failed to decode');
+  });
+
+  // 10. Valid UVBE Transfer Single Call
+  it('approves a valid UVBE token wallet-to-wallet transfer', () => {
+    const uvbeAddress = getAddress(APPROVED_SEPOLIA_TARGETS.UVBE);
+    const amount = parseUnits('25', 18);
+
+    const call = {
+      to: uvbeAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [mockReceiver, amount],
+      }),
+    };
+
+    const result = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [call],
+    });
+
+    expect(result.isApproved).toBe(true);
+    expect(result.operationType).toBe('transfer');
+  });
+
+  // 11. Rejects UVBE Transfer to Zero Address
+  it('rejects UVBE transfer to zero address', () => {
+    const uvbeAddress = getAddress(APPROVED_SEPOLIA_TARGETS.UVBE);
+    const amount = parseUnits('25', 18);
+
+    const call = {
+      to: uvbeAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: ['0x0000000000000000000000000000000000000000', amount],
+      }),
+    };
+
+    const result = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [call],
+    });
+
+    expect(result.isApproved).toBe(false);
+    expect(result.reason).toContain('Transfer to zero address is forbidden');
+  });
+
+  // 12. Rejects UVBE Transfer with Zero Amount
+  it('rejects UVBE transfer with zero amount', () => {
+    const uvbeAddress = getAddress(APPROVED_SEPOLIA_TARGETS.UVBE);
+
+    const call = {
+      to: uvbeAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [mockReceiver, 0n],
+      }),
+    };
+
+    const result = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [call],
+    });
+
+    expect(result.isApproved).toBe(false);
+    expect(result.reason).toContain('Transfer amount must be strictly greater than zero');
+  });
+
+  // 13. Valid P2P Single User Actions
+  it('approves valid P2PEscrow user actions (submitPayment, confirmAndRelease, refund, raiseDispute, createTrade, fundTrade, cancelUnfundedTrade)', () => {
+    const escrowAddress = getAddress(APPROVED_SEPOLIA_TARGETS.P2P_ESCROW);
+    const mockHash1 = '0x1111111111111111111111111111111111111111111111111111111111111111' as const;
+    const mockHash2 = '0x2222222222222222222222222222222222222222222222222222222222222222' as const;
+
+    // submitPayment
+    const submitCall = {
+      to: escrowAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: P2P_ESCROW_ABI,
+        functionName: 'submitPayment',
+        args: [1n, mockHash1, mockHash2],
+      }),
+    };
+    const resSubmit = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [submitCall],
+    });
+    expect(resSubmit.isApproved).toBe(true);
+    expect(resSubmit.operationType).toBe('p2p_submit_payment');
+
+    // confirmAndRelease
+    const releaseCall = {
+      to: escrowAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: P2P_ESCROW_ABI,
+        functionName: 'confirmAndRelease',
+        args: [1n],
+      }),
+    };
+    const resRelease = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [releaseCall],
+    });
+    expect(resRelease.isApproved).toBe(true);
+    expect(resRelease.operationType).toBe('p2p_release');
+
+    // refund
+    const refundCall = {
+      to: escrowAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: P2P_ESCROW_ABI,
+        functionName: 'refund',
+        args: [1n],
+      }),
+    };
+    const resRefund = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [refundCall],
+    });
+    expect(resRefund.isApproved).toBe(true);
+    expect(resRefund.operationType).toBe('p2p_refund');
+
+    // raiseDispute
+    const disputeCall = {
+      to: escrowAddress,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: P2P_ESCROW_ABI,
+        functionName: 'raiseDispute',
+        args: [1n, mockHash1],
+      }),
+    };
+    const resDispute = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [disputeCall],
+    });
+    expect(resDispute.isApproved).toBe(true);
+    expect(resDispute.operationType).toBe('p2p_dispute');
+  });
+
+  // 14. Valid P2P Batch Fund
+  it('approves a valid 2-call P2P batch fund (UVBE.approve + P2PEscrow.fundTrade)', () => {
+    const uvbeAddress = getAddress(APPROVED_SEPOLIA_TARGETS.UVBE);
+    const escrowAddress = getAddress(APPROVED_SEPOLIA_TARGETS.P2P_ESCROW);
+    const amount = parseUnits('10', 18);
+
+    const calls = [
+      {
+        to: uvbeAddress,
+        value: 0n,
+        data: encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [escrowAddress, amount],
+        }),
+      },
+      {
+        to: escrowAddress,
+        value: 0n,
+        data: encodeFunctionData({
+          abi: P2P_ESCROW_ABI,
+          functionName: 'fundTrade',
+          args: [42n],
+        }),
+      },
+    ];
+
+    const result = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls,
+    });
+
+    expect(result.isApproved).toBe(true);
+    expect(result.operationType).toBe('p2p_batch_fund');
+  });
+
+  // 15. Rejects Unauthorized P2PEscrow Admin Functions
+  it('rejects unapproved admin/arbitrator functions on P2PEscrow (e.g. resolveDispute)', () => {
+    const escrowAddress = getAddress(APPROVED_SEPOLIA_TARGETS.P2P_ESCROW);
+
+    // resolveDispute selector: 0xe55e4211
+    const call = {
+      to: escrowAddress,
+      value: 0n,
+      data: '0xe55e421100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000' as const,
+    };
+
+    const result = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls: [call],
+    });
+
+    expect(result.isApproved).toBe(false);
+    expect(result.reason).toContain('unauthorized selector');
+  });
+
+  // 16. Rejects Malicious Batch Construction
+  it('rejects batch containing unexpected targets or non-zero value', () => {
+    const uvbeAddress = getAddress(APPROVED_SEPOLIA_TARGETS.UVBE);
+    const randomTarget = '0x8888888888888888888888888888888888888888' as const;
+
+    const calls = [
+      {
+        to: uvbeAddress,
+        value: 0n,
+        data: encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [randomTarget, parseUnits('10', 18)],
+        }),
+      },
+      {
+        to: randomTarget,
+        value: 0n,
+        data: '0x12345678' as const,
+      },
+    ];
+
+    const result = validateSponsorshipPolicy({
+      chainId: baseSepolia.id,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: mockSender,
+      calls,
+    });
+
+    expect(result.isApproved).toBe(false);
+    expect(result.reason).toContain('Invalid batch targets');
   });
 });

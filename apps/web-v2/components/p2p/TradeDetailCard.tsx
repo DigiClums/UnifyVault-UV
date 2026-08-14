@@ -20,6 +20,7 @@ import {
   Copy,
   Gavel,
   QrCode,
+  Sparkles,
 } from 'lucide-react';
 import {
   TradeDetails,
@@ -28,6 +29,14 @@ import {
   useP2PActions,
   generateReceiptHash,
 } from '../../hooks/useP2PEscrow';
+import { useSmartAccount } from '../../hooks/useSmartAccount';
+import {
+  buildP2PConfirmReleaseCall,
+  buildP2PRefundCall,
+  buildP2PSubmitPaymentCall,
+  buildP2PFundTradeBatch,
+  buildP2PRaiseDisputeCall,
+} from '../../lib/smartAccount/p2p';
 import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
@@ -35,6 +44,7 @@ import { SmartPaymentQR } from './SmartPaymentQR';
 import { DisputeChatWorkspace } from './DisputeChatWorkspace';
 import { PaymentIntent } from '../../lib/payment/types';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
+import { keccak256, toHex, type Hex } from 'viem';
 
 interface TradeDetailCardProps {
   trade: TradeDetails;
@@ -95,6 +105,13 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     explorerUrl,
     txManager,
   } = useP2PActions();
+
+  const {
+    isGaslessSupported,
+    executeGaslessP2PAction,
+    status: smartAccountStatus,
+    error: smartAccountError,
+  } = useSmartAccount();
 
   // Read allowance for seller & P2PEscrow
   const { data: allowanceData, refetch: refetchAllowance } = useReadContract({
@@ -393,10 +410,22 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
 
     try {
-      await submitPayment(trade.tradeId, utr, receiptHash);
+      if (isGaslessSupported) {
+        const paymentRefHash = keccak256(toHex(utr.trim()));
+        const call = buildP2PSubmitPaymentCall({
+          tradeId: BigInt(trade.tradeId),
+          paymentReference: paymentRefHash,
+          evidenceHash: receiptHash as Hex,
+          escrowAddress: p2pEscrow as Address,
+        });
+        await executeGaslessP2PAction(call);
+      } else {
+        await submitPayment(trade.tradeId, utr, receiptHash);
+      }
       if (onRefresh) onRefresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Submit payment failed:', err);
+      setUserError(err?.message || 'Submit payment failed.');
     }
   };
 
@@ -404,10 +433,19 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     setUserError(null);
     setShowReleaseConfirm(false);
     try {
-      await confirmAndRelease(trade.tradeId);
+      if (isGaslessSupported) {
+        const call = buildP2PConfirmReleaseCall({
+          tradeId: BigInt(trade.tradeId),
+          escrowAddress: p2pEscrow as Address,
+        });
+        await executeGaslessP2PAction(call);
+      } else {
+        await confirmAndRelease(trade.tradeId);
+      }
       if (onRefresh) onRefresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Confirm release failed:', err);
+      setUserError(err?.message || 'Confirm release failed.');
     }
   };
 
@@ -415,10 +453,19 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     setUserError(null);
     setShowRefundConfirm(false);
     try {
-      await refund(trade.tradeId);
+      if (isGaslessSupported) {
+        const call = buildP2PRefundCall({
+          tradeId: BigInt(trade.tradeId),
+          escrowAddress: p2pEscrow as Address,
+        });
+        await executeGaslessP2PAction(call);
+      } else {
+        await refund(trade.tradeId);
+      }
       if (onRefresh) onRefresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Refund failed:', err);
+      setUserError(err?.message || 'Refund failed.');
     }
   };
 
@@ -564,10 +611,18 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 {STATE_LABELS[trade.state]}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground font-mono">
-              Network:{' '}
-              <span className="font-bold text-foreground">{chain?.name || 'Base Chain'}</span>
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground font-mono">
+                Network:{' '}
+                <span className="font-bold text-foreground">{chain?.name || 'Base Chain'}</span>
+              </p>
+              {isGaslessSupported && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-[10px] font-bold">
+                  <Sparkles className="w-3 h-3" />
+                  Gas sponsored
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
