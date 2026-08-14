@@ -102,9 +102,9 @@ async function sendUserOp(userOp: any) {
     abi: ENTRYPOINT_ABI,
     functionName: 'handleOps',
     args: [[userOp], relayerAccount.address],
-    gas: 3_500_000n,
-    maxFeePerGas: parseUnits('2', 9),
-    maxPriorityFeePerGas: parseUnits('1.5', 9),
+    gas: 1_500_000n,
+    maxFeePerGas: parseUnits('0.1', 9),
+    maxPriorityFeePerGas: parseUnits('0.05', 9),
     nonce,
   });
 
@@ -134,8 +134,8 @@ async function main() {
     bytecode: LIVE_SIM_BYTECODE,
     args: [CANONICAL_ENTRYPOINT_V07, freshBuyerEOA.address],
     gas: 1_500_000n,
-    maxFeePerGas: parseUnits('2', 9),
-    maxPriorityFeePerGas: parseUnits('1.5', 9),
+    maxFeePerGas: parseUnits('0.1', 9),
+    maxPriorityFeePerGas: parseUnits('0.05', 9),
     nonce: deployNonce,
   });
 
@@ -357,8 +357,12 @@ async function main() {
   console.log('STEP 3: Gasless submitPayment by Fresh Buyer');
   console.log('======================================================');
 
-  const utrRef = keccak256(toHex('FRESH-BUYER-UTR-993344'));
-  const proofHash = keccak256(toHex('FRESH-BUYER-PROOF-7788'));
+  const utrRef = keccak256(
+    toHex(`FRESH-BUYER-UTR-${Date.now()}-${Math.floor(Math.random() * 10000)}`),
+  );
+  const proofHash = keccak256(
+    toHex(`FRESH-BUYER-PROOF-${Date.now()}-${Math.floor(Math.random() * 10000)}`),
+  );
 
   const submitPaymentData = encodeFunctionData({
     abi: ESCROW_ABI,

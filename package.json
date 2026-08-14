@@ -20,7 +20,7 @@
     "test:8": "pnpm --filter @unifyvault/protocol test:8",
     "test:9": "pnpm --filter @unifyvault/protocol test:9",
     "test:10": "pnpm --filter @unifyvault/protocol test:10",
-    "test:all": "pnpm --filter @unifyvault/protocol test:all",
+    "test:all": "pnpm --filter @unifyvault/protocol test:all && pnpm --filter @unifyvault/web-v2 test && pnpm --filter @unifyvault/web-v2 typecheck && pnpm build",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,sol,yml,yaml}\"",
     "prepare": "husky install"
   },

@@ -741,4 +741,190 @@ contract MarketplaceTest is Test {
 
     marketplace.matchOrders(buyOrderId, sellOrderId, AMOUNT_100);
   }
+
+  // --- TakeOrder & UVBE Enforcement Tests ---
+
+  // 25. Atomic Take BUY Order: Maker is Buyer, Taker is Seller
+  function test_TakeOrder_BuyOrder_MakerIsBuyer_TakerIsSeller() public {
+    vm.prank(buyerMaker);
+    uint256 buyOrderId = marketplace.createBuyOrder(
+      address(usdcToken),
+      AMOUNT_100,
+      PRICE_500_USD,
+      CURRENCY_USD,
+      0,
+      0
+    );
+
+    address takerSeller = address(0x999);
+    usdcToken.mint(takerSeller, AMOUNT_100);
+    vm.prank(takerSeller);
+    usdcToken.approve(address(escrow), type(uint256).max);
+
+    vm.prank(takerSeller);
+    (uint256 matchId, uint256 escrowTradeId) = marketplace.takeOrder(buyOrderId, AMOUNT_100);
+
+    assertTrue(matchId > 0);
+    assertTrue(escrowTradeId > 0);
+
+    MarketplaceTypes.Order memory order = marketplace.getOrder(buyOrderId);
+    assertEq(uint8(order.status), uint8(MarketplaceTypes.OrderStatus.FILLED));
+    assertEq(order.remainingAmount, 0);
+    assertEq(order.filledAmount, AMOUNT_100);
+
+    // Verify Escrow Trade Mapping: Buyer = buyOrder.maker, Seller = takerSeller
+    EscrowTypes.Trade memory trade = escrow.getTrade(escrowTradeId);
+    assertEq(trade.buyer, buyerMaker);
+    assertEq(trade.seller, takerSeller);
+    assertEq(trade.amount, AMOUNT_100);
+    assertEq(uint8(trade.state), uint8(EscrowTypes.TradeState.CREATED));
+
+    // Seller funds escrow
+    vm.prank(takerSeller);
+    escrow.fundTrade(escrowTradeId);
+    trade = escrow.getTrade(escrowTradeId);
+    assertEq(uint8(trade.state), uint8(EscrowTypes.TradeState.FUNDED));
+  }
+
+  // 26. Atomic Take SELL Order: Maker is Seller, Taker is Buyer
+  function test_TakeOrder_SellOrder_MakerIsSeller_TakerIsBuyer() public {
+    vm.prank(sellerMaker);
+    uint256 sellOrderId = marketplace.createSellOrder(
+      address(usdcToken),
+      AMOUNT_100,
+      PRICE_500_USD,
+      CURRENCY_USD,
+      0,
+      0
+    );
+
+    address takerBuyer = address(0x777);
+
+    vm.prank(takerBuyer);
+    (uint256 matchId, uint256 escrowTradeId) = marketplace.takeOrder(sellOrderId, AMOUNT_100);
+
+    assertTrue(matchId > 0);
+    assertTrue(escrowTradeId > 0);
+
+    MarketplaceTypes.Order memory order = marketplace.getOrder(sellOrderId);
+    assertEq(uint8(order.status), uint8(MarketplaceTypes.OrderStatus.FILLED));
+    assertEq(order.remainingAmount, 0);
+
+    // Verify Escrow Trade Mapping: Buyer = takerBuyer, Seller = sellOrder.maker
+    EscrowTypes.Trade memory trade = escrow.getTrade(escrowTradeId);
+    assertEq(trade.buyer, takerBuyer);
+    assertEq(trade.seller, sellerMaker);
+    assertEq(trade.amount, AMOUNT_100);
+  }
+
+  // 27. Partial Take Order
+  function test_TakeOrder_PartialFill() public {
+    vm.prank(buyerMaker);
+    uint256 buyOrderId = marketplace.createBuyOrder(
+      address(usdcToken),
+      AMOUNT_100,
+      PRICE_500_USD,
+      CURRENCY_USD,
+      0,
+      0
+    );
+
+    address takerSeller = address(0x999);
+    uint256 take40 = 40 * 1e18;
+
+    vm.prank(takerSeller);
+    marketplace.takeOrder(buyOrderId, take40);
+
+    MarketplaceTypes.Order memory order = marketplace.getOrder(buyOrderId);
+    assertEq(uint8(order.status), uint8(MarketplaceTypes.OrderStatus.PARTIALLY_FILLED));
+    assertEq(order.filledAmount, take40);
+    assertEq(order.remainingAmount, 60 * 1e18);
+
+    // Fill remaining 60
+    vm.prank(takerSeller);
+    marketplace.takeOrder(buyOrderId, 60 * 1e18);
+
+    order = marketplace.getOrder(buyOrderId);
+    assertEq(uint8(order.status), uint8(MarketplaceTypes.OrderStatus.FILLED));
+    assertEq(order.remainingAmount, 0);
+    assertEq(order.filledAmount, AMOUNT_100);
+  }
+
+  // 28. Take Order Reverts on Self-Take
+  function test_TakeOrder_Revert_SelfTake() public {
+    vm.prank(buyerMaker);
+    uint256 buyOrderId = marketplace.createBuyOrder(
+      address(usdcToken),
+      AMOUNT_100,
+      PRICE_500_USD,
+      CURRENCY_USD,
+      0,
+      0
+    );
+
+    vm.prank(buyerMaker);
+    vm.expectRevert(
+      abi.encodeWithSelector(IMarketplace.SelfMatchingProhibited.selector, buyerMaker)
+    );
+    marketplace.takeOrder(buyOrderId, AMOUNT_100);
+  }
+
+  // 29. Take Order Reverts on Inactive / Cancelled / Filled Order
+  function test_TakeOrder_Revert_CancelledOrFilled() public {
+    vm.prank(buyerMaker);
+    uint256 buyOrderId = marketplace.createBuyOrder(
+      address(usdcToken),
+      AMOUNT_100,
+      PRICE_500_USD,
+      CURRENCY_USD,
+      0,
+      0
+    );
+
+    vm.prank(buyerMaker);
+    marketplace.cancelOrder(buyOrderId);
+
+    address takerSeller = address(0x999);
+    vm.prank(takerSeller);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        IMarketplace.OrderNotActive.selector,
+        buyOrderId,
+        MarketplaceTypes.OrderStatus.CANCELLED
+      )
+    );
+    marketplace.takeOrder(buyOrderId, AMOUNT_100);
+  }
+
+  // 30. Take Order Reverts on Non-Existent Order
+  function test_TakeOrder_Revert_NonExistent() public {
+    vm.prank(address(0x999));
+    vm.expectRevert(abi.encodeWithSelector(IMarketplace.OrderDoesNotExist.selector, 9999));
+    marketplace.takeOrder(9999, AMOUNT_100);
+  }
+
+  // 31. UVBE-Only Token Configuration & Enforcement
+  function test_UVBE_Only_Enforcement() public {
+    address canonicalUVBE = address(0x006c5DF13C716E5224b33956651C4356BB90DEc0);
+
+    // Governance sets UVBE token
+    marketplace.setUvbeToken(canonicalUVBE);
+    assertEq(marketplace.uvbeToken(), canonicalUVBE);
+
+    // Creating order with non-UVBE token reverts
+    vm.prank(buyerMaker);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        IMarketplace.IncompatibleOrderAssets.selector,
+        address(usdcToken),
+        canonicalUVBE
+      )
+    );
+    marketplace.createBuyOrder(address(usdcToken), AMOUNT_100, PRICE_500_USD, CURRENCY_USD, 0, 0);
+
+    // Zero address asset reverts
+    vm.prank(buyerMaker);
+    vm.expectRevert(IMarketplace.InvalidAssetAddress.selector);
+    marketplace.createBuyOrder(address(0), AMOUNT_100, PRICE_500_USD, CURRENCY_USD, 0, 0);
+  }
 }

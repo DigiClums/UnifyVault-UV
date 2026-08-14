@@ -3,10 +3,15 @@
  */
 export type EvidenceStatus =
   | 'PENDING'
+  | 'OCR_PENDING'
   | 'MATCH'
+  | 'OCR_SUCCESS'
   | 'MISMATCH'
+  | 'OCR_MISMATCH'
   | 'LOW_CONFIDENCE'
+  | 'OCR_PARTIAL'
   | 'INVALID'
+  | 'OCR_FAILED'
   | 'DUPLICATE_REFERENCE'
   | 'MANUAL_REVIEW';
 
@@ -19,10 +24,13 @@ export interface ExtractedReceiptData {
   utr?: string;
   transactionDate?: string;
   transactionTime?: string;
-  paymentStatus?: string;
+  paymentStatus?: 'SUCCESSFUL' | 'FAILED' | 'PENDING' | 'CANCELLED';
   senderName?: string;
+  senderVpa?: string;
   receiverName?: string;
+  receiverVpa?: string;
   confidenceScore: number; // 0.0 to 1.0
+  rawTextSample?: string;
 }
 
 /**
@@ -30,11 +38,14 @@ export interface ExtractedReceiptData {
  */
 export interface EvidenceVerificationResult {
   status: EvidenceStatus;
+  ocrState:
+    'OCR_PENDING' | 'OCR_SUCCESS' | 'OCR_PARTIAL' | 'OCR_FAILED' | 'OCR_MISMATCH' | 'MANUAL_REVIEW';
   fileHash: `0x${string}`;
   cid: string;
   extractedData: ExtractedReceiptData;
   discrepancies: string[];
   isReleaseAllowed: boolean;
+  isClaimAllowed: boolean;
   requiresManualReview: boolean;
   statusMessage: string;
 }
@@ -44,8 +55,8 @@ export interface EvidenceVerificationResult {
  */
 export interface TradeVerificationContext {
   tradeId: number;
-  expectedAmount: number; // Fiat amount e.g. 10000
-  expectedCurrency: string; // e.g. "USD", "INR"
+  expectedAmount: number; // Fiat amount e.g. 500, 10000
+  expectedCurrency: string; // e.g. "INR"
   expectedUtr?: string;
   knownUsedUtrs?: string[];
 }

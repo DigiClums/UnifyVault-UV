@@ -150,6 +150,15 @@ contract BaseSepoliaV2MigrationTest is Test {
     v2Escrow = new P2PEscrowV2(TREASURY, 100); // 1% fee
     v2Perf = new PerformanceManager(SELLER, DIRECTORY_ADDR);
 
+    pm = new PortfolioManager(
+      SELLER,
+      DIRECTORY_ADDR,
+      directory.getAddress(ModuleIds.STRATEGY_MANAGER),
+      directory.getAddress(ModuleIds.ORACLE),
+      address(vault),
+      address(v2Token)
+    );
+
     v2Controller = new UnifyVaultController(
       DIRECTORY_ADDR,
       directory.getAddress(ModuleIds.ORACLE),
@@ -186,6 +195,7 @@ contract BaseSepoliaV2MigrationTest is Test {
 
     // ── UPDATE PROTOCOL DIRECTORY IN FORK ───────────────────────────
     directory.updateAddress(ModuleIds.TOKEN, address(v2Token));
+    directory.updateAddress(ModuleIds.PORTFOLIO_MANAGER, address(pm));
     directory.updateAddress(ModuleIds.COST_BASIS_MANAGER, address(v2CBM));
     directory.updateAddress(ModuleIds.P2P_ESCROW, address(v2Escrow));
     directory.updateAddress(ModuleIds.DEPOSIT_MANAGER, address(v2Controller));

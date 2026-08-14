@@ -66,6 +66,7 @@ interface IMarketplace {
 
   event P2PEscrowUpdated(address indexed oldEscrow, address indexed newEscrow);
   event DefaultPaymentWindowUpdated(uint256 oldWindow, uint256 newWindow);
+  event UvbeTokenUpdated(address indexed oldToken, address indexed newToken);
 
   // --- Custom Errors ---
 
@@ -123,8 +124,16 @@ interface IMarketplace {
     uint256 matchAmount
   ) external returns (uint256 matchId, uint256 escrowTradeId);
 
+  function takeOrder(
+    uint256 orderId,
+    uint256 takeAmount
+  ) external returns (uint256 matchId, uint256 escrowTradeId);
+
+  function setUvbeToken(address newUvbeToken) external;
+
   // --- View Functions ---
 
+  function uvbeToken() external view returns (address);
   function getOrder(uint256 orderId) external view returns (MarketplaceTypes.Order memory);
   function getRemainingAmount(uint256 orderId) external view returns (uint256);
   function getOrderCount() external view returns (uint256);

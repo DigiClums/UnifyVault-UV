@@ -1,4 +1,10 @@
-export const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+export const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+];
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MIN_FILE_SIZE_BYTES = 100; // 100 Bytes
@@ -17,7 +23,8 @@ export interface GenericReceiptFile {
 }
 
 /**
- * Validates receipt file format, size, and header signature
+ * Validates receipt file format, size, and header signature (magic bytes).
+ * Supports JPG, JPEG, PNG, WEBP, and PDF formats.
  */
 export function validateReceiptFile(file: GenericReceiptFile): FileValidationResult {
   if (!file) {
@@ -32,29 +39,30 @@ export function validateReceiptFile(file: GenericReceiptFile): FileValidationRes
     return { isValid: false, errorMessage: 'File exceeds maximum allowed size of 10MB.' };
   }
 
-  // Extension & MIME type check
+  // Extension check
   const ext = file.name.split('.').pop()?.toLowerCase();
-  const validExts = ['pdf', 'jpg', 'jpeg', 'png'];
+  const validExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
 
   if (!validExts.includes(ext || '')) {
     return {
       isValid: false,
-      errorMessage: `Unsupported file extension .${ext}. Only PDF, JPG, JPEG, and PNG are allowed.`,
+      errorMessage: `Unsupported file extension .${ext}. Only PDF, JPG, JPEG, PNG, and WEBP are allowed.`,
     };
   }
 
+  // MIME type check
   const mime = file.type?.toLowerCase();
   if (mime && !ALLOWED_MIME_TYPES.includes(mime)) {
     return {
       isValid: false,
-      errorMessage: `Unsupported MIME type ${mime}. Only PDF, JPG, JPEG, and PNG are allowed.`,
+      errorMessage: `Unsupported MIME type ${mime}. Only PDF, JPG, JPEG, PNG, and WEBP are allowed.`,
     };
   }
 
   // Header Magic Bytes Verification (if bytes are available)
   const rawBytes = typeof file.bytes === 'function' ? undefined : file.bytes;
   if (rawBytes && rawBytes.length >= 4) {
-    const header = Array.from(rawBytes.slice(0, 4))
+    const header4 = Array.from(rawBytes.slice(0, 4))
       .map((b: number) => b.toString(16).padStart(2, '0'))
       .join('')
       .toUpperCase();
@@ -62,11 +70,23 @@ export function validateReceiptFile(file: GenericReceiptFile): FileValidationRes
     // PDF magic bytes: 25 50 44 46 (%PDF)
     // PNG magic bytes: 89 50 4E 47 (.PNG)
     // JPEG magic bytes: FF D8 FF
-    const isPdfMagic = header.startsWith('25504446');
-    const isPngMagic = header.startsWith('89504E47');
-    const isJpgMagic = header.startsWith('FFD8FF');
+    // WEBP magic bytes: 52 49 46 46 (RIFF) ... and 57 45 42 50 (WEBP at index 8-11)
+    const isPdfMagic = header4.startsWith('25504446');
+    const isPngMagic = header4.startsWith('89504E47');
+    const isJpgMagic = header4.startsWith('FFD8FF');
 
-    if (!isPdfMagic && !isPngMagic && !isJpgMagic) {
+    let isWebpMagic = false;
+    if (header4.startsWith('52494646') && rawBytes.length >= 12) {
+      const webpTag = Array.from(rawBytes.slice(8, 12))
+        .map((b: number) => b.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase();
+      if (webpTag === '57454250') {
+        isWebpMagic = true;
+      }
+    }
+
+    if (!isPdfMagic && !isPngMagic && !isJpgMagic && !isWebpMagic) {
       return {
         isValid: false,
         errorMessage: 'Corrupted or spoofed file header signature.',
@@ -74,5 +94,8 @@ export function validateReceiptFile(file: GenericReceiptFile): FileValidationRes
     }
   }
 
-  return { isValid: true, mimeType: file.type };
+  return {
+    isValid: true,
+    mimeType: file.type || (ext === 'pdf' ? 'application/pdf' : `image/${ext}`),
+  };
 }

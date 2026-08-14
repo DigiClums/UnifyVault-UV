@@ -1,6 +1,6 @@
 import { validateReceiptFile } from './fileValidator';
 import { computeReceiptKeccak256, uploadReceiptEvidence } from './receiptHasher';
-import { extractReceiptDataFromText } from './ocrEngine';
+import { extractReceiptDataFromText, performRealReceiptOCR } from './ocrEngine';
 import {
   EvidenceStatus,
   ExtractedReceiptData,
@@ -15,8 +15,14 @@ export interface VerifyEvidenceInput {
 }
 
 /**
- * Executes full evidence verification pipeline:
- * File Validation -> W3UP Real Upload & Keccak256 Hashing -> OCR Data Extraction -> Cross-Examination -> Status Calculation
+ * Executes the complete real UPI receipt verification pipeline:
+ * 1. File & Header Validation (PDF, JPG, JPEG, PNG, WEBP)
+ * 2. Exact Byte Keccak256 Hashing & VPS Filesystem Storage
+ * 3. Optical Character Recognition / Text Extraction on uploaded receipt
+ * 4. UTR Cross-Examination (User-Entered vs OCR-Extracted)
+ * 5. INR Amount Cross-Examination (Trade Expected vs OCR-Extracted)
+ * 6. Payment Status Verification (SUCCESSFUL vs FAILED/PENDING/CANCELLED)
+ * 7. Duplicate Reference Protection
  */
 export async function verifyPaymentEvidence(
   input: VerifyEvidenceInput,
@@ -28,21 +34,34 @@ export async function verifyPaymentEvidence(
   const fileValidation = validateReceiptFile(file);
   if (!fileValidation.isValid) {
     return {
-      status: 'INVALID',
+      status: 'OCR_FAILED',
+      ocrState: 'OCR_FAILED',
       fileHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
       cid: '',
       extractedData: { confidenceScore: 0.0 },
       discrepancies: [fileValidation.errorMessage || 'Invalid file.'],
       isReleaseAllowed: false,
+      isClaimAllowed: false,
       requiresManualReview: true,
       statusMessage: fileValidation.errorMessage || 'Invalid or corrupted receipt file.',
     };
   }
 
-  // 2. Real Upload to W3UP / Keccak256 Hashing Step
-  let fileHash: `0x${string}`;
-  let cid: string = '';
+  // 2. Resolve Bytes & Compute Keccak256
+  let rawBytes: Uint8Array;
+  if ('bytes' in file && file.bytes && typeof file.bytes !== 'function') {
+    rawBytes = file.bytes;
+  } else if (file instanceof File) {
+    const arrayBuffer = await file.arrayBuffer();
+    rawBytes = new Uint8Array(arrayBuffer);
+  } else {
+    rawBytes = new TextEncoder().encode(file.name);
+  }
 
+  let fileHash: `0x${string}` = computeReceiptKeccak256(rawBytes);
+  let cid: string = `vps-${fileHash}`;
+
+  // If in browser and real File instance, upload bytes to VPS storage endpoint
   if (typeof window !== 'undefined' && file instanceof File) {
     try {
       const uploadRes = await uploadReceiptEvidence(file);
@@ -50,46 +69,68 @@ export async function verifyPaymentEvidence(
       cid = uploadRes.ipfsCid;
     } catch (uploadErr: any) {
       return {
-        status: 'INVALID',
-        fileHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        cid: '',
+        status: 'OCR_FAILED',
+        ocrState: 'OCR_FAILED',
+        fileHash,
+        cid,
         extractedData: { confidenceScore: 0.0 },
-        discrepancies: [uploadErr?.message || 'W3UP IPFS upload failed.'],
+        discrepancies: [uploadErr?.message || 'VPS evidence upload failed.'],
         isReleaseAllowed: false,
+        isClaimAllowed: false,
         requiresManualReview: true,
         statusMessage:
           uploadErr?.message || 'Evidence upload failed. Payment proof submission blocked.',
       };
     }
-  } else {
-    // Non-browser or mock object fallback for unit tests
-    const rawBytes =
-      'bytes' in file && file.bytes && typeof file.bytes !== 'function'
-        ? file.bytes
-        : new TextEncoder().encode(file.name);
-    fileHash = computeReceiptKeccak256(rawBytes);
   }
 
-  // 3. OCR Data Extraction Step
-  const textToParse = rawTextOverride || '';
-  const extractedData = extractReceiptDataFromText(textToParse);
+  // 3. OCR Text Extraction Step (Use rawTextOverride if provided, otherwise run Real OCR engine)
+  let ocrRawText = rawTextOverride;
+  if (ocrRawText === undefined) {
+    const ocrResult = await performRealReceiptOCR(rawBytes, file.type, file.name);
+    ocrRawText = ocrResult.text;
+  }
 
-  // 4. Low Confidence / Unreadable Check
-  if (extractedData.confidenceScore < 0.4 || (!extractedData.amount && !extractedData.utr)) {
+  const extractedData = extractReceiptDataFromText(ocrRawText);
+
+  // 4. Low Confidence / Empty OCR Text Check
+  if (extractedData.confidenceScore < 0.35 && !extractedData.amount && !extractedData.utr) {
     return {
       status: 'LOW_CONFIDENCE',
+      ocrState: 'OCR_PARTIAL',
       fileHash,
       cid,
       extractedData,
-      discrepancies: ['Unreadable receipt text or low OCR extraction confidence.'],
+      discrepancies: [
+        'Receipt text could not be extracted with sufficient confidence. Manual inspection required.',
+      ],
       isReleaseAllowed: false,
+      isClaimAllowed: false,
       requiresManualReview: true,
-      statusMessage:
-        'Receipt text could not be clearly extracted by OCR. Manual inspection required.',
+      statusMessage: 'Receipt could not be automatically verified. Seller/manual review required.',
     };
   }
 
-  // 5. Duplicate Reference Check
+  // 5. Payment Status Check (FAILED / DECLINED / CANCELLED)
+  if (extractedData.paymentStatus === 'FAILED' || extractedData.paymentStatus === 'CANCELLED') {
+    discrepancies.push(
+      `Receipt status indicates transaction was ${extractedData.paymentStatus.toLowerCase()}. Payment claim rejected.`,
+    );
+    return {
+      status: 'OCR_FAILED',
+      ocrState: 'OCR_FAILED',
+      fileHash,
+      cid,
+      extractedData,
+      discrepancies,
+      isReleaseAllowed: false,
+      isClaimAllowed: false,
+      requiresManualReview: true,
+      statusMessage: `PAYMENT FAILED: Receipt indicates transaction was ${extractedData.paymentStatus.toLowerCase()}.`,
+    };
+  }
+
+  // 6. Duplicate Reference Check
   if (
     extractedData.utr &&
     context.knownUsedUtrs &&
@@ -100,74 +141,94 @@ export async function verifyPaymentEvidence(
     );
     return {
       status: 'DUPLICATE_REFERENCE',
+      ocrState: 'OCR_FAILED',
       fileHash,
       cid,
       extractedData,
       discrepancies,
       isReleaseAllowed: false,
+      isClaimAllowed: false,
       requiresManualReview: true,
       statusMessage: `DUPLICATE REFERENCE DETECTED: UTR ${extractedData.utr} was previously submitted.`,
     };
   }
 
-  // 6. Amount Cross-Examination
-  let isAmountMatch = true;
+  // 7. Amount Cross-Examination
+  let isAmountMatch = false;
   if (extractedData.amount !== undefined) {
     const diff = Math.abs(extractedData.amount - context.expectedAmount);
-    if (diff > 0.01) {
-      isAmountMatch = false;
+    if (diff < 0.01) {
+      isAmountMatch = true;
+    } else {
       discrepancies.push(
-        `Amount mismatch: Extracted receipt amount (${extractedData.amount} ${context.expectedCurrency}) does not match expected trade amount (${context.expectedAmount} ${context.expectedCurrency}).`,
+        `Amount mismatch: Extracted receipt amount (₹${extractedData.amount.toFixed(2)}) does not match expected trade amount (₹${context.expectedAmount.toFixed(2)} ${context.expectedCurrency}).`,
       );
     }
-  }
-
-  // 7. UTR Cross-Examination (if expected UTR provided)
-  let isUtrMatch = true;
-  if (context.expectedUtr && extractedData.utr) {
-    if (context.expectedUtr.trim().toUpperCase() !== extractedData.utr.trim().toUpperCase()) {
-      isUtrMatch = false;
-      discrepancies.push(
-        `UTR mismatch: Extracted receipt UTR (${extractedData.utr}) does not match expected reference (${context.expectedUtr}).`,
-      );
-    }
-  }
-
-  // 8. Calculate Final Evidence Status
-  let status: EvidenceStatus = 'PENDING';
-  let isReleaseAllowed = false;
-  let requiresManualReview = false;
-  let statusMessage = '';
-
-  if (!isAmountMatch || !isUtrMatch) {
-    status = 'MISMATCH';
-    isReleaseAllowed = false;
-    requiresManualReview = true;
-    statusMessage = 'EVIDENCE MISMATCH: Receipt details do not match trade requirements.';
-  } else if (
-    isAmountMatch &&
-    (isUtrMatch || !context.expectedUtr) &&
-    extractedData.confidenceScore >= 0.7
-  ) {
-    status = 'MATCH';
-    isReleaseAllowed = true;
-    requiresManualReview = false;
-    statusMessage = 'Evidence matched on-chain trade parameters and uploaded to IPFS.';
   } else {
-    status = 'MANUAL_REVIEW';
-    isReleaseAllowed = false;
-    requiresManualReview = true;
-    statusMessage = 'Partial evidence extracted. Seller manual verification required.';
+    discrepancies.push('OCR could not detect paid amount on receipt.');
   }
 
+  // 8. UTR Cross-Examination (User-Entered vs OCR-Extracted)
+  let isUtrMatch = false;
+  const expectedUtrClean = context.expectedUtr?.trim().toUpperCase();
+  const extractedUtrClean = extractedData.utr?.trim().toUpperCase();
+
+  if (expectedUtrClean && extractedUtrClean) {
+    if (expectedUtrClean === extractedUtrClean) {
+      isUtrMatch = true;
+    } else {
+      discrepancies.push(
+        `UTR mismatch: User-entered reference (${expectedUtrClean}) does not match OCR-extracted receipt reference (${extractedUtrClean}).`,
+      );
+    }
+  } else if (!expectedUtrClean) {
+    discrepancies.push('User has not entered a bank UTR / transaction reference number.');
+  } else {
+    discrepancies.push('OCR could not detect a valid transaction reference or UTR on receipt.');
+  }
+
+  // 9. Calculate Final Verification State
+  if (discrepancies.some((d) => d.includes('mismatch') || d.includes('Mismatch'))) {
+    return {
+      status: 'MISMATCH',
+      ocrState: 'OCR_MISMATCH',
+      fileHash,
+      cid,
+      extractedData,
+      discrepancies,
+      isReleaseAllowed: false,
+      isClaimAllowed: false,
+      requiresManualReview: true,
+      statusMessage: 'EVIDENCE MISMATCH: Receipt details do not match trade requirements.',
+    };
+  }
+
+  if (isAmountMatch && isUtrMatch) {
+    return {
+      status: 'OCR_SUCCESS',
+      ocrState: 'OCR_SUCCESS',
+      fileHash,
+      cid,
+      extractedData,
+      discrepancies: [],
+      isReleaseAllowed: true,
+      isClaimAllowed: true,
+      requiresManualReview: false,
+      statusMessage: 'Receipt verified successfully. UTR and INR amount match trade parameters.',
+    };
+  }
+
+  // Partial match / missing fields -> Manual Review
   return {
-    status,
+    status: 'MANUAL_REVIEW',
+    ocrState: 'OCR_PARTIAL',
     fileHash,
     cid,
     extractedData,
     discrepancies,
-    isReleaseAllowed,
-    requiresManualReview,
-    statusMessage,
+    isReleaseAllowed: false,
+    isClaimAllowed: false,
+    requiresManualReview: true,
+    statusMessage: 'Receipt could not be automatically verified. Seller/manual review required.',
   };
 }

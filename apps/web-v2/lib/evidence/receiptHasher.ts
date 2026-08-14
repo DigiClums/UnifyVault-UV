@@ -1,10 +1,13 @@
 import { keccak256 } from 'viem';
+import { ExtractedReceiptData } from './types';
 
 export interface HasherResult {
   fileHash: `0x${string}`;
   ipfsCid: string;
   size?: number;
   mimeType?: string;
+  ocrRawText?: string;
+  extractedData?: ExtractedReceiptData;
 }
 
 export interface UploadEvidenceResponse {
@@ -14,6 +17,8 @@ export interface UploadEvidenceResponse {
   size?: number;
   mimeType?: string;
   error?: string;
+  ocrRawText?: string;
+  extractedData?: ExtractedReceiptData;
 }
 
 /**
@@ -36,8 +41,8 @@ export function computeReceiptKeccak256(
 }
 
 /**
- * Uploads exact receipt file bytes to server-side W3UP/IPFS endpoint
- * Returns real CID and keccak256 evidenceHash. Throws if upload fails.
+ * Uploads exact receipt file bytes to server-side VPS evidence endpoint
+ * Runs real OCR and returns real CID, keccak256 evidenceHash, and extracted OCR data.
  */
 export async function uploadReceiptEvidence(file: File): Promise<HasherResult> {
   const formData = new FormData();
@@ -62,6 +67,8 @@ export async function uploadReceiptEvidence(file: File): Promise<HasherResult> {
     ipfsCid: data.cid,
     size: data.size || file.size,
     mimeType: data.mimeType || file.type,
+    ocrRawText: data.ocrRawText,
+    extractedData: data.extractedData,
   };
 }
 
@@ -74,6 +81,6 @@ export async function computeReceiptHashes(
   const fileHash = computeReceiptKeccak256(fileBytes);
   return {
     fileHash,
-    ipfsCid: '', // Empty until uploaded to real W3UP/IPFS
+    ipfsCid: `vps-${fileHash}`,
   };
 }

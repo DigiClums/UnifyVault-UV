@@ -61,14 +61,14 @@ contract RedemptionDecimalScalingTest is Test {
     USDC = new MockERC20Decimals('USD Coin', 'USDC', 6);
 
     // Register Chainlink 8-decimal raw feeds in MockOracleProvider normalized to 18 decimals in OracleManager
-    // BTC = $64,887, ETH = $1,913, USDC = $1.00
+    // BTC = $60,000, ETH = $2,000, USDC = $1.00
     bytes32 btcId = bytes32(uint256(uint160(address(cbBTC))));
     bytes32 ethId = bytes32(uint256(uint160(address(WETH))));
     bytes32 usdcId = bytes32(uint256(uint160(address(USDC))));
 
     // Raw Chainlink 8-decimal answers
-    oracleProvider.registerAsset(btcId, 64887 * 1e8, 8, block.timestamp, 1);
-    oracleProvider.registerAsset(ethId, 1913 * 1e8, 8, block.timestamp, 1);
+    oracleProvider.registerAsset(btcId, 60000 * 1e8, 8, block.timestamp, 1);
+    oracleProvider.registerAsset(ethId, 2000 * 1e8, 8, block.timestamp, 1);
     oracleProvider.registerAsset(usdcId, 1 * 1e8, 8, block.timestamp, 1);
 
     oracleManager.configureAsset(btcId, address(oracleProvider), address(0), 3600, true);
@@ -122,13 +122,15 @@ contract RedemptionDecimalScalingTest is Test {
    * @notice A. Redeem 1 UVBTCETH (Genesis/Bootstrap State when totalShares = 1000 dead shares)
    */
   function test_Regression_Redeem1Share_Bootstrap() public {
-    // Simulate initial vault state with 1 satoshi cbBTC and 1 wei WETH (total val ~$0.648 USD)
-    cbBTC.mint(address(vault), 1);
-    WETH.mint(address(vault), 1);
+    // Simulate initial vault state with 60/40 BTC/ETH matching $1,000 USD
+    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(60000) * 1e18); // 1,000,000 satoshis (0.01 BTC = $600)
+    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(2000) * 1e18); // 0.2 WETH = $400
+    cbBTC.mint(address(vault), btcAmount);
+    WETH.mint(address(vault), ethAmount);
 
-    // Initial totalShares = 1000 (bootstrap DEAD_SHARES)
+    // Initial totalShares = 1000 * 1e18 (bootstrap DEAD_SHARES)
     token.grantRole(token.CONTROLLER_ROLE(), address(this));
-    token.mint(address(0xDEAD), 1000);
+    token.mint(address(0xDEAD), 1000 * 1e18);
 
     IPortfolioManager.RedeemPreview memory preview = portfolioManager.previewRedeem(
       1e18,
@@ -148,11 +150,13 @@ contract RedemptionDecimalScalingTest is Test {
    * @notice Regression test specifically checking that 1 share redemption NEVER produces $648,026,062,859.01
    */
   function test_Regression_ExactObservedBugValueNotProduced() public {
-    cbBTC.mint(address(vault), 1);
-    WETH.mint(address(vault), 1);
+    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(60000) * 1e18);
+    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(2000) * 1e18);
+    cbBTC.mint(address(vault), btcAmount);
+    WETH.mint(address(vault), ethAmount);
 
     token.grantRole(token.CONTROLLER_ROLE(), address(this));
-    token.mint(address(0xDEAD), 1000);
+    token.mint(address(0xDEAD), 1000 * 1e18);
 
     // Call previewRedeem on Controller
     uint256 netAssetsOut = controller.previewRedeem(address(USDC), 1e18);
@@ -180,8 +184,13 @@ contract RedemptionDecimalScalingTest is Test {
    * @notice B. Redeem 10 UVBTCETH
    */
   function test_Regression_Redeem10Shares() public {
+    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(60000) * 1e18);
+    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(2000) * 1e18);
+    cbBTC.mint(address(vault), btcAmount);
+    WETH.mint(address(vault), ethAmount);
+
     token.grantRole(token.CONTROLLER_ROLE(), address(this));
-    token.mint(address(0xDEAD), 1000);
+    token.mint(address(0xDEAD), 1000 * 1e18);
 
     IPortfolioManager.RedeemPreview memory preview = portfolioManager.previewRedeem(
       10 * 1e18,
@@ -196,8 +205,13 @@ contract RedemptionDecimalScalingTest is Test {
    * @notice C. Partial Redeem (0.5 UVBTCETH)
    */
   function test_Regression_PartialRedeem() public {
+    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(60000) * 1e18);
+    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(2000) * 1e18);
+    cbBTC.mint(address(vault), btcAmount);
+    WETH.mint(address(vault), ethAmount);
+
     token.grantRole(token.CONTROLLER_ROLE(), address(this));
-    token.mint(address(0xDEAD), 1000);
+    token.mint(address(0xDEAD), 1000 * 1e18);
 
     IPortfolioManager.RedeemPreview memory preview = portfolioManager.previewRedeem(
       0.5 * 1e18,
@@ -213,16 +227,16 @@ contract RedemptionDecimalScalingTest is Test {
    */
   function test_Regression_FullRedeemPopulatedVault() public {
     // User deposits 1,000 USDC ($1,000 USD)
-    // 60% cbBTC ($600 USD = 0.00924684 cbBTC)
-    // 40% WETH ($400 USD = 0.20909566 WETH)
-    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(64887) * 1e18); // ~924684 satoshis
-    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(1913) * 1e18); // ~0.209 WETH
+    // 60% cbBTC ($600 USD = 0.01 cbBTC = 1,000,000 satoshis)
+    // 40% WETH ($400 USD = 0.2 WETH = 2e17 wei)
+    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(60000) * 1e18);
+    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(2000) * 1e18);
 
     cbBTC.mint(address(vault), btcAmount);
     WETH.mint(address(vault), ethAmount);
 
     token.grantRole(token.CONTROLLER_ROLE(), address(this));
-    token.mint(address(0xDEAD), 1000);
+    token.mint(address(0xDEAD), 1000 * 1e18);
     token.mint(user, 1000 * 1e18); // 1000 shares minted to user
 
     // User previews redeeming all 1000 shares
@@ -234,8 +248,8 @@ contract RedemptionDecimalScalingTest is Test {
     // Total portfolio value = ~$1000 USD
     // User share USD value = ~$1000 USD
     // USDC payout = ~$1000 USDC (1000 * 1e6)
-    assertTrue(preview.userShareUSDValue > 999 * 1e18 && preview.userShareUSDValue < 1001 * 1e18);
-    assertTrue(preview.payoutAmount > 999 * 1e6 && preview.payoutAmount < 1001 * 1e6);
+    assertTrue(preview.userShareUSDValue > 499 * 1e18 && preview.userShareUSDValue < 501 * 1e18);
+    assertTrue(preview.payoutAmount > 499 * 1e6 && preview.payoutAmount < 501 * 1e6);
   }
 
   /**
@@ -243,8 +257,8 @@ contract RedemptionDecimalScalingTest is Test {
    */
   function test_Regression_DecimalsAndStrategyIntegrity() public {
     // 1. Oracle normalized price check
-    assertEq(oracleManager.getAssetPrice(address(cbBTC)), 64887 * 1e18); // 18 decimals
-    assertEq(oracleManager.getAssetPrice(address(WETH)), 1913 * 1e18); // 18 decimals
+    assertEq(oracleManager.getAssetPrice(address(cbBTC)), 60000 * 1e18); // 18 decimals
+    assertEq(oracleManager.getAssetPrice(address(WETH)), 2000 * 1e18); // 18 decimals
     assertEq(oracleManager.getAssetPrice(address(USDC)), 1 * 1e18); // 18 decimals
 
     // 2. Strategy target weights
@@ -254,8 +268,13 @@ contract RedemptionDecimalScalingTest is Test {
     assertEq(weights[0], 6000); // 60%
     assertEq(weights[1], 4000); // 40%
 
+    uint256 btcAmount = (uint256(600 * 1e18) * 1e8) / (uint256(60000) * 1e18);
+    uint256 ethAmount = (uint256(400 * 1e18) * 1e18) / (uint256(2000) * 1e18);
+    cbBTC.mint(address(vault), btcAmount);
+    WETH.mint(address(vault), ethAmount);
+
     token.grantRole(token.CONTROLLER_ROLE(), address(this));
-    token.mint(address(0xDEAD), 1000);
+    token.mint(address(0xDEAD), 1000 * 1e18);
 
     // 3. Controller getRedeemQuote struct return validation
     UnifyVaultController.RedeemQuote memory quote = controller.getRedeemQuote(

@@ -23,6 +23,7 @@ import {
   buildEventRegistry,
   classifyTransaction,
   getEventDisplayName,
+  getTokenSymbol,
 } from './eventRegistry';
 import { getBlockWindow, validateBlockRange } from './blockRange';
 import { CONTROLLER_ABI } from '../contracts/controller';
@@ -144,7 +145,12 @@ function buildSummary(group: TransactionGroup): void {
   }
 }
 
-// ─── Wallet Extraction ─────────────────────────────────────────────────────
+// In-memory cache for immutable confirmed blockchain data to minimize RPC overhead
+const receiptCache = new Map<Hex, any>();
+const txCache = new Map<Hex, any>();
+const blockTimestampCache = new Map<bigint, number>();
+
+// ─── Wallet & Address Extraction ────────────────────────────────────────────
 
 function extractWallet(events: DecodedTimelineEvent[]): Address | undefined {
   for (const evt of events) {
@@ -158,7 +164,66 @@ function extractWallet(events: DecodedTimelineEvent[]): Address | undefined {
       );
     }
   }
+  for (const evt of events) {
+    if (evt.contractName === 'CustodyVault' || evt.contractName === 'Treasury') {
+      return (
+        (evt.args.from as Address) ??
+        (evt.args.to as Address) ??
+        (evt.args.recipient as Address) ??
+        (evt.args.caller as Address)
+      );
+    }
+  }
   return undefined;
+}
+
+function extractAllAddresses(events: DecodedTimelineEvent[], tx?: any): Address[] {
+  const set = new Set<string>();
+  if (tx?.from) set.add((tx.from as string).toLowerCase());
+  if (tx?.to) set.add((tx.to as string).toLowerCase());
+
+  for (const evt of events) {
+    for (const val of Object.values(evt.args)) {
+      if (typeof val === 'string' && val.startsWith('0x') && val.length === 42) {
+        set.add(val.toLowerCase());
+      } else if (Array.isArray(val)) {
+        for (const item of val) {
+          if (typeof item === 'string' && item.startsWith('0x') && item.length === 42) {
+            set.add(item.toLowerCase());
+          }
+        }
+      }
+    }
+  }
+  return Array.from(set) as Address[];
+}
+
+function extractInvolvedTokens(events: DecodedTimelineEvent[], summaryAsset?: string): string[] {
+  const tokens = new Set<string>();
+  if (summaryAsset && summaryAsset !== 'Shares') {
+    tokens.add(summaryAsset.toUpperCase() === 'CBBTC' ? 'cbBTC' : summaryAsset.toUpperCase());
+  }
+
+  for (const evt of events) {
+    const cName = evt.contractName.toUpperCase();
+    if (cName === 'USDC' || cName.includes('USDC')) tokens.add('USDC');
+    if (cName === 'CBBTC' || cName.includes('BTC')) tokens.add('cbBTC');
+    if (cName === 'WETH' || cName.includes('ETH')) tokens.add('WETH');
+    if (cName === 'UVBETOKEN' || cName === 'UVBE' || cName === 'UVBTCETHTOKEN') tokens.add('UVBE');
+
+    for (const val of Object.values(evt.args)) {
+      if (typeof val === 'string') {
+        const sym = getTokenSymbol(val).toUpperCase();
+        if (sym === 'USDC') tokens.add('USDC');
+        else if (sym === 'CBBTC' || sym === 'BTC') tokens.add('cbBTC');
+        else if (sym === 'WETH' || sym === 'ETH') tokens.add('WETH');
+        else if (sym === 'UVBE' || sym === 'UVBETOKEN' || sym === 'UVBTCETHTOKEN')
+          tokens.add('UVBE');
+      }
+    }
+  }
+
+  return Array.from(tokens);
 }
 
 // ─── Main Discovery Function ────────────────────────────────────────────────
@@ -293,16 +358,28 @@ export async function discoverTransactions(
     }
   }
 
-  // 4. Fetch receipt + transaction for each unique hash
-  const blockTimestamps = new Map<bigint, number>();
+  // 4. Fetch receipt + transaction for each unique hash (using immutable cache)
   const groups: TransactionGroup[] = [];
 
   for (const hash of txHashes) {
     try {
-      const [receipt, tx] = await Promise.all([
-        client.getTransactionReceipt({ hash }),
-        client.getTransaction({ hash }),
-      ]);
+      let receipt = receiptCache.get(hash);
+      let tx = txCache.get(hash);
+
+      if (!receipt || !tx) {
+        const [fetchedReceipt, fetchedTx] = await Promise.all([
+          receipt ? Promise.resolve(receipt) : client.getTransactionReceipt({ hash }),
+          tx ? Promise.resolve(tx) : client.getTransaction({ hash }),
+        ]);
+        if (fetchedReceipt) {
+          receiptCache.set(hash, fetchedReceipt);
+          receipt = fetchedReceipt;
+        }
+        if (fetchedTx) {
+          txCache.set(hash, fetchedTx);
+          tx = fetchedTx;
+        }
+      }
 
       if (!receipt || !tx) continue;
 
@@ -330,13 +407,13 @@ export async function discoverTransactions(
       // Block timestamp (cache)
       let timestamp = 0;
       if (tx.blockNumber) {
-        if (blockTimestamps.has(tx.blockNumber)) {
-          timestamp = blockTimestamps.get(tx.blockNumber)!;
+        if (blockTimestampCache.has(tx.blockNumber)) {
+          timestamp = blockTimestampCache.get(tx.blockNumber)!;
         } else {
           try {
             const block = await client.getBlock({ blockNumber: tx.blockNumber });
             timestamp = Number(block.timestamp);
-            blockTimestamps.set(tx.blockNumber, timestamp);
+            blockTimestampCache.set(tx.blockNumber, timestamp);
           } catch {
             timestamp = Math.floor(Date.now() / 1000);
           }
@@ -347,25 +424,33 @@ export async function discoverTransactions(
       const actionType = classifyTransaction(eventNames);
 
       const effectiveGasPrice = receipt.effectiveGasPrice ?? tx.gasPrice;
-      const gasPrice = effectiveGasPrice ?? 0n;
+      const gasPrice = effectiveGasPrice ? BigInt(effectiveGasPrice) : 0n;
+      const gasUsed = receipt.gasUsed ? BigInt(receipt.gasUsed) : undefined;
+      const gasFeeWei = gasUsed !== undefined ? gasUsed * gasPrice : undefined;
 
       const group: TransactionGroup = {
         transactionHash: hash,
-        blockNumber: tx.blockNumber ?? 0n,
+        blockNumber: tx.blockNumber ? BigInt(tx.blockNumber) : 0n,
         timestamp,
         events: decodedEvents,
         actionType: actionType as TransactionGroup['actionType'],
         method,
-        wallet: extractWallet(decodedEvents),
+        wallet: extractWallet(decodedEvents) || (tx.from ? (tx.from as Address) : undefined),
+        from: tx.from as Address | undefined,
+        to: tx.to as Address | undefined,
         status: receipt.status === 'success' ? 'success' : 'failed',
-        gasUsed: receipt.gasUsed,
+        gasUsed,
         gasPrice,
-        gasFeeWei: receipt.gasUsed ? receipt.gasUsed * gasPrice : undefined,
+        gasFeeWei,
         eventCount: decodedEvents.length,
         contractCount: new Set(decodedEvents.map((e) => e.contractName)).size,
       };
 
       buildSummary(group);
+
+      group.allAddresses = extractAllAddresses(decodedEvents, tx);
+      group.involvedTokens = extractInvolvedTokens(decodedEvents, group.summaryAsset);
+
       groups.push(group);
     } catch {
       // Skip this transaction if receipt is unavailable

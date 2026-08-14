@@ -6,8 +6,11 @@ export const MARKETPLACE_ABI = parseAbi([
   'function createSellOrder(address asset, uint256 amount, uint256 price, bytes32 fiatCurrency, uint256 minLimit, uint256 maxLimit) external returns (uint256 orderId)',
   'function cancelOrder(uint256 orderId) external',
   'function matchOrders(uint256 buyOrderId, uint256 sellOrderId, uint256 matchAmount) external returns (uint256 matchId, uint256 escrowTradeId)',
+  'function takeOrder(uint256 orderId, uint256 takeAmount) external returns (uint256 matchId, uint256 escrowTradeId)',
+  'function setUvbeToken(address newUvbeToken) external',
 
   // Views
+  'function uvbeToken() external view returns (address)',
   'function getOrder(uint256 orderId) external view returns ((uint256 orderId, address maker, uint8 side, address asset, uint256 amount, uint256 filledAmount, uint256 remainingAmount, uint256 price, bytes32 fiatCurrency, uint256 minLimit, uint256 maxLimit, uint8 status, uint256 createdAt))',
   'function getRemainingAmount(uint256 orderId) external view returns (uint256)',
   'function getOrderCount() external view returns (uint256)',
@@ -22,6 +25,7 @@ export const MARKETPLACE_ABI = parseAbi([
   'event OrderPartiallyFilled(uint256 indexed orderId, address indexed maker, uint256 filledAmount, uint256 remainingAmount)',
   'event OrderFilled(uint256 indexed orderId, address indexed maker, uint256 totalAmount)',
   'event EscrowTradeLinked(uint256 indexed matchId, uint256 indexed tradeId, uint256 indexed buyOrderId, uint256 sellOrderId, address buyer, address seller, address asset, uint256 matchAmount)',
+  'event UvbeTokenUpdated(address indexed oldToken, address indexed newToken)',
 ]);
 
 export enum OrderSide {

@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAccount, usePublicClient } from 'wagmi';
-import { baseSepolia } from 'viem/chains';
-import type { Address } from 'viem';
+import { base, baseSepolia } from 'viem/chains';
+import { createPublicClient, http, type Address } from 'viem';
 
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { getChainTokens, getDefaultChainId } from '../constants';
+import { getChainTokens, getDefaultChainId, getRpcUrl } from '../constants';
 import {
   discoverTransactions,
   type TransactionGroup,
@@ -45,7 +45,17 @@ const POLL_INTERVAL_MS = 30_000; // 30 seconds – conservative
 export function useTransactionExplorer(pageIndex: number) {
   const { chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
-  const publicClient = usePublicClient({ chainId });
+  const wagmiPublicClient = usePublicClient({ chainId });
+
+  const fallbackClient = useMemo(() => {
+    const rpc = getRpcUrl(chainId);
+    return createPublicClient({
+      chain: chainId === base.id ? base : baseSepolia,
+      transport: http(rpc),
+    });
+  }, [chainId]);
+
+  const publicClient = wagmiPublicClient || fallbackClient;
   const queryClient = useQueryClient();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('syncing');
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
@@ -85,7 +95,7 @@ export function useTransactionExplorer(pageIndex: number) {
       const latestBlock = await publicClient.getBlockNumber();
 
       const { groups, window, hasMore } = await discoverTransactions(
-        publicClient,
+        publicClient as any,
         controller,
         {
           controller,

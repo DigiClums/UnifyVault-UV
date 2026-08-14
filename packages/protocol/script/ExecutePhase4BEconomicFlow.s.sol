@@ -19,8 +19,9 @@ interface IVmKey {
 contract ExecutePhase4BEconomicFlowScript is Script {
   address public constant DIRECTORY = 0x329158A24DdC8ED267cc5D3f3D9C2905149C596D;
 
-  uint256 public constant ADMIN_PK =
-    0xcda08c38c9fae447665aef7828d82e1862577dcffd1dbd6c07b332e576e9c8f8;
+  uint256 public constant ADMIN_PK = uint256(
+    0x1111111111111111111111111111111111111111111111111111111111111111
+  );
   uint256 public constant BOB_PK =
     0x2222222222222222222222222222222222222222222222222222222222222222;
   uint256 public constant CHARLIE_PK =

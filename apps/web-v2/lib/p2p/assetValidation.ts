@@ -1,7 +1,8 @@
 import { isAddress, getAddress } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
-import { getDefaultChainId, TOKENS_BY_CHAIN, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import { getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
 
+export const CANONICAL_UVBE_ADDRESS = '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as const;
 export const NATIVE_ETH_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export interface P2PAssetInfo {
@@ -19,80 +20,30 @@ export interface ValidateAssetResult {
   errorMessage?: string;
 }
 
+export function getCanonicalUVBEAddress(): `0x${string}` {
+  return (DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken as `0x${string}`) || CANONICAL_UVBE_ADDRESS;
+}
+
 /**
  * Returns explicitly supported P2P assets for a given chain ID.
- * NEVER silently falls back to another chain's token address.
+ * Exclusively supports UVBE (UnifyVault BTC-ETH Index Token).
+ * Rejects BTC, ETH, WETH, cbBTC, USDC and all other tokens.
  */
 export function getSupportedP2PAssetsForChain(chainId?: number): P2PAssetInfo[] {
   const targetChainId = chainId ?? getDefaultChainId();
 
-  if (targetChainId === baseSepolia.id) {
-    const tokens = TOKENS_BY_CHAIN[baseSepolia.id];
+  if (targetChainId === baseSepolia.id || targetChainId === base.id) {
     return [
       {
         symbol: 'UVBE',
-        name: 'UnifyVault BTC-ETH Index',
-        address: getAddress(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken),
+        name: 'UnifyVault BTC-ETH Index Token',
+        address: getAddress(getCanonicalUVBEAddress()),
         isNative: false,
-      },
-      {
-        symbol: 'USDC',
-        name: 'USD Coin',
-        address: getAddress(tokens.USDC),
-        isNative: false,
-      },
-      {
-        symbol: 'cbBTC',
-        name: 'Wrapped BTC',
-        address: getAddress(tokens.cbBTC),
-        isNative: false,
-      },
-      {
-        symbol: 'WETH',
-        name: 'Wrapped Ether',
-        address: getAddress(tokens.WETH),
-        isNative: false,
-      },
-      {
-        symbol: 'ETH',
-        name: 'Native Ether',
-        address: NATIVE_ETH_ADDRESS,
-        isNative: true,
       },
     ];
   }
 
-  if (targetChainId === base.id) {
-    const tokens = TOKENS_BY_CHAIN[base.id];
-    return [
-      {
-        symbol: 'USDC',
-        name: 'USD Coin',
-        address: getAddress(tokens.USDC),
-        isNative: false,
-      },
-      {
-        symbol: 'cbBTC',
-        name: 'Wrapped BTC',
-        address: getAddress(tokens.cbBTC),
-        isNative: false,
-      },
-      {
-        symbol: 'WETH',
-        name: 'Wrapped Ether',
-        address: getAddress(tokens.WETH),
-        isNative: false,
-      },
-      {
-        symbol: 'ETH',
-        name: 'Native Ether',
-        address: NATIVE_ETH_ADDRESS,
-        isNative: true,
-      },
-    ];
-  }
-
-  // Unsupported chain: return empty array so we never fall back to another chain's tokens
+  // Unsupported chain: return empty array
   return [];
 }
 
@@ -106,35 +57,23 @@ export function isNativeETHAsset(asset?: string): boolean {
 
 /**
  * Single authoritative validation function for P2P assets.
- * Validates address checksum, checks active chain support, and handles Native ETH vs ERC20.
+ * Strictly enforces UVBE-only policy. Rejects Native ETH and all non-UVBE tokens.
  */
 export function validateP2PAsset(asset: string, chainId?: number): ValidateAssetResult {
   if (!asset || typeof asset !== 'string') {
     return {
       isValid: false,
       isNative: false,
-      errorMessage: 'Selected asset is not supported on the active network.',
+      errorMessage: 'P2P marketplace exclusively supports UVBE token.',
     };
   }
 
-  const targetChainId = chainId ?? getDefaultChainId();
-  const supportedAssets = getSupportedP2PAssetsForChain(targetChainId);
-
-  // Handle Native ETH
+  // Reject Native ETH explicitly
   if (isNativeETHAsset(asset)) {
-    const ethAsset = supportedAssets.find((a) => a.isNative);
-    if (!ethAsset) {
-      return {
-        isValid: false,
-        isNative: true,
-        errorMessage: 'Selected asset is not supported on the active network.',
-      };
-    }
     return {
-      isValid: true,
+      isValid: false,
       isNative: true,
-      checksummedAddress: NATIVE_ETH_ADDRESS,
-      assetInfo: ethAsset,
+      errorMessage: 'P2P marketplace exclusively supports UVBE token. Native ETH is prohibited.',
     };
   }
 
@@ -143,7 +82,7 @@ export function validateP2PAsset(asset: string, chainId?: number): ValidateAsset
     return {
       isValid: false,
       isNative: false,
-      errorMessage: 'Selected asset is not supported on the active network.',
+      errorMessage: 'Invalid token address format for P2P order.',
     };
   }
 
@@ -154,20 +93,14 @@ export function validateP2PAsset(asset: string, chainId?: number): ValidateAsset
     return {
       isValid: false,
       isNative: false,
-      errorMessage: 'Selected asset is not supported on the active network.',
+      errorMessage: 'Invalid checksummed token address for P2P order.',
     };
   }
 
-  // Reject zero address if not Native ETH
-  if (checksummed === NATIVE_ETH_ADDRESS) {
-    return {
-      isValid: false,
-      isNative: false,
-      errorMessage: 'Selected asset is not supported on the active network.',
-    };
-  }
+  const targetChainId = chainId ?? getDefaultChainId();
+  const supportedAssets = getSupportedP2PAssetsForChain(targetChainId);
 
-  // Match against supported assets for this specific active chain
+  // Match against supported assets for this specific active chain (strictly UVBE)
   const matchedAsset = supportedAssets.find(
     (a) => !a.isNative && getAddress(a.address) === checksummed,
   );
@@ -176,7 +109,7 @@ export function validateP2PAsset(asset: string, chainId?: number): ValidateAsset
     return {
       isValid: false,
       isNative: false,
-      errorMessage: 'Selected asset is not supported on the active network.',
+      errorMessage: 'P2P marketplace exclusively supports UVBE token.',
     };
   }
 

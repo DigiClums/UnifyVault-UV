@@ -30,6 +30,7 @@ contract Marketplace is IMarketplace, AccessControl, ReentrancyGuard, Pausable {
   mapping(uint256 => MarketplaceTypes.Match) private _matches;
 
   IP2PEscrow public p2pEscrow;
+  address public override uvbeToken;
   uint256 public defaultPaymentWindow = 15 minutes;
 
   constructor(address initialEscrow) {
@@ -100,6 +101,9 @@ contract Marketplace is IMarketplace, AccessControl, ReentrancyGuard, Pausable {
     uint256 maxLimit
   ) private returns (uint256 orderId) {
     if (msg.sender == address(0)) revert InvalidOrderMaker();
+    if (asset == address(0)) revert InvalidAssetAddress();
+    if (uvbeToken != address(0) && asset != uvbeToken)
+      revert IncompatibleOrderAssets(asset, uvbeToken);
     if (amount == 0) revert InvalidOrderAmount();
     if (price == 0) revert InvalidOrderPrice();
     if (fiatCurrency == bytes32(0)) revert IncompatibleFiatCurrencies(bytes32(0), bytes32(0));
@@ -351,6 +355,144 @@ contract Marketplace is IMarketplace, AccessControl, ReentrancyGuard, Pausable {
     }
   }
 
+  /**
+   * @notice Takes an active resting limit order directly in a single atomic transaction
+   * @dev Eliminates race condition of creating an unwanted counter-order first.
+   * If target is a BUY order: caller (msg.sender) is the SELLER, order.maker is the BUYER.
+   * If target is a SELL order: caller (msg.sender) is the BUYER, order.maker is the SELLER.
+   * @param orderId Target resting order ID
+   * @param takeAmount Crypto amount to fill
+   * @return matchId Unique match ID
+   * @return escrowTradeId Spawned P2PEscrow trade ID
+   */
+  function takeOrder(
+    uint256 orderId,
+    uint256 takeAmount
+  ) external override nonReentrant whenNotPaused returns (uint256 matchId, uint256 escrowTradeId) {
+    if (orderId == 0) revert OrderDoesNotExist(orderId);
+    if (takeAmount == 0) revert InvalidMatchAmount();
+
+    MarketplaceTypes.Order storage order = _orders[orderId];
+    if (order.orderId == 0) revert OrderDoesNotExist(orderId);
+
+    // 1. Active Status Verification
+    if (
+      order.status != MarketplaceTypes.OrderStatus.OPEN &&
+      order.status != MarketplaceTypes.OrderStatus.PARTIALLY_FILLED
+    ) {
+      revert OrderNotActive(orderId, order.status);
+    }
+
+    // 2. Prohibit Self-Matching
+    if (order.maker == msg.sender) {
+      revert SelfMatchingProhibited(order.maker);
+    }
+
+    // 3. Amount & Limits Verification
+    if (takeAmount > order.remainingAmount) {
+      revert MatchAmountExceedsRemaining(takeAmount, order.remainingAmount, order.remainingAmount);
+    }
+    if (order.minLimit > 0 && takeAmount < order.minLimit) {
+      revert MatchAmountBelowMinLimit(takeAmount, order.minLimit);
+    }
+    if (order.maxLimit > 0 && takeAmount > order.maxLimit) {
+      revert MatchAmountAboveMaxLimit(takeAmount, order.maxLimit);
+    }
+
+    // 4. Execution Price & Fiat Amount (Resting order determines price)
+    uint256 executionPrice = order.price;
+    uint256 fiatAmount = _calculateFiatAmount(order.asset, takeAmount, executionPrice);
+
+    // 5. Update Order State
+    order.filledAmount += takeAmount;
+    order.remainingAmount -= takeAmount;
+    if (order.remainingAmount == 0) {
+      order.status = MarketplaceTypes.OrderStatus.FILLED;
+      emit OrderFilled(orderId, order.maker, order.amount);
+    } else {
+      order.status = MarketplaceTypes.OrderStatus.PARTIALLY_FILLED;
+      emit OrderPartiallyFilled(orderId, order.maker, order.filledAmount, order.remainingAmount);
+    }
+
+    // 6. Determine Buyer & Seller
+    address buyer;
+    address seller;
+    uint256 buyOrderId;
+    uint256 sellOrderId;
+
+    if (order.side == MarketplaceTypes.OrderSide.BUY) {
+      buyer = order.maker;
+      seller = msg.sender;
+      buyOrderId = orderId;
+      sellOrderId = 0;
+    } else {
+      seller = order.maker;
+      buyer = msg.sender;
+      buyOrderId = 0;
+      sellOrderId = orderId;
+    }
+
+    // 7. Record Match
+    _matchCounter++;
+    matchId = _matchCounter;
+
+    _matches[matchId] = MarketplaceTypes.Match({
+      matchId: matchId,
+      buyOrderId: buyOrderId,
+      sellOrderId: sellOrderId,
+      buyer: buyer,
+      seller: seller,
+      asset: order.asset,
+      matchAmount: takeAmount,
+      executionPrice: executionPrice,
+      fiatAmount: fiatAmount,
+      fiatCurrency: order.fiatCurrency,
+      escrowTradeId: 0,
+      timestamp: block.timestamp
+    });
+
+    emit OrderMatched(
+      matchId,
+      buyOrderId,
+      sellOrderId,
+      buyer,
+      seller,
+      order.asset,
+      takeAmount,
+      executionPrice,
+      fiatAmount,
+      order.fiatCurrency,
+      block.timestamp
+    );
+
+    // 8. Spawn P2PEscrow Trade
+    if (address(p2pEscrow) != address(0)) {
+      EscrowTypes.CreateTradeParams memory params = EscrowTypes.CreateTradeParams({
+        buyer: buyer,
+        seller: seller,
+        asset: order.asset,
+        amount: takeAmount,
+        fiatAmount: fiatAmount,
+        fiatCurrency: order.fiatCurrency,
+        paymentWindow: defaultPaymentWindow
+      });
+
+      escrowTradeId = p2pEscrow.createTrade(params);
+      _matches[matchId].escrowTradeId = escrowTradeId;
+
+      emit EscrowTradeLinked(
+        matchId,
+        escrowTradeId,
+        buyOrderId,
+        sellOrderId,
+        buyer,
+        seller,
+        order.asset,
+        takeAmount
+      );
+    }
+  }
+
   function _calculateFiatAmount(
     address asset,
     uint256 amount,
@@ -368,6 +510,15 @@ contract Marketplace is IMarketplace, AccessControl, ReentrancyGuard, Pausable {
   }
 
   // --- Admin & Governance Config ---
+
+  function setUvbeToken(
+    address newUvbeToken
+  ) external override onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    AddressValidationLib.validateNonZeroAddress(newUvbeToken);
+    address oldToken = uvbeToken;
+    uvbeToken = newUvbeToken;
+    emit UvbeTokenUpdated(oldToken, newUvbeToken);
+  }
 
   function setP2PEscrow(address newEscrow) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
     address oldEscrow = address(p2pEscrow);

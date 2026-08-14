@@ -23,6 +23,20 @@ const nextConfig = {
     };
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: '/transaction',
+        destination: '/transactions',
+        permanent: true,
+      },
+      {
+        source: '/transaction/:path*',
+        destination: '/transactions/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

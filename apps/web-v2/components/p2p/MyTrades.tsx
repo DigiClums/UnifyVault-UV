@@ -164,7 +164,7 @@ export function MyTrades({ trades, isLoading, onSelectTrade, onRefresh }: MyTrad
                       Fiat:{' '}
                       <strong className="text-foreground">
                         ₹
-                        {(Number(t.fiatAmount) / 100).toLocaleString('en-IN', {
+                        {Number(formatUnits(t.fiatAmount, 2)).toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
                         })}{' '}
                         {t.fiatCurrency?.startsWith('0x')

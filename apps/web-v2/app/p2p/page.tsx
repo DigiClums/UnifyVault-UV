@@ -2,18 +2,8 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
-import {
-  ShieldCheck,
-  Plus,
-  RefreshCw,
-  Layers,
-  UserCheck,
-  ArrowLeft,
-  ShoppingBag,
-  ListOrdered,
-  Lock,
-} from 'lucide-react';
-import { useP2PTrades, useP2PTrade, TradeDetails } from '../../hooks/useP2PEscrow';
+import { ShieldCheck, Plus, ArrowLeft, ShoppingBag, ListOrdered, UserCheck } from 'lucide-react';
+import { useP2PTrades, useP2PTrade } from '../../hooks/useP2PEscrow';
 import { useMarketplaceOrders } from '../../hooks/useMarketplace';
 import { MarketplaceOrderBook } from '../../components/p2p/MarketplaceOrderBook';
 import { TakeOrderModal } from '../../components/p2p/TakeOrderModal';
@@ -21,8 +11,6 @@ import { CreateMarketplaceOrderModal } from '../../components/p2p/CreateMarketpl
 import { MyOrders } from '../../components/p2p/MyOrders';
 import { MyTrades } from '../../components/p2p/MyTrades';
 import { TradeDetailCard } from '../../components/p2p/TradeDetailCard';
-import { P2POrderBook } from '../../components/p2p/P2POrderBook';
-import { CreateTradeModal } from '../../components/p2p/CreateTradeModal';
 import { OrderDetails } from '../../lib/contracts/marketplace';
 
 export default function P2PPage() {
@@ -43,13 +31,10 @@ export default function P2PPage() {
   } = useMarketplaceOrders();
 
   // Page state
-  const [activeTab, setActiveTab] = useState<
-    'orderbook' | 'my-orders' | 'my-trades' | 'direct-escrow'
-  >('orderbook');
+  const [activeTab, setActiveTab] = useState<'orderbook' | 'my-orders' | 'my-trades'>('orderbook');
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
   const [isTakeModalOpen, setIsTakeModalOpen] = useState(false);
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false);
-  const [isDirectEscrowModalOpen, setIsDirectEscrowModalOpen] = useState(false);
 
   const [selectedTradeId, setSelectedTradeId] = useState<number | null>(null);
   const { trade: selectedTrade, refetch: refetchSingleTrade } = useP2PTrade(
@@ -84,10 +69,10 @@ export default function P2PPage() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground font-sans">
-              Unify P2P Marketplace Protocol
+              UnifyVault P2P Marketplace
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-              Non-custodial limit orderbook & settlement engine — Base Sepolia testnet.
+              Exclusively UVBE • Non-custodial limit orderbook & escrow settlement.
             </p>
           </div>
         </div>
@@ -166,19 +151,6 @@ export default function P2PPage() {
               <UserCheck className="w-4 h-4" />
               <span>My Trades</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('direct-escrow')}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 min-h-[44px] ${
-                activeTab === 'direct-escrow'
-                  ? 'bg-[#BFFF00] text-black border-2 border-black shadow-[3px_3px_0_#000]'
-                  : 'text-muted-foreground hover:bg-accent'
-              }`}
-            >
-              <Lock className="w-4 h-4" />
-              <span>Direct Escrow</span>
-            </button>
           </div>
 
           {/* Active Tab Content */}
@@ -207,26 +179,6 @@ export default function P2PPage() {
               onRefresh={handleRefreshAll}
             />
           )}
-
-          {activeTab === 'direct-escrow' && (
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsDirectEscrowModalOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-accent border-2 border-black font-bold text-xs shadow-[2px_2px_0_#000]"
-                >
-                  + Direct Bilateral Escrow
-                </button>
-              </div>
-              <P2POrderBook
-                trades={escrowTrades}
-                isLoading={isEscrowLoading}
-                onSelectTrade={(id) => setSelectedTradeId(id)}
-                onRefresh={refetchEscrow}
-              />
-            </div>
-          )}
         </div>
       )}
 
@@ -245,12 +197,6 @@ export default function P2PPage() {
           setSelectedOrder(null);
         }}
         onMatchSuccess={handleMatchSuccess}
-      />
-
-      <CreateTradeModal
-        isOpen={isDirectEscrowModalOpen}
-        onClose={() => setIsDirectEscrowModalOpen(false)}
-        onSuccess={refetchEscrow}
       />
     </div>
   );

@@ -96,7 +96,12 @@ contract LiveSimSimpleAccount {
  * @notice End-to-end verification of UnifyVault Account Abstraction on Base Sepolia
  * Validates that a user with 0 native ETH can deposit and redeem via self-managed Paymaster & GasTreasury.
  */
+interface VmExtAA {
+  function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+}
+
 contract BaseSepoliaAALiveTest is Test {
+  VmExtAA internal constant vmExt = VmExtAA(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
   using ECDSA for bytes32;
   using MessageHashUtils for bytes32;
 
@@ -122,6 +127,9 @@ contract BaseSepoliaAALiveTest is Test {
   address public admin = 0xd905920c91853039060246Ed5724AA72B91a96DA;
 
   function setUp() public {
+    string memory rpcUrl = 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+    vmExt.createSelectFork(rpcUrl);
+
     userEOA = vm.addr(userPrivateKey);
     entryPoint = IEntryPointV07Canonical(CANONICAL_ENTRYPOINT_V07);
 

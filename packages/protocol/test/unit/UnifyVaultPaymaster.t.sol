@@ -739,7 +739,7 @@ contract UnifyVaultPaymasterTest is Test {
       func
     );
 
-    uint48 validUntil = uint48(block.timestamp + 300);
+    uint48 validUntil = 301;
     uint48 validAfter = 0;
 
     PackedUserOperation memory userOp = _buildUserOpWithSigner(
@@ -751,15 +751,11 @@ contract UnifyVaultPaymasterTest is Test {
     );
 
     // Fast forward past validUntil
-    vm.warp(block.timestamp + 301);
+    vm.warp(302);
 
     vm.prank(address(entryPoint));
     vm.expectRevert(
-      abi.encodeWithSelector(
-        UnifyVaultPaymaster.SignatureExpired.selector,
-        validUntil,
-        uint48(block.timestamp)
-      )
+      abi.encodeWithSelector(UnifyVaultPaymaster.SignatureExpired.selector, 301, 302)
     );
     paymaster.validatePaymasterUserOp(userOp, bytes32(uint256(21)), 0.005 ether);
   }

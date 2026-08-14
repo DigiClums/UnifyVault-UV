@@ -10,11 +10,11 @@ import {
   Copy,
   Check,
   Search,
-  SlidersHorizontal,
   Layers,
+  Clock,
+  Coins,
 } from 'lucide-react';
 import { OrderDetails, OrderSide, OrderStatus } from '../../lib/contracts/marketplace';
-import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
 
 interface MarketplaceOrderBookProps {
   orders: OrderDetails[];
@@ -34,6 +34,7 @@ export function MarketplaceOrderBook({
   const [filterSide, setFilterSide] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Active statuses: strictly OPEN (0) and PARTIALLY_FILLED (1)
   const activeOrders = orders.filter(
     (o) => o.status === OrderStatus.OPEN || o.status === OrderStatus.PARTIALLY_FILLED,
   );
@@ -50,9 +51,6 @@ export function MarketplaceOrderBook({
     return true;
   });
 
-  const buyOrders = filteredOrders.filter((o) => o.side === OrderSide.BUY);
-  const sellOrders = filteredOrders.filter((o) => o.side === OrderSide.SELL);
-
   const handleCopy = (addr: string, e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(addr);
@@ -68,12 +66,10 @@ export function MarketplaceOrderBook({
     });
   };
 
-  const formatCryptoAmount = (amountBigInt: bigint, assetAddr: string) => {
-    const decimals = getTokenDecimals(assetAddr);
-    const symbol = getTokenSymbol(assetAddr);
-    const formatted = formatUnits(amountBigInt, decimals);
+  const formatUVBE = (amountBigInt: bigint) => {
+    const formatted = formatUnits(amountBigInt, 18);
     const num = parseFloat(formatted);
-    return `${num.toLocaleString('en-US', { maximumFractionDigits: decimals === 8 ? 6 : 4 })} ${symbol}`;
+    return `${num.toLocaleString('en-US', { maximumFractionDigits: 4 })} UVBE`;
   };
 
   return (
@@ -103,7 +99,7 @@ export function MarketplaceOrderBook({
             }`}
           >
             <ArrowDownRight className="w-3.5 h-3.5" />
-            <span>Buy Orders ({activeOrders.filter((o) => o.side === OrderSide.BUY).length})</span>
+            <span>BUY UVBE ({activeOrders.filter((o) => o.side === OrderSide.BUY).length})</span>
           </button>
           <button
             type="button"
@@ -115,9 +111,7 @@ export function MarketplaceOrderBook({
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>
-              Sell Orders ({activeOrders.filter((o) => o.side === OrderSide.SELL).length})
-            </span>
+            <span>SELL UVBE ({activeOrders.filter((o) => o.side === OrderSide.SELL).length})</span>
           </button>
         </div>
 
@@ -151,16 +145,16 @@ export function MarketplaceOrderBook({
         <div className="p-12 text-center bg-background border-2 border-black dark:border-white/10 rounded-2xl space-y-2">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#BFFF00]" />
           <p className="text-xs text-muted-foreground font-bold">
-            Loading live smart contract orderbook...
+            Loading live UVBE orderbook from smart contract...
           </p>
         </div>
       ) : filteredOrders.length === 0 ? (
         <div className="p-12 text-center bg-background border-2 border-black dark:border-white/10 rounded-2xl space-y-2">
           <Layers className="w-8 h-8 text-muted-foreground mx-auto" />
-          <h4 className="text-sm font-black text-foreground">No Open Orders Found</h4>
+          <h4 className="text-sm font-black text-foreground">No Open UVBE Orders Found</h4>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto font-sans">
-            Be the first market maker to create a Buy or Sell limit order on the non-custodial
-            orderbook.
+            Be the first market maker to create a BUY UVBE or SELL UVBE limit order on the
+            non-custodial orderbook.
           </p>
         </div>
       ) : (
@@ -168,6 +162,18 @@ export function MarketplaceOrderBook({
           {filteredOrders.map((order) => {
             const isBuy = order.side === OrderSide.BUY;
             const isMaker = userAddress?.toLowerCase() === order.maker.toLowerCase();
+            const isPartial = order.status === OrderStatus.PARTIALLY_FILLED;
+
+            const remainingNum = parseFloat(formatUnits(order.remainingAmount, 18));
+            const totalRemainingINR = remainingNum * Number(order.price);
+            const createdDateStr = order.createdAt
+              ? new Date(order.createdAt * 1000).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '—';
 
             return (
               <div
@@ -187,11 +193,16 @@ export function MarketplaceOrderBook({
                       ) : (
                         <ArrowUpRight className="w-3 h-3" />
                       )}
-                      <span>{isBuy ? 'BUY ORDER' : 'SELL ORDER'}</span>
+                      <span>{isBuy ? 'BUY UVBE' : 'SELL UVBE'}</span>
                     </span>
                     <span className="text-[10px] font-bold text-muted-foreground">
                       #{order.orderId}
                     </span>
+                    {isPartial && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        PARTIAL
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
@@ -217,33 +228,53 @@ export function MarketplaceOrderBook({
                 <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-accent/30 border border-black/5 dark:border-white/5">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-sans">
-                      Unit Price
+                      Price / UVBE
                     </span>
                     <p className="text-sm font-black text-foreground">{formatPrice(order.price)}</p>
                   </div>
 
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-sans">
-                      Available
+                      Remaining
                     </span>
                     <p className="text-sm font-black text-foreground">
-                      {formatCryptoAmount(order.remainingAmount, order.asset)}
+                      {formatUVBE(order.remainingAmount)}
                     </p>
                   </div>
                 </div>
 
-                {/* Limits & Maker Status */}
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>
-                    Limits: {formatUnits(order.minLimit, getTokenDecimals(order.asset))} -{' '}
-                    {formatUnits(order.maxLimit, getTokenDecimals(order.asset))}{' '}
-                    {getTokenSymbol(order.asset)}
-                  </span>
-                  {isMaker && (
-                    <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20">
-                      Your Order
+                {/* Total Value & Original Amount */}
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted-foreground font-sans">Total Remaining INR:</span>
+                    <span className="font-black text-emerald-600 dark:text-emerald-400">
+                      ₹{totalRemainingINR.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </span>
-                  )}
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground font-sans">
+                    <span>Original Order:</span>
+                    <span>{formatUVBE(order.amount)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground font-sans">
+                    <span>Limits:</span>
+                    <span>
+                      {formatUnits(order.minLimit, 18)} – {formatUnits(order.maxLimit, 18)} UVBE
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground font-sans pt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {createdDateStr}
+                    </span>
+                    {isMaker && (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20">
+                        Your Order
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Button */}
@@ -262,8 +293,8 @@ export function MarketplaceOrderBook({
                   {isMaker
                     ? 'Your Own Order'
                     : isBuy
-                      ? `SELL TO BUYER (${formatPrice(order.price)})`
-                      : `BUY FROM SELLER (${formatPrice(order.price)})`}
+                      ? `SELL UVBE TO BUYER (${formatPrice(order.price)})`
+                      : `BUY UVBE FROM SELLER (${formatPrice(order.price)})`}
                 </button>
               </div>
             );

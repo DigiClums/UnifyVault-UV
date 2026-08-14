@@ -1,6 +1,9 @@
 {
+  "newAdmin": "0xd905920c91853039060246Ed5724AA72B91a96DA",
+  "oldAdmin": "0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1",
   "admin": "0xd905920c91853039060246Ed5724AA72B91a96DA",
   "guardian": "0xd905920c91853039060246Ed5724AA72B91a96DA",
+  "confirmRenounce": false,
   "chainId": 84532,
   "contracts": {
     "ProtocolDirectory": "0x8040006d6907a84911aaC0a9aC08278311B156e2",

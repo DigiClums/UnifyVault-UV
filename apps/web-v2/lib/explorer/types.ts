@@ -7,7 +7,15 @@ import type { Address, Hex, Log } from 'viem';
 export const MAX_BLOCK_WINDOW = 1500n;
 
 /** Classification of a protocol transaction */
-export type ProtocolActionType = 'deposit' | 'redeem' | 'fee' | 'admin' | 'other';
+export type ProtocolActionType =
+  | 'deposit'
+  | 'redeem'
+  | 'fee'
+  | 'admin'
+  | 'p2p_settlement'
+  | 'wallet_transfer'
+  | 'other'
+  | 'unknown';
 
 /** Explorer state machine */
 export type ExplorerState = 'loading' | 'ready' | 'error' | 'unsupported' | 'syncing';
@@ -27,7 +35,9 @@ export type ProtocolContractName =
   | 'StrategyManager'
   | 'PortfolioManager'
   | 'CostBasisManager'
-  | 'PerformanceManager';
+  | 'PerformanceManager'
+  | 'P2PEscrow'
+  | 'P2PMarketplace';
 
 export interface ContractEventRegistry {
   name: string;
@@ -68,8 +78,16 @@ export interface TransactionGroup {
   actionType: ProtocolActionType;
   /** Decoded function name (e.g. 'deposit', 'redeem') */
   method: string;
-  /** Primary wallet (user who initiated) */
+  /** Primary wallet (user who initiated / receiver) */
   wallet?: Address;
+  /** Direct transaction sender (tx.from) */
+  from?: Address;
+  /** Direct transaction target (tx.to) */
+  to?: Address;
+  /** All address entities participating in this transaction/logs */
+  allAddresses?: Address[];
+  /** Symbols of all tokens involved in this transaction (e.g. ['USDC', 'UVBE']) */
+  involvedTokens?: string[];
   /** Transaction status */
   status: 'success' | 'failed';
   /** Gas used */

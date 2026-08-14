@@ -1,11 +1,12 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
+import { createPublicClient, http, maxUint256 } from 'viem';
 import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { getChainTokens, getDefaultChainId } from '../constants';
+import { getChainTokens, getDefaultChainId, getRpcUrl } from '../constants';
 import {
   parseUnits,
   formatUnits,
@@ -15,7 +16,6 @@ import {
 } from '../lib/math';
 import { invalidateProtocolQueries } from '../lib/utils/cacheInvalidation';
 import { decodeTransactionError } from '../lib/utils/errorDecoder';
-import { getTransactionNonce } from '../lib/utils/getTransactionNonce';
 import { DepositQuoteData, FormattedDepositQuote } from '../types';
 import { base, baseSepolia } from 'viem/chains';
 
@@ -35,7 +35,17 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
   const chainId = chain?.id || getDefaultChainId();
   const tokens = getChainTokens(chain?.id);
   const selectedTokenAddress = selectedTokenAddressInput || tokens.USDC;
-  const publicClient = usePublicClient({ chainId });
+  const wagmiPublicClient = usePublicClient({ chainId });
+
+  const fallbackClient = useMemo(() => {
+    const rpc = getRpcUrl(chainId);
+    return createPublicClient({
+      chain: chainId === base.id ? base : baseSepolia,
+      transport: http(rpc),
+    });
+  }, [chainId]);
+
+  const publicClient = wagmiPublicClient || fallbackClient;
   const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
   const { controller } = useProtocolDirectory();
@@ -147,11 +157,8 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
 
   /**
    * Single-click Deposit Execution Workflow.
-   * If allowance < amount, automatically executes Approval -> Deposit in one seamless flow.
-   *
-   * Nonce handling is delegated to the active connector via getTransactionNonce().
-   * No manual nonce computation or incrementing — the connector/wallet determines
-   * the correct nonce for each transaction.
+   * If allowance < amount, automatically executes Approval (infinite) -> Deposit in one seamless flow.
+   * Once approved, all subsequent deposits are 100% single-click.
    */
   const executeDeposit = async () => {
     if (!userAddress) {
@@ -216,7 +223,7 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         }
       }
 
-      // 3. Step 1 (if needed): Approve Allowance
+      // 3. Step 1 (if needed): Approve Allowance with standard maxUint256 (once per lifetime)
       if (currentAllowance < amountRaw) {
         setStepState('awaiting_approval_wallet');
 
@@ -227,24 +234,19 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
               address: selectedTokenAddress,
               abi: ERC20_ABI,
               functionName: 'approve',
-              args: [targetController, amountRaw],
+              args: [targetController, maxUint256],
               account: userAddress,
             });
             approveGas = (est * 120n) / 100n;
           } catch {}
         }
 
-        const approveNonce = publicClient
-          ? await getTransactionNonce(publicClient, userAddress)
-          : undefined;
-
         const approveHash = await writeContractAsync({
           address: selectedTokenAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [targetController, amountRaw],
+          args: [targetController, maxUint256],
           ...(approveGas ? { gas: approveGas } : {}),
-          ...(typeof approveNonce === 'number' ? { nonce: approveNonce } : {}),
         });
 
         setApprovalTxHash(approveHash);
@@ -303,17 +305,12 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
         } catch {}
       }
 
-      const depositNonce = publicClient
-        ? await getTransactionNonce(publicClient, userAddress)
-        : undefined;
-
       const depHash = await writeContractAsync({
         address: targetController,
         abi: CONTROLLER_ABI,
         functionName: 'deposit',
         args: [selectedTokenAddress, amountRaw, minSharesOut, userAddress],
         ...(depositGas ? { gas: depositGas } : {}),
-        ...(typeof depositNonce === 'number' ? { nonce: depositNonce } : {}),
       });
 
       setDepositTxHash(depHash);

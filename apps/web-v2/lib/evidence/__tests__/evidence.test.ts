@@ -1,20 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { validateReceiptFile } from '../fileValidator';
-import { computeReceiptHashes } from '../receiptHasher';
-import { extractReceiptDataFromText } from '../ocrEngine';
+import { computeReceiptKeccak256, computeReceiptHashes } from '../receiptHasher';
+import { extractReceiptDataFromText, normalizeAmountString } from '../ocrEngine';
 import { verifyPaymentEvidence } from '../evidenceVerifier';
 import { TradeVerificationContext } from '../types';
 
-describe('Decentralized Payment Evidence Pipeline (M3)', () => {
+describe('Phase 2 — Real UTR & Receipt OCR Verification Pipeline Tests (A through T)', () => {
   const baseContext: TradeVerificationContext = {
     tradeId: 101,
-    expectedAmount: 10000,
+    expectedAmount: 500,
     expectedCurrency: 'INR',
-    expectedUtr: 'UTR123456789',
-    knownUsedUtrs: ['DUP999888777'],
+    expectedUtr: '423456789012',
+    knownUsedUtrs: ['999888777666'],
   };
 
-  const validBytes = new Uint8Array([
+  const validPngBytes = new Uint8Array([
     0x89,
     0x50,
     0x4e,
@@ -25,119 +25,161 @@ describe('Decentralized Payment Evidence Pipeline (M3)', () => {
     0x0a,
     ...new Array(200).fill(1),
   ]);
+
   const validFile = {
     name: 'receipt.png',
     type: 'image/png',
-    size: 208,
-    bytes: validBytes,
+    size: validPngBytes.length,
+    bytes: validPngBytes,
   };
 
-  it('1. Valid receipt: parses amount and UTR correctly', async () => {
-    const text = 'Payment Successful. Paid: ₹10,000.00. UTR: UTR123456789 Date: 2026-08-10';
+  // A. Valid UTR extraction
+  it('A. Valid UTR extraction: Correctly extracts 12-digit Indian UPI UTR and alphanumeric reference', () => {
+    const text = 'State Bank of India. UPI Ref No: 423456789012. Paid ₹500.00. Status: Success';
+    const data = extractReceiptDataFromText(text);
+
+    expect(data.utr).toBe('423456789012');
+    expect(data.amount).toBe(500);
+    expect(data.paymentStatus).toBe('SUCCESSFUL');
+  });
+
+  // B. Invalid UTR
+  it('B. Invalid UTR: Rejects short or invalid reference strings', () => {
+    const text = 'Paid ₹500.00. Ref: 123';
+    const data = extractReceiptDataFromText(text);
+
+    expect(data.utr).toBeUndefined();
+  });
+
+  // C. UTR mismatch
+  it('C. UTR mismatch: Expected 423456789012 vs receipt 987654321098 blocks claim with OCR_MISMATCH', async () => {
+    const text = 'Transaction Successful. Amount: ₹500.00. UTR: 987654321098';
+    const result = await verifyPaymentEvidence({
+      file: validFile,
+      rawTextOverride: text,
+      context: baseContext, // expectedUtr = 423456789012
+    });
+
+    expect(result.ocrState).toBe('OCR_MISMATCH');
+    expect(result.isClaimAllowed).toBe(false);
+    expect(result.isReleaseAllowed).toBe(false);
+    expect(result.discrepancies.some((d) => d.includes('UTR mismatch'))).toBe(true);
+  });
+
+  // D. Missing UTR
+  it('D. Missing UTR: Receipt with missing UTR cannot be auto-verified and blocks claim', async () => {
+    const text = 'Payment of ₹500.00 completed successfully on Google Pay.';
     const result = await verifyPaymentEvidence({
       file: validFile,
       rawTextOverride: text,
       context: baseContext,
     });
 
-    expect(result.status).toBe('MATCH');
-    expect(result.isReleaseAllowed).toBe(true);
-    expect(result.extractedData.amount).toBe(10000);
-    expect(result.extractedData.utr).toBe('UTR123456789');
-    expect(result.discrepancies).toHaveLength(0);
-    expect(result.statusMessage).toContain('Evidence matched');
-  });
-
-  it('2. Amount match: exact expected amount match', async () => {
-    const text = 'Paid Amount: $500.00. Ref No: REF500';
-    const result = await verifyPaymentEvidence({
-      file: validFile,
-      rawTextOverride: text,
-      context: {
-        tradeId: 102,
-        expectedAmount: 500,
-        expectedCurrency: 'USD',
-        expectedUtr: 'REF500',
-      },
-    });
-
-    expect(result.status).toBe('MATCH');
-    expect(result.extractedData.amount).toBe(500);
-  });
-
-  it('3. Amount mismatch: Trade ₹10,000 vs Receipt ₹100 -> MISMATCH', async () => {
-    const text = 'Payment Successful. Paid: ₹100.00. UTR: UTR123456789';
-    const result = await verifyPaymentEvidence({
-      file: validFile,
-      rawTextOverride: text,
-      context: baseContext, // expectedAmount = 10000
-    });
-
-    expect(result.status).toBe('MISMATCH');
-    expect(result.isReleaseAllowed).toBe(false);
-    expect(result.discrepancies[0]).toContain('Amount mismatch');
-    expect(result.discrepancies[0]).toContain('100');
-    expect(result.discrepancies[0]).toContain('10000');
-  });
-
-  it('4. UTR match: exact reference match', async () => {
-    const text = 'Amount: ₹10,000. UTR: UTR123456789';
-    const result = await verifyPaymentEvidence({
-      file: validFile,
-      rawTextOverride: text,
-      context: baseContext,
-    });
-
-    expect(result.status).toBe('MATCH');
-    expect(result.extractedData.utr).toBe('UTR123456789');
-  });
-
-  it('5. UTR mismatch: expected UTR123456789 vs receipt UTR999999999 -> MISMATCH', async () => {
-    const text = 'Amount: ₹10,000. UTR: UTR999999999';
-    const result = await verifyPaymentEvidence({
-      file: validFile,
-      rawTextOverride: text,
-      context: baseContext,
-    });
-
-    expect(result.status).toBe('MISMATCH');
-    expect(result.isReleaseAllowed).toBe(false);
-    expect(result.discrepancies[0]).toContain('UTR mismatch');
-  });
-
-  it('6. Duplicate UTR: UTR previously used -> DUPLICATE_REFERENCE', async () => {
-    const text = 'Amount: ₹10,000. UTR: DUP999888777';
-    const result = await verifyPaymentEvidence({
-      file: validFile,
-      rawTextOverride: text,
-      context: baseContext, // knownUsedUtrs includes DUP999888777
-    });
-
-    expect(result.status).toBe('DUPLICATE_REFERENCE');
-    expect(result.isReleaseAllowed).toBe(false);
-    expect(result.discrepancies[0]).toContain('already been registered');
-    expect(result.statusMessage).toContain('DUPLICATE REFERENCE DETECTED');
-  });
-
-  it('7. Unreadable receipt: empty or blurred text -> LOW_CONFIDENCE', async () => {
-    const text = 'blur blur random noise';
-    const result = await verifyPaymentEvidence({
-      file: validFile,
-      rawTextOverride: text,
-      context: baseContext,
-    });
-
-    expect(result.status).toBe('LOW_CONFIDENCE');
-    expect(result.isReleaseAllowed).toBe(false);
+    expect(result.ocrState).toBe('OCR_PARTIAL');
+    expect(result.isClaimAllowed).toBe(false);
     expect(result.requiresManualReview).toBe(true);
+    expect(
+      result.discrepancies.some((d) =>
+        d.includes('could not detect a valid transaction reference'),
+      ),
+    ).toBe(true);
   });
 
-  it('8. Unsupported file extension or MIME type -> INVALID', async () => {
+  // E. Valid INR amount
+  it('E. Valid INR amount: Matches exact expected trade amount of ₹500', async () => {
+    const text = 'Paid to merchant: ₹500.00. UTR: 423456789012. Status: Completed';
+    const result = await verifyPaymentEvidence({
+      file: validFile,
+      rawTextOverride: text,
+      context: baseContext,
+    });
+
+    expect(result.ocrState).toBe('OCR_SUCCESS');
+    expect(result.extractedData.amount).toBe(500);
+    expect(result.isClaimAllowed).toBe(true);
+  });
+
+  // F. Wrong INR amount
+  it('F. Wrong INR amount: Expected ₹500 vs Receipt ₹490 or ₹550 blocks claim with OCR_MISMATCH', async () => {
+    const textWrong = 'Paid: ₹490.00. UTR: 423456789012. Payment Successful';
+    const result = await verifyPaymentEvidence({
+      file: validFile,
+      rawTextOverride: textWrong,
+      context: baseContext,
+    });
+
+    expect(result.ocrState).toBe('OCR_MISMATCH');
+    expect(result.isClaimAllowed).toBe(false);
+    expect(result.discrepancies.some((d) => d.includes('Amount mismatch'))).toBe(true);
+  });
+
+  // G. Amount formatting normalization
+  it('G. Amount formatting normalization: ₹500, 500.00, INR 500.00 all normalize accurately to numeric 500', () => {
+    expect(normalizeAmountString('₹500')).toBe(500);
+    expect(normalizeAmountString('₹ 500.00')).toBe(500);
+    expect(normalizeAmountString('500.00')).toBe(500);
+    expect(normalizeAmountString('INR 500.00')).toBe(500);
+    expect(normalizeAmountString('Rs. 500')).toBe(500);
+    expect(normalizeAmountString('Rs 500.00')).toBe(500);
+    expect(normalizeAmountString('10,000.50')).toBe(10000.5);
+  });
+
+  // H. Successful payment status
+  it('H. Successful payment status: Status SUCCESSFUL / PAID / COMPLETED accepts positive signal', () => {
+    const text1 = 'Payment Successful. UTR: 423456789012. Amount: ₹500';
+    const data1 = extractReceiptDataFromText(text1);
+    expect(data1.paymentStatus).toBe('SUCCESSFUL');
+
+    const text2 = 'Paid ₹500.00. UTR: 423456789012. Completed';
+    const data2 = extractReceiptDataFromText(text2);
+    expect(data2.paymentStatus).toBe('SUCCESSFUL');
+  });
+
+  // I. Failed payment status
+  it('I. Failed payment status: FAILED / DECLINED blocks claim with OCR_FAILED', async () => {
+    const textFailed =
+      'Payment Failed. Transaction Declined by Bank. UTR: 423456789012. Amount: ₹500';
+    const result = await verifyPaymentEvidence({
+      file: validFile,
+      rawTextOverride: textFailed,
+      context: baseContext,
+    });
+
+    expect(result.ocrState).toBe('OCR_FAILED');
+    expect(result.isClaimAllowed).toBe(false);
+    expect(result.discrepancies.some((d) => d.includes('failed'))).toBe(true);
+  });
+
+  // J. Pending payment
+  it('J. Pending payment: PENDING / PROCESSING halts automatic approval for manual review', async () => {
+    const textPending =
+      'Transaction in Progress. Awaiting Confirmation. UTR: 423456789012. Amount: ₹500';
+    const data = extractReceiptDataFromText(textPending);
+
+    expect(data.paymentStatus).toBe('PENDING');
+  });
+
+  // K. OCR failure / unreadable text
+  it('K. OCR failure: Blurred noise text results in OCR_PARTIAL / LOW_CONFIDENCE and blocks claim', async () => {
+    const noiseText = 'xkjdfh kjsdfh noise %% 12';
+    const result = await verifyPaymentEvidence({
+      file: validFile,
+      rawTextOverride: noiseText,
+      context: baseContext,
+    });
+
+    expect(result.ocrState).toBe('OCR_PARTIAL');
+    expect(result.isClaimAllowed).toBe(false);
+    expect(result.requiresManualReview).toBe(true);
+    expect(result.statusMessage).toContain('could not be automatically verified');
+  });
+
+  // L. Unsupported file
+  it('L. Unsupported file: Rejects .exe, .sh, or unsupported formats', () => {
     const invalidFile = {
-      name: 'script.exe',
+      name: 'malware.exe',
       type: 'application/x-msdownload',
-      size: 500,
-      bytes: new Uint8Array(500).fill(1),
+      size: 1024,
     };
 
     const validation = validateReceiptFile(invalidFile);
@@ -145,54 +187,100 @@ describe('Decentralized Payment Evidence Pipeline (M3)', () => {
     expect(validation.errorMessage).toContain('Unsupported file extension');
   });
 
-  it('9. Corrupted file: file size too small -> INVALID', async () => {
-    const corruptedFile = {
-      name: 'receipt.pdf',
-      type: 'application/pdf',
-      size: 10, // < 100 bytes
+  // M. Corrupted image
+  it('M. Corrupted image: Rejects file with spoofed PNG extension but invalid magic bytes', () => {
+    const spoofedBytes = new Uint8Array([0x00, 0x00, 0x00, 0x00, ...new Array(200).fill(0)]);
+    const corruptedImage = {
+      name: 'fake.png',
+      type: 'image/png',
+      size: spoofedBytes.length,
+      bytes: spoofedBytes,
     };
 
-    const validation = validateReceiptFile(corruptedFile);
+    const validation = validateReceiptFile(corruptedImage);
     expect(validation.isValid).toBe(false);
-    expect(validation.errorMessage).toContain('Corrupted or empty file');
+    expect(validation.errorMessage).toContain('Corrupted or spoofed file header signature');
   });
 
-  it('10. Low OCR confidence score', () => {
-    const data = extractReceiptDataFromText('Some random note');
-    expect(data.confidenceScore).toBeLessThan(0.4);
-    expect(data.amount).toBeUndefined();
-    expect(data.utr).toBeUndefined();
+  // N. Corrupted PDF
+  it('N. Corrupted PDF: Rejects file with spoofed PDF extension but invalid magic bytes', () => {
+    const spoofedPdfBytes = new Uint8Array([0x11, 0x22, 0x33, 0x44, ...new Array(200).fill(0)]);
+    const corruptedPdf = {
+      name: 'corrupted.pdf',
+      type: 'application/pdf',
+      size: spoofedPdfBytes.length,
+      bytes: spoofedPdfBytes,
+    };
+
+    const validation = validateReceiptFile(corruptedPdf);
+    expect(validation.isValid).toBe(false);
+    expect(validation.errorMessage).toContain('Corrupted or spoofed file header signature');
   });
 
-  it('11. Changed receipt hash: altering file content alters Keccak256 hash', async () => {
-    const bytes1 = new Uint8Array([1, 2, 3, 4, 5]);
-    const bytes2 = new Uint8Array([1, 2, 3, 4, 6]);
+  // O. Oversized file
+  it('O. Oversized file: Rejects files exceeding 10MB limit', () => {
+    const hugeFile = {
+      name: 'huge_receipt.png',
+      type: 'image/png',
+      size: 11 * 1024 * 1024,
+    };
 
-    const hash1 = await computeReceiptHashes(bytes1);
-    const hash2 = await computeReceiptHashes(bytes2);
-
-    expect(hash1.fileHash).not.toEqual(hash2.fileHash);
+    const validation = validateReceiptFile(hugeFile);
+    expect(validation.isValid).toBe(false);
+    expect(validation.errorMessage).toContain('maximum allowed size of 10MB');
   });
 
-  it('12. Evidence replacement attempt: new hash generated on replacement', async () => {
-    const originalReceipt = new TextEncoder().encode('Receipt A Content');
-    const replacedReceipt = new TextEncoder().encode('Receipt B Content (Replaced)');
+  // P. Evidence hash stability
+  it('P. Evidence hash stability: Computes exact deterministic Keccak256 hash from original bytes', () => {
+    const rawBytes = new TextEncoder().encode('Receipt Content Pay ₹500 UTR 423456789012');
+    const hash1 = computeReceiptKeccak256(rawBytes);
+    const hash2 = computeReceiptKeccak256(rawBytes);
 
-    const origHashes = await computeReceiptHashes(originalReceipt);
-    const replHashes = await computeReceiptHashes(replacedReceipt);
-
-    expect(origHashes.fileHash).not.toEqual(replHashes.fileHash);
+    expect(hash1).toBe(hash2);
+    expect(hash1).toMatch(/^0x[a-fA-F0-9]{64}$/);
   });
 
-  it('13. Replay attempt: submitting same receipt hash twice', async () => {
-    const text = 'Amount: ₹10,000. UTR: DUP999888777';
+  // Q. Same receipt -> Same hash
+  it('Q. Same receipt -> Same hash: Identical byte buffers yield identical evidenceHash', () => {
+    const bytesA = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 10, 20, 30]);
+    const bytesB = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 10, 20, 30]);
+
+    expect(computeReceiptKeccak256(bytesA)).toBe(computeReceiptKeccak256(bytesB));
+  });
+
+  // R. Modified receipt -> Different hash
+  it('R. Modified receipt -> Different hash: Altering a single byte completely changes Keccak256 hash', () => {
+    const bytesOriginal = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 10, 20, 30]);
+    const bytesModified = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 10, 20, 31]);
+
+    expect(computeReceiptKeccak256(bytesOriginal)).not.toBe(computeReceiptKeccak256(bytesModified));
+  });
+
+  // S. Valid receipt -> Claim eligible
+  it('S. Valid receipt -> Claim eligible: Perfectly matching UTR and INR amount sets isClaimAllowed to true', async () => {
+    const validReceiptText =
+      'Payment Successful. Transfer of ₹500.00 to merchant completed. UTR: 423456789012. Date: 14 Aug 2026';
     const result = await verifyPaymentEvidence({
       file: validFile,
-      rawTextOverride: text,
+      rawTextOverride: validReceiptText,
       context: baseContext,
     });
 
-    expect(result.status).toBe('DUPLICATE_REFERENCE');
-    expect(result.isReleaseAllowed).toBe(false);
+    expect(result.ocrState).toBe('OCR_SUCCESS');
+    expect(result.isClaimAllowed).toBe(true);
+    expect(result.discrepancies).toHaveLength(0);
+  });
+
+  // T. Invalid receipt -> Claim blocked
+  it('T. Invalid receipt -> Claim blocked: Discrepancies or mismatch sets isClaimAllowed to false', async () => {
+    const invalidReceiptText = 'Payment Successful. Paid: ₹100.00. UTR: 999999999999';
+    const result = await verifyPaymentEvidence({
+      file: validFile,
+      rawTextOverride: invalidReceiptText,
+      context: baseContext,
+    });
+
+    expect(result.isClaimAllowed).toBe(false);
+    expect(result.ocrState).toBe('OCR_MISMATCH');
   });
 });

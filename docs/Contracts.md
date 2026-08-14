@@ -258,5 +258,5 @@ Inherits OpenZeppelin `TimelockController` to enforce a 48-hour delay on governa
 | **CostBasisManagerV2**      | `0x57869372AFbd7b61752f2f8d3e7F37701e28517B` |
 | **PerformanceManager**      | `0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6` |
 | **P2PEscrowV2**             | `0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb` |
-| **Marketplace**             | `0x5978273B16467E99f45984Dc8AE9048ba05a30F7` |
+| **Marketplace**             | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` |
 | **TimelockController**      | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |

@@ -40,11 +40,12 @@ import {
 import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
-import { SmartPaymentQR } from './SmartPaymentQR';
 import { DisputeChatWorkspace } from './DisputeChatWorkspace';
 import { PaymentIntent } from '../../lib/payment/types';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 import { keccak256, toHex, type Hex } from 'viem';
+import { EvidenceVerificationResult } from '../../lib/evidence/types';
+import { verifyPaymentEvidence } from '../../lib/evidence/evidenceVerifier';
 
 interface TradeDetailCardProps {
   trade: TradeDetails;
@@ -107,6 +108,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   } = useP2PActions();
 
   const {
+    smartAccountAddress,
     isGaslessSupported,
     executeGaslessP2PAction,
     status: smartAccountStatus,
@@ -190,8 +192,29 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const [isClaimingIntent, setIsClaimingIntent] = useState(false);
   const [sellerUpiInput, setSellerUpiInput] = useState('');
 
-  const isSeller = userAddress?.toLowerCase() === trade.seller.toLowerCase();
-  const isBuyer = userAddress?.toLowerCase() === trade.buyer.toLowerCase();
+  // Canonical P2P Identity Resolution Model:
+  // On-chain P2P escrow authorization (onlyBuyer, onlySeller) strictly validates msg.sender == trade.buyer or msg.sender == trade.seller.
+  // We check whether the registered trade participant address matches the user's Smart Account or the connected EOA:
+  // 1. If trade participant == smartAccountAddress AND isGaslessSupported => route via executeGaslessP2PAction (Smart Account UserOp).
+  // 2. If trade participant == userAddress (EOA) => route via Wagmi writeContractAsync (EOA transaction).
+  const isSellerEOA = Boolean(
+    userAddress && trade.seller.toLowerCase() === userAddress.toLowerCase(),
+  );
+  const isBuyerEOA = Boolean(
+    userAddress && trade.buyer.toLowerCase() === userAddress.toLowerCase(),
+  );
+  const isSellerSmartAccount = Boolean(
+    smartAccountAddress && trade.seller.toLowerCase() === smartAccountAddress.toLowerCase(),
+  );
+  const isBuyerSmartAccount = Boolean(
+    smartAccountAddress && trade.buyer.toLowerCase() === smartAccountAddress.toLowerCase(),
+  );
+
+  const isSeller = isSellerEOA || isSellerSmartAccount;
+  const isBuyer = isBuyerEOA || isBuyerSmartAccount;
+
+  const shouldUseSmartAccountSeller = isSellerSmartAccount && isGaslessSupported;
+  const shouldUseSmartAccountBuyer = isBuyerSmartAccount && isGaslessSupported;
 
   // Fetch Payment Intent for active trade
   useEffect(() => {
@@ -367,29 +390,55 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   };
 
   const [uploadedCid, setUploadedCid] = useState<string | null>(null);
+  const [evidenceResult, setEvidenceResult] = useState<EvidenceVerificationResult | null>(null);
+
+  const runEvidenceVerification = async (selectedFile: File, userUtr: string) => {
+    setIsHashing(true);
+    setUserError(null);
+    try {
+      const res = await verifyPaymentEvidence({
+        file: selectedFile,
+        context: {
+          tradeId: trade.tradeId,
+          expectedAmount: Number(trade.fiatAmount),
+          expectedCurrency: trade.fiatCurrency || 'INR',
+          expectedUtr: userUtr.trim(),
+        },
+      });
+
+      setEvidenceResult(res);
+      setReceiptHash(res.fileHash);
+      setUploadedCid(res.cid);
+
+      if (!res.isClaimAllowed && res.discrepancies.length > 0) {
+        setUserError(res.discrepancies.join(' '));
+      }
+    } catch (err: any) {
+      console.error('Real evidence verification error:', err);
+      setUserError(
+        err?.message || 'Failed processing payment receipt evidence. Payment submission blocked.',
+      );
+    } finally {
+      setIsHashing(false);
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setReceiptFile(file);
-      setIsHashing(true);
+      setEvidenceResult(null);
       setReceiptHash(null);
       setUploadedCid(null);
-      setUserError(null);
+      await runEvidenceVerification(file, utr);
+    }
+  };
 
-      try {
-        const { uploadReceiptEvidence } = await import('../../lib/evidence/receiptHasher');
-        const res = await uploadReceiptEvidence(file);
-        setReceiptHash(res.fileHash);
-        setUploadedCid(res.ipfsCid);
-      } catch (err: any) {
-        console.error('Real evidence upload error:', err);
-        setUserError(
-          err?.message || 'Failed uploading receipt to W3UP / IPFS. Payment submission blocked.',
-        );
-      } finally {
-        setIsHashing(false);
-      }
+  const handleUtrInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setUtr(val);
+    if (receiptFile) {
+      runEvidenceVerification(receiptFile, val);
     }
   };
 
@@ -397,20 +446,27 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     e.preventDefault();
     setUserError(null);
     if (!utr || utr.trim().length === 0) {
-      setUserError('Please enter a valid UTR / transaction reference number.');
+      setUserError('Please enter a valid 12-digit bank UTR / transaction reference number.');
       return;
     }
-    if (!receiptHash) {
-      setUserError('Payment proof upload required before submitting on-chain.');
+    if (!receiptHash || !evidenceResult) {
+      setUserError('Payment receipt upload and verification required before submitting on-chain.');
       return;
     }
     if (isHashing) {
-      setUserError('Please wait for receipt upload to complete.');
+      setUserError('Please wait for receipt OCR verification to complete.');
+      return;
+    }
+    if (!evidenceResult.isClaimAllowed) {
+      setUserError(
+        evidenceResult.discrepancies.join(' ') ||
+          'Receipt could not be automatically verified. UTR or amount mismatch detected.',
+      );
       return;
     }
 
     try {
-      if (isGaslessSupported) {
+      if (shouldUseSmartAccountBuyer) {
         const paymentRefHash = keccak256(toHex(utr.trim()));
         const call = buildP2PSubmitPaymentCall({
           tradeId: BigInt(trade.tradeId),
@@ -433,7 +489,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     setUserError(null);
     setShowReleaseConfirm(false);
     try {
-      if (isGaslessSupported) {
+      if (shouldUseSmartAccountSeller) {
         const call = buildP2PConfirmReleaseCall({
           tradeId: BigInt(trade.tradeId),
           escrowAddress: p2pEscrow as Address,
@@ -453,7 +509,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     setUserError(null);
     setShowRefundConfirm(false);
     try {
-      if (isGaslessSupported) {
+      if (shouldUseSmartAccountSeller || shouldUseSmartAccountBuyer) {
         const call = buildP2PRefundCall({
           tradeId: BigInt(trade.tradeId),
           escrowAddress: p2pEscrow as Address,
@@ -522,8 +578,18 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         }
       }
 
-      const isEth = trade.asset === '0x0000000000000000000000000000000000000000';
-      await fundTrade(trade.tradeId, isEth ? trade.amount : 0n);
+      if (shouldUseSmartAccountSeller) {
+        const calls = buildP2PFundTradeBatch({
+          tradeId: BigInt(trade.tradeId),
+          amount: trade.amount,
+          assetAddress: trade.asset as Address,
+          escrowAddress: p2pEscrow as Address,
+        });
+        await executeGaslessP2PAction(calls);
+      } else {
+        const isEth = trade.asset === '0x0000000000000000000000000000000000000000';
+        await fundTrade(trade.tradeId, isEth ? trade.amount : 0n);
+      }
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Fund trade failed:', err);
@@ -538,7 +604,16 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
 
     try {
-      await raiseDispute(trade.tradeId, disputeReason);
+      if (shouldUseSmartAccountSeller || shouldUseSmartAccountBuyer) {
+        const call = buildP2PRaiseDisputeCall({
+          tradeId: BigInt(trade.tradeId),
+          reasonHash: keccak256(toHex(disputeReason.trim())),
+          escrowAddress: p2pEscrow as Address,
+        });
+        await executeGaslessP2PAction(call);
+      } else {
+        await raiseDispute(trade.tradeId, disputeReason);
+      }
       setShowDisputeInput(false);
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -757,54 +832,68 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         </div>
       </div>
 
-      {/* PHASE 2: SMART PAYMENT QR & INTENT DISPLAY */}
-      {paymentIntent &&
-        upiUri &&
-        (trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED) && (
-          <SmartPaymentQR
-            paymentIntent={paymentIntent}
-            upiUri={upiUri}
-            onClaimPayment={handleClaimIntentPayment}
-            isClaiming={isClaimingIntent}
-          />
-        )}
+      {/* DIRECT MANUAL FIAT / UPI PAYMENT DETAILS CARD */}
+      {(trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED) && (
+        <div className="p-4 rounded-xl border-2 border-black dark:border-white/10 bg-accent/20 space-y-3 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2">
+            <span className="font-black text-foreground uppercase tracking-wider text-xs">
+              Direct Fiat / UPI Payment Information
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#BFFF00] text-black">
+              Manual Transfer
+            </span>
+          </div>
 
-      {/* Seller Private UPI Setup Drawer */}
-      {isSeller &&
-        trade.state === TradeState.FUNDED &&
-        !paymentIntent?.sellerPaymentIdentifier.includes('@') && (
-          <form
-            onSubmit={handleSaveSellerUpi}
-            className="p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 space-y-3 font-mono"
-          >
-            <div className="flex items-center gap-2 font-black text-xs text-amber-600 dark:text-amber-400">
-              <QrCode className="w-4 h-4" />
-              <span>CONFIGURE PRIVATE SELLER UPI PAYEE ID</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-muted-foreground text-[10px] block uppercase font-sans font-bold">
+                Total Fiat Amount Due:
+              </span>
+              <span className="font-black text-base text-foreground font-mono">
+                {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground font-sans">
-              Enter your UPI VPA (e.g. yourname@upi or 9876543210@paytm) so the buyer can scan the
-              Smart QR code. This information is kept strictly private and exposed only to your
-              matched buyer.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 font-sans">
-              <input
-                type="text"
-                placeholder="e.g. seller@upi"
-                value={sellerUpiInput}
-                onChange={(e) => setSellerUpiInput(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00] min-h-[44px]"
-                required
-              />
-              <button
-                type="submit"
-                disabled={isFetchingIntent || !sellerUpiInput.trim()}
-                className="px-5 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 min-h-[44px]"
-              >
-                {isFetchingIntent ? 'Saving...' : 'Set UPI Payee ID'}
-              </button>
+
+            <div>
+              <span className="text-muted-foreground text-[10px] block uppercase font-sans font-bold">
+                Beneficiary (Seller Address):
+              </span>
+              <span className="font-mono text-foreground font-bold truncate block">
+                {trade.seller}
+              </span>
             </div>
-          </form>
-        )}
+          </div>
+
+          <p className="text-[11px] text-muted-foreground font-sans leading-relaxed pt-1">
+            {isBuyer ? (
+              <span>
+                Please transfer exactly{' '}
+                <strong className="text-foreground">
+                  {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+                </strong>{' '}
+                to the seller using your preferred external UPI app or bank transfer. Once the
+                payment completes, enter your 12-digit bank UTR reference and upload the payment
+                receipt below.
+              </span>
+            ) : isSeller ? (
+              <span>
+                Escrow is funded with{' '}
+                <strong className="text-foreground">{formatUnits(trade.amount, 18)} UVBE</strong>.
+                Awaiting fiat transfer of{' '}
+                <strong className="text-foreground">
+                  {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+                </strong>{' '}
+                from the buyer. Once received in your bank, confirm and release the escrow below.
+              </span>
+            ) : (
+              <span>
+                Trade amount:{' '}
+                <strong>{formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}</strong>.
+              </span>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Payment Claim Evidence Box (If submitted) */}
       {trade.paymentTimestamp > 0 && (
@@ -928,9 +1017,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
               </label>
               <input
                 type="text"
-                placeholder="e.g. UTR987654321"
+                placeholder="e.g. 423456789012"
                 value={utr}
-                onChange={(e) => setUtr(e.target.value)}
+                onChange={handleUtrInputChange}
                 className="w-full px-3.5 py-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00] min-h-[44px]"
                 required
               />
@@ -938,11 +1027,11 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                Upload Payment Receipt (Generates Hash)
+                Upload Payment Receipt (Runs Real OCR)
               </label>
               <input
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
                 onChange={handleFileChange}
                 className="w-full px-3 py-2 text-xs font-mono rounded-xl border-2 border-black dark:border-white/20 bg-background min-h-[44px]"
                 required
@@ -951,7 +1040,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           </div>
 
           {receiptFile && (
-            <div className="p-3 rounded-xl bg-accent/40 font-mono text-xs text-foreground space-y-1.5">
+            <div className="p-3.5 rounded-xl bg-accent/40 font-mono text-xs text-foreground space-y-2.5">
               <div className="font-bold flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileCheck className="w-4 h-4 text-[#BFFF00]" />
@@ -966,30 +1055,92 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 <div className="flex items-center gap-2 text-amber-500 font-bold text-[11px] pt-1">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>
-                    Uploading exact receipt bytes to VPS filesystem storage & computing Keccak256...
+                    Executing optical character recognition & verifying trade parameters on uploaded
+                    bytes...
                   </span>
                 </div>
               )}
 
-              {uploadedCid && receiptHash && (
-                <div className="space-y-1 pt-1 border-t border-black/10 dark:border-white/10 text-[11px]">
-                  <div className="flex items-center justify-between text-emerald-500 font-bold">
-                    <span>Stored on VPS ✓</span>
-                    <a
-                      href={`/api/p2p/evidence?hash=${receiptHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline flex items-center gap-1 hover:text-[#BFFF00]"
-                    >
-                      Inspect Storage Payload <ExternalLink className="w-3 h-3" />
-                    </a>
+              {/* Real OCR Verification Result Display */}
+              {evidenceResult && (
+                <div className="space-y-2 pt-1 border-t border-black/10 dark:border-white/10">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold flex items-center gap-1.5">
+                      {evidenceResult.isClaimAllowed ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <AlertOctagon className="w-4 h-4 text-red-500" />
+                      )}
+                      <span>OCR Status: {evidenceResult.ocrState}</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Confidence: {Math.round(evidenceResult.extractedData.confidenceScore * 100)}%
+                    </span>
                   </div>
-                  <div className="text-muted-foreground truncate">
-                    <span className="font-bold text-foreground">CID Alias:</span> {uploadedCid}
+
+                  <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+                    {evidenceResult.statusMessage}
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-background border border-black/10 dark:border-white/10 text-[10px]">
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-sans font-bold">
+                        OCR UTR:
+                      </span>
+                      <span className="font-bold text-foreground truncate block">
+                        {evidenceResult.extractedData.utr || 'Not Found'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-sans font-bold">
+                        OCR Amount:
+                      </span>
+                      <span className="font-bold text-foreground block">
+                        {evidenceResult.extractedData.amount !== undefined
+                          ? `₹${evidenceResult.extractedData.amount.toFixed(2)}`
+                          : 'Not Found'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-sans font-bold">
+                        Date:
+                      </span>
+                      <span className="font-bold text-foreground block">
+                        {evidenceResult.extractedData.transactionDate || '—'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-sans font-bold">
+                        Status:
+                      </span>
+                      <span className="font-bold text-foreground block">
+                        {evidenceResult.extractedData.paymentStatus || '—'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-muted-foreground truncate">
-                    <span className="font-bold text-foreground">Keccak256 Hash:</span> {receiptHash}
-                  </div>
+
+                  {evidenceResult.discrepancies.length > 0 && (
+                    <div className="text-[11px] space-y-1 font-mono pt-1 text-red-600 dark:text-red-400">
+                      {evidenceResult.discrepancies.map((d, i) => (
+                        <div key={i} className="flex items-start gap-1.5">
+                          <span className="font-black">•</span>
+                          <span>{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {uploadedCid && receiptHash && (
+                    <div className="space-y-1 pt-1 border-t border-black/5 dark:border-white/5 text-[10px] text-muted-foreground">
+                      <div className="truncate">
+                        <span className="font-bold text-foreground">Keccak256 Hash:</span>{' '}
+                        {receiptHash}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -998,7 +1149,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={isPending || isHashing || !receiptHash}
+              disabled={isPending || isHashing || !receiptHash || !evidenceResult?.isClaimAllowed}
               className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
             >
               {(isPending || isHashing) && <Loader2 className="w-4 h-4 animate-spin" />}

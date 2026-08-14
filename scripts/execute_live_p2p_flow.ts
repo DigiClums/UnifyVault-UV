@@ -99,9 +99,9 @@ async function sendUserOp(userOp: any) {
     abi: ENTRYPOINT_ABI,
     functionName: 'handleOps',
     args: [[userOp], relayerAccount.address],
-    gas: 3_000_000n,
-    maxFeePerGas: parseUnits('2', 9),
-    maxPriorityFeePerGas: parseUnits('1.5', 9),
+    gas: 1_500_000n,
+    maxFeePerGas: parseUnits('0.1', 9),
+    maxPriorityFeePerGas: parseUnits('0.05', 9),
     nonce,
   });
 
@@ -416,8 +416,12 @@ async function main() {
   console.log('STEP 3: Gasless submitPayment by Buyer Smart Account');
   console.log('======================================================');
 
-  const utrRef = keccak256(toHex('BASE-SEPOLIA-UTR-P2P-992288'));
-  const proofHash = keccak256(toHex('IPFS-RECEIPT-PROOF-EVIDENCE-3344'));
+  const utrRef = keccak256(
+    toHex(`BASE-SEPOLIA-UTR-P2P-${Date.now()}-${Math.floor(Math.random() * 10000)}`),
+  );
+  const proofHash = keccak256(
+    toHex(`PROOF-HASH-LIVE-${Date.now()}-${Math.floor(Math.random() * 10000)}`),
+  );
 
   const submitPaymentData = encodeFunctionData({
     abi: ESCROW_ABI,

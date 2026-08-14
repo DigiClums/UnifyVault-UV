@@ -3,10 +3,9 @@
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { X, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { X, ArrowRight, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
-import { useMarketplaceActions, useMarketplaceOrders } from '../../hooks/useMarketplace';
-import { getTokenDecimals, getTokenSymbol } from '../../lib/explorer/eventRegistry';
+import { useMarketplaceActions } from '../../hooks/useMarketplace';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface TakeOrderModalProps {
@@ -18,9 +17,7 @@ interface TakeOrderModalProps {
 
 export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeOrderModalProps) {
   const { address: userAddress } = useAccount();
-  const { createBuyOrder, createSellOrder, matchOrders, isSubmitting, txManager } =
-    useMarketplaceActions();
-  const { orders: allOrders } = useMarketplaceOrders();
+  const { takeOrder, isSubmitting, txManager } = useMarketplaceActions();
 
   const [tradeAmountStr, setTradeAmountStr] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,18 +27,16 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
   const isBuy = order.side === OrderSide.BUY;
   const isMaker = userAddress?.toLowerCase() === order.maker.toLowerCase();
 
-  const assetDecimals = getTokenDecimals(order.asset);
-  const assetSymbol = getTokenSymbol(order.asset);
-
-  const remainingCrypto = parseFloat(formatUnits(order.remainingAmount, assetDecimals));
-  const minCrypto = parseFloat(formatUnits(order.minLimit, assetDecimals));
-  const maxCrypto = parseFloat(formatUnits(order.maxLimit, assetDecimals));
+  const decimals = 18; // Canonical UVBE Decimals
+  const remainingCrypto = parseFloat(formatUnits(order.remainingAmount, decimals));
+  const minCrypto = parseFloat(formatUnits(order.minLimit, decimals));
+  const maxCrypto = parseFloat(formatUnits(order.maxLimit, decimals));
   const unitPrice = Number(order.price);
 
   const inputAmountNum = parseFloat(tradeAmountStr) || 0;
   const fiatTotal = inputAmountNum * unitPrice;
 
-  const handleConfirmMatch = async (e: React.FormEvent) => {
+  const handleConfirmTake = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userAddress) {
       setError('Please connect your wallet first.');
@@ -54,90 +49,42 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     }
 
     if (inputAmountNum <= 0 || isNaN(inputAmountNum)) {
-      setError('Please enter a valid trade amount.');
+      setError('Please enter a valid UVBE trade amount.');
       return;
     }
 
     if (inputAmountNum > remainingCrypto) {
-      setError(
-        `Trade amount cannot exceed available balance of ${remainingCrypto} ${assetSymbol}.`,
-      );
+      setError(`Trade amount cannot exceed available balance of ${remainingCrypto} UVBE.`);
       return;
     }
 
     if (minCrypto > 0 && inputAmountNum < minCrypto) {
-      setError(`Trade amount is below minimum order limit of ${minCrypto} ${assetSymbol}.`);
+      setError(`Trade amount is below minimum order limit of ${minCrypto} UVBE.`);
       return;
     }
 
     if (maxCrypto > 0 && inputAmountNum > maxCrypto) {
-      setError(`Trade amount exceeds maximum order limit of ${maxCrypto} ${assetSymbol}.`);
+      setError(`Trade amount exceeds maximum order limit of ${maxCrypto} UVBE.`);
       return;
     }
 
     try {
       setError(null);
-      const matchAmountBigInt = parseUnits(tradeAmountStr.trim(), assetDecimals);
+      const matchAmountBigInt = parseUnits(tradeAmountStr.trim(), decimals);
 
-      let buyOrderId: number;
-      let sellOrderId: number;
-
-      if (isBuy) {
-        // Taking a BUY order -> Connected user is SELLER -> Create a counter SELL order
-        const sellRes = await createSellOrder({
-          asset: order.asset,
-          amount: matchAmountBigInt,
-          price: order.price,
-          fiatCurrency: order.fiatCurrency,
-          minLimit: order.minLimit,
-          maxLimit: matchAmountBigInt,
-        });
-
-        if (!sellRes?.orderId) {
-          throw new Error('Failed to obtain new counter SELL order ID after transaction execution.');
-        }
-
-        buyOrderId = order.orderId;
-        sellOrderId = sellRes.orderId;
-      } else {
-        // Taking a SELL order -> Connected user is BUYER -> Create a counter BUY order
-        const buyRes = await createBuyOrder({
-          asset: order.asset,
-          amount: matchAmountBigInt,
-          price: order.price,
-          fiatCurrency: order.fiatCurrency,
-          minLimit: order.minLimit,
-          maxLimit: matchAmountBigInt,
-        });
-
-        if (!buyRes?.orderId) {
-          throw new Error('Failed to obtain new counter BUY order ID after transaction execution.');
-        }
-
-        buyOrderId = buyRes.orderId;
-        sellOrderId = order.orderId;
-      }
-
-      // Hard safety check: ensure buyOrderId and sellOrderId are distinct IDs
-      if (buyOrderId === sellOrderId) {
-        throw new Error('Invalid order match: Counter-order ID cannot equal target order ID.');
-      }
-
-      // Execute on-chain matchOrders on Marketplace contract
-      const result = await matchOrders({
-        buyOrderId,
-        sellOrderId,
-        matchAmount: matchAmountBigInt,
+      // Execute single atomic on-chain takeOrder transaction (guarantees no orphan counter-orders)
+      const result = await takeOrder({
+        orderId: order.orderId,
+        takeAmount: matchAmountBigInt,
       });
 
       if (result.escrowTradeId) {
         onMatchSuccess(result.escrowTradeId);
       } else {
-        // Fallback if event indexing is delayed
         onClose();
       }
     } catch (err: any) {
-      console.error('Match orders error:', err);
+      console.error('Take order error:', err);
       setError(err?.message || 'Transaction failed or was rejected by user.');
     }
   };
@@ -149,10 +96,11 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-4">
           <div>
             <h3 className="text-lg font-black text-foreground font-sans">
-              {isBuy ? 'Sell Crypto to Buyer' : 'Buy Crypto from Seller'}
+              {isBuy ? 'Sell UVBE to Buyer' : 'Buy UVBE from Seller'}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Order #{order.orderId} • Non-Custodial Orderbook Match
+              Order #{order.orderId} •{' '}
+              {isBuy ? 'Buyer wants to buy UVBE' : 'Seller wants to sell UVBE'}
             </p>
           </div>
 
@@ -168,21 +116,30 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         {/* Counterparty & Order Spec Box */}
         <div className="p-4 rounded-xl bg-accent/30 border border-black/10 dark:border-white/10 space-y-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Order Maker:</span>
+            <span className="text-muted-foreground">Maker ({isBuy ? 'Buyer' : 'Seller'}):</span>
             <span className="font-bold text-foreground">
               {order.maker.slice(0, 8)}...{order.maker.slice(-6)}
             </span>
           </div>
 
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Unit Price:</span>
-            <span className="font-bold text-foreground">
-              ₹{unitPrice.toLocaleString('en-IN')} INR / UVBE
+            <span className="text-muted-foreground">Your Role:</span>
+            <span className="font-bold text-[#BFFF00]">
+              {isBuy
+                ? 'SELLER (You provide UVBE & receive INR)'
+                : 'BUYER (You pay INR & receive UVBE)'}
             </span>
           </div>
 
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Available Balance:</span>
+            <span className="text-muted-foreground">Unit Price:</span>
+            <span className="font-bold text-foreground">
+              ₹{unitPrice.toLocaleString('en-IN')} INR per UVBE
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Available UVBE:</span>
             <span className="font-bold text-foreground">{remainingCrypto} UVBE</span>
           </div>
 
@@ -203,7 +160,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         )}
 
         {/* Form */}
-        <form onSubmit={handleConfirmMatch} className="space-y-4 font-sans">
+        <form onSubmit={handleConfirmTake} className="space-y-4 font-sans">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Trade Amount (UVBE)
@@ -242,8 +199,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              Matching creates an on-chain P2PEscrow trade. Seller will fund crypto collateral to
-              initiate payment window.
+              Taking this order creates an on-chain P2PEscrow trade in a single atomic transaction.
             </span>
           </div>
 
@@ -268,7 +224,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
                 </>
               ) : (
                 <>
-                  <span>CONFIRM MATCH</span>
+                  <span>{isBuy ? 'SELL UVBE NOW' : 'BUY UVBE NOW'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

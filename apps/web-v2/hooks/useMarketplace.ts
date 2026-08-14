@@ -1,8 +1,16 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
-import { parseUnits, stringToHex, hexToString, getAddress, type Address } from 'viem';
+import {
+  parseUnits,
+  stringToHex,
+  hexToString,
+  getAddress,
+  createPublicClient,
+  http,
+  type Address,
+} from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import {
   MARKETPLACE_ABI,
@@ -14,7 +22,9 @@ import {
   DEPLOYED_CONTRACTS_SEPOLIA,
   DEPLOYED_CONTRACTS_MAINNET,
   getDefaultChainId,
+  getRpcUrl,
 } from '../constants';
+import { validateP2PAsset } from '../lib/p2p/assetValidation';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -43,7 +53,7 @@ export function getMarketplaceAddress(chainId?: number): `0x${string}` {
         process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA,
         process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS,
         DEPLOYED_CONTRACTS_SEPOLIA.Marketplace,
-      ].find(isNonZeroAddress) || '0x5978273B16467E99f45984Dc8AE9048ba05a30F7';
+      ].find(isNonZeroAddress) || '0xe908377f96F313a6b7771570ff6Fb414D38F451A';
 
     const address = getAddress(raw) as `0x${string}`;
     if (!isNonZeroAddress(address)) {
@@ -143,7 +153,17 @@ export async function performMarketplaceGasPreflight(params: {
 export function useMarketplaceOrders() {
   const { chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
-  const publicClient = usePublicClient({ chainId });
+  const wagmiPublicClient = usePublicClient({ chainId });
+
+  const fallbackClient = useMemo(() => {
+    const rpc = getRpcUrl(chainId);
+    return createPublicClient({
+      chain: chainId === base.id ? base : baseSepolia,
+      transport: http(rpc),
+    });
+  }, [chainId]);
+
+  const publicClient = wagmiPublicClient || fallbackClient;
 
   let marketplaceAddress: `0x${string}`;
   try {
@@ -157,7 +177,10 @@ export function useMarketplaceOrders() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
-    if (!publicClient) return;
+    if (!publicClient || !marketplaceAddress || marketplaceAddress === ZERO_ADDRESS) {
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
@@ -169,31 +192,46 @@ export function useMarketplaceOrders() {
       })) as bigint;
 
       const count = Number(countBigInt);
+      if (count === 0) {
+        setOrders([]);
+        return;
+      }
+
+      const contractCalls = [];
+      for (let i = 1; i <= count; i++) {
+        contractCalls.push({
+          address: marketplaceAddress,
+          abi: MARKETPLACE_ABI,
+          functionName: 'getOrder',
+          args: [BigInt(i)],
+        });
+      }
+
+      let results: any[];
+      try {
+        results = (await publicClient.multicall({
+          contracts: contractCalls,
+          allowFailure: true,
+        })) as any[];
+      } catch {
+        results = await Promise.all(
+          contractCalls.map(async (call) => {
+            try {
+              const res = await publicClient.readContract(call as any);
+              return { status: 'success', result: res };
+            } catch (err) {
+              return { status: 'failure', error: err };
+            }
+          }),
+        );
+      }
+
       const loadedOrders: OrderDetails[] = [];
 
-      for (let i = 1; i <= count; i++) {
-        try {
-          const raw = (await publicClient.readContract({
-            address: marketplaceAddress,
-            abi: MARKETPLACE_ABI,
-            functionName: 'getOrder',
-            args: [BigInt(i)],
-          })) as {
-            orderId: bigint;
-            maker: `0x${string}`;
-            side: number;
-            asset: `0x${string}`;
-            amount: bigint;
-            filledAmount: bigint;
-            remainingAmount: bigint;
-            price: bigint;
-            fiatCurrency: `0x${string}`;
-            minLimit: bigint;
-            maxLimit: bigint;
-            status: number;
-            createdAt: bigint;
-          };
-
+      for (let i = 0; i < results.length; i++) {
+        const item = results[i];
+        if (item && item.status === 'success' && item.result) {
+          const raw: any = item.result;
           const fiatCurrencyStr = hexToString(raw.fiatCurrency).replace(/\0/g, '') || 'INR';
 
           loadedOrders.push({
@@ -211,8 +249,6 @@ export function useMarketplaceOrders() {
             status: Number(raw.status) as OrderStatus,
             createdAt: Number(raw.createdAt),
           });
-        } catch (err) {
-          console.warn(`Failed loading order #${i}:`, err);
         }
       }
 
@@ -224,6 +260,12 @@ export function useMarketplaceOrders() {
       setIsLoading(false);
     }
   }, [publicClient, marketplaceAddress]);
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
 
   return { orders, isLoading, error, refetch: fetchOrders };
 }
@@ -265,6 +307,14 @@ export function useMarketplaceActions() {
   }) => {
     const currentChainId = validateChain();
     const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    // Enforce UVBE-only asset validation
+    const assetCheck = validateP2PAsset(params.asset, currentChainId);
+    if (!assetCheck.isValid) {
+      const err = assetCheck.errorMessage || 'P2P marketplace exclusively supports UVBE token.';
+      setError(err);
+      throw new Error(err);
+    }
 
     if (!isNonZeroAddress(marketplaceAddress)) {
       const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
@@ -367,6 +417,14 @@ export function useMarketplaceActions() {
   }) => {
     const currentChainId = validateChain();
     const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    // Enforce UVBE-only asset validation
+    const assetCheck = validateP2PAsset(params.asset, currentChainId);
+    if (!assetCheck.isValid) {
+      const err = assetCheck.errorMessage || 'P2P marketplace exclusively supports UVBE token.';
+      setError(err);
+      throw new Error(err);
+    }
 
     if (!isNonZeroAddress(marketplaceAddress)) {
       const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
@@ -589,14 +647,91 @@ export function useMarketplaceActions() {
     }
   };
 
+  const takeOrder = async (params: { orderId: number; takeAmount: bigint }) => {
+    const currentChainId = validateChain();
+    const marketplaceAddress = getMarketplaceAddress(currentChainId);
+
+    if (!isNonZeroAddress(marketplaceAddress)) {
+      const msg = `Marketplace contract address is zero or unconfigured for chain ID ${currentChainId}.`;
+      setError(msg);
+      throw new Error(msg);
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const args: [bigint, bigint] = [BigInt(params.orderId), params.takeAmount];
+
+      await performMarketplaceGasPreflight({
+        publicClient,
+        userAddress,
+        marketplaceAddress,
+        abi: MARKETPLACE_ABI,
+        functionName: 'takeOrder',
+        args,
+      });
+
+      let escrowTradeId: number | null = null;
+
+      const txHash = await txManager.executeTransaction(
+        () =>
+          writeContractAsync({
+            address: marketplaceAddress,
+            abi: MARKETPLACE_ABI,
+            functionName: 'takeOrder',
+            args,
+          }),
+        {
+          stepName: 'Take Order',
+          stepDescription: `Filling order #${params.orderId} atomically on Marketplace...`,
+        },
+      );
+
+      if (publicClient) {
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+          for (const log of receipt.logs) {
+            try {
+              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
+                const tradeIdHex = log.topics[2];
+                if (tradeIdHex) {
+                  escrowTradeId = Number(BigInt(tradeIdHex));
+                  break;
+                }
+              }
+            } catch {
+              // Ignore non-matching logs
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
+      return { txHash, escrowTradeId };
+    } catch (err: any) {
+      const errMsg = err?.message || 'Take order transaction failed.';
+      setError(errMsg);
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return {
     createBuyOrder,
     createSellOrder,
     cancelOrder,
     matchOrders,
-    isSubmitting: isSubmitting || txManager.progressState.state === 'WALLET_REQUEST' || txManager.progressState.state === 'PREPARING' || txManager.progressState.state === 'CONFIRMING',
+    takeOrder,
+    isSubmitting:
+      isSubmitting ||
+      txManager.progressState.state === 'WALLET_REQUEST' ||
+      txManager.progressState.state === 'PREPARING' ||
+      txManager.progressState.state === 'CONFIRMING',
     error,
     txManager,
   };
 }
-

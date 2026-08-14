@@ -4,7 +4,7 @@ import { OrderDetails, OrderSide, OrderStatus } from '../../../lib/contracts/mar
 
 describe('Phase 3 — Marketplace Frontend UI & State Invariant Tests', () => {
   const mockMaker = '0x1234567890abcdef1234567890abcdef12345678' as `0x${string}`;
-  const mockAsset = '0x4A33d001D7F81C12c0C9262256Af83000e64457D' as `0x${string}`;
+  const mockAsset = '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as `0x${string}`;
 
   const mockBuyOrder: OrderDetails = {
     orderId: 1,

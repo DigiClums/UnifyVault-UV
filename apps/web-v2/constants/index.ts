@@ -103,12 +103,17 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
       ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
-      : '0x5978273B16467E99f45984Dc8AE9048ba05a30F7') as `0x${string}`,
+      : '0xe908377f96F313a6b7771570ff6Fb414D38F451A') as `0x${string}`,
   Paymaster: (isNonZeroAddress(process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS_SEPOLIA)
     ? process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.PAYMASTER_ADDRESS)
       ? process.env.PAYMASTER_ADDRESS
       : '0x42c6342516714CFd64474bd41Ce360605b9fEA88') as `0x${string}`,
+  GasTreasury: '0xd4b19a48c270b720feeed57ccab5aa4ecfcc1fd9' as `0x${string}`,
+  EntryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032' as `0x${string}`,
+  Admin: (isNonZeroAddress(process.env.NEXT_PUBLIC_ADMIN_ADDRESS)
+    ? process.env.NEXT_PUBLIC_ADMIN_ADDRESS
+    : '0xd905920c91853039060246Ed5724AA72B91a96DA') as `0x${string}`,
 };
 
 /**

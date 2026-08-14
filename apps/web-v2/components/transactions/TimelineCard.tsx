@@ -73,10 +73,22 @@ function ActionBadge({ type }: { type: string }) {
           <Settings className="w-3 h-3" /> Admin
         </span>
       );
+    case 'p2p_settlement':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <ArrowRightLeft className="w-3 h-3" /> P2P Settlement
+        </span>
+      );
+    case 'wallet_transfer':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <ArrowRightLeft className="w-3 h-3" /> Transfer
+        </span>
+      );
     default:
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
-          <Activity className="w-3 h-3" /> Unknown
+          <Activity className="w-3 h-3" /> Protocol Activity
         </span>
       );
   }

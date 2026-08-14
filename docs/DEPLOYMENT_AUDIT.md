@@ -34,7 +34,7 @@
 | **`CostBasisManagerV2`**      | `COST_BASIS_MANAGER`  | `0x57869372AFbd7b61752f2f8d3e7F37701e28517B` | **VERIFIED** |
 | **`PerformanceManager`**      | `PERFORMANCE_MANAGER` | `0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6` | **VERIFIED** |
 | **`P2PEscrowV2`**             | `P2P_ESCROW`          | `0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb` | **VERIFIED** |
-| **`Marketplace`**             | —                     | `0x5978273B16467E99f45984Dc8AE9048ba05a30F7` | **VERIFIED** |
+| **`Marketplace`**             | —                     | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` | **VERIFIED** |
 | **`UnifyVaultTimelock`**      | —                     | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | **VERIFIED** |
 
 ---

@@ -222,7 +222,7 @@ export function DepositForm() {
 
             <div className="flex justify-between">
               <span>Protocol Fee (0.25%)</span>
-              <span>-${feeUSD}</span>
+              <span>-{feeUSD}</span>
             </div>
 
             <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex justify-between items-center font-sans">

@@ -3,6 +3,10 @@ import { keccak256 } from 'viem';
 import fs from 'fs';
 import path from 'path';
 import { validateReceiptFile } from '../../../../lib/evidence/fileValidator';
+import {
+  performRealReceiptOCR,
+  extractReceiptDataFromText,
+} from '../../../../lib/evidence/ocrEngine';
 
 /**
  * Returns canonical VPS evidence storage root directory.
@@ -35,7 +39,7 @@ function getEvidenceStorageRoot(): string {
 
 /**
  * POST /api/p2p/evidence
- * Stores exact original receipt bytes to VPS filesystem storage and returns evidenceHash & CID alias
+ * Stores exact original receipt bytes to VPS filesystem storage, runs server-side OCR, and returns evidenceHash & OCR results
  */
 export async function POST(req: NextRequest) {
   try {
@@ -87,8 +91,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Write exact original bytes and metadata JSON to VPS filesystem
+    // 5. Write exact original bytes to VPS filesystem
     await fs.promises.writeFile(targetFilePath, bytes);
+
+    // 6. Run Real OCR on the stored bytes
+    let ocrRawText = '';
+    let ocrConfidence = 0.0;
+    try {
+      const ocrRes = await performRealReceiptOCR(bytes, file.type, file.name);
+      ocrRawText = ocrRes.text;
+      ocrConfidence = ocrRes.confidence;
+    } catch (ocrErr) {
+      console.warn('Server-side OCR processing warning:', ocrErr);
+    }
+
+    const extractedData = extractReceiptDataFromText(ocrRawText);
 
     const metadata = {
       evidenceHash,
@@ -98,11 +115,16 @@ export async function POST(req: NextRequest) {
       size: file.size,
       storedPath: safeFilename,
       createdAt: new Date().toISOString(),
+      ocr: {
+        rawText: ocrRawText.slice(0, 500),
+        extractedData,
+        confidence: ocrConfidence,
+      },
     };
 
     await fs.promises.writeFile(metadataFilePath, JSON.stringify(metadata, null, 2), 'utf-8');
 
-    // 6. Return response conforming to evidence interface
+    // 7. Return response conforming to evidence interface with real OCR results
     return NextResponse.json({
       success: true,
       cid: `vps-${evidenceHash}`,
@@ -111,6 +133,8 @@ export async function POST(req: NextRequest) {
       mimeType: file.type,
       name: file.name,
       url: `/api/p2p/evidence?hash=${evidenceHash}`,
+      ocrRawText,
+      extractedData,
     });
   } catch (err: any) {
     console.error('VPS evidence storage upload error:', err);

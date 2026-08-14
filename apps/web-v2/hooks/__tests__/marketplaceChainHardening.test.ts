@@ -5,9 +5,9 @@ import { DEPLOYED_CONTRACTS_SEPOLIA, DEPLOYED_CONTRACTS_MAINNET } from '../../co
 
 describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardening Suite', () => {
   // 1. Base Sepolia Resolution
-  it('1. Resolves Base Sepolia (84532) strictly to Sepolia Marketplace contract (0x5978273B16467E99f45984Dc8AE9048ba05a30F7)', () => {
+  it('1. Resolves Base Sepolia (84532) strictly to Sepolia Marketplace contract (0xe908377f96F313a6b7771570ff6Fb414D38F451A)', () => {
     const address = getMarketplaceAddress(baseSepolia.id);
-    expect(address.toLowerCase()).toBe('0x5978273b16467e99f45984dc8ae9048ba05a30f7');
+    expect(address.toLowerCase()).toBe('0xe908377f96f313a6b7771570ff6fb414d38f451a');
     expect(address.toLowerCase()).toBe(DEPLOYED_CONTRACTS_SEPOLIA.Marketplace.toLowerCase());
   });
 
@@ -37,7 +37,7 @@ describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardeni
         abi: [],
         functionName: 'createBuyOrder',
         args: [],
-      })
+      }),
     ).rejects.toThrow('zero or unconfigured');
   });
 
@@ -51,7 +51,7 @@ describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardeni
         abi: [],
         functionName: 'createBuyOrder',
         args: [],
-      })
+      }),
     ).rejects.toThrow('Marketplace contract address is zero or unconfigured');
   });
 
@@ -66,11 +66,11 @@ describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardeni
       performMarketplaceGasPreflight({
         publicClient: mockPublicClient,
         userAddress: '0x1234567890123456789012345678901234567890',
-        marketplaceAddress: '0x5978273B16467E99f45984Dc8AE9048ba05a30F7',
+        marketplaceAddress: '0xe908377f96F313a6b7771570ff6Fb414D38F451A',
         abi: [],
         functionName: 'createBuyOrder',
         args: [],
-      })
+      }),
     ).rejects.toThrow('Insufficient ETH for Base network gas.');
 
     expect(mockPublicClient.simulateContract).not.toHaveBeenCalled();
@@ -80,18 +80,20 @@ describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardeni
   it('7. Blocks transaction when simulation fails due to miner/gas error', async () => {
     const mockPublicClient = {
       getBalance: vi.fn().mockResolvedValue(1000000n),
-      simulateContract: vi.fn().mockRejectedValue(new Error('ETH(Base) is not enough to pay for miners')),
+      simulateContract: vi
+        .fn()
+        .mockRejectedValue(new Error('ETH(Base) is not enough to pay for miners')),
     };
 
     await expect(
       performMarketplaceGasPreflight({
         publicClient: mockPublicClient,
         userAddress: '0x1234567890123456789012345678901234567890',
-        marketplaceAddress: '0x5978273B16467E99f45984Dc8AE9048ba05a30F7',
+        marketplaceAddress: '0xe908377f96F313a6b7771570ff6Fb414D38F451A',
         abi: [],
         functionName: 'createBuyOrder',
         args: [],
-      })
+      }),
     ).rejects.toThrow('Insufficient ETH for Base network gas.');
   });
 
@@ -106,11 +108,11 @@ describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardeni
       performMarketplaceGasPreflight({
         publicClient: mockPublicClient,
         userAddress: '0x1234567890123456789012345678901234567890',
-        marketplaceAddress: '0x5978273B16467E99f45984Dc8AE9048ba05a30F7',
+        marketplaceAddress: '0xe908377f96F313a6b7771570ff6Fb414D38F451A',
         abi: [],
         functionName: 'createBuyOrder',
         args: [],
-      })
+      }),
     ).resolves.toBeUndefined();
 
     expect(mockPublicClient.getBalance).toHaveBeenCalled();
