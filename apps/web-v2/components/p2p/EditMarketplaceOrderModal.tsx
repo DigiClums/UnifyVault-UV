@@ -75,10 +75,8 @@ export function EditMarketplaceOrderModal({
     }
   }, [isOpen, order, userAddress]);
 
-  if (!isOpen || !order) return null;
-
-  const filledNum = parseFloat(formatUnits(order.filledAmount, decimals)) || 0;
-  const originalTotalNum = parseFloat(formatUnits(order.amount, decimals)) || 0;
+  const filledNum = order ? parseFloat(formatUnits(order.filledAmount, decimals)) || 0 : 0;
+  const originalTotalNum = order ? parseFloat(formatUnits(order.amount, decimals)) || 0 : 0;
 
   const priceNum = priceStr ? parseFloat(priceStr) : 0;
   const remainingNum = remainingStr ? parseFloat(remainingStr) : 0;
@@ -146,6 +144,8 @@ export function EditMarketplaceOrderModal({
     const res = validateUpiId(sellerUpiStr);
     return res.isValid ? null : res.error;
   }, [sellerUpiStr, hasInteractedUpi]);
+
+  if (!isOpen || !order) return null;
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

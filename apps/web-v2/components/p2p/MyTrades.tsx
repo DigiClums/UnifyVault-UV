@@ -164,8 +164,12 @@ export function MyTrades({ trades, isLoading, onSelectTrade, onRefresh }: MyTrad
                       Fiat:{' '}
                       <strong className="text-foreground">
                         ₹
-                        {Number(formatUnits(t.fiatAmount, 2)).toLocaleString('en-IN', {
+                        {(t.fiatAmount > 1000000000000n
+                          ? Number(formatUnits(t.fiatAmount, 18))
+                          : Number(t.fiatAmount)
+                        ).toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
                         })}{' '}
                         {t.fiatCurrency?.startsWith('0x')
                           ? hexToString(t.fiatCurrency as `0x${string}`).replace(/\0/g, '') || 'INR'

@@ -203,7 +203,10 @@ export async function POST(req: NextRequest) {
       const expiryTimestamp =
         fundingTs > 0 ? (fundingTs + windowSecs) * 1000 : Date.now() + windowSecs * 1000;
       expiresAt = new Date(expiryTimestamp).toISOString();
-      fiatAmountStr = formatUnits(rawTrade.fiatAmount, 2);
+      fiatAmountStr =
+        rawTrade.fiatAmount > 1000000000000n
+          ? formatUnits(rawTrade.fiatAmount, 18)
+          : formatUnits(rawTrade.fiatAmount, 2);
       currencyStr = hexToString(rawTrade.fiatCurrency).replace(/\0/g, '') || 'INR';
     }
 

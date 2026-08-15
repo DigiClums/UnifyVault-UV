@@ -264,7 +264,9 @@ async function main() {
         });
         if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
           testMatchId = Number((decoded.args as any).matchId);
-          testEscrowTradeId = Number((decoded.args as any).tradeId);
+          testEscrowTradeId = Number(
+            (decoded.args as any).escrowTradeId || (decoded.args as any).tradeId,
+          );
           console.log(
             `[EventDecoded] EscrowTradeLinked matchId: ${testMatchId}, tradeId: ${testEscrowTradeId}`,
           );
@@ -399,7 +401,8 @@ async function main() {
   console.log('PHASE 6: Receipt Generation & Real OCR Verification Pipeline');
   console.log('----------------------------------------------------------------------');
 
-  const testUtr = '423456789012';
+  // Generate unique 12-digit UTR for replay protection
+  const testUtr = String(Date.now()).slice(-12);
   const mockReceiptBytes = new Uint8Array([
     0x89,
     0x50,

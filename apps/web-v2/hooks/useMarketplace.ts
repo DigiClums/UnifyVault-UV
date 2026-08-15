@@ -661,15 +661,28 @@ export function useMarketplaceActions() {
           for (const log of receipt.logs) {
             try {
               if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
-                const decoded = decodeEventLog({
-                  abi: MARKETPLACE_ABI,
-                  data: log.data,
-                  topics: log.topics,
-                });
-                if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
-                  const linkedTradeId = (decoded.args as any).tradeId;
-                  if (linkedTradeId) {
-                    escrowTradeId = Number(linkedTradeId);
+                try {
+                  const decoded = decodeEventLog({
+                    abi: MARKETPLACE_ABI,
+                    data: log.data,
+                    topics: log.topics,
+                  });
+                  if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
+                    const linkedTradeId =
+                      (decoded.args as any).escrowTradeId || (decoded.args as any).tradeId;
+                    if (linkedTradeId) {
+                      escrowTradeId = Number(linkedTradeId);
+                      break;
+                    }
+                  }
+                } catch {
+                  // Fallback to topic parsing
+                }
+
+                if (log.topics && log.topics.length >= 3 && log.topics[2]) {
+                  const topicTradeId = Number(BigInt(log.topics[2]));
+                  if (topicTradeId > 0) {
+                    escrowTradeId = topicTradeId;
                     break;
                   }
                 }
@@ -764,15 +777,28 @@ export function useMarketplaceActions() {
           for (const log of receipt.logs) {
             try {
               if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
-                const decoded = decodeEventLog({
-                  abi: MARKETPLACE_ABI,
-                  data: log.data,
-                  topics: log.topics,
-                });
-                if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
-                  const linkedTradeId = (decoded.args as any).tradeId;
-                  if (linkedTradeId) {
-                    escrowTradeId = Number(linkedTradeId);
+                try {
+                  const decoded = decodeEventLog({
+                    abi: MARKETPLACE_ABI,
+                    data: log.data,
+                    topics: log.topics,
+                  });
+                  if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
+                    const linkedTradeId =
+                      (decoded.args as any).escrowTradeId || (decoded.args as any).tradeId;
+                    if (linkedTradeId) {
+                      escrowTradeId = Number(linkedTradeId);
+                      break;
+                    }
+                  }
+                } catch {
+                  // Fallback to direct topic parsing
+                }
+
+                if (log.topics && log.topics.length >= 3 && log.topics[2]) {
+                  const topicTradeId = Number(BigInt(log.topics[2]));
+                  if (topicTradeId > 0) {
+                    escrowTradeId = topicTradeId;
                     break;
                   }
                 }

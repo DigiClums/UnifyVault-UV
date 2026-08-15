@@ -198,6 +198,17 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const [isLoadingSellerUpi, setIsLoadingSellerUpi] = useState<boolean>(false);
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
 
+  // Seller review & dispute states
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [isOpeningDispute, setIsOpeningDispute] = useState(false);
+  const [disputeReasonSelect, setDisputeReasonSelect] = useState('PAYMENT_NOT_RECEIVED');
+  const [sellerRemarksInput, setSellerRemarksInput] = useState('');
+
+  // Countdown & Evidence Verification States
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(0);
+  const [uploadedCid, setUploadedCid] = useState<string | null>(null);
+  const [evidenceResult, setEvidenceResult] = useState<EvidenceVerificationResult | null>(null);
+
   // Canonical P2P Identity Resolution Model:
   // On-chain P2P escrow authorization (onlyBuyer, onlySeller) strictly validates msg.sender == trade.buyer or msg.sender == trade.seller.
   // We check whether the registered trade participant address matches the user's Smart Account or the connected EOA:
@@ -306,6 +317,26 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     };
   }, [trade?.seller, paymentIntent?.sellerPaymentIdentifier]);
 
+  // Deadline countdown calculation
+  useEffect(() => {
+    if (trade.fundingTimestamp === 0 || trade.state !== TradeState.FUNDED) {
+      setTimeLeftSeconds(0);
+      return;
+    }
+
+    const deadline = trade.fundingTimestamp + trade.paymentWindow;
+
+    const updateTimer = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = Math.max(0, deadline - now);
+      setTimeLeftSeconds(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [trade.fundingTimestamp, trade.paymentWindow, trade.state]);
+
   const handleCopyUpi = async () => {
     if (!sellerUpi) return;
     try {
@@ -368,11 +399,6 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       setIsFetchingIntent(false);
     }
   };
-
-  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
-  const [isOpeningDispute, setIsOpeningDispute] = useState(false);
-  const [disputeReasonSelect, setDisputeReasonSelect] = useState('PAYMENT_NOT_RECEIVED');
-  const [sellerRemarksInput, setSellerRemarksInput] = useState('');
 
   const handleConfirmSellerPayment = async () => {
     if (!userAddress) return;
@@ -438,46 +464,26 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
   };
 
-  // Deadline countdown calculation
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(0);
-
-  useEffect(() => {
-    if (trade.fundingTimestamp === 0 || trade.state !== TradeState.FUNDED) {
-      setTimeLeftSeconds(0);
-      return;
-    }
-
-    const deadline = trade.fundingTimestamp + trade.paymentWindow;
-
-    const updateTimer = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const remaining = Math.max(0, deadline - now);
-      setTimeLeftSeconds(remaining);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [trade.fundingTimestamp, trade.paymentWindow, trade.state]);
-
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const [uploadedCid, setUploadedCid] = useState<string | null>(null);
-  const [evidenceResult, setEvidenceResult] = useState<EvidenceVerificationResult | null>(null);
-
   const runEvidenceVerification = async (selectedFile: File, userUtr: string) => {
     setIsHashing(true);
     setUserError(null);
     try {
+      const expectedFiat =
+        trade.fiatAmount > 1000000000000n
+          ? Number(formatUnits(trade.fiatAmount, 18))
+          : Number(trade.fiatAmount);
+
       const res = await verifyPaymentEvidence({
         file: selectedFile,
         context: {
           tradeId: trade.tradeId,
-          expectedAmount: Number(trade.fiatAmount),
+          expectedAmount: expectedFiat,
           expectedCurrency: trade.fiatCurrency || 'INR',
           expectedUtr: userUtr.trim(),
         },
@@ -741,7 +747,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   };
 
   const formatFiatAmount = (fiatAmount: bigint, currency: string) => {
-    return `${formatUnits(fiatAmount, 2)} ${currency}`;
+    if (fiatAmount > 1000000000000n) {
+      return `${Number(formatUnits(fiatAmount, 18)).toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${currency}`;
+    }
+    return `${Number(fiatAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${currency}`;
   };
 
   // Fee and Payout Calculations for Confirmation Sheets

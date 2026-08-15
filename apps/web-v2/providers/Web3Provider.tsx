@@ -26,7 +26,7 @@ const sepoliaPrimaryRpc =
   'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
 
 const sepoliaFallbackRpc =
-  process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA_FALLBACK || 'https://rpc.ankr.com/base_sepolia';
+  process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA_FALLBACK || 'https://sepolia.base.org';
 
 const mainnetPrimaryRpc =
   process.env.NEXT_PUBLIC_RPC_URL_BASE_MAINNET ||
@@ -51,10 +51,21 @@ const config = getDefaultConfig({
     [baseSepolia.id]: fallback([
       http(sepoliaPrimaryRpc, {
         batch: true,
-        retryCount: 3,
-        retryDelay: 1000,
+        retryCount: 2,
+        retryDelay: 800,
       }),
       http(sepoliaFallbackRpc, {
+        batch: true,
+        retryCount: 2,
+        retryDelay: 800,
+      }),
+      http('https://base-sepolia-rpc.publicnode.com', {
+        batch: true,
+      }),
+      http('https://base-sepolia.blockpi.network/v1/rpc/public', {
+        batch: true,
+      }),
+      http('https://1rpc.io/base-sepolia', {
         batch: true,
       }),
     ]),

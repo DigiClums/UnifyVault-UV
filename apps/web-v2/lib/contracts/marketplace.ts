@@ -24,7 +24,7 @@ export const MARKETPLACE_ABI = parseAbi([
   'event OrderMatched(uint256 indexed matchId, uint256 indexed buyOrderId, uint256 indexed sellOrderId, address buyer, address seller, address asset, uint256 matchAmount, uint256 executionPrice, uint256 fiatAmount, bytes32 fiatCurrency, uint256 timestamp)',
   'event OrderPartiallyFilled(uint256 indexed orderId, address indexed maker, uint256 filledAmount, uint256 remainingAmount)',
   'event OrderFilled(uint256 indexed orderId, address indexed maker, uint256 totalAmount)',
-  'event EscrowTradeLinked(uint256 indexed matchId, uint256 indexed tradeId, uint256 indexed buyOrderId, uint256 sellOrderId, address buyer, address seller, address asset, uint256 matchAmount)',
+  'event EscrowTradeLinked(uint256 indexed matchId, uint256 indexed escrowTradeId, uint256 buyOrderId, uint256 sellOrderId, address buyer, address seller, address asset, uint256 amount)',
   'event UvbeTokenUpdated(address indexed oldToken, address indexed newToken)',
 ]);
 
