@@ -1,0 +1,9 @@
+# Gitleaks Configuration for UnifyVault
+[allowlist]
+description = "Global allowlist for tests and configurations"
+paths = [
+    '''node_modules/''',
+    '''dist/''',
+    '''out/''',
+    '''pnpm-lock.yaml'''
+]

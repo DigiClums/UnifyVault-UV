@@ -1,0 +1,53 @@
+{
+  "name": "unifyvault-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UnifyVault Protocol Monorepo",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter=@unifyvault/web-v2",
+    "dev:v2": "turbo run dev --filter=@unifyvault/web-v2",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:1": "pnpm --filter @unifyvault/protocol test:1",
+    "test:2": "pnpm --filter @unifyvault/protocol test:2",
+    "test:3": "pnpm --filter @unifyvault/protocol test:3",
+    "test:4": "pnpm --filter @unifyvault/protocol test:4",
+    "test:5": "pnpm --filter @unifyvault/protocol test:5",
+    "test:6": "pnpm --filter @unifyvault/protocol test:6",
+    "test:7": "pnpm --filter @unifyvault/protocol test:7",
+    "test:8": "pnpm --filter @unifyvault/protocol test:8",
+    "test:9": "pnpm --filter @unifyvault/protocol test:9",
+    "test:10": "pnpm --filter @unifyvault/protocol test:10",
+    "test:all": "pnpm --filter @unifyvault/protocol test:all && pnpm --filter @unifyvault/web-v2 test && pnpm --filter @unifyvault/web-v2 typecheck && pnpm build",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,sol,yml,yaml}\"",
+    "prepare": "husky install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "eslint": "^8.57.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.7",
+    "playwright": "^1.61.1",
+    "prettier": "^3.3.2",
+    "prettier-plugin-solidity": "^2.3.1",
+    "turbo": "^2.0.4",
+    "typescript": "^5.4.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,json,sol,md,yml,yaml}": "prettier --write",
+    "*.{ts,tsx,js}": "eslint --fix"
+  },
+  "packageManager": "pnpm@9.4.0",
+  "pnpm": {
+    "overrides": {
+      "qr": "0.5.5"
+    }
+  }
+}

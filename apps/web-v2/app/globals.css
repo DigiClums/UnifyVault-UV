@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 48 20% 96%;
+    --foreground: 0 0% 4%;
+    --surface: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-hover: 48 15% 92%;
+    --muted: 48 12% 92%;
+    --muted-foreground: 0 0% 38%;
+    --border-subtle: rgba(0, 0, 0, 0.16);
+    --glass-gradient: linear-gradient(135deg, #ffffff 0%, #f5f4ed 100%);
+    --card-glow: radial-gradient(circle at 50% 0%, rgba(190, 255, 0, 0.14), transparent 70%);
+    --shadow-glass: 4px 4px 0 rgba(0, 0, 0, 0.9);
+  }
+
+  .dark {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
+    --surface: 0 0% 9%;
+    --card: 0 0% 11%;
+    --card-hover: 0 0% 15%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 0 0% 68%;
+    --border-subtle: rgba(255, 255, 255, 0.14);
+    --glass-gradient: linear-gradient(135deg, #151515 0%, #0d0d0d 100%);
+    --card-glow: radial-gradient(circle at 50% 0%, rgba(190, 255, 0, 0.12), transparent 70%);
+    --shadow-glass: 4px 4px 0 rgba(0, 0, 0, 0.95);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-[#BFFF00] selection:text-black transition-colors duration-200;
+  }
+}
+
+/* Glassmorphism scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1E293B;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3B82F6;
+}
+
+

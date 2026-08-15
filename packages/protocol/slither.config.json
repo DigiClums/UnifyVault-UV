@@ -1,0 +1,10 @@
+{
+  "filter_paths": "node_modules|lib|test",
+  "detectors_to_exclude": "naming-convention,solc-version,low-level-calls",
+  "solc_remaps": [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+    "forge-std/=node_modules/forge-std/",
+    "ds-test/=lib/ds-test/src/"
+  ]
+}

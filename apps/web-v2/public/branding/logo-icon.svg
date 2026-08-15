@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="uv-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+    <linearGradient id="uv-grad-2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <filter id="uv-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Dark Background Plate -->
+  <rect width="512" height="512" rx="128" fill="#090D16" />
+
+  <!-- Outer Vault Hex / Ring -->
+  <path d="M256 48 L432 144 V336 L256 432 L80 336 V144 Z" 
+        stroke="url(#uv-grad-1)" 
+        stroke-width="16" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="#0D1527" 
+        fill-opacity="0.6"
+        filter="url(#uv-glow)" />
+
+  <!-- Inner Vault Core Shield -->
+  <path d="M256 112 L372 176 V304 L256 368 L140 304 V176 Z" 
+        fill="url(#uv-grad-1)" 
+        fill-opacity="0.15"
+        stroke="url(#uv-grad-2)" 
+        stroke-width="8" />
+
+  <!-- Stylized 'UV' Monogram -->
+  <!-- Left arm of U -->
+  <path d="M184 192 V264 C184 304 216 320 256 320 C296 320 328 304 328 264 V192" 
+        stroke="url(#uv-grad-1)" 
+        stroke-width="24" 
+        stroke-linecap="round" />
+
+  <!-- V Chevron Overlay -->
+  <path d="M208 224 L256 304 L304 224" 
+        stroke="url(#uv-grad-2)" 
+        stroke-width="20" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Central Vault Core Node -->
+  <circle cx="256" cy="256" r="16" fill="#38BDF8" />
+</svg>
