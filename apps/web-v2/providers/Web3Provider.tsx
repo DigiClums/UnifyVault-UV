@@ -12,12 +12,19 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
 import { base, baseSepolia } from 'viem/chains';
 import { http, fallback } from 'viem';
-import { createSafeWagmiStorage, setupIndexedDBGuard } from '../lib/utils/storageFallback';
+import {
+  createSafeWagmiStorage,
+  setupIndexedDBGuard,
+  setupWalletConnectGuard,
+} from '../lib/utils/storageFallback';
 import { installProviderInterceptors } from '../lib/utils/providerInterceptor';
 import '@rainbow-me/rainbowkit/styles.css';
 
 const walletConnectProjectId =
   process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '146781145b65a1c63ffcd7d6eaf03bd1';
+
+const walletConnectRelayUrl =
+  process.env.NEXT_PUBLIC_WALLET_CONNECT_RELAY_URL || 'wss://relay.walletconnect.org';
 
 const sepoliaPrimaryRpc =
   process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA ||
@@ -37,6 +44,10 @@ const config = getDefaultConfig({
   appName: 'UnifyVault',
   projectId: walletConnectProjectId,
   chains: [base, baseSepolia],
+  walletConnectParameters: {
+    relayUrl: walletConnectRelayUrl,
+    logger: 'silent',
+  },
   transports: {
     [base.id]: fallback([
       http(mainnetPrimaryRpc, {
@@ -127,6 +138,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     setupIndexedDBGuard();
+    setupWalletConnectGuard();
     // Install EIP-1193 provider interceptors to log outgoing transactions
     // This MUST run early so it proxies window.ethereum / window.safepalProvider
     // before wagmi/viem uses them for eth_sendTransaction.

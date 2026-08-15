@@ -67,6 +67,10 @@ export function createSafeWagmiStorage() {
 export function setupIndexedDBGuard(): void {
   if (typeof window === 'undefined') return;
 
+  const win = window as unknown as { __uv_idb_guard_installed?: boolean; indexedDB?: IDBFactory };
+  if (win.__uv_idb_guard_installed) return;
+  win.__uv_idb_guard_installed = true;
+
   // Intercept unhandled promise rejections related to IndexedDB backing store errors
   window.addEventListener('unhandledrejection', (event) => {
     const reasonStr = String(event?.reason?.message || event?.reason || '');
@@ -130,4 +134,60 @@ export function setupIndexedDBGuard(): void {
       }
     };
   }
+}
+
+/**
+ * Protects against uncaught promise rejections and WebSocket/subscription restore loops
+ * originating from WalletConnect relayer background processes when DNS or socket connections fail.
+ */
+export function setupWalletConnectGuard(): void {
+  if (typeof window === 'undefined') return;
+
+  const win = window as unknown as { __uv_wc_guard_installed?: boolean };
+  if (win.__uv_wc_guard_installed) return;
+  win.__uv_wc_guard_installed = true;
+
+  // 1. Stale storage cleanup: if there is no active session, purge orphaned subscription records
+  try {
+    const hasActiveSession =
+      Boolean(window.localStorage.getItem('wc@2:client:0.3:session')) ||
+      Boolean(window.localStorage.getItem('wc@2:ethereum_provider:session'));
+
+    if (!hasActiveSession) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (
+          key &&
+          (key.startsWith('wc@2:relayer:subscription') ||
+            key.startsWith('wc@2:core:1.5:subscription') ||
+            key.startsWith('wc@2:core:0.3:subscription'))
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const k of keysToRemove) {
+        window.localStorage.removeItem(k);
+      }
+    }
+  } catch {
+    // Ignore storage access errors in restricted environments
+  }
+
+  // 2. Intercept unhandled promise rejections related to WalletConnect relay / subscription errors
+  window.addEventListener('unhandledrejection', (event) => {
+    const reasonStr = String(event?.reason?.message || event?.reason || '');
+    const isWcRelayerError =
+      reasonStr.includes('socket connection to the relay server') ||
+      reasonStr.includes('Restore will override') ||
+      reasonStr.includes('RESTORE_WILL_OVERRIDE') ||
+      reasonStr.includes('relay.walletconnect.org') ||
+      reasonStr.includes('relay.walletconnect.com') ||
+      (reasonStr.includes('ERR_NAME_NOT_RESOLVED') &&
+        (reasonStr.includes('walletconnect') || reasonStr.includes('relay')));
+
+    if (isWcRelayerError) {
+      event.preventDefault(); // Prevent uncaught promise rejection from bubbling up
+    }
+  });
 }
