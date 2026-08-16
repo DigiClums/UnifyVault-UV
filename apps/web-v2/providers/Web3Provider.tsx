@@ -73,12 +73,6 @@ const config = getDefaultConfig({
       http('https://base-sepolia-rpc.publicnode.com', {
         batch: true,
       }),
-      http('https://base-sepolia.blockpi.network/v1/rpc/public', {
-        batch: true,
-      }),
-      http('https://1rpc.io/base-sepolia', {
-        batch: true,
-      }),
     ]),
   },
   storage: createSafeWagmiStorage(),

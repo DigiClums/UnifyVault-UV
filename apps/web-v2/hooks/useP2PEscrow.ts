@@ -19,6 +19,7 @@ import {
 } from 'viem';
 import { useProtocolDirectory } from './useProtocolDirectory';
 import { P2P_ESCROW_ABI } from '../lib/contracts/escrow';
+import { normalizeTransactionError } from '../lib/transaction/errorNormalizer';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
   getProtocolDirectoryAddress,
@@ -259,26 +260,7 @@ export function useP2PActions() {
   });
 
   const parseTxError = (err: unknown): string => {
-    const message = (err as { message?: string })?.message || String(err);
-    if (message.includes('User rejected') || message.includes('user rejected')) {
-      return 'Transaction rejected in wallet.';
-    }
-    if (message.includes('TradePaymentWindowExpired')) {
-      return 'Payment deadline has expired.';
-    }
-    if (message.includes('EvidenceHashAlreadyUsed')) {
-      return 'Receipt evidence hash has already been used in another trade.';
-    }
-    if (message.includes('InvalidTradeState')) {
-      return 'Invalid trade state for this operation.';
-    }
-    if (message.includes('UnauthorizedDisputeResolver')) {
-      return 'Only designated Arbitrators can resolve disputes.';
-    }
-    if (message.includes('insufficient funds')) {
-      return 'Insufficient wallet balance to execute transaction.';
-    }
-    return message.slice(0, 150);
+    return normalizeTransactionError(err).message;
   };
 
   const createTrade = async (params: {

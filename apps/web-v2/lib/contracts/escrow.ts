@@ -217,4 +217,105 @@ export const P2P_ESCROW_ABI = [
     name: 'TradeCancelled',
     type: 'event',
   },
+  {
+    inputs: [],
+    name: 'InvalidTradeParty',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'tradeId', type: 'uint256' },
+      { name: 'currentState', type: 'uint8' },
+      { name: 'expectedState', type: 'uint8' },
+    ],
+    name: 'InvalidTradeState',
+    type: 'error',
+  },
+  {
+    inputs: [{ name: 'evidenceHash', type: 'bytes32' }],
+    name: 'EvidenceHashAlreadyUsed',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'tradeId', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'currentTimestamp', type: 'uint256' },
+    ],
+    name: 'TradePaymentWindowExpired',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'tradeId', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'currentTimestamp', type: 'uint256' },
+    ],
+    name: 'TradePaymentWindowActive',
+    type: 'error',
+  },
+  {
+    inputs: [{ name: 'caller', type: 'address' }],
+    name: 'UnauthorizedDisputeResolver',
+    type: 'error',
+  },
+  {
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    name: 'TradeDoesNotExist',
+    type: 'error',
+  },
+  {
+    inputs: [{ name: 'paymentReference', type: 'bytes32' }],
+    name: 'PaymentReferenceAlreadyUsed',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidEvidenceHash',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidPaymentReference',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'provided', type: 'uint256' },
+      { name: 'minimum', type: 'uint256' },
+    ],
+    name: 'MinimumPaymentWindowNotMet',
+    type: 'error',
+  },
+  {
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    name: 'TradeAlreadyFunded',
+    type: 'error',
+  },
+  {
+    inputs: [{ name: 'tradeId', type: 'uint256' }],
+    name: 'TradeNotFunded',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'feeBps', type: 'uint256' },
+      { name: 'maxBps', type: 'uint256' },
+    ],
+    name: 'FeeExceedsMaximum',
+    type: 'error',
+  },
+  {
+    inputs: [
+      { name: 'expected', type: 'uint256' },
+      { name: 'actual', type: 'uint256' },
+    ],
+    name: 'IncorrectNativeAmount',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'ProtocolPaused',
+    type: 'error',
+  },
 ] as const;

@@ -49,6 +49,7 @@ import { TransactionStatusModal } from '../common/TransactionStatusModal';
 import { keccak256, toHex, type Hex } from 'viem';
 import { EvidenceVerificationResult } from '../../lib/evidence/types';
 import { verifyPaymentEvidence } from '../../lib/evidence/evidenceVerifier';
+import { normalizeTransactionError } from '../../lib/transaction/errorNormalizer';
 
 interface TradeDetailCardProps {
   trade: TradeDetails;
@@ -568,9 +569,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         await submitPayment(trade.tradeId, utr, receiptHash);
       }
       if (onRefresh) onRefresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Submit payment failed:', err);
-      setUserError(err?.message || 'Submit payment failed.');
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
@@ -588,9 +589,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         await confirmAndRelease(trade.tradeId);
       }
       if (onRefresh) onRefresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Confirm release failed:', err);
-      setUserError(err?.message || 'Confirm release failed.');
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
@@ -608,9 +609,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         await refund(trade.tradeId);
       }
       if (onRefresh) onRefresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Refund failed:', err);
-      setUserError(err?.message || 'Refund failed.');
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
@@ -621,6 +622,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       if (refetchAllowance) refetchAllowance();
     } catch (err) {
       console.error('Approval failed:', err);
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
@@ -644,6 +646,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Resolve dispute failed:', err);
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
@@ -682,6 +685,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Fund trade failed:', err);
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
@@ -707,6 +711,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Raise dispute failed:', err);
+      setUserError(normalizeTransactionError(err).message);
     }
   };
 
