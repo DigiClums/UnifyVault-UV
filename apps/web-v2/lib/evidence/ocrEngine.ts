@@ -1,5 +1,13 @@
 import { ExtractedReceiptData } from './types';
 
+export const OCR_LAYOUT_PASS_DELIMITER = '\n--- OCR_LAYOUT_PASS ---\n';
+
+export interface OCRPassCandidate {
+  amount?: number;
+  isStructured: boolean;
+  psm?: string;
+}
+
 /**
  * Normalizes raw amount strings by stripping currency symbols, abbreviations (e.g. Rs., INR), commas, and whitespace.
  */
@@ -13,29 +21,12 @@ export function normalizeAmountString(raw: string): number | undefined {
 }
 
 /**
- * Extracts structured receipt data from extracted OCR text.
- * NEVER manufactures synthetic text or defaults to expected amount.
- * Preserves transaction references as exact strings with leading zeros intact.
+ * Extracts a candidate transaction amount from an individual OCR layout text pass.
  */
-export function extractReceiptDataFromText(rawText: string): ExtractedReceiptData {
-  if (!rawText || rawText.trim().length === 0) {
-    return { confidenceScore: 0.0 };
-  }
-
+export function extractAmountCandidateFromText(rawText: string): number | undefined {
+  if (!rawText || rawText.trim().length === 0) return undefined;
   const text = rawText.replace(/\r/g, ' ');
 
-  let amount: number | undefined = undefined;
-  let currency: string = 'INR';
-  let utr: string | undefined = undefined;
-  let transactionDate: string | undefined = undefined;
-  let transactionTime: string | undefined = undefined;
-  let paymentStatus: 'SUCCESSFUL' | 'FAILED' | 'PENDING' | 'CANCELLED' | undefined = undefined;
-  let senderName: string | undefined = undefined;
-  let senderVpa: string | undefined = undefined;
-  let receiverName: string | undefined = undefined;
-  let receiverVpa: string | undefined = undefined;
-
-  // 1. Amount Extraction
   // Priority A: Explicit labeled amounts (e.g. Paid: ₹500, Amount: INR 500.00, Payment of: ₹35)
   const labeledAmountRegexes = [
     /(?:Amount|Paid|Total|Value|Transfer(?:red)?(?:\s*Amount)?|Sent|Debited|Payment(?:\s*of)?)\s*[:\s]*[₹Rs\.\s]*\s*([\d,]+(?:\.\d{1,2})?)/i,
@@ -58,37 +49,156 @@ export function extractReceiptDataFromText(rawText: string): ExtractedReceiptDat
       ) {
         const parsed = normalizeAmountString(match[1]);
         if (parsed !== undefined && parsed > 0) {
-          amount = parsed;
-          break;
+          return parsed;
         }
       }
     }
   }
 
   // Priority B: Standalone amount line placed near 'Paid via' or after payee info
-  if (amount === undefined) {
-    const lines = text
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (/paid\s+via/i.test(line) && i > 0) {
-        const candidate = lines[i - 1];
-        if (
-          !candidate.toLowerCase().includes('get up to') &&
-          !candidate.toLowerCase().includes('payment') &&
-          !candidate.toLowerCase().includes('provition') &&
-          !candidate.includes('@')
-        ) {
-          const parsed = normalizeAmountString(candidate);
-          if (parsed !== undefined) {
-            amount = parsed;
-            break;
-          }
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/paid\s+via/i.test(line) && i > 0) {
+      const candidate = lines[i - 1];
+      if (
+        !candidate.toLowerCase().includes('get up to') &&
+        !candidate.toLowerCase().includes('payment') &&
+        !candidate.toLowerCase().includes('provition') &&
+        !candidate.includes('@')
+      ) {
+        const parsed = normalizeAmountString(candidate);
+        if (parsed !== undefined && parsed > 0) {
+          return parsed;
         }
       }
     }
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolves final transaction amount through multi-layout consensus.
+ * Reconciles OCR currency glyph misrecognitions and fails closed to undefined if passes genuinely conflict.
+ */
+export function resolveConsensusAmount(candidates: OCRPassCandidate[]): number | undefined {
+  const valid = candidates.filter(
+    (c): c is OCRPassCandidate & { amount: number } => typeof c.amount === 'number' && c.amount > 0,
+  );
+  if (valid.length === 0) return undefined;
+
+  const map = new Map<number, { total: number; structured: number }>();
+  for (const c of valid) {
+    const entry = map.get(c.amount) || { total: 0, structured: 0 };
+    entry.total += 1;
+    if (c.isStructured) entry.structured += 1;
+    map.set(c.amount, entry);
+  }
+
+  const uniqueAmounts = Array.from(map.keys());
+  if (uniqueAmounts.length === 1) {
+    return uniqueAmounts[0];
+  }
+
+  // Handle OCR Rupee prefix artifact: where one candidate is X and another is "2" + X (₹ glyph misread as '2')
+  for (const amt of uniqueAmounts) {
+    const prefixed = Number('2' + amt.toString());
+    if (map.has(prefixed)) {
+      const xEntry = map.get(amt)!;
+      const prefixedEntry = map.get(prefixed)!;
+
+      // 1. If 2X has strong structured consensus (>= 2 structured votes) and X has 0 structured votes, preserve 2X
+      if (prefixedEntry.structured >= 2 && xEntry.structured === 0) {
+        map.delete(amt);
+      }
+      // 2. If structured support is split 1-vs-1 (e.g. AUTO=290 vs SINGLE_COL=90), do not reconcile (fail closed)
+      else if (xEntry.structured === 1 && prefixedEntry.structured === 1) {
+        // Leave both to fail closed
+      }
+      // 3. Otherwise (X has >= structured support, or 2X has only 1 structured vote while X is sparse artifact), reconcile 2X -> X
+      else {
+        xEntry.total += prefixedEntry.total;
+        xEntry.structured += prefixedEntry.structured;
+        map.delete(prefixed);
+      }
+    }
+  }
+
+  const reconciledAmounts = Array.from(map.keys());
+  if (reconciledAmounts.length === 1) {
+    return reconciledAmounts[0];
+  }
+
+  // 1. Check strong structured layout consensus (>= 2 structured passes agree)
+  const structuredWinners = reconciledAmounts.filter((amt) => (map.get(amt)?.structured || 0) >= 2);
+  if (structuredWinners.length === 1) {
+    return structuredWinners[0];
+  }
+
+  // 2. Check single structured pass vs purely unstructured passes
+  const structuredCandidates = reconciledAmounts.filter(
+    (amt) => (map.get(amt)?.structured || 0) >= 1,
+  );
+  if (structuredCandidates.length === 1) {
+    const winner = structuredCandidates[0];
+    const nonStructured = reconciledAmounts.filter((amt) => amt !== winner);
+    const allOthersUnstructured = nonStructured.every(
+      (amt) => (map.get(amt)?.structured || 0) === 0,
+    );
+    if (allOthersUnstructured) {
+      return winner;
+    }
+  }
+
+  // 3. If AUTO and SINGLE_COLUMN produce different structured amounts, do not allow SPARSE_TEXT to resolve the conflict.
+  // Return undefined so the verifier routes the transaction to manual review (fail-closed).
+  return undefined;
+}
+
+/**
+ * Extracts structured receipt data from extracted OCR text.
+ * NEVER manufactures synthetic text or defaults to expected amount.
+ * Preserves transaction references as exact strings with leading zeros intact.
+ */
+export function extractReceiptDataFromText(
+  rawText: string,
+  passResults?: OCRPassCandidate[],
+): ExtractedReceiptData {
+  if (!rawText || rawText.trim().length === 0) {
+    return { confidenceScore: 0.0 };
+  }
+
+  const text = rawText.replace(/\r/g, ' ');
+
+  let amount: number | undefined = undefined;
+  let currency: string = 'INR';
+  let utr: string | undefined = undefined;
+  let transactionDate: string | undefined = undefined;
+  let transactionTime: string | undefined = undefined;
+  let paymentStatus: 'SUCCESSFUL' | 'FAILED' | 'PENDING' | 'CANCELLED' | undefined = undefined;
+  let senderName: string | undefined = undefined;
+  let senderVpa: string | undefined = undefined;
+  let receiverName: string | undefined = undefined;
+  let receiverVpa: string | undefined = undefined;
+
+  // 1. Amount Extraction via Candidate Consensus
+  if (passResults && passResults.length > 0) {
+    amount = resolveConsensusAmount(passResults);
+  } else if (rawText.includes(OCR_LAYOUT_PASS_DELIMITER)) {
+    const passChunks = rawText.split(OCR_LAYOUT_PASS_DELIMITER);
+    const candidates: OCRPassCandidate[] = passChunks.map((chunk, idx) => ({
+      amount: extractAmountCandidateFromText(chunk),
+      // Pass 0 (AUTO) and Pass 1 (SINGLE_COLUMN) are structured layouts
+      isStructured: idx < 2,
+      psm: idx === 0 ? 'AUTO' : idx === 1 ? 'SINGLE_COLUMN' : 'SPARSE_TEXT',
+    }));
+    amount = resolveConsensusAmount(candidates);
+  } else {
+    amount = extractAmountCandidateFromText(text);
   }
 
   // Currency extraction
@@ -232,13 +342,14 @@ export function extractReceiptDataFromText(rawText: string): ExtractedReceiptDat
 
 /**
  * Performs actual Optical Character Recognition on image bytes or text extraction on PDF bytes.
+ * Runs multi-layout page segmentation passes with consensus voting for high accuracy.
  * Manages worker lifecycle safely without leaking child processes.
  */
 export async function performRealReceiptOCR(
   fileBytes: Uint8Array,
   mimeType: string,
   fileName: string = 'receipt',
-): Promise<{ text: string; confidence: number }> {
+): Promise<{ text: string; confidence: number; passResults?: OCRPassCandidate[] }> {
   const isPdf = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
 
   if (isPdf) {
@@ -277,7 +388,19 @@ export async function performRealReceiptOCR(
     const autoText = autoResult.data?.text || '';
     const autoConfidence = (autoResult.data?.confidence || 0) / 100;
 
-    // Pass 2: SPARSE_TEXT segmentation to capture detached labels/amounts
+    // Pass 2: Explicit SINGLE_COLUMN layout segmentation
+    let singleColText = '';
+    let singleColConfidence = 0.0;
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_COLUMN });
+      const singleColResult = await worker.recognize(buffer);
+      singleColText = singleColResult.data?.text || '';
+      singleColConfidence = (singleColResult.data?.confidence || 0) / 100;
+    } catch {
+      // Non-fatal fallback
+    }
+
+    // Pass 3: SPARSE_TEXT segmentation to capture detached labels/amounts
     let sparseText = '';
     let sparseConfidence = 0.0;
     try {
@@ -285,16 +408,36 @@ export async function performRealReceiptOCR(
       const sparseResult = await worker.recognize(buffer);
       sparseText = sparseResult.data?.text || '';
       sparseConfidence = (sparseResult.data?.confidence || 0) / 100;
-    } catch (sparseErr) {
+    } catch {
       // Non-fatal fallback
     }
 
-    const combinedText = autoText + (sparseText ? '\n' + sparseText : '');
-    const maxConfidence = Math.max(autoConfidence, sparseConfidence);
+    const passTexts = [autoText, singleColText, sparseText].filter((t) => t.trim().length > 0);
+    const combinedText = passTexts.join(OCR_LAYOUT_PASS_DELIMITER);
+    const maxConfidence = Math.max(autoConfidence, singleColConfidence, sparseConfidence);
+
+    const passResults: OCRPassCandidate[] = [
+      {
+        amount: extractAmountCandidateFromText(autoText),
+        isStructured: true,
+        psm: 'AUTO',
+      },
+      {
+        amount: extractAmountCandidateFromText(singleColText),
+        isStructured: true,
+        psm: 'SINGLE_COLUMN',
+      },
+      {
+        amount: extractAmountCandidateFromText(sparseText),
+        isStructured: false,
+        psm: 'SPARSE_TEXT',
+      },
+    ];
 
     return {
       text: combinedText,
       confidence: maxConfidence,
+      passResults,
     };
   } catch (ocrErr) {
     console.error('Tesseract OCR image extraction error:', ocrErr);
