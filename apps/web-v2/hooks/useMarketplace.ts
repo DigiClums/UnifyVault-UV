@@ -10,6 +10,7 @@ import {
   createPublicClient,
   http,
   decodeEventLog,
+  encodeEventTopics,
   type Address,
 } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
@@ -39,6 +40,154 @@ function isNonZeroAddress(addr?: string): boolean {
     clean.startsWith('0x') &&
     clean.length === 42
   );
+}
+
+/**
+ * Safely validates that an extracted trade ID is a sane positive integer within safe range.
+ * Strictly prevents 160-bit address topics or arbitrary huge numbers from being accepted.
+ */
+export function isSaneTradeId(id: bigint | number | null | undefined): id is number {
+  if (id === null || id === undefined) return false;
+  try {
+    const big = typeof id === 'bigint' ? id : BigInt(id);
+    return big > 0n && big <= BigInt(Number.MAX_SAFE_INTEGER) && big < 1_000_000_000n;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safely validates that an extracted order ID is a sane positive integer within safe range.
+ */
+export function isSaneOrderId(id: bigint | number | null | undefined): id is number {
+  if (id === null || id === undefined) return false;
+  try {
+    const big = typeof id === 'bigint' ? id : BigInt(id);
+    return big > 0n && big <= BigInt(Number.MAX_SAFE_INTEGER) && big < 1_000_000_000n;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Deterministically extracts the escrow trade ID from transaction receipt logs using
+ * the canonical Marketplace event ABI, with a verified on-chain getMatch(matchId) fallback.
+ */
+export async function extractEscrowTradeIdFromReceipt(params: {
+  publicClient: any;
+  receipt: any;
+  marketplaceAddress: Address;
+}): Promise<{ escrowTradeId: number | null; matchId: bigint | null }> {
+  const { publicClient, receipt, marketplaceAddress } = params;
+
+  let escrowTradeId: number | null = null;
+  let foundMatchId: bigint | null = null;
+
+  const escrowTradeLinkedTopic0 = encodeEventTopics({
+    abi: MARKETPLACE_ABI,
+    eventName: 'EscrowTradeLinked',
+  })[0]?.toLowerCase();
+
+  const orderMatchedTopic0 = encodeEventTopics({
+    abi: MARKETPLACE_ABI,
+    eventName: 'OrderMatched',
+  })[0]?.toLowerCase();
+
+  for (const log of receipt.logs || []) {
+    if (log.address.toLowerCase() !== marketplaceAddress.toLowerCase()) {
+      continue;
+    }
+
+    const topic0 = log.topics?.[0]?.toLowerCase();
+
+    // 1. EscrowTradeLinked Event
+    if (topic0 && topic0 === escrowTradeLinkedTopic0) {
+      try {
+        const decoded = decodeEventLog({
+          abi: MARKETPLACE_ABI,
+          data: log.data,
+          topics: log.topics,
+        });
+        if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
+          const rawMatchId = (decoded.args as any).matchId;
+          const rawTradeId = (decoded.args as any).tradeId ?? (decoded.args as any).escrowTradeId;
+
+          if (rawMatchId !== undefined && rawMatchId !== null) {
+            foundMatchId = BigInt(rawMatchId);
+          }
+          if (rawTradeId !== undefined && rawTradeId !== null) {
+            const bigTradeId = BigInt(rawTradeId);
+            if (isSaneTradeId(bigTradeId)) {
+              escrowTradeId = Number(bigTradeId);
+              break;
+            }
+          }
+        }
+      } catch {
+        // Fallback only if topic0 is verified EscrowTradeLinked
+        // Canonical layout: topics[1] = matchId, topics[2] = tradeId
+        if (log.topics && log.topics.length >= 3 && log.topics[1] && log.topics[2]) {
+          try {
+            foundMatchId = BigInt(log.topics[1]);
+            const topicTradeId = BigInt(log.topics[2]);
+            if (isSaneTradeId(topicTradeId)) {
+              escrowTradeId = Number(topicTradeId);
+              break;
+            }
+          } catch {
+            // Ignore parsing error
+          }
+        }
+      }
+    }
+
+    // 2. OrderMatched Event (capture matchId for fallback)
+    if (topic0 && topic0 === orderMatchedTopic0 && !foundMatchId) {
+      try {
+        const decoded = decodeEventLog({
+          abi: MARKETPLACE_ABI,
+          data: log.data,
+          topics: log.topics,
+        });
+        if (decoded.eventName === 'OrderMatched' && decoded.args) {
+          const rawMatchId = (decoded.args as any).matchId;
+          if (rawMatchId !== undefined && rawMatchId !== null) {
+            foundMatchId = BigInt(rawMatchId);
+          }
+        }
+      } catch {
+        if (log.topics && log.topics.length >= 2 && log.topics[1]) {
+          try {
+            foundMatchId = BigInt(log.topics[1]);
+          } catch {
+            // Ignore
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fallback to reading on-chain match record directly via matchId
+  if (!escrowTradeId && foundMatchId && foundMatchId > 0n && publicClient) {
+    try {
+      const matchData = (await publicClient.readContract({
+        address: marketplaceAddress,
+        abi: MARKETPLACE_ABI,
+        functionName: 'getMatch',
+        args: [foundMatchId],
+      })) as any;
+      if (matchData && matchData.escrowTradeId) {
+        const bigTradeId = BigInt(matchData.escrowTradeId);
+        if (isSaneTradeId(bigTradeId)) {
+          escrowTradeId = Number(bigTradeId);
+        }
+      }
+    } catch {
+      // Ignore fallback read error
+    }
+  }
+
+  return { escrowTradeId, matchId: foundMatchId };
 }
 
 /**
@@ -369,22 +518,36 @@ export function useMarketplaceActions() {
       if (publicClient) {
         try {
           const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+          const orderCreatedTopic0 = encodeEventTopics({
+            abi: MARKETPLACE_ABI,
+            eventName: 'OrderCreated',
+          })[0]?.toLowerCase();
 
           for (const log of receipt.logs) {
-            try {
-              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
+            if (log.address.toLowerCase() !== marketplaceAddress.toLowerCase()) continue;
+            if (log.topics?.[0]?.toLowerCase() === orderCreatedTopic0) {
+              try {
                 const decoded = decodeEventLog({
                   abi: MARKETPLACE_ABI,
                   data: log.data,
                   topics: log.topics,
                 });
                 if (decoded.eventName === 'OrderCreated' && decoded.args) {
-                  orderId = Number((decoded.args as any).orderId);
-                  break;
+                  const rawOrderId = (decoded.args as any).orderId;
+                  if (isSaneOrderId(rawOrderId)) {
+                    orderId = Number(rawOrderId);
+                    break;
+                  }
+                }
+              } catch {
+                if (log.topics && log.topics.length >= 2 && log.topics[1]) {
+                  const topicOrderId = BigInt(log.topics[1]);
+                  if (isSaneOrderId(topicOrderId)) {
+                    orderId = Number(topicOrderId);
+                    break;
+                  }
                 }
               }
-            } catch {
-              // Ignore non-matching logs
             }
           }
         } catch {
@@ -398,7 +561,9 @@ export function useMarketplaceActions() {
               abi: MARKETPLACE_ABI,
               functionName: 'getOrderCount',
             })) as bigint;
-            orderId = Number(countBigInt);
+            if (isSaneOrderId(countBigInt)) {
+              orderId = Number(countBigInt);
+            }
           } catch {
             // Ignore
           }
@@ -510,22 +675,36 @@ export function useMarketplaceActions() {
       if (publicClient) {
         try {
           const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+          const orderCreatedTopic0 = encodeEventTopics({
+            abi: MARKETPLACE_ABI,
+            eventName: 'OrderCreated',
+          })[0]?.toLowerCase();
 
           for (const log of receipt.logs) {
-            try {
-              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
+            if (log.address.toLowerCase() !== marketplaceAddress.toLowerCase()) continue;
+            if (log.topics?.[0]?.toLowerCase() === orderCreatedTopic0) {
+              try {
                 const decoded = decodeEventLog({
                   abi: MARKETPLACE_ABI,
                   data: log.data,
                   topics: log.topics,
                 });
                 if (decoded.eventName === 'OrderCreated' && decoded.args) {
-                  orderId = Number((decoded.args as any).orderId);
-                  break;
+                  const rawOrderId = (decoded.args as any).orderId;
+                  if (isSaneOrderId(rawOrderId)) {
+                    orderId = Number(rawOrderId);
+                    break;
+                  }
+                }
+              } catch {
+                if (log.topics && log.topics.length >= 2 && log.topics[1]) {
+                  const topicOrderId = BigInt(log.topics[1]);
+                  if (isSaneOrderId(topicOrderId)) {
+                    orderId = Number(topicOrderId);
+                    break;
+                  }
                 }
               }
-            } catch {
-              // Ignore non-matching logs
             }
           }
         } catch {
@@ -539,7 +718,9 @@ export function useMarketplaceActions() {
               abi: MARKETPLACE_ABI,
               functionName: 'getOrderCount',
             })) as bigint;
-            orderId = Number(countBigInt);
+            if (isSaneOrderId(countBigInt)) {
+              orderId = Number(countBigInt);
+            }
           } catch {
             // Ignore
           }
@@ -657,65 +838,14 @@ export function useMarketplaceActions() {
       if (publicClient) {
         try {
           const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-          for (const log of receipt.logs) {
-            try {
-              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
-                try {
-                  const decoded = decodeEventLog({
-                    abi: MARKETPLACE_ABI,
-                    data: log.data,
-                    topics: log.topics,
-                  });
-                  if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
-                    const linkedTradeId =
-                      (decoded.args as any).escrowTradeId || (decoded.args as any).tradeId;
-                    if (linkedTradeId) {
-                      escrowTradeId = Number(linkedTradeId);
-                      break;
-                    }
-                  }
-                } catch {
-                  // Fallback to topic parsing
-                }
-
-                if (log.topics && log.topics.length >= 3 && log.topics[2]) {
-                  const topicTradeId = Number(BigInt(log.topics[2]));
-                  if (topicTradeId > 0) {
-                    escrowTradeId = topicTradeId;
-                    break;
-                  }
-                }
-              }
-            } catch {
-              // Ignore non-matching logs
-            }
-          }
+          const extracted = await extractEscrowTradeIdFromReceipt({
+            publicClient,
+            receipt,
+            marketplaceAddress,
+          });
+          escrowTradeId = extracted.escrowTradeId;
         } catch {
           // Ignore
-        }
-
-        if (!escrowTradeId) {
-          try {
-            const matchCountBigInt = (await publicClient.readContract({
-              address: marketplaceAddress,
-              abi: MARKETPLACE_ABI,
-              functionName: 'getMatchCount',
-            })) as bigint;
-            if (matchCountBigInt > 0n) {
-              const matchData = (await publicClient.readContract({
-                address: marketplaceAddress,
-                abi: MARKETPLACE_ABI,
-                functionName: 'getMatch',
-                args: [matchCountBigInt],
-              })) as any;
-              if (matchData && matchData.escrowTradeId && matchData.escrowTradeId > 0n) {
-                escrowTradeId = Number(matchData.escrowTradeId);
-              }
-            }
-          } catch {
-            // Ignore fallback error
-          }
         }
       }
 
@@ -773,65 +903,14 @@ export function useMarketplaceActions() {
       if (publicClient) {
         try {
           const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-          for (const log of receipt.logs) {
-            try {
-              if (log.address.toLowerCase() === marketplaceAddress.toLowerCase()) {
-                try {
-                  const decoded = decodeEventLog({
-                    abi: MARKETPLACE_ABI,
-                    data: log.data,
-                    topics: log.topics,
-                  });
-                  if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
-                    const linkedTradeId =
-                      (decoded.args as any).escrowTradeId || (decoded.args as any).tradeId;
-                    if (linkedTradeId) {
-                      escrowTradeId = Number(linkedTradeId);
-                      break;
-                    }
-                  }
-                } catch {
-                  // Fallback to direct topic parsing
-                }
-
-                if (log.topics && log.topics.length >= 3 && log.topics[2]) {
-                  const topicTradeId = Number(BigInt(log.topics[2]));
-                  if (topicTradeId > 0) {
-                    escrowTradeId = topicTradeId;
-                    break;
-                  }
-                }
-              }
-            } catch {
-              // Ignore non-matching logs
-            }
-          }
+          const extracted = await extractEscrowTradeIdFromReceipt({
+            publicClient,
+            receipt,
+            marketplaceAddress,
+          });
+          escrowTradeId = extracted.escrowTradeId;
         } catch {
           // Ignore
-        }
-
-        if (!escrowTradeId) {
-          try {
-            const matchCountBigInt = (await publicClient.readContract({
-              address: marketplaceAddress,
-              abi: MARKETPLACE_ABI,
-              functionName: 'getMatchCount',
-            })) as bigint;
-            if (matchCountBigInt > 0n) {
-              const matchData = (await publicClient.readContract({
-                address: marketplaceAddress,
-                abi: MARKETPLACE_ABI,
-                functionName: 'getMatch',
-                args: [matchCountBigInt],
-              })) as any;
-              if (matchData && matchData.escrowTradeId && matchData.escrowTradeId > 0n) {
-                escrowTradeId = Number(matchData.escrowTradeId);
-              }
-            }
-          } catch {
-            // Ignore fallback error
-          }
         }
       }
 

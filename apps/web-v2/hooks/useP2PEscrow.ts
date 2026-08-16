@@ -84,14 +84,21 @@ export function useP2PTrade(tradeId?: number) {
   const chainId = chain?.id || getDefaultChainId();
   const { p2pEscrow } = useProtocolDirectory();
 
+  const isSaneId =
+    typeof tradeId === 'number' &&
+    Number.isInteger(tradeId) &&
+    tradeId > 0 &&
+    tradeId <= Number.MAX_SAFE_INTEGER &&
+    tradeId < 1_000_000_000;
+
   const { data, isError, isLoading, refetch } = useReadContract({
     address: p2pEscrow,
     abi: P2P_ESCROW_ABI,
     functionName: 'getTrade',
-    args: tradeId ? [BigInt(tradeId)] : undefined,
+    args: isSaneId && tradeId ? [BigInt(tradeId)] : undefined,
     chainId,
     query: {
-      enabled: Boolean(p2pEscrow && tradeId && tradeId > 0),
+      enabled: Boolean(p2pEscrow && isSaneId),
       refetchInterval: 10_000,
     },
   });

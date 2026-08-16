@@ -254,27 +254,40 @@ async function main() {
   let testEscrowTradeId: number | null = null;
   let testMatchId: number | null = null;
 
+  console.log('\n--- RAW MARKETPLACE RECEIPT LOG FORENSICS ---');
+  let logIdx = 0;
   for (const log of takeOrderReceipt.logs) {
-    try {
-      if (log.address.toLowerCase() === MARKETPLACE_ADDRESS.toLowerCase()) {
+    if (log.address.toLowerCase() === MARKETPLACE_ADDRESS.toLowerCase()) {
+      console.log(`\nLog #${logIdx}:`);
+      console.log(`  Address:   ${log.address}`);
+      console.log(`  Topics[0]: ${log.topics[0]}`);
+      console.log(`  Topics[1]: ${log.topics[1] || 'none'}`);
+      console.log(`  Topics[2]: ${log.topics[2] || 'none'}`);
+      console.log(`  Topics[3]: ${log.topics[3] || 'none'}`);
+      console.log(`  Data:      ${log.data}`);
+
+      try {
         const decoded = decodeEventLog({
           abi: MARKETPLACE_ABI,
           data: log.data,
           topics: log.topics,
         });
+        console.log(`  Decoded Event: ${decoded.eventName}`);
+        console.log(`  Decoded Args:`, decoded.args);
+
         if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
           testMatchId = Number((decoded.args as any).matchId);
           testEscrowTradeId = Number(
-            (decoded.args as any).escrowTradeId || (decoded.args as any).tradeId,
+            (decoded.args as any).tradeId ?? (decoded.args as any).escrowTradeId,
           );
           console.log(
-            `[EventDecoded] EscrowTradeLinked matchId: ${testMatchId}, tradeId: ${testEscrowTradeId}`,
+            `  => [SUCCESS] Decoded EscrowTradeLinked -> matchId: ${testMatchId}, tradeId: ${testEscrowTradeId}`,
           );
-          break;
         }
+      } catch (err: any) {
+        console.log(`  Decode failed: ${err.message}`);
       }
-    } catch {
-      // Ignore
+      logIdx++;
     }
   }
 

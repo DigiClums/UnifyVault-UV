@@ -14,7 +14,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
-import { useMarketplaceActions } from '../../hooks/useMarketplace';
+import { useMarketplaceActions, isSaneTradeId } from '../../hooks/useMarketplace';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
 interface TakeOrderModalProps {
@@ -188,7 +188,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         takeAmount: matchAmountBigInt,
       });
 
-      if (result.escrowTradeId) {
+      if (result.escrowTradeId && isSaneTradeId(result.escrowTradeId)) {
         onMatchSuccess(result.escrowTradeId);
       } else {
         handleClose();

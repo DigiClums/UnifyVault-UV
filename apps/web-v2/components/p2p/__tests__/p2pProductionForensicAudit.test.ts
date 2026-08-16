@@ -14,24 +14,27 @@ describe('P2P Production Forensic Audit Suite', () => {
   describe('Phase 1 & 2: TakeOrder & EscrowTradeLinked Event Forensic', () => {
     it('accurately decodes EscrowTradeLinked event from Marketplace.sol on-chain log', () => {
       // In Marketplace.sol:
-      // event EscrowTradeLinked(uint256 indexed matchId, uint256 indexed escrowTradeId, uint256 buyOrderId, uint256 sellOrderId, address buyer, address seller, address asset, uint256 amount);
+      // event EscrowTradeLinked(uint256 indexed matchId, uint256 indexed tradeId, uint256 indexed buyOrderId, uint256 sellOrderId, address buyer, address seller, address asset, uint256 matchAmount);
       const matchId = 42n;
-      const escrowTradeId = 77n;
+      const tradeId = 77n;
+      const buyOrderId = 0n;
 
       const topics = encodeEventTopics({
         abi: MARKETPLACE_ABI,
         eventName: 'EscrowTradeLinked',
         args: {
           matchId,
-          escrowTradeId,
+          tradeId,
+          buyOrderId,
         },
       });
 
-      expect(topics.length).toBe(3); // topic0 + indexed matchId + indexed escrowTradeId
+      expect(topics.length).toBe(4); // topic0 + indexed matchId + indexed tradeId + indexed buyOrderId
       expect(Number(BigInt(topics[1]!))).toBe(42);
       expect(Number(BigInt(topics[2]!))).toBe(77);
+      expect(Number(BigInt(topics[3]!))).toBe(0);
 
-      // Direct topic parsing fallback verification
+      // Direct topic parsing verification for verified topic0
       const extractedFromTopic = Number(BigInt(topics[2]!));
       expect(extractedFromTopic).toBe(77);
     });

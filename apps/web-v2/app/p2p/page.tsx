@@ -10,9 +10,10 @@ import {
   ListOrdered,
   UserCheck,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { useP2PTrades, useP2PTrade } from '../../hooks/useP2PEscrow';
-import { useMarketplaceOrders } from '../../hooks/useMarketplace';
+import { useMarketplaceOrders, isSaneTradeId } from '../../hooks/useMarketplace';
 import { MarketplaceOrderBook } from '../../components/p2p/MarketplaceOrderBook';
 import { TakeOrderModal } from '../../components/p2p/TakeOrderModal';
 import { CreateMarketplaceOrderModal } from '../../components/p2p/CreateMarketplaceOrderModal';
@@ -61,7 +62,11 @@ export default function P2PPage() {
     setSelectedOrder(null);
     refetchMarketplace();
     refetchEscrow();
-    setSelectedTradeId(escrowTradeId);
+    if (isSaneTradeId(escrowTradeId)) {
+      setSelectedTradeId(escrowTradeId);
+    } else {
+      console.error('Invalid escrowTradeId received in handleMatchSuccess:', escrowTradeId);
+    }
   };
 
   const handleRefreshAll = () => {
@@ -111,12 +116,30 @@ export default function P2PPage() {
             <span>Back to Marketplace View</span>
           </button>
 
-          {isTradeLoading || !selectedTrade ? (
+          {isTradeLoading ? (
             <div className="p-8 rounded-2xl bg-background border-2 border-black dark:border-white/10 flex flex-col items-center justify-center gap-3 text-center">
               <Loader2 className="w-6 h-6 animate-spin text-[#BFFF00]" />
               <p className="text-xs font-bold text-muted-foreground font-mono">
                 Loading Escrow Trade #{selectedTradeId}...
               </p>
+            </div>
+          ) : !selectedTrade ? (
+            <div className="p-8 rounded-2xl bg-background border-2 border-black dark:border-white/10 flex flex-col items-center justify-center gap-3 text-center">
+              <AlertCircle className="w-6 h-6 text-rose-500" />
+              <p className="text-sm font-bold text-foreground font-sans">
+                Unable to resolve escrow trade #{selectedTradeId}.
+              </p>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                The trade may still be finalizing on-chain, or invalid parameters were provided.
+                Please retry from the My Trades tab.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedTradeId(null)}
+                className="mt-2 px-4 py-2 rounded-xl bg-[#BFFF00] text-black font-bold text-xs border-2 border-black shadow-[2px_2px_0_#000]"
+              >
+                Back to Orderbook
+              </button>
             </div>
           ) : (
             <TradeDetailCard
