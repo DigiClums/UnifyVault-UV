@@ -60,6 +60,7 @@ export async function verifyPaymentEvidence(
 
   let fileHash: `0x${string}` = computeReceiptKeccak256(rawBytes);
   let cid: string = `vps-${fileHash}`;
+  let ocrRawText = rawTextOverride;
 
   // If in browser and real File instance, upload bytes to VPS storage endpoint
   if (typeof window !== 'undefined' && file instanceof File) {
@@ -67,6 +68,9 @@ export async function verifyPaymentEvidence(
       const uploadRes = await uploadReceiptEvidence(file);
       fileHash = uploadRes.fileHash;
       cid = uploadRes.ipfsCid;
+      if (uploadRes.ocrRawText !== undefined && ocrRawText === undefined) {
+        ocrRawText = uploadRes.ocrRawText;
+      }
     } catch (uploadErr: any) {
       return {
         status: 'OCR_FAILED',
@@ -84,8 +88,7 @@ export async function verifyPaymentEvidence(
     }
   }
 
-  // 3. OCR Text Extraction Step (Use rawTextOverride if provided, otherwise run Real OCR engine)
-  let ocrRawText = rawTextOverride;
+  // 3. OCR Text Extraction Step (Use rawTextOverride / upload OCR if available, otherwise run Real OCR engine)
   if (ocrRawText === undefined) {
     const ocrResult = await performRealReceiptOCR(rawBytes, file.type, file.name);
     ocrRawText = ocrResult.text;
@@ -169,6 +172,7 @@ export async function verifyPaymentEvidence(
   }
 
   // 8. UTR Cross-Examination (User-Entered vs OCR-Extracted)
+  // Preserves exact string representation including leading zeroes
   let isUtrMatch = false;
   const expectedUtrClean = context.expectedUtr?.trim().toUpperCase();
   const extractedUtrClean = extractedData.utr?.trim().toUpperCase();
@@ -187,7 +191,18 @@ export async function verifyPaymentEvidence(
     discrepancies.push('OCR could not detect a valid transaction reference or UTR on receipt.');
   }
 
-  // 9. Calculate Final Verification State
+  // 9. Payee Cross-Examination (where expected payee is provided)
+  if (context.expectedPayeeVpa && extractedData.receiverVpa) {
+    const expectedVpaClean = context.expectedPayeeVpa.trim().toLowerCase();
+    const extractedVpaClean = extractedData.receiverVpa.trim().toLowerCase();
+    if (expectedVpaClean !== extractedVpaClean) {
+      discrepancies.push(
+        `Payee VPA mismatch: Receipt payee (${extractedData.receiverVpa}) does not match expected seller UPI ID (${context.expectedPayeeVpa}).`,
+      );
+    }
+  }
+
+  // 10. Calculate Final Verification State
   if (discrepancies.some((d) => d.includes('mismatch') || d.includes('Mismatch'))) {
     return {
       status: 'MISMATCH',

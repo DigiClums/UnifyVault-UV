@@ -58,5 +58,7 @@ export interface TradeVerificationContext {
   expectedAmount: number; // Fiat amount e.g. 500, 10000
   expectedCurrency: string; // e.g. "INR"
   expectedUtr?: string;
+  expectedPayeeVpa?: string;
+  expectedPayeeName?: string;
   knownUsedUtrs?: string[];
 }

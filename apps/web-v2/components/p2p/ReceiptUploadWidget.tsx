@@ -96,10 +96,10 @@ export function ReceiptUploadWidget({
 
   return (
     <div className="p-4 rounded-xl border-2 border-black/10 dark:border-white/10 bg-card space-y-4 font-mono">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
         <h4 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2 font-sans">
-          <Upload className="w-4 h-4 text-[#BFFF00]" />
-          Real UPI Receipt OCR Verification Pipeline
+          <Upload className="w-4 h-4 text-[#BFFF00] shrink-0" />
+          <span>Real UPI Receipt OCR Verification Pipeline</span>
         </h4>
         <span className="text-[10px] font-mono text-muted-foreground">
           Allowed: PDF, JPG, JPEG, PNG, WEBP (Max 10MB)
@@ -231,15 +231,17 @@ export function ReceiptUploadWidget({
 
           {/* Cryptographic Hashes & VPS Reference */}
           <div className="p-3 rounded-xl border border-black/10 dark:border-white/10 bg-accent/20 text-[11px] font-mono space-y-1">
-            <div className="flex items-center justify-between text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 text-muted-foreground">
               <span>Keccak256 On-Chain Hash:</span>
-              <span className="font-bold text-foreground truncate max-w-[240px]">
+              <span className="font-bold text-foreground truncate max-w-full sm:max-w-[240px]">
                 {result.fileHash}
               </span>
             </div>
-            <div className="flex items-center justify-between text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 text-muted-foreground">
               <span>VPS Storage CID:</span>
-              <span className="font-bold text-foreground truncate max-w-[240px]">{result.cid}</span>
+              <span className="font-bold text-foreground truncate max-w-full sm:max-w-[240px]">
+                {result.cid}
+              </span>
             </div>
           </div>
         </div>

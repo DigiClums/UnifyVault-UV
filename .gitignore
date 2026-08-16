@@ -65,3 +65,4 @@ packages/protocol/.gas-snapshot
 *.tsbuildinfo
 filebrowser.db
 env.sh
+*.traineddata

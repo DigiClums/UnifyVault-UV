@@ -48,12 +48,33 @@ export async function uploadReceiptEvidence(file: File): Promise<HasherResult> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch('/api/p2p/evidence', {
-    method: 'POST',
-    body: formData,
-  });
+  let res: Response;
+  try {
+    res = await fetch('/api/p2p/evidence', {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (networkErr: any) {
+    throw new Error(
+      'Receipt upload failed due to network connectivity issues. Please verify your connection and try again.',
+    );
+  }
 
-  const data: UploadEvidenceResponse = await res.json();
+  const contentType = res.headers?.get ? res.headers.get('content-type') || '' : 'application/json';
+  if (contentType && !contentType.includes('application/json') && !contentType.includes('json')) {
+    throw new Error(
+      `Receipt OCR service is temporarily unavailable (HTTP ${res.status}). Payment proof submission blocked.`,
+    );
+  }
+
+  let data: UploadEvidenceResponse;
+  try {
+    data = await res.json();
+  } catch (parseErr) {
+    throw new Error(
+      'Receipt OCR service returned an unreadable response. Payment proof submission blocked.',
+    );
+  }
 
   if (!res.ok || !data.success || !data.cid || !data.evidenceHash) {
     throw new Error(

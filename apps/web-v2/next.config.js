@@ -7,6 +7,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ['tesseract.js', 'pdf-parse'],
   transpilePackages: ['@rainbow-me/rainbowkit'],
   webpack: (config, { webpack }) => {
     config.plugins.push(
