@@ -114,7 +114,7 @@ export async function verifyPaymentEvidence(
     };
   }
 
-  // 5. Payment Status Check (FAILED / DECLINED / CANCELLED)
+  // 5. Payment Status Check (FAILED / DECLINED / CANCELLED / PENDING / PROCESSING / AWAITING)
   if (extractedData.paymentStatus === 'FAILED' || extractedData.paymentStatus === 'CANCELLED') {
     discrepancies.push(
       `Receipt status indicates transaction was ${extractedData.paymentStatus.toLowerCase()}. Payment claim rejected.`,
@@ -130,6 +130,25 @@ export async function verifyPaymentEvidence(
       isClaimAllowed: false,
       requiresManualReview: true,
       statusMessage: `PAYMENT FAILED: Receipt indicates transaction was ${extractedData.paymentStatus.toLowerCase()}.`,
+    };
+  }
+
+  if (extractedData.paymentStatus === 'PENDING') {
+    discrepancies.push(
+      'Receipt status indicates transaction is pending/processing. Automatic approval blocked.',
+    );
+    return {
+      status: 'MANUAL_REVIEW',
+      ocrState: 'MANUAL_REVIEW',
+      fileHash,
+      cid,
+      extractedData,
+      discrepancies,
+      isReleaseAllowed: false,
+      isClaimAllowed: false,
+      requiresManualReview: true,
+      statusMessage:
+        'PAYMENT PENDING: Receipt indicates transaction is pending or processing. Manual review required.',
     };
   }
 
@@ -218,7 +237,7 @@ export async function verifyPaymentEvidence(
     };
   }
 
-  if (isAmountMatch && isUtrMatch) {
+  if (isAmountMatch && isUtrMatch && extractedData.paymentStatus === 'SUCCESSFUL') {
     return {
       status: 'OCR_SUCCESS',
       ocrState: 'OCR_SUCCESS',
@@ -233,7 +252,11 @@ export async function verifyPaymentEvidence(
     };
   }
 
-  // Partial match / missing fields -> Manual Review
+  if (extractedData.paymentStatus !== 'SUCCESSFUL') {
+    discrepancies.push('Confirmed successful payment status was not detected on receipt.');
+  }
+
+  // Partial match / missing fields / unconfirmed status -> Manual Review
   return {
     status: 'MANUAL_REVIEW',
     ocrState: 'OCR_PARTIAL',

@@ -121,7 +121,7 @@ export function extractReceiptDataFromText(rawText: string): ExtractedReceiptDat
     paymentStatus = 'FAILED';
   } else if (/Cancelled|Canceled|Void/i.test(text)) {
     paymentStatus = 'CANCELLED';
-  } else if (/Pending|Processing|In Progress|Awaiting Confirmation/i.test(text)) {
+  } else if (/Pending|Processing|In Progress|Awaiting/i.test(text)) {
     paymentStatus = 'PENDING';
   } else if (
     /Success|Successful|Completed|Paid|Approved|Transferred|Payment Successful/i.test(text)
@@ -140,12 +140,52 @@ export function extractReceiptDataFromText(rawText: string): ExtractedReceiptDat
   if (timeMatch) transactionTime = timeMatch[1];
 
   // 5. UPI VPAs & Payer/Payee Extraction
-  const vpaMatches = text.match(/[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/g);
-  if (vpaMatches && vpaMatches.length > 0) {
-    const cleanedVpas = vpaMatches.map((v) => v.replace(/^\\+/, ''));
-    if (cleanedVpas.length === 1) {
+  const vpaRegex = /[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/g;
+  const rawVpaMatches = text.match(vpaRegex);
+  const cleanedVpas: string[] = rawVpaMatches
+    ? Array.from(new Set(rawVpaMatches.map((v) => v.replace(/^\\+/, ''))))
+    : [];
+
+  // Semantic contextual label matchers for VPAs
+  // To / Paid To / Receiver / Beneficiary / Credited To / Payee => receiverVpa
+  const receiverVpaPatterns = [
+    /(?:(?:To|Paid\s+To|Receiver|Beneficiary|Credited\s+To|Payee(?:\s*(?:UPI\s*ID|VPA))?|Payment(?:\s+successful)?\s+to)\s*[:\s-]*\s*)(?:[^\n@]*\n\s*)?([a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64})/i,
+    /([a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64})\s*(?:\([^\)]*\)\s*)?(?:credited|received|beneficiary|payee)/i,
+  ];
+
+  // From / Paid By / Sender / Debited From / Payer => senderVpa
+  const senderVpaPatterns = [
+    /(?:(?:From|Paid\s+By|Sender|Debited\s+From|Payer(?:\s*(?:UPI\s*ID|VPA))?)\s*[:\s-]*\s*)(?:[^\n@]*\n\s*)?([a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64})/i,
+    /([a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64})\s*(?:\([^\)]*\)\s*)?(?:debited|sent|payer)/i,
+  ];
+
+  for (const pattern of receiverVpaPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      receiverVpa = match[1].replace(/^\\+/, '').trim();
+      break;
+    }
+  }
+
+  for (const pattern of senderVpaPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      senderVpa = match[1].replace(/^\\+/, '').trim();
+      break;
+    }
+  }
+
+  // Fallback: Resolve remaining VPAs when contextual labels are partially or completely absent
+  if (cleanedVpas.length === 1) {
+    if (!receiverVpa && !senderVpa) {
       receiverVpa = cleanedVpas[0];
-    } else {
+    }
+  } else if (cleanedVpas.length >= 2) {
+    if (receiverVpa && !senderVpa) {
+      senderVpa = cleanedVpas.find((v) => v.toLowerCase() !== receiverVpa?.toLowerCase());
+    } else if (senderVpa && !receiverVpa) {
+      receiverVpa = cleanedVpas.find((v) => v.toLowerCase() !== senderVpa?.toLowerCase());
+    } else if (!receiverVpa && !senderVpa) {
       senderVpa = cleanedVpas[0];
       receiverVpa = cleanedVpas[1];
     }
