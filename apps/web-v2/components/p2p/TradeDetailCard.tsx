@@ -1337,121 +1337,92 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         </form>
       )}
 
-      {/* SELLER REVIEW CONTROLS (Off-chain Seller Confirmation & Dispute) */}
-      {isSeller &&
-        trade.state === TradeState.FUNDED &&
-        (paymentIntent?.status === 'WAITING_VERIFICATION' ||
-          paymentIntent?.status === 'PAYMENT_CLAIMED') && (
-          <div className="p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 space-y-3 font-mono">
-            <div className="flex items-center gap-2 font-black text-sm text-amber-600 dark:text-amber-400">
-              <ShieldCheck className="w-5 h-5" />
-              <span>PAYMENT CLAIMED — SELLER REVIEW REQUIRED</span>
-            </div>
-
-            <p className="text-xs text-muted-foreground font-sans">
-              Buyer has declared payment claim with UTR:{' '}
-              <strong className="text-foreground font-mono font-bold">
-                {paymentIntent.utrSubmitted || 'Claimed'}
-              </strong>
-              . Check your bank statement for credit of{' '}
-              <strong className="text-foreground font-mono font-bold">
-                {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
-              </strong>
-              .
-            </p>
-
-            {showDisputeInput ? (
-              <form onSubmit={handleOpenSellerDispute} className="space-y-3 pt-2 font-sans">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Dispute Reason
-                  </label>
-                  <select
-                    value={disputeReasonSelect}
-                    onChange={(e) => setDisputeReasonSelect(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono font-bold focus:outline-none"
-                  >
-                    <option value="PAYMENT_NOT_RECEIVED">Payment Not Received in Bank</option>
-                    <option value="WRONG_AMOUNT">Incorrect Amount Received</option>
-                    <option value="WRONG_DESTINATION">Received to Wrong Destination</option>
-                    <option value="SUSPICIOUS_PAYMENT">Suspicious / Third-Party Payment</option>
-                    <option value="DUPLICATE_PAYMENT">Duplicate Reference Claim</option>
-                    <option value="OTHER">Other Issue</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Seller Remarks (Optional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Provide details for dispute investigation..."
-                    value={sellerRemarksInput}
-                    onChange={(e) => setSellerRemarksInput(e.target.value)}
-                    className="w-full p-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDisputeInput(false)}
-                    className="px-4 py-2 rounded-xl border-2 border-black text-xs font-bold hover:bg-accent"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isOpeningDispute}
-                    className="px-5 py-2.5 rounded-xl bg-rose-500 text-white font-black text-xs border-2 border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
-                  >
-                    {isOpeningDispute && <Loader2 className="w-4 h-4 animate-spin" />}
-                    <span>Open Payment Dispute</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowDisputeInput(true)}
-                  disabled={isConfirmingPayment}
-                  className="w-full sm:w-auto px-4 py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-500/30 hover:bg-rose-500/20 min-h-[44px]"
-                >
-                  I Did Not Receive Payment
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleConfirmSellerPayment}
-                  disabled={isConfirmingPayment}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
-                >
-                  {isConfirmingPayment && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirm Payment Received</span>
-                </button>
-              </div>
-            )}
+      {/* SELLER REVIEW & RELEASE CONTROLS */}
+      {isSeller && trade.state === TradeState.PAYMENT_SUBMITTED && (
+        <div className="p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 space-y-3 font-mono">
+          <div className="flex items-center gap-2 font-black text-sm text-amber-600 dark:text-amber-400">
+            <ShieldCheck className="w-5 h-5" />
+            <span>PAYMENT CLAIMED — SELLER REVIEW REQUIRED</span>
           </div>
-        )}
 
-      {/* RELEASE ELIGIBLE VIEW (Seller Wallet On-Chain Release Button) */}
-      {paymentIntent?.status === 'RELEASE_ELIGIBLE' && trade.state === TradeState.FUNDED && (
-        <div className="p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 space-y-3 font-mono">
-          <div className="flex items-center gap-2 font-black text-sm text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            <span>SELLER CONFIRMED — ESCROW RELEASE ELIGIBLE</span>
-          </div>
           <p className="text-xs text-muted-foreground font-sans">
-            Seller has confirmed receiving payment receipt off-chain. Ready for seller to execute
-            final on-chain escrow release transaction.
+            Buyer has declared payment claim with UTR:{' '}
+            <strong className="text-foreground font-mono font-bold">
+              {paymentIntent?.utrSubmitted ||
+                formatPaymentReference(trade.paymentReference).text ||
+                'Claimed'}
+            </strong>
+            . Check your bank statement for credit of{' '}
+            <strong className="text-foreground font-mono font-bold">
+              {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+            </strong>
+            .
           </p>
 
-          {isSeller && (
-            <div className="flex justify-end pt-1">
+          {showDisputeInput ? (
+            <form onSubmit={handleOpenSellerDispute} className="space-y-3 pt-2 font-sans">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Dispute Reason
+                </label>
+                <select
+                  value={disputeReasonSelect}
+                  onChange={(e) => setDisputeReasonSelect(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono font-bold focus:outline-none"
+                >
+                  <option value="PAYMENT_NOT_RECEIVED">Payment Not Received in Bank</option>
+                  <option value="WRONG_AMOUNT">Incorrect Amount Received</option>
+                  <option value="WRONG_DESTINATION">Received to Wrong Destination</option>
+                  <option value="SUSPICIOUS_PAYMENT">Suspicious / Third-Party Payment</option>
+                  <option value="DUPLICATE_PAYMENT">Duplicate Reference Claim</option>
+                  <option value="OTHER">Other Issue</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Seller Remarks (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Provide details for dispute investigation..."
+                  value={sellerRemarksInput}
+                  onChange={(e) => setSellerRemarksInput(e.target.value)}
+                  className="w-full p-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDisputeInput(false)}
+                  className="px-4 py-2 rounded-xl border-2 border-black text-xs font-bold hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isOpeningDispute}
+                  className="px-5 py-2.5 rounded-xl bg-rose-500 text-white font-black text-xs border-2 border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-2"
+                >
+                  {isOpeningDispute && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Open Payment Dispute</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-1">
               <button
+                type="button"
+                onClick={() => setShowDisputeInput(true)}
+                disabled={isPending || isOpeningDispute}
+                className="w-full sm:w-auto px-4 py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-500/30 hover:bg-rose-500/20 min-h-[44px]"
+              >
+                I Did Not Receive Payment
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowReleaseConfirm(true)}
                 disabled={isPending}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[4px_4px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[48px]"

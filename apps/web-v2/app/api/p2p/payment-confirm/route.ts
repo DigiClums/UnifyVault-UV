@@ -123,13 +123,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. On-Chain Trade State Check: Must be in FUNDED state (state == 2)
+    // 4. On-Chain Trade State Check: Must be in PAYMENT_SUBMITTED state (state == 3)
     const tradeState = Number(rawTrade.state);
-    if (tradeState !== 2) {
+    if (tradeState !== 3) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Trade must be in FUNDED state before seller can confirm payment.',
+          error: 'Trade must be in PAYMENT_SUBMITTED state before seller can confirm payment.',
         },
         { status: 400 },
       );
