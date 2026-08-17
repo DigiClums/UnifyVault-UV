@@ -18,6 +18,28 @@ contract MockModuleV1 is IUnifyVaultModule {
   }
 }
 
+contract MockModuleV2 is IUnifyVaultModule {
+  bytes32 internal constant ID = keccak256('TEST_MODULE');
+
+  function moduleId() external pure returns (bytes32) {
+    return ID;
+  }
+
+  function moduleVersion() external pure returns (uint64) {
+    return 2;
+  }
+}
+
+contract MockModuleV1OtherId is IUnifyVaultModule {
+  function moduleId() external pure returns (bytes32) {
+    return keccak256('OTHER_MODULE');
+  }
+
+  function moduleVersion() external pure returns (uint64) {
+    return 1;
+  }
+}
+
 contract MockUnifyVaultV2 is UnifyVaultUpgradeable {
   function architectureVersion() external pure returns (uint256) {
     return 2;
@@ -42,8 +64,8 @@ contract UnifyVaultUpgradeableTest is Test {
   }
 
   function testProxyInitializationAndStableState() public {
-    assertEq(vault.hasRole(vault.DEFAULT_ADMIN_ROLE(), governance), true);
-    assertEq(vault.hasRole(vault.UPGRADER_ROLE(), governance), true);
+    assertTrue(vault.hasRole(vault.DEFAULT_ADMIN_ROLE(), governance));
+    assertTrue(vault.hasRole(vault.UPGRADER_ROLE(), governance));
 
     MockModuleV1 module = new MockModuleV1();
     vm.prank(governance);
@@ -82,6 +104,36 @@ contract UnifyVaultUpgradeableTest is Test {
     assertEq(implementationAddress, address(module));
     assertEq(version, 1);
     assertTrue(enabled);
+  }
+
+  function testModuleCanBeUpgradedWithoutChangingModuleId() public {
+    MockModuleV1 moduleV1 = new MockModuleV1();
+    MockModuleV2 moduleV2 = new MockModuleV2();
+    bytes32 id = moduleV1.moduleId();
+
+    vm.startPrank(governance);
+    vault.registerModule(address(moduleV1));
+    vault.upgradeModule(address(moduleV2));
+    vm.stopPrank();
+
+    (address implementationAddress, uint64 version, bool enabled) = vault.getModule(id);
+    assertEq(implementationAddress, address(moduleV2));
+    assertEq(version, 2);
+    assertTrue(enabled);
+  }
+
+  function testModuleUpgradeCannotRollbackVersion() public {
+    MockModuleV1 moduleV1 = new MockModuleV1();
+    MockModuleV2 moduleV2 = new MockModuleV2();
+
+    vm.startPrank(governance);
+    vault.registerModule(address(moduleV1));
+    vault.upgradeModule(address(moduleV2));
+    vm.expectRevert(
+      abi.encodeWithSelector(UnifyVaultUpgradeable.ModuleVersionNotIncreasing.selector, uint64(2), uint64(1))
+    );
+    vault.upgradeModule(address(moduleV1));
+    vm.stopPrank();
   }
 
   function testModuleCanBeDisabledAndRemoved() public {
