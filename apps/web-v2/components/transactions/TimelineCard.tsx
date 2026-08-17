@@ -859,186 +859,196 @@ function HumanReadableExecutionSummary({ tx }: { tx: TransactionGroup }) {
   return null;
 }
 
-export function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [showTechnicalEvents, setShowTechnicalEvents] = useState(false);
+export const TimelineCard = React.memo(
+  function TimelineCard({ tx, explorerUrl }: TimelineCardProps) {
+    const [expanded, setExpanded] = useState(false);
+    const [showTechnicalEvents, setShowTechnicalEvents] = useState(false);
 
-  const txShort = `${tx.transactionHash.slice(0, 8)}…${tx.transactionHash.slice(-6)}`;
-  const time = new Date(tx.timestamp * 1000);
-  const timeStr = time.toLocaleString();
+    const txShort = `${tx.transactionHash.slice(0, 8)}…${tx.transactionHash.slice(-6)}`;
+    const time = new Date(tx.timestamp * 1000);
+    const timeStr = time.toLocaleString();
 
-  const eventCount = tx.events.length;
-  const contractCount = new Set(tx.events.map((e) => e.contractName)).size;
+    const eventCount = tx.events.length;
+    const contractCount = new Set(tx.events.map((e) => e.contractName)).size;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="rounded-xl bg-slate-900/60 border border-slate-800/80 overflow-hidden hover:border-slate-700/80 transition-colors"
-    >
-      {/* ── Summary Row (always visible) ────────────────────────────── */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full text-left px-4 py-3.5 flex items-center gap-3 hover:bg-slate-800/30 transition-colors group"
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="rounded-xl bg-slate-900/60 border border-slate-800/80 overflow-hidden hover:border-slate-700/80 transition-colors"
       >
-        {/* Expand chevron */}
-        <ChevronDown
-          className={`w-4 h-4 text-slate-500 flex-shrink-0 transition-transform duration-200 ${
-            expanded ? 'rotate-0' : '-rotate-90'
-          }`}
-        />
+        {/* ── Summary Row (always visible) ────────────────────────────── */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full text-left px-4 py-3.5 flex items-center gap-3 hover:bg-slate-800/30 transition-colors group"
+        >
+          {/* Expand chevron */}
+          <ChevronDown
+            className={`w-4 h-4 text-slate-500 flex-shrink-0 transition-transform duration-200 ${
+              expanded ? 'rotate-0' : '-rotate-90'
+            }`}
+          />
 
-        {/* Action badge */}
-        <div className="flex-shrink-0 min-w-[90px]">
-          <ActionBadge type={tx.actionType} />
-        </div>
+          {/* Action badge */}
+          <div className="flex-shrink-0 min-w-[90px]">
+            <ActionBadge type={tx.actionType} />
+          </div>
 
-        {/* Method name */}
-        <div className="flex-shrink-0 min-w-[80px]">
-          <span className="text-sm font-semibold text-slate-200 font-mono">{tx.method}</span>
-        </div>
+          {/* Method name */}
+          <div className="flex-shrink-0 min-w-[80px]">
+            <span className="text-sm font-semibold text-slate-200 font-mono">{tx.method}</span>
+          </div>
 
-        {/* Summary amount */}
-        {tx.summaryAmount && (
-          <div className="flex-shrink-0 hidden sm:block">
-            <span className="text-sm font-bold text-white font-mono">
-              {tx.summaryAmount} {tx.summaryAsset}
+          {/* Summary amount */}
+          {tx.summaryAmount && (
+            <div className="flex-shrink-0 hidden sm:block">
+              <span className="text-sm font-bold text-white font-mono">
+                {tx.summaryAmount} {tx.summaryAsset}
+              </span>
+            </div>
+          )}
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Meta info */}
+          <div className="hidden md:flex items-center gap-4 text-xs text-slate-400 font-mono flex-shrink-0">
+            <StatusBadge status={tx.status} />
+            <span className="flex items-center gap-1">
+              <Layers className="w-3 h-3" />
+              {eventCount} event{eventCount !== 1 ? 's' : ''}
+            </span>
+            <span className="flex items-center gap-1">
+              <Activity className="w-3 h-3" />
+              {contractCount} contract{contractCount !== 1 ? 's' : ''}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {timeStr}
             </span>
           </div>
-        )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
+          {/* Block + Tx link */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-xs text-slate-500 font-mono">#{tx.blockNumber.toString()}</span>
+            <a
+              href={`${explorerUrl}/tx/${tx.transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-[#5f8f00] dark:text-[#BFFF00] hover:underline font-mono text-xs flex items-center gap-1"
+              title="View on block explorer"
+            >
+              {txShort}
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </button>
 
-        {/* Meta info */}
-        <div className="hidden md:flex items-center gap-4 text-xs text-slate-400 font-mono flex-shrink-0">
-          <StatusBadge status={tx.status} />
-          <span className="flex items-center gap-1">
-            <Layers className="w-3 h-3" />
-            {eventCount} event{eventCount !== 1 ? 's' : ''}
-          </span>
-          <span className="flex items-center gap-1">
-            <Activity className="w-3 h-3" />
-            {contractCount} contract{contractCount !== 1 ? 's' : ''}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {timeStr}
-          </span>
-        </div>
-
-        {/* Block + Tx link */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-xs text-slate-500 font-mono">#{tx.blockNumber.toString()}</span>
-          <a
-            href={`${explorerUrl}/tx/${tx.transactionHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-[#5f8f00] dark:text-[#BFFF00] hover:underline font-mono text-xs flex items-center gap-1"
-            title="View on block explorer"
-          >
-            {txShort}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-      </button>
-
-      {/* ── Expanded Timeline ──────────────────────────────────────── */}
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-border-subtle px-4 py-3 bg-muted/40">
-              {/* Header bar with gas and status info */}
-              <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground flex-wrap">
-                <span className="flex items-center gap-1.5">
-                  <StatusBadge status={tx.status} />
-                </span>
-                <span className="flex items-center gap-1">
-                  <ArrowRightLeft className="w-3 h-3" />
-                  Gas Used: {tx.gasUsed ? tx.gasUsed.toLocaleString() : '—'}
-                </span>
-                {tx.gasPrice !== undefined && tx.gasPrice > 0n && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    Gas Price: {formatGasPrice(tx.gasPrice)}
+        {/* ── Expanded Timeline ──────────────────────────────────────── */}
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              <div className="border-t border-border-subtle px-4 py-3 bg-muted/40">
+                {/* Header bar with gas and status info */}
+                <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <StatusBadge status={tx.status} />
                   </span>
-                )}
-                {tx.gasFeeWei !== undefined && tx.gasFeeWei > 0n && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    Tx Fee: {formatETH(tx.gasFeeWei)} ETH
+                  <span className="flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3" />
+                    Gas Used: {tx.gasUsed ? tx.gasUsed.toLocaleString() : '—'}
                   </span>
-                )}
-                {tx.wallet && (
-                  <a
-                    href={`${explorerUrl}/address/${tx.wallet}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[#5f8f00] dark:text-[#BFFF00] hover:underline font-mono"
+                  {tx.gasPrice !== undefined && tx.gasPrice > 0n && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      Gas Price: {formatGasPrice(tx.gasPrice)}
+                    </span>
+                  )}
+                  {tx.gasFeeWei !== undefined && tx.gasFeeWei > 0n && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      Tx Fee: {formatETH(tx.gasFeeWei)} ETH
+                    </span>
+                  )}
+                  {tx.wallet && (
+                    <a
+                      href={`${explorerUrl}/address/${tx.wallet}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[#5f8f00] dark:text-[#BFFF00] hover:underline font-mono"
+                    >
+                      <span className="text-muted-foreground">User:</span>
+                      {short(tx.wallet)}
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Human Readable Execution Summary First */}
+                <HumanReadableExecutionSummary tx={tx} />
+
+                {/* Toggle for Raw Technical On-Chain Events */}
+                <div className="mt-2 mb-3">
+                  <button
+                    onClick={() => setShowTechnicalEvents(!showTechnicalEvents)}
+                    className="flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <span className="text-muted-foreground">User:</span>
-                    {short(tx.wallet)}
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        showTechnicalEvents ? 'rotate-0' : '-rotate-90'
+                      }`}
+                    />
+                    <span>
+                      {showTechnicalEvents
+                        ? 'Hide Technical Events'
+                        : `Show Technical Events (${eventCount} events)`}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Raw Technical Events Timeline */}
+                {showTechnicalEvents && (
+                  <div className="space-y-0 ml-1 border-t border-border-subtle pt-3">
+                    {tx.events.map((evt) => (
+                      <TimelineStep key={evt.id} event={evt} explorerUrl={explorerUrl} />
+                    ))}
+                  </div>
                 )}
-              </div>
 
-              {/* Human Readable Execution Summary First */}
-              <HumanReadableExecutionSummary tx={tx} />
-
-              {/* Toggle for Raw Technical On-Chain Events */}
-              <div className="mt-2 mb-3">
-                <button
-                  onClick={() => setShowTechnicalEvents(!showTechnicalEvents)}
-                  className="flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      showTechnicalEvents ? 'rotate-0' : '-rotate-90'
-                    }`}
-                  />
-                  <span>
-                    {showTechnicalEvents
-                      ? 'Hide Technical Events'
-                      : `Show Technical Events (${eventCount} events)`}
-                  </span>
-                </button>
-              </div>
-
-              {/* Raw Technical Events Timeline */}
-              {showTechnicalEvents && (
-                <div className="space-y-0 ml-1 border-t border-border-subtle pt-3">
-                  {tx.events.map((evt) => (
-                    <TimelineStep key={evt.id} event={evt} explorerUrl={explorerUrl} />
+                {/* Legend */}
+                <div className="mt-4 pt-3 border-t border-border-subtle flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+                  {[
+                    { name: 'UnifyVaultController', color: 'bg-[#BFFF00]' },
+                    { name: 'CustodyVault', color: 'bg-slate-400' },
+                    { name: 'Treasury', color: 'bg-slate-500' },
+                    { name: 'UVBEToken', color: 'bg-[#BFFF00]/70' },
+                    { name: 'StrategyManager', color: 'bg-slate-600' },
+                  ].map((c) => (
+                    <span key={c.name} className="flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${c.color}`} />
+                      {c.name}
+                    </span>
                   ))}
                 </div>
-              )}
-
-              {/* Legend */}
-              <div className="mt-4 pt-3 border-t border-border-subtle flex flex-wrap gap-3 text-[10px] text-muted-foreground">
-                {[
-                  { name: 'UnifyVaultController', color: 'bg-[#BFFF00]' },
-                  { name: 'CustodyVault', color: 'bg-slate-400' },
-                  { name: 'Treasury', color: 'bg-slate-500' },
-                  { name: 'UVBEToken', color: 'bg-[#BFFF00]/70' },
-                  { name: 'StrategyManager', color: 'bg-slate-600' },
-                ].map((c) => (
-                  <span key={c.name} className="flex items-center gap-1">
-                    <span className={`w-2 h-2 rounded-full ${c.color}`} />
-                    {c.name}
-                  </span>
-                ))}
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.explorerUrl === nextProps.explorerUrl &&
+      prevProps.tx.transactionHash === nextProps.tx.transactionHash &&
+      prevProps.tx.status === nextProps.tx.status &&
+      prevProps.tx.blockNumber === nextProps.tx.blockNumber
+    );
+  },
+);

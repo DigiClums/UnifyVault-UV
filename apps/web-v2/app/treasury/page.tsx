@@ -18,11 +18,12 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
+import { prefetchBlockTimestamps } from '../../lib/utils/blockTimestamp';
 
 export interface PublicTreasuryLog {
   id: string;
   blockNumber: bigint;
-  timestamp: number;
+  timestamp?: number;
   type: 'TreasuryWithdrawal' | 'FeeCollected' | 'NativeWithdrawn';
   asset: string;
   recipient: `0x${string}`;
@@ -45,26 +46,6 @@ export default function PublicTreasuryPage() {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [showOnChainDetails, setShowOnChainDetails] = useState(false);
 
-  const blockTimeCache = useMemo(() => new Map<bigint, number>(), []);
-
-  const getBlockTimestamp = useCallback(
-    async (blockNumber: bigint): Promise<number> => {
-      if (blockTimeCache.has(blockNumber)) {
-        return blockTimeCache.get(blockNumber)!;
-      }
-      try {
-        if (!publicClient) return Math.floor(Date.now() / 1000);
-        const block = await publicClient.getBlock({ blockNumber });
-        const ts = Number(block.timestamp);
-        blockTimeCache.set(blockNumber, ts);
-        return ts;
-      } catch {
-        return Math.floor(Date.now() / 1000);
-      }
-    },
-    [blockTimeCache, publicClient],
-  );
-
   const fetchTreasuryLogs = useCallback(async () => {
     if (!treasury || !publicClient) return;
     setIsRefreshingLogs(true);
@@ -79,9 +60,15 @@ export default function PublicTreasuryPage() {
         toBlock: latestBlock,
       });
 
-      const parsedPromises = logs.map(async (log) => {
-        if (!log.blockNumber || !log.transactionHash) return null;
-        const ts = await getBlockTimestamp(log.blockNumber);
+      // Phase E3: Prefetch unique block timestamps in a single batched deduplicated request
+      const blockNumbers = logs.map((l) => l.blockNumber);
+      const timestampMap = await prefetchBlockTimestamps(publicClient, chainId, blockNumbers);
+
+      const valid: PublicTreasuryLog[] = [];
+
+      for (const log of logs) {
+        if (!log.blockNumber || !log.transactionHash) continue;
+        const ts = timestampMap.get(log.blockNumber);
         const logIndex = log.logIndex ?? 0;
         const id = `${log.transactionHash}-${logIndex}`;
 
@@ -127,7 +114,7 @@ export default function PublicTreasuryPage() {
             : '0.00 ETH';
         }
 
-        return {
+        valid.push({
           id,
           blockNumber: log.blockNumber,
           timestamp: ts,
@@ -137,11 +124,8 @@ export default function PublicTreasuryPage() {
           amountFormatted,
           transactionHash: log.transactionHash,
           logIndex,
-        };
-      });
-
-      const results = await Promise.all(parsedPromises);
-      const valid = results.filter((e): e is PublicTreasuryLog => e !== null);
+        });
+      }
 
       valid.sort((a, b) => {
         if (b.blockNumber !== a.blockNumber) {
@@ -158,7 +142,7 @@ export default function PublicTreasuryPage() {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [treasury, publicClient, tokens, getBlockTimestamp]);
+  }, [treasury, publicClient, tokens, chainId]);
 
   useEffect(() => {
     if (!treasury || !publicClient) return;
@@ -515,12 +499,14 @@ export default function PublicTreasuryPage() {
         ) : (
           <div className="divide-y divide-border-subtle/60 -mx-4 sm:-mx-5">
             {treasuryLogs.slice(0, 10).map((log) => {
-              const dateStr = new Date(log.timestamp * 1000).toLocaleString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              });
+              const dateStr = log.timestamp
+                ? new Date(log.timestamp * 1000).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'Timestamp unavailable';
 
               const isWithdrawal =
                 log.type === 'TreasuryWithdrawal' || log.type === 'NativeWithdrawn';

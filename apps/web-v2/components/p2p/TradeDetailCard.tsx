@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { TrustBadge } from './TrustBadge';
 import { RateTradeModal } from './RateTradeModal';
+import { PaymentCountdown } from './PaymentCountdown';
 import { ParticipantRole, P2P_REPUTATION_ABI } from '../../lib/contracts/reputation';
 import {
   TradeDetails,
@@ -46,7 +47,22 @@ import {
 import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
-import { DisputeChatWorkspace } from './DisputeChatWorkspace';
+import dynamic from 'next/dynamic';
+
+const DisputeChatWorkspace = dynamic(
+  () => import('./DisputeChatWorkspace').then((mod) => mod.DisputeChatWorkspace),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6 rounded-2xl bg-card border border-rose-500/20 text-center">
+        <Loader2 className="w-5 h-5 animate-spin mx-auto text-rose-500" />
+        <span className="text-xs text-muted-foreground font-mono mt-2 block">
+          Loading Dispute Chat Workspace...
+        </span>
+      </div>
+    ),
+  },
+);
 import { SmartPaymentQR } from './SmartPaymentQR';
 import { PaymentIntent } from '../../lib/payment/types';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
@@ -221,8 +237,11 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const [disputeReasonSelect, setDisputeReasonSelect] = useState('PAYMENT_NOT_RECEIVED');
   const [sellerRemarksInput, setSellerRemarksInput] = useState('');
 
-  // Countdown & Evidence Verification States
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(0);
+  // Phase C: Isolated Expiration Flag (Timer ticks isolated in PaymentCountdown component)
+  const [isWindowExpired, setIsWindowExpired] = useState<boolean>(() => {
+    if (trade.fundingTimestamp === 0 || trade.paymentWindow === 0) return false;
+    return Math.floor(Date.now() / 1000) >= trade.fundingTimestamp + trade.paymentWindow;
+  });
   const [uploadedCid, setUploadedCid] = useState<string | null>(null);
   const [evidenceResult, setEvidenceResult] = useState<EvidenceVerificationResult | null>(null);
 
@@ -333,26 +352,6 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       isMounted = false;
     };
   }, [trade?.seller, paymentIntent?.sellerPaymentIdentifier]);
-
-  // Deadline countdown calculation
-  useEffect(() => {
-    if (trade.fundingTimestamp === 0 || trade.state !== TradeState.FUNDED) {
-      setTimeLeftSeconds(0);
-      return;
-    }
-
-    const deadline = trade.fundingTimestamp + trade.paymentWindow;
-
-    const updateTimer = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const remaining = Math.max(0, deadline - now);
-      setTimeLeftSeconds(remaining);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [trade.fundingTimestamp, trade.paymentWindow, trade.state]);
 
   const handleCopyUpi = async () => {
     if (!sellerUpi) return;
@@ -479,12 +478,6 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     } finally {
       setIsOpeningDispute(false);
     }
-  };
-
-  const formatCountdown = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const runEvidenceVerification = async (selectedFile: File, userUtr: string) => {
@@ -816,12 +809,11 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
         {/* Live Timer if FUNDED */}
         {trade.state === TradeState.FUNDED && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-            <Clock className="w-4 h-4 animate-pulse" />
-            <span className="text-xs font-mono font-bold">
-              Payment Window: {formatCountdown(timeLeftSeconds)}
-            </span>
-          </div>
+          <PaymentCountdown
+            fundingTimestamp={trade.fundingTimestamp}
+            paymentWindow={trade.paymentWindow}
+            onExpire={() => setIsWindowExpired(true)}
+          />
         )}
       </div>
 
@@ -1487,7 +1479,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       )}
 
       {/* 4. SELLER / BUYER ACTION: Refund on Expired Payment Window */}
-      {trade.state === TradeState.FUNDED && timeLeftSeconds === 0 && (
+      {trade.state === TradeState.FUNDED && isWindowExpired && (
         <div className="pt-2 flex justify-end">
           <button
             onClick={() => setShowRefundConfirm(true)}

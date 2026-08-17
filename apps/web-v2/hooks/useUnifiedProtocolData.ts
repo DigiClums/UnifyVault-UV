@@ -191,9 +191,9 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     ],
     query: {
       enabled: !!vault && !!oracle && !!token,
-      staleTime: 5_000,
-      refetchInterval: 5_000,
-      refetchOnWindowFocus: true,
+      staleTime: 15_000,
+      refetchInterval: 15_000,
+      refetchOnWindowFocus: false,
       gcTime: 5 * 60 * 1000,
     },
   });

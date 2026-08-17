@@ -1,16 +1,39 @@
 'use client';
 
-import React from 'react';
+import dynamic from 'next/dynamic';
 import { useAccount } from 'wagmi';
 import { useDashboard } from '../../hooks/useDashboard';
 import { PortfolioAnalyticsCard } from '../../components/dashboard/PortfolioAnalyticsCard';
-import { HistoricalNavChart } from '../../components/portfolio/HistoricalNavChart';
 import { HoldingsTable } from '../../components/portfolio/HoldingsTable';
-import { AllocationChart } from '../../components/dashboard/AllocationChart';
 import { NavDebugLogger } from '../../components/dashboard/NavDebugLogger';
 import { getDefaultChainId } from '../../constants';
 import { base } from 'viem/chains';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+
+const HistoricalNavChart = dynamic(
+  () =>
+    import('../../components/portfolio/HistoricalNavChart').then((mod) => mod.HistoricalNavChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 sm:h-72 w-full rounded-2xl bg-card border-2 border-black dark:border-white/15 p-4 sm:p-5 flex items-center justify-center shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+        <div className="w-8 h-8 rounded-full border-2 border-black dark:border-white/30 border-t-[#BFFF00] animate-spin" />
+      </div>
+    ),
+  },
+);
+
+const AllocationChart = dynamic(
+  () => import('../../components/dashboard/AllocationChart').then((mod) => mod.AllocationChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full min-h-[160px] rounded-2xl bg-card border-2 border-black dark:border-white/15 p-4 sm:p-5 flex items-center justify-center shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+        <div className="w-8 h-8 rounded-full border-2 border-black dark:border-white/30 border-t-[#BFFF00] animate-spin" />
+      </div>
+    ),
+  },
+);
 
 export default function PortfolioPage() {
   const metrics = useDashboard();

@@ -1,79 +1,52 @@
 'use client';
 
-import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi';
-import { DEPLOYED_CONTRACTS_SEPOLIA } from '../constants';
-import { P2P_REPUTATION_ABI, TrustTier, RatingValue } from '../lib/contracts/reputation';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { DEPLOYED_CONTRACTS_SEPOLIA, isNonZeroAddress } from '../constants';
+import {
+  P2P_REPUTATION_ABI,
+  TrustTier,
+  RatingValue,
+  calculateTrustScoreBps,
+  computeTrustTier,
+  type UserReputationProfile,
+} from '../lib/contracts/reputation';
 import { useMemo } from 'react';
 
 export function useP2PReputation(userAddress?: `0x${string}`) {
   const contractAddress = DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation;
+  const isAddressValid = Boolean(userAddress && isNonZeroAddress(userAddress));
 
-  // Read Profile
+  // Single authoritative contract read for the full user reputation profile.
+  // Utilizes TanStack Query caching (60s staleTime) to prevent duplicate RPC calls.
   const {
     data: profileData,
     isLoading: isProfileLoading,
+    isError,
+    error,
     refetch: refetchProfile,
   } = useReadContract({
     address: contractAddress,
     abi: P2P_REPUTATION_ABI,
     functionName: 'getProfile',
-    args: userAddress ? [userAddress] : undefined,
+    args: isAddressValid && userAddress ? [userAddress] : undefined,
     query: {
-      enabled: !!userAddress,
+      enabled: isAddressValid,
+      staleTime: 60_000, // 60 seconds TanStack Query cache
+      gcTime: 300_000, // 5 minutes cache persistence
     },
   });
 
-  // Read Buyer Trust Score
-  const { data: buyerScoreData } = useReadContract({
-    address: contractAddress,
-    abi: P2P_REPUTATION_ABI,
-    functionName: 'getBuyerTrustScore',
-    args: userAddress ? [userAddress] : undefined,
-    query: {
-      enabled: !!userAddress,
-    },
-  });
-
-  // Read Seller Trust Score
-  const { data: sellerScoreData } = useReadContract({
-    address: contractAddress,
-    abi: P2P_REPUTATION_ABI,
-    functionName: 'getSellerTrustScore',
-    args: userAddress ? [userAddress] : undefined,
-    query: {
-      enabled: !!userAddress,
-    },
-  });
-
-  // Read Buyer Trust Tier
-  const { data: buyerTierData } = useReadContract({
-    address: contractAddress,
-    abi: P2P_REPUTATION_ABI,
-    functionName: 'getBuyerTrustTier',
-    args: userAddress ? [userAddress] : undefined,
-    query: {
-      enabled: !!userAddress,
-    },
-  });
-
-  // Read Seller Trust Tier
-  const { data: sellerTierData } = useReadContract({
-    address: contractAddress,
-    abi: P2P_REPUTATION_ABI,
-    functionName: 'getSellerTrustTier',
-    args: userAddress ? [userAddress] : undefined,
-    query: {
-      enabled: !!userAddress,
-    },
-  });
-
+  // Mathematically identical local derivation of trust scores and tiers
+  // Eliminates 4 redundant JSON-RPC calls per address with 0 precision loss.
   const parsedStats = useMemo(() => {
     if (!profileData) {
       return {
-        buyerScore: Number(buyerScoreData || 0) / 100, // percentage e.g. 92.00%
-        sellerScore: Number(sellerScoreData || 0) / 100,
-        buyerTier: (buyerTierData ?? TrustTier.UNRATED) as TrustTier,
-        sellerTier: (sellerTierData ?? TrustTier.UNRATED) as TrustTier,
+        buyerScore: 0,
+        sellerScore: 0,
+        buyerScoreBps: 0,
+        sellerScoreBps: 0,
+        buyerTier: TrustTier.UNRATED,
+        sellerTier: TrustTier.UNRATED,
         totalTradesAsBuyer: 0,
         totalTradesAsSeller: 0,
         buyerRatingsCount: 0,
@@ -83,25 +56,45 @@ export function useP2PReputation(userAddress?: `0x${string}`) {
       };
     }
 
+    const typedProfile = profileData as UserReputationProfile;
+
+    // Buyer math (matches P2PReputation.sol calculateTrustScore & computeTier)
+    const buyerRatingsCount = Number(typedProfile.buyerStats.ratingsCount);
+    const buyerScoreSum = typedProfile.buyerStats.scoreSum;
+    const buyerVolume = typedProfile.buyerStats.volumeSettled;
+    const buyerScoreBps = calculateTrustScoreBps(buyerRatingsCount, buyerScoreSum);
+    const buyerTier = computeTrustTier(buyerRatingsCount, buyerScoreBps, buyerVolume);
+
+    // Seller math (matches P2PReputation.sol calculateTrustScore & computeTier)
+    const sellerRatingsCount = Number(typedProfile.sellerStats.ratingsCount);
+    const sellerScoreSum = typedProfile.sellerStats.scoreSum;
+    const sellerVolume = typedProfile.sellerStats.volumeSettled;
+    const sellerScoreBps = calculateTrustScoreBps(sellerRatingsCount, sellerScoreSum);
+    const sellerTier = computeTrustTier(sellerRatingsCount, sellerScoreBps, sellerVolume);
+
     return {
-      buyerScore: Number(buyerScoreData || 0) / 100,
-      sellerScore: Number(sellerScoreData || 0) / 100,
-      buyerTier: (buyerTierData ?? TrustTier.UNRATED) as TrustTier,
-      sellerTier: (sellerTierData ?? TrustTier.UNRATED) as TrustTier,
-      totalTradesAsBuyer: profileData.totalTradesAsBuyer,
-      totalTradesAsSeller: profileData.totalTradesAsSeller,
-      buyerRatingsCount: profileData.buyerStats.ratingsCount,
-      sellerRatingsCount: profileData.sellerStats.ratingsCount,
-      buyerPositive: profileData.buyerStats.positiveCount,
-      sellerPositive: profileData.sellerStats.positiveCount,
+      buyerScore: buyerScoreBps / 100, // percentage e.g. 92.00%
+      sellerScore: sellerScoreBps / 100,
+      buyerScoreBps,
+      sellerScoreBps,
+      buyerTier,
+      sellerTier,
+      totalTradesAsBuyer: Number(typedProfile.totalTradesAsBuyer),
+      totalTradesAsSeller: Number(typedProfile.totalTradesAsSeller),
+      buyerRatingsCount,
+      sellerRatingsCount,
+      buyerPositive: Number(typedProfile.buyerStats.positiveCount),
+      sellerPositive: Number(typedProfile.sellerStats.positiveCount),
     };
-  }, [profileData, buyerScoreData, sellerScoreData, buyerTierData, sellerTierData]);
+  }, [profileData]);
 
   return {
     contractAddress,
     profile: profileData,
     stats: parsedStats,
     isLoading: isProfileLoading,
+    isError,
+    error,
     refetch: refetchProfile,
   };
 }

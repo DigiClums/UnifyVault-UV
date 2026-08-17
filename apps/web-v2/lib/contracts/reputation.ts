@@ -289,3 +289,59 @@ export interface UserReputationProfile {
   firstTradeTimestamp: number;
   lastTradeTimestamp: number;
 }
+
+/**
+ * Exact smart-contract constants for deterministic reputation calculation
+ * Matching packages/protocol/src/reputation/P2PReputation.sol
+ */
+export const BAYESIAN_PRIOR_WEIGHT = 5n;
+export const BAYESIAN_PRIOR_SCORE = 3n;
+export const MAX_BPS = 10000n;
+export const SCALE_FACTOR = 5n;
+
+export const MERCHANT_MIN_RATINGS = 20;
+export const MERCHANT_MIN_TRUST_SCORE = 9000;
+export const MERCHANT_MIN_SETTLED_VOLUME = 100n * 10n ** 18n; // 100 * 1e18
+
+/**
+ * Deterministic Bayesian Laplace smoothed trust score calculation.
+ * Matches P2PReputation.sol calculateTrustScore(ratingsCount, scoreSum) byte-for-byte.
+ * Formula: ((C * R0 + sumScores) * 10000) / ((C + N) * 5)
+ */
+export function calculateTrustScoreBps(ratingsCount: number, scoreSum: bigint | number): number {
+  if (ratingsCount <= 0) {
+    return 0; // Unrated profile returns 0 BPS
+  }
+
+  const countBig = BigInt(ratingsCount);
+  const sumBig = BigInt(scoreSum);
+  const numerator = (BAYESIAN_PRIOR_WEIGHT * BAYESIAN_PRIOR_SCORE + sumBig) * MAX_BPS;
+  const denominator = (BAYESIAN_PRIOR_WEIGHT + countBig) * SCALE_FACTOR;
+
+  return Number(numerator / denominator);
+}
+
+/**
+ * Computes trust tier given rating count, Bayesian score, and cumulative settled volume.
+ * Matches P2PReputation.sol computeTier(ratingsCount, scoreBps, volumeSettled) byte-for-byte.
+ */
+export function computeTrustTier(
+  ratingsCount: number,
+  scoreBps: number,
+  volumeSettled: bigint | number = 0n,
+): TrustTier {
+  if (ratingsCount <= 0) {
+    return TrustTier.UNRATED;
+  }
+  if (ratingsCount < 5) {
+    return TrustTier.PROBATIONARY;
+  }
+  if (ratingsCount < MERCHANT_MIN_RATINGS) {
+    return TrustTier.ESTABLISHED;
+  }
+  const volumeBig = BigInt(volumeSettled);
+  if (scoreBps >= MERCHANT_MIN_TRUST_SCORE && volumeBig >= MERCHANT_MIN_SETTLED_VOLUME) {
+    return TrustTier.VERIFIED_MERCHANT;
+  }
+  return TrustTier.ESTABLISHED;
+}

@@ -17,6 +17,7 @@ import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { TableCard } from '../../../components/ui/TableCard';
+import { prefetchBlockTimestamps } from '../../../lib/utils/blockTimestamp';
 import {
   Vault,
   DollarSign,
@@ -36,7 +37,7 @@ import {
 export interface CustodyEventLog {
   id: string;
   blockNumber: bigint;
-  timestamp: number;
+  timestamp?: number;
   type: 'WithdrawalExecuted' | 'DepositExecuted';
   asset: string;
   recipientOrFrom: string;
@@ -69,26 +70,6 @@ export default function AdminCustodyPage() {
   const [isRefreshingLogs, setIsRefreshingLogs] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
-  const blockTimeCache = useMemo(() => new Map<bigint, number>(), []);
-
-  const getBlockTimestamp = useCallback(
-    async (blockNumber: bigint): Promise<number> => {
-      if (blockTimeCache.has(blockNumber)) {
-        return blockTimeCache.get(blockNumber)!;
-      }
-      try {
-        if (!publicClient) return Math.floor(Date.now() / 1000);
-        const block = await publicClient.getBlock({ blockNumber });
-        const ts = Number(block.timestamp);
-        blockTimeCache.set(blockNumber, ts);
-        return ts;
-      } catch {
-        return Math.floor(Date.now() / 1000);
-      }
-    },
-    [blockTimeCache, publicClient],
-  );
-
   const fetchCustodyLogs = useCallback(async () => {
     if (!vault || !publicClient) return;
     setIsRefreshingLogs(true);
@@ -103,70 +84,71 @@ export default function AdminCustodyPage() {
         toBlock: latestBlock,
       });
 
-      const parsedPromises: Promise<CustodyEventLog | null>[] = logs.map(
-        async (log): Promise<CustodyEventLog | null> => {
-          if (!log.blockNumber || !log.transactionHash) return null;
-          const ts = await getBlockTimestamp(log.blockNumber);
-          const logIndex = log.logIndex ?? 0;
-          const id = `${log.transactionHash}-${logIndex}`;
+      // Phase E3: Prefetch unique block timestamps in a single batched deduplicated request
+      const blockNumbers = logs.map((l) => l.blockNumber);
+      const timestampMap = await prefetchBlockTimestamps(publicClient, chainId, blockNumbers);
 
-          const eventLog = log as unknown as {
-            eventName: CustodyEventLog['type'];
-            args: Record<string, unknown>;
-          };
+      const valid: CustodyEventLog[] = [];
 
-          const eventName = eventLog.eventName;
-          const args = eventLog.args || {};
+      for (const log of logs) {
+        if (!log.blockNumber || !log.transactionHash) continue;
+        const ts = timestampMap.get(log.blockNumber);
+        const logIndex = log.logIndex ?? 0;
+        const id = `${log.transactionHash}-${logIndex}`;
 
-          let assetSymbol = 'USDC';
-          let amountFormatted = '0.00';
-          let recOrFrom: string = '0x0000000000000000000000000000000000000000';
-          const caller: string =
-            (args.caller as string) || '0x0000000000000000000000000000000000000000';
+        const eventLog = log as unknown as {
+          eventName: CustodyEventLog['type'];
+          args: Record<string, unknown>;
+        };
 
-          const assetAddr = (args.asset as string)?.toLowerCase() || '';
+        const eventName = eventLog.eventName;
+        const args = eventLog.args || {};
 
-          if (assetAddr === tokens.cbBTC.toLowerCase()) {
-            assetSymbol = 'cbBTC';
-          } else if (assetAddr === tokens.WETH.toLowerCase()) {
-            assetSymbol = 'WETH';
-          } else {
-            assetSymbol = 'USDC';
-          }
+        let assetSymbol = 'USDC';
+        let amountFormatted = '0.00';
+        let recOrFrom: string = '0x0000000000000000000000000000000000000000';
+        const caller: string =
+          (args.caller as string) || '0x0000000000000000000000000000000000000000';
 
-          const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+        const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-          if (eventName === 'WithdrawalExecuted') {
-            recOrFrom = (args.to as string) || recOrFrom;
-            amountFormatted = args.amount
-              ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
-              : `0.00 ${assetSymbol}`;
-          } else if (eventName === 'DepositExecuted') {
-            recOrFrom = (args.from as string) || recOrFrom;
-            amountFormatted = args.amount
-              ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
-              : `0.00 ${assetSymbol}`;
-          } else {
-            return null;
-          }
+        if (assetAddr === tokens.cbBTC.toLowerCase()) {
+          assetSymbol = 'cbBTC';
+        } else if (assetAddr === tokens.WETH.toLowerCase()) {
+          assetSymbol = 'WETH';
+        } else {
+          assetSymbol = 'USDC';
+        }
 
-          return {
-            id,
-            blockNumber: log.blockNumber,
-            timestamp: ts,
-            type: eventName,
-            asset: assetSymbol,
-            recipientOrFrom: recOrFrom,
-            amountFormatted,
-            caller,
-            transactionHash: log.transactionHash,
-            logIndex,
-          };
-        },
-      );
+        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
 
-      const results = await Promise.all(parsedPromises);
-      const valid = results.filter((e): e is CustodyEventLog => e !== null);
+        if (eventName === 'WithdrawalExecuted') {
+          recOrFrom = (args.to as string) || recOrFrom;
+          amountFormatted = args.amount
+            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+            : `0.00 ${assetSymbol}`;
+        } else if (eventName === 'DepositExecuted') {
+          recOrFrom = (args.from as string) || recOrFrom;
+          amountFormatted = args.amount
+            ? `${Number(formatUnits(args.amount as bigint, decimals)).toFixed(4)} ${assetSymbol}`
+            : `0.00 ${assetSymbol}`;
+        } else {
+          continue;
+        }
+
+        valid.push({
+          id,
+          blockNumber: log.blockNumber,
+          timestamp: ts,
+          type: eventName,
+          asset: assetSymbol,
+          recipientOrFrom: recOrFrom,
+          amountFormatted,
+          caller,
+          transactionHash: log.transactionHash,
+          logIndex,
+        });
+      }
 
       valid.sort((a, b) => {
         if (b.blockNumber !== a.blockNumber) {
@@ -178,12 +160,12 @@ export default function AdminCustodyPage() {
       setCustodyLogs(valid);
       setLastSyncTime(new Date());
     } catch (err) {
-      console.warn('CustodyVault event log fetch error:', err);
+      console.warn('Custody log fetch error:', err);
     } finally {
       setIsLogsLoading(false);
       setIsRefreshingLogs(false);
     }
-  }, [vault, publicClient, tokens, getBlockTimestamp]);
+  }, [vault, publicClient, tokens, chainId]);
 
   useEffect(() => {
     if (!vault || !publicClient) return;
@@ -601,12 +583,14 @@ export default function AdminCustodyPage() {
               </thead>
               <tbody className="divide-y divide-slate-800/50 font-mono">
                 {custodyLogs.map((log) => {
-                  const dateStr = new Date(log.timestamp * 1000).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
+                  const dateStr = log.timestamp
+                    ? new Date(log.timestamp * 1000).toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : 'Timestamp unavailable';
 
                   const isWithdrawal = log.type === 'WithdrawalExecuted';
 

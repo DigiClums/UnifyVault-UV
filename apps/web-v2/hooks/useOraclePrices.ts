@@ -107,8 +107,9 @@ export function useOraclePrices(): OraclePricesResult {
     ],
     query: {
       enabled: !!oracle,
-      staleTime: 5_000,
-      refetchInterval: 5_000,
+      staleTime: 15_000,
+      refetchInterval: 15_000,
+      refetchOnWindowFocus: false,
       gcTime: 5 * 60 * 1000,
     },
   });

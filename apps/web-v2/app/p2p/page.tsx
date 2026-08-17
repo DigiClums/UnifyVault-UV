@@ -12,16 +12,47 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useP2PTrades, useP2PTrade } from '../../hooks/useP2PEscrow';
 import { useMarketplaceOrders, isSaneTradeId } from '../../hooks/useMarketplace';
 import { MarketplaceOrderBook } from '../../components/p2p/MarketplaceOrderBook';
-import { TakeOrderModal } from '../../components/p2p/TakeOrderModal';
-import { CreateMarketplaceOrderModal } from '../../components/p2p/CreateMarketplaceOrderModal';
 import { MyOrders } from '../../components/p2p/MyOrders';
 import { MyTrades } from '../../components/p2p/MyTrades';
-import { TradeDetailCard } from '../../components/p2p/TradeDetailCard';
 import { OrderDetails } from '../../lib/contracts/marketplace';
 import { useDashboard } from '../../hooks/useDashboard';
+
+// Phase B: Code-split heavy interactive components that are not needed during initial orderbook render
+const TradeDetailCard = dynamic(
+  () => import('../../components/p2p/TradeDetailCard').then((mod) => mod.TradeDetailCard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-8 rounded-2xl bg-background border-2 border-black dark:border-white/10 flex flex-col items-center justify-center gap-3 text-center">
+        <Loader2 className="w-6 h-6 animate-spin text-[#BFFF00]" />
+        <p className="text-xs font-bold text-muted-foreground font-mono">
+          Loading Escrow Trade Details...
+        </p>
+      </div>
+    ),
+  },
+);
+
+const CreateMarketplaceOrderModal = dynamic(
+  () =>
+    import('../../components/p2p/CreateMarketplaceOrderModal').then(
+      (mod) => mod.CreateMarketplaceOrderModal,
+    ),
+  {
+    ssr: false,
+  },
+);
+
+const TakeOrderModal = dynamic(
+  () => import('../../components/p2p/TakeOrderModal').then((mod) => mod.TakeOrderModal),
+  {
+    ssr: false,
+  },
+);
 
 export default function P2PPage() {
   const { address: userAddress } = useAccount();

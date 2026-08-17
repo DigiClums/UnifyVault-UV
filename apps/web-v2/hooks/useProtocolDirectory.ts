@@ -113,8 +113,9 @@ export function useProtocolDirectory(): ProtocolAddresses {
     contracts,
     query: {
       enabled: !isZeroAddress,
-      staleTime: 60 * 1000, // 1 minute cache
-      gcTime: 5 * 60 * 1000,
+      staleTime: Infinity, // Protocol directory module addresses are immutable
+      refetchOnWindowFocus: false,
+      gcTime: 24 * 60 * 60 * 1000,
     },
   });
 
