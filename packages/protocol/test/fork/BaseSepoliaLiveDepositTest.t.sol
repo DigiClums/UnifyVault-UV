@@ -10,6 +10,7 @@ import { Errors } from '../../src/errors/Errors.sol';
 
 interface VmExt {
   function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+  function envString(string calldata key) external returns (string memory);
 }
 
 contract BaseSepoliaLiveDepositTest is Test {
@@ -28,7 +29,8 @@ contract BaseSepoliaLiveDepositTest is Test {
 
   function setUp() public {
     // Select Base Sepolia RPC fork
-    vmExt.createSelectFork('https://sepolia.base.org');
+    string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
+    vmExt.createSelectFork(rpcUrl);
 
     // Create fresh brand new wallet
     newWallet = address(0x9999999999999999999999999999999999999999);

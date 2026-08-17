@@ -21,6 +21,7 @@ import { MyOrders } from '../../components/p2p/MyOrders';
 import { MyTrades } from '../../components/p2p/MyTrades';
 import { TradeDetailCard } from '../../components/p2p/TradeDetailCard';
 import { OrderDetails } from '../../lib/contracts/marketplace';
+import { useDashboard } from '../../hooks/useDashboard';
 
 export default function P2PPage() {
   const { address: userAddress } = useAccount();
@@ -38,6 +39,8 @@ export default function P2PPage() {
     isLoading: isMarketplaceLoading,
     refetch: refetchMarketplace,
   } = useMarketplaceOrders();
+
+  const metrics = useDashboard();
 
   // Page state
   const [activeTab, setActiveTab] = useState<'orderbook' | 'my-orders' | 'my-trades'>('orderbook');
@@ -153,6 +156,60 @@ export default function P2PPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          {/* P2P Portfolio Performance Banner */}
+          {metrics.p2pTrading && metrics.p2pTrading.hasP2PActivity && (
+            <div className="p-4 rounded-2xl bg-card border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#BFFF00] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground font-mono">
+                  Your P2P Trading Performance
+                </span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30">
+                  Decoupled OTC Domain
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 font-mono">
+                <div className="p-2.5 rounded-xl bg-background border border-border-subtle">
+                  <span className="text-[9px] text-muted-foreground uppercase block">
+                    P2P Inventory
+                  </span>
+                  <span className="text-sm font-bold text-foreground">
+                    {metrics.p2pTrading.formattedP2PShares} UVBE
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-background border border-border-subtle">
+                  <span className="text-[9px] text-muted-foreground uppercase block">
+                    Acquisition Cost
+                  </span>
+                  <span className="text-sm font-bold text-foreground">
+                    {metrics.p2pTrading.formattedP2PCostUSD}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-background border border-border-subtle">
+                  <span className="text-[9px] text-muted-foreground uppercase block">
+                    Current Valuation
+                  </span>
+                  <span className="text-sm font-bold text-foreground">
+                    {metrics.p2pTrading.formattedP2PCurrentValueUSD}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-background border border-border-subtle">
+                  <span className="text-[9px] text-muted-foreground uppercase block">
+                    Unrealized PnL
+                  </span>
+                  <span
+                    className={`text-sm font-bold ${
+                      metrics.p2pTrading.p2pUnrealizedPnLUSD >= 0
+                        ? 'text-[#5f8f00] dark:text-[#BFFF00]'
+                        : 'text-rose-500'
+                    }`}
+                  >
+                    {metrics.p2pTrading.formattedP2PUnrealizedPnLUSD}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Main Navigation Tabs */}
           <div className="flex items-center gap-2 border-b-2 border-black/10 dark:border-white/10 pb-2 overflow-x-auto font-mono">
             <button

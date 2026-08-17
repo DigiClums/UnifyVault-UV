@@ -40,7 +40,7 @@ import {
 // ─── Types & Constants ──────────────────────────────────────────────────────
 
 type ViewMode = 'global' | 'my';
-type TypeFilter = 'all' | 'deposit' | 'redeem' | 'fee' | 'admin' | 'p2p_settlement';
+type TypeFilter = 'all' | 'deposit' | 'redeem' | 'fee' | 'admin';
 type TokenFilter = 'all' | 'USDC' | 'cbBTC' | 'WETH' | 'UVBE';
 type StatusFilter = 'all' | 'success' | 'failed';
 
@@ -51,7 +51,6 @@ const TYPE_OPTIONS: { id: TypeFilter; label: string; icon?: React.ReactNode; dot
     { id: 'redeem', label: 'Redemptions', dotColor: 'bg-purple-400' },
     { id: 'fee', label: 'Fees', dotColor: 'bg-amber-400' },
     { id: 'admin', label: 'Admin / Strategy', dotColor: 'bg-cyan-400' },
-    { id: 'p2p_settlement', label: 'P2P Settlements', dotColor: 'bg-blue-400' },
   ];
 
 const TOKEN_OPTIONS: { id: TokenFilter; label: string }[] = [
@@ -435,12 +434,8 @@ export default function ProtocolExplorerPage() {
       }
 
       // 2. Action Type Filter
-      if (typeFilter !== 'all') {
-        if (typeFilter === 'p2p_settlement') {
-          if (tx.actionType !== 'p2p_settlement') return false;
-        } else if (tx.actionType !== typeFilter) {
-          return false;
-        }
+      if (typeFilter !== 'all' && tx.actionType !== typeFilter) {
+        return false;
       }
 
       // 3. Token Filter

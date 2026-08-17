@@ -1,7 +1,7 @@
 import { createPublicClient, http, parseAbi, type Address } from 'viem';
 import { baseSepolia } from 'viem/chains';
 
-const RPC_URL = 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const TOKEN = '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as Address;
 const USER_EOA = '0xd905920c91853039060246ed5724aa72b91a96da' as Address;
 const USER_SMART_ACCOUNT = '0xbC4fddb68d9bcb8F85e7Dc6fAA68de744653C739' as Address;

@@ -25,3 +25,7 @@ depth = 15
 via_ir = true
 fuzz = { runs = 1000 }
 invariant = { runs = 256, depth = 30 }
+
+[rpc_endpoints]
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+base_mainnet = "${BASE_MAINNET_RPC_URL}"

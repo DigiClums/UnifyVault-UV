@@ -1,8 +1,7 @@
 import { createPublicClient, http, parseAbi, keccak256, toHex } from 'viem';
 import { baseSepolia } from 'viem/chains';
 
-const RPC_URL =
-  process.env.BASE_SEPOLIA_RPC_URL || 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const TARGET_ADMIN = '0xd905920c91853039060246Ed5724AA72B91a96DA'; // Canonical 96da wallet
 
 const client = createPublicClient({

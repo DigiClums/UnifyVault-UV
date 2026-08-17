@@ -21,8 +21,8 @@ describe('Frontend Accounting Alignment (Phase 2)', () => {
     totalSharesRaw: 90_000_000_000_000_000_000_000n, // 90,000 shares ($1.00/share)
   };
 
-  // 1. P2P event -> p2p_settlement
-  it('1. classifies P2P events as p2p_settlement', () => {
+  // 1. P2P event -> not protocol transaction
+  it('1. verifies P2P events are decoupled and do NOT classify as protocol transaction actions', () => {
     const p2pEvents = [
       'TradeCreated',
       'EscrowFunded',
@@ -35,8 +35,8 @@ describe('Frontend Accounting Alignment (Phase 2)', () => {
       'DisputeResolved',
     ];
     for (const eventName of p2pEvents) {
-      expect(classifyTransaction([eventName])).toBe('p2p_settlement');
-      expect(classifyTransactionExplorer([eventName])).toBe('p2p_settlement');
+      expect(classifyTransaction([eventName])).not.toBe('p2p_settlement');
+      expect(classifyTransactionExplorer([eventName])).not.toBe('p2p_settlement');
     }
   });
 
@@ -46,12 +46,12 @@ describe('Frontend Accounting Alignment (Phase 2)', () => {
     expect(classifyTransactionExplorer(['Transfer'])).toBe('wallet_transfer');
   });
 
-  // 3. P2P event containing Transfer -> p2p_settlement takes priority over Transfer
-  it('3. ensures P2P event takes priority over Transfer in mixed event logs', () => {
-    expect(classifyTransaction(['Transfer', 'EscrowFunded'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['Transfer', 'EscrowReleased'])).toBe('p2p_settlement');
-    expect(classifyTransactionExplorer(['Transfer', 'EscrowFunded'])).toBe('p2p_settlement');
-    expect(classifyTransactionExplorer(['Transfer', 'EscrowReleased'])).toBe('p2p_settlement');
+  // 3. P2P event containing Transfer -> does not classify as p2p_settlement
+  it('3. ensures mixed P2P event logs do NOT create protocol accounting p2p_settlement actions', () => {
+    expect(classifyTransaction(['Transfer', 'EscrowFunded'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['Transfer', 'EscrowReleased'])).not.toBe('p2p_settlement');
+    expect(classifyTransactionExplorer(['Transfer', 'EscrowFunded'])).not.toBe('p2p_settlement');
+    expect(classifyTransactionExplorer(['Transfer', 'EscrowReleased'])).not.toBe('p2p_settlement');
   });
 
   // 4. Deposit event -> deposit
@@ -248,14 +248,14 @@ describe('Frontend Accounting Alignment (Phase 2)', () => {
     expect(btcHolding?.balanceRaw).toBe(5_000_000n); // 0.05 BTC (5% of 1 WBTC)
   });
 
-  // 12. Escrow intermediate transfers are not double-counted
-  it('12. verifies P2P escrow intermediate steps classify as p2p_settlement without double-counting', () => {
+  // 12. Escrow intermediate transfers do not create protocol accounting actions
+  it('12. verifies P2P escrow intermediate steps do not classify as protocol accounting actions', () => {
     const escrowFundLog = ['EscrowFunded', 'Transfer'];
     const escrowReleaseLog = ['EscrowReleased', 'Transfer'];
 
-    expect(classifyTransaction(escrowFundLog)).toBe('p2p_settlement');
-    expect(classifyTransaction(escrowReleaseLog)).toBe('p2p_settlement');
-    expect(classifyTransactionExplorer(escrowFundLog)).toBe('p2p_settlement');
-    expect(classifyTransactionExplorer(escrowReleaseLog)).toBe('p2p_settlement');
+    expect(classifyTransaction(escrowFundLog)).not.toBe('p2p_settlement');
+    expect(classifyTransaction(escrowReleaseLog)).not.toBe('p2p_settlement');
+    expect(classifyTransactionExplorer(escrowFundLog)).not.toBe('p2p_settlement');
+    expect(classifyTransactionExplorer(escrowReleaseLog)).not.toBe('p2p_settlement');
   });
 });

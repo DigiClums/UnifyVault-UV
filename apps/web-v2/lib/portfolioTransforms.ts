@@ -57,6 +57,8 @@ export interface RawProtocolContractData {
   onChainNAV?: readonly [bigint, bigint];
 }
 
+import { reconcileAccountLedger, LedgerEvent } from './ledger/accountLedger';
+
 export interface PerformanceStruct {
   currentValueUSD: bigint;
   investedCapitalUSD: bigint;
@@ -76,6 +78,18 @@ export interface RawUserContractData {
     | PerformanceStruct
     | readonly [bigint, bigint, bigint, bigint, bigint, bigint, bigint]
     | readonly [bigint, bigint, bigint, bigint];
+  p2pTrades?: {
+    tradeId: number;
+    buyer: string;
+    seller: string;
+    amount: bigint;
+    fiatAmount: bigint;
+    fiatCurrency: string;
+    state: number;
+    fundingTimestamp: number;
+    paymentTimestamp: number;
+  }[];
+  ledgerEvents?: LedgerEvent[];
 }
 
 export function transformProtocolMetrics(
@@ -261,22 +275,42 @@ export function transformUserPortfolio(
 
   const sharePriceNum = protocolMetrics.sharePriceNumber ?? 1.0;
 
-  const ownershipRatio = calculateOwnershipRatio(userSharesRaw, totalSharesRaw);
+  // ── Deterministic Decoupled Ledger Reconciliation ──
+  const ledgerResult = reconcileAccountLedger({
+    userAddress,
+    totalWalletSharesRaw: userSharesRaw,
+    onChainCostBasisRaw: contractInvestedAssetsRaw,
+    currentSharePriceUSD: sharePriceNum,
+    onChainPerformance: rawUserData.onChainPerformance,
+    p2pTrades: rawUserData.p2pTrades,
+    events: rawUserData.ledgerEvents,
+  });
+
+  const vaultSharesRaw = ledgerResult.vaultPortfolio.portfolioSharesRaw;
+  const investedAssetsUSD = ledgerResult.vaultPortfolio.portfolioInvestedCapitalUSD;
+  const currentValueUSD = ledgerResult.vaultPortfolio.portfolioPositionValueUSD;
+  const pnlUSD = ledgerResult.vaultPortfolio.portfolioPnLUSD;
+  const pnlPercent = ledgerResult.vaultPortfolio.portfolioROI;
+  const isProfitable = ledgerResult.vaultPortfolio.isProfitable;
+  const averageEntryPriceUSDNum = ledgerResult.vaultPortfolio.averageEntryPriceUSD;
+
+  // Pro-rata claims on vault collateral are calculated strictly from Vault portfolio shares
+  const ownershipRatio = calculateOwnershipRatio(vaultSharesRaw, totalSharesRaw);
   const ownershipPercentage = calculateOwnershipPercentage(ownershipRatio);
 
   const userWbtcBalRaw = calculateUserProRataBalance(
     wbtcTotalAssets,
-    userSharesRaw,
+    vaultSharesRaw,
     totalSharesRaw,
   );
   const userWethBalRaw = calculateUserProRataBalance(
     wethTotalAssets,
-    userSharesRaw,
+    vaultSharesRaw,
     totalSharesRaw,
   );
   const userUsdcBalRaw = calculateUserProRataBalance(
     usdcTotalAssets,
-    userSharesRaw,
+    vaultSharesRaw,
     totalSharesRaw,
   );
 
@@ -289,74 +323,7 @@ export function transformUserPortfolio(
   const userUsdcUSD = calculateUserProRataUSD(usdcUSDValue, ownershipRatio);
   const userTotalUSDNumber = userWbtcUSD + userWethUSD + userUsdcUSD;
 
-  // Primary source of truth: On-chain PerformanceManager.performance() or CostBasisManager.portfolioPerformance()
-  let investedAssetsUSD = 0;
-  let currentValueUSD = 0;
-  let pnlUSD = 0;
-  let pnlPercent = 0;
-
-  if (onChainPerformance && typeof onChainPerformance === 'object') {
-    if ('investedCapitalUSD' in onChainPerformance) {
-      // PerformanceManager struct (Viem object or proxy array with named properties)
-      const perf = onChainPerformance as PerformanceStruct;
-      investedAssetsUSD = Number(perf.investedCapitalUSD) / 1e18;
-      currentValueUSD = Number(perf.currentValueUSD) / 1e18;
-      const unrealizedUSD = Number(perf.unrealizedPnL) / 1e18;
-      pnlUSD = unrealizedUSD;
-      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
-    } else if ('costBasisUSD' in onChainPerformance) {
-      // CostBasisManager portfolioPerformance tuple (Viem object or proxy array with named properties)
-      const cbm = onChainPerformance as unknown as {
-        costBasisUSD: bigint;
-        currentValueUSD: bigint;
-        pnlUSD: bigint;
-        pnlBps: bigint;
-      };
-      investedAssetsUSD = Number(cbm.costBasisUSD) / 1e18;
-      currentValueUSD = Number(cbm.currentValueUSD) / 1e18;
-      const unrealizedUSD = currentValueUSD - investedAssetsUSD;
-      pnlUSD = unrealizedUSD;
-      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
-    } else if (Array.isArray(onChainPerformance) && onChainPerformance.length >= 7) {
-      // Positional array from PerformanceManager
-      // [currentValueUSD, investedCapitalUSD, realizedPnL, unrealizedPnL, netPnL, roiBps, holdingPeriod]
-      currentValueUSD = Number(onChainPerformance[0]) / 1e18;
-      investedAssetsUSD = Number(onChainPerformance[1]) / 1e18;
-      const unrealizedUSD = Number(onChainPerformance[3]) / 1e18;
-      pnlUSD = unrealizedUSD;
-      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
-    } else if (Array.isArray(onChainPerformance) && onChainPerformance.length >= 4) {
-      // Positional array from CostBasisManager
-      // [costBasisUSD, currentValueUSD, pnlUSD, pnlBps]
-      investedAssetsUSD = Number(onChainPerformance[0]) / 1e18;
-      currentValueUSD = Number(onChainPerformance[1]) / 1e18;
-      const unrealizedUSD = currentValueUSD - investedAssetsUSD;
-      pnlUSD = unrealizedUSD;
-      pnlPercent = investedAssetsUSD >= 0.001 ? (unrealizedUSD / investedAssetsUSD) * 100 : 0;
-    } else {
-      investedAssetsUSD = calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
-      currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
-      const computedPnL = calculatePnL(currentValueUSD, investedAssetsUSD);
-      pnlUSD = computedPnL.pnlUSD;
-      pnlPercent = computedPnL.pnlPercent;
-    }
-  } else {
-    investedAssetsUSD = calculateCostBasis(contractInvestedAssetsRaw, userSharesRaw, userAddress);
-    currentValueUSD = calculateCurrentValueUSD(userSharesRaw, sharePriceNum);
-    const computedPnL = calculatePnL(currentValueUSD, investedAssetsUSD);
-    pnlUSD = computedPnL.pnlUSD;
-    pnlPercent = computedPnL.pnlPercent;
-  }
-
-  const isProfitable = pnlUSD >= 0;
-
-  const averageEntryPriceUSDNum = calculateAverageEntryPrice(
-    userSharesRaw,
-    investedAssetsUSD,
-    sharePriceNum,
-  );
-
-  const formattedShares = formatShares(userSharesRaw);
+  const formattedShares = formatShares(vaultSharesRaw);
   const formattedCostBasisUSD = formatUSD(investedAssetsUSD);
   const formattedHoldingValueUSD = formatUSD(currentValueUSD);
   const formattedAvgEntryUSD = formatUSD(averageEntryPriceUSDNum);
@@ -364,7 +331,8 @@ export function transformUserPortfolio(
 
   if (typeof window !== 'undefined') {
     console.log('[Portfolio Accounting Audit]:', {
-      rawShares: userSharesRaw.toString(),
+      rawShares: vaultSharesRaw.toString(),
+      walletShares: userSharesRaw.toString(),
       formattedShares,
       totalSupply: totalSharesRaw.toString(),
       navPerShare: formattedNavPerShareUSD,
@@ -373,6 +341,7 @@ export function transformUserPortfolio(
       holdingValue: formattedHoldingValueUSD,
       ownership: ownershipPercentage,
       averageEntryPrice: formattedAvgEntryUSD,
+      p2pShares: ledgerResult.p2pTrading.activeP2PSharesRaw.toString(),
     });
   }
 
@@ -467,8 +436,10 @@ export function transformUserPortfolio(
 
   return {
     userAddress,
-    userSharesRaw,
-    userSharesBalance: formatShares(userSharesRaw),
+    userSharesRaw: vaultSharesRaw,
+    userSharesBalance: formatShares(vaultSharesRaw),
+    walletBalanceRaw: userSharesRaw,
+    walletBalanceFormatted: formatShares(userSharesRaw),
     userUsdcBalanceRaw: userUsdcRaw,
     userUsdcBalanceFormatted: formatUnits(userUsdcRaw, 6),
     investedAssetsUSD: formatUSD(investedAssetsUSD),
@@ -482,5 +453,11 @@ export function transformUserPortfolio(
     averageEntryPriceUSD: formatUSD(averageEntryPriceUSDNum),
     ownershipPercentage,
     userHoldings,
+    vaultPortfolio: ledgerResult.vaultPortfolio,
+    p2pTrading: ledgerResult.p2pTrading,
+    escrowLocked: ledgerResult.escrowLocked,
+    hasP2PShares: ledgerResult.hasP2PShares,
+    hasVaultShares: ledgerResult.hasVaultShares,
+    hasLockedShares: ledgerResult.hasLockedShares,
   };
 }

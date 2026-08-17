@@ -1,8 +1,7 @@
 const { createPublicClient, http, parseAbi } = require('viem');
 const { baseSepolia } = require('viem/chains');
 
-const RPC_URL =
-  process.env.BASE_SEPOLIA_RPC_URL || 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const DIRECTORY_ADDR = '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D';
 const TEST_WALLET = '0xd905920c91853039060246Ed5724AA72B91a96DA';
 

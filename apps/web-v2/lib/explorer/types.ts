@@ -8,14 +8,7 @@ export const MAX_BLOCK_WINDOW = 1500n;
 
 /** Classification of a protocol transaction */
 export type ProtocolActionType =
-  | 'deposit'
-  | 'redeem'
-  | 'fee'
-  | 'admin'
-  | 'p2p_settlement'
-  | 'wallet_transfer'
-  | 'other'
-  | 'unknown';
+  'deposit' | 'redeem' | 'fee' | 'admin' | 'wallet_transfer' | 'other' | 'unknown';
 
 /** Explorer state machine */
 export type ExplorerState = 'loading' | 'ready' | 'error' | 'unsupported' | 'syncing';
@@ -35,9 +28,7 @@ export type ProtocolContractName =
   | 'StrategyManager'
   | 'PortfolioManager'
   | 'CostBasisManager'
-  | 'PerformanceManager'
-  | 'P2PEscrow'
-  | 'P2PMarketplace';
+  | 'PerformanceManager';
 
 export interface ContractEventRegistry {
   name: string;

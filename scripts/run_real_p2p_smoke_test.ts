@@ -34,9 +34,7 @@ process.env.PAYMENT_DATA_ENCRYPTION_KEY =
   '9f8e4b7c1a2d3e5f608192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7';
 
 const RPC_URL =
-  process.env.BASE_SEPOLIA_RPC_URL ||
-  process.env.NEXT_PUBLIC_RPC_URL ||
-  'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+  process.env.BASE_SEPOLIA_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
 
 const SELLER_PK =
   '0xcba2ded5fd50de59f9165d61ed747632a4e7aa33f7e43a4ff9414a08a54eb859' as `0x${string}`;

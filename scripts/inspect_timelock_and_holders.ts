@@ -2,9 +2,7 @@ import { createPublicClient, http, parseAbi, keccak256, toHex, type Address, typ
 import { baseSepolia } from 'viem/chains';
 
 const RPC_URL =
-  process.env.BASE_SEPOLIA_RPC_URL ||
-  process.env.NEXT_PUBLIC_RPC_URL ||
-  'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+  process.env.BASE_SEPOLIA_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
 const TARGET_96DA: Address = '0xd905920c91853039060246Ed5724AA72B91a96DA';
 const DEPLOYER_OLD_ADMIN: Address = '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1';
 const TIMELOCK_ADDRESS: Address = '0x9094145Cd2AEA2f309eDf14237444a07edF98d02';

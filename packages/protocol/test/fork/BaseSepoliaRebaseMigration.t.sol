@@ -13,6 +13,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 interface VmExt {
   function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+  function envString(string calldata key) external returns (string memory);
 }
 
 contract BaseSepoliaRebaseMigrationTest is Test {
@@ -38,7 +39,7 @@ contract BaseSepoliaRebaseMigrationTest is Test {
   uint256 public initialCostBasis;
 
   function setUp() public {
-    string memory rpcUrl = 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+    string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
     vmExt.createSelectFork(rpcUrl);
 
     dir = ProtocolDirectory(DIRECTORY);

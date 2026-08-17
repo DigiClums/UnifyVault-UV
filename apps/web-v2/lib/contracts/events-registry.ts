@@ -299,23 +299,10 @@ export const EVENT_DISPLAY_ORDER: Record<EventSignature, number> = {
 // ─── Action Type Detection ──────────────────────────────────────────────────
 
 export type ProtocolActionType =
-  'deposit' | 'redeem' | 'fee' | 'admin' | 'p2p_settlement' | 'wallet_transfer' | 'unknown';
+  'deposit' | 'redeem' | 'fee' | 'admin' | 'wallet_transfer' | 'unknown';
 
 export function classifyTransaction(eventNames: string[]): ProtocolActionType {
   for (const name of eventNames) {
-    if (
-      name === 'TradeCreated' ||
-      name === 'EscrowFunded' ||
-      name === 'PaymentSubmitted' ||
-      name === 'DisputeRaised' ||
-      name === 'TradeDisputed' ||
-      name === 'DisputeResolved' ||
-      name === 'EscrowReleased' ||
-      name === 'EscrowRefunded' ||
-      name === 'TradeCancelled'
-    ) {
-      return 'p2p_settlement';
-    }
     if (name === 'DepositExecuted' || name === 'DepositCompleted') return 'deposit';
     if (name === 'RedeemExecuted' || name === 'RedeemCompleted') return 'redeem';
     if (name === 'ProtocolFeeCollected' || name === 'FeeCollected') return 'fee';

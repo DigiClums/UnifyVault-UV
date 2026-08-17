@@ -39,7 +39,7 @@ export function getRpcUrl(chainId?: number): string {
     process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA ||
     process.env.NEXT_PUBLIC_RPC_URL ||
     process.env.BASE_SEPOLIA_RPC_URL ||
-    'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8'
+    'https://sepolia.base.org'
   );
 }
 

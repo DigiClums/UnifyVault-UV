@@ -13,9 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const RPC_URL =
-  process.env.BASE_SEPOLIA_RPC_URL ||
-  process.env.NEXT_PUBLIC_RPC_URL ||
-  'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+  process.env.BASE_SEPOLIA_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
 export const TARGET_96DA: Address = '0xd905920c91853039060246Ed5724AA72B91a96DA';
 export const DEPLOYER_OLD_ADMIN: Address = '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1';
 

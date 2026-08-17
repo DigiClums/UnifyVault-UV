@@ -1,6 +1,7 @@
 const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA ||
-  'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+  process.env.BASE_SEPOLIA_RPC_URL ||
+  'https://sepolia.base.org';
 
 const DIRECTORY_ADDR = '0x329158A24DdC8ED267cc5D3f3D9C2905149C596D';
 const CONTROLLER_ADDR = '0xF66Cfb1233548176cD4bFe8224fB18450Bf3c13e';

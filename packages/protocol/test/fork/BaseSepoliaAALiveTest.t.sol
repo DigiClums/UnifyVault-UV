@@ -98,6 +98,7 @@ contract LiveSimSimpleAccount {
  */
 interface VmExtAA {
   function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+  function envString(string calldata key) external returns (string memory);
 }
 
 contract BaseSepoliaAALiveTest is Test {
@@ -127,7 +128,7 @@ contract BaseSepoliaAALiveTest is Test {
   address public admin = 0xd905920c91853039060246Ed5724AA72B91a96DA;
 
   function setUp() public {
-    string memory rpcUrl = 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+    string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
     vmExt.createSelectFork(rpcUrl);
 
     userEOA = vm.addr(userPrivateKey);

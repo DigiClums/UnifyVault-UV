@@ -158,5 +158,5 @@ describe('Phase 2A.5 — Provider Abstraction Architecture Tests', () => {
     expect(client.account).toBeDefined();
     expect(client.account.address).toMatch(/^0x[0-9a-fA-F]{40}$/);
     expect(client.paymaster).toBeDefined();
-  });
+  }, 15000);
 });

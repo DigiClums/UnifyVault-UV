@@ -59,6 +59,13 @@ export interface DashboardMetrics {
   rawInvestedAssetsUSD: number;
   rawCurrentValueUSD: number;
   rawPnLUSD: number;
+  walletBalanceRaw?: bigint;
+  walletBalanceFormatted?: string;
+  vaultPortfolio?: VaultPortfolioAccounting;
+  p2pTrading?: P2PTradingAccounting;
+  escrowLocked?: P2PEscrowLockedAccounting;
+  hasP2PShares?: boolean;
+  hasLockedShares?: boolean;
   isLoading: boolean;
   isError: boolean;
   dataUpdatedAt?: number;
@@ -122,13 +129,78 @@ export interface ProtocolMetrics {
   isOracleFresh?: boolean;
 }
 
+export type EscrowTradeOrigin = 'VAULT' | 'P2P' | 'UNKNOWN';
+
+export interface EscrowLockedPosition {
+  tradeId: number;
+  seller: string;
+  buyer: string;
+  amount: bigint;
+  amountFormatted: string;
+  origin: EscrowTradeOrigin;
+  state: number;
+  stateLabel: string;
+  role: 'SELLER' | 'BUYER';
+  fiatAmount?: bigint;
+  fiatCurrency?: string;
+  fiatValueUSD?: number;
+  lockedValueUSD: number;
+  formattedLockedValueUSD: string;
+}
+
+export interface P2PEscrowLockedAccounting {
+  lockedSharesRaw: bigint;
+  lockedSharesFormatted: string;
+  lockedValueUSD: number;
+  formattedLockedValueUSD: string;
+  lockedPositionsCount: number;
+  lockedPositions: EscrowLockedPosition[];
+  hasLockedInventory: boolean;
+}
+
+export interface VaultPortfolioAccounting {
+  portfolioSharesRaw: bigint;
+  portfolioSharesFormatted: string;
+  portfolioInvestedCapitalUSD: number;
+  portfolioCostBasisUSD: number;
+  portfolioPositionValueUSD: number;
+  portfolioPnLUSD: number;
+  portfolioUnrealizedPnLUSD?: number;
+  portfolioRealizedPnLUSD?: number;
+  portfolioROI: number; // percentage
+  isProfitable: boolean;
+  averageEntryPriceUSD: number;
+  formattedInvestedUSD: string;
+  formattedPositionValueUSD: string;
+  formattedPnLUSD: string;
+  formattedROI: string;
+}
+
+export interface P2PTradingAccounting {
+  activeP2PSharesRaw: bigint;
+  activeP2PSharesFormatted: string;
+  p2pAcquiredCostUSD: number;
+  p2pCurrentValueUSD: number;
+  p2pUnrealizedPnLUSD: number;
+  p2pRealizedPnLUSD: number;
+  p2pTradesCount: number;
+  hasP2PActivity: boolean;
+  formattedP2PShares: string;
+  formattedP2PCostUSD: string;
+  formattedP2PCurrentValueUSD: string;
+  formattedP2PUnrealizedPnLUSD: string;
+  formattedP2PRealizedPnLUSD: string;
+}
+
 /**
  * User Specific Portfolio Metrics (Shares, Ownership, Holdings, PnL, Entry Price).
  */
 export interface UserPortfolio {
   userAddress?: `0x${string}`;
-  userSharesRaw: bigint;
+  userSharesRaw: bigint; // Vault portfolio shares (authoritative for portfolio accounting)
   userSharesBalance: string;
+  walletBalanceRaw?: bigint; // Total ERC20 token balance in wallet (informational only)
+  walletBalanceFormatted?: string;
   userUsdcBalanceRaw: bigint;
   userUsdcBalanceFormatted: string;
   investedAssetsUSD: string;
@@ -142,6 +214,22 @@ export interface UserPortfolio {
   averageEntryPriceUSD: string;
   ownershipPercentage: string;
   userHoldings: AssetHolding[];
+  vaultPortfolio?: VaultPortfolioAccounting;
+  p2pTrading?: P2PTradingAccounting;
+  escrowLocked?: P2PEscrowLockedAccounting;
+  hasP2PShares?: boolean;
+  hasVaultShares?: boolean;
+  hasLockedShares?: boolean;
+}
+
+export interface UnifiedUserPortfolio extends UserPortfolio {
+  walletBalanceRaw: bigint;
+  walletBalanceFormatted: string;
+  vaultPortfolio: VaultPortfolioAccounting;
+  p2pTrading: P2PTradingAccounting;
+  escrowLocked: P2PEscrowLockedAccounting;
+  hasP2PShares: boolean;
+  hasLockedShares: boolean;
 }
 
 export interface HistoricalNavPoint {

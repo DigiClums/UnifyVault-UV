@@ -167,21 +167,6 @@ export function buildEventRegistry(
  */
 export function classifyTransaction(eventNames: string[]): string {
   for (const name of eventNames) {
-    if (
-      name === 'TradeCreated' ||
-      name === 'EscrowFunded' ||
-      name === 'PaymentSubmitted' ||
-      name === 'DisputeRaised' ||
-      name === 'TradeDisputed' ||
-      name === 'DisputeResolved' ||
-      name === 'EscrowReleased' ||
-      name === 'EscrowRefunded' ||
-      name === 'TradeCancelled'
-    ) {
-      return 'p2p_settlement';
-    }
-  }
-  for (const name of eventNames) {
     if (name === 'DepositExecuted' || name === 'DepositCompleted') return 'deposit';
   }
   for (const name of eventNames) {

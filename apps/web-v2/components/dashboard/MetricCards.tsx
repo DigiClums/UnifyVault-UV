@@ -88,8 +88,18 @@ export function MetricCards({ metrics }: MetricCardsProps) {
               {metrics.userSharesBalance && (
                 <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   {metrics.userSharesBalance}{' '}
-                  <span className="text-slate-400 dark:text-white/25">UVBE</span>
+                  <span className="text-slate-400 dark:text-white/25">Vault UVBE</span>
                 </span>
+              )}
+
+              {metrics.hasP2PShares && metrics.p2pTrading && (
+                <a
+                  href="/p2p"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#5f8f00] dark:text-[#BFFF00] bg-[#BFFF00]/10 hover:bg-[#BFFF00]/20 px-2 py-0.5 rounded border border-[#BFFF00]/30 transition-colors"
+                >
+                  <span>+{metrics.p2pTrading.activeP2PSharesFormatted} P2P UVBE</span>
+                  <span className="text-[8px]">→</span>
+                </a>
               )}
             </div>
           </div>

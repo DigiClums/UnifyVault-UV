@@ -31,6 +31,7 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 interface VmExt {
   function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+  function envString(string calldata key) external returns (string memory);
 }
 
 contract Phase5_5AdversarialSecurityTest is Test {
@@ -90,7 +91,7 @@ contract Phase5_5AdversarialSecurityTest is Test {
   GasTreasury public gasTreasury;
 
   function setUp() public {
-    string memory rpcUrl = 'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+    string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
     vmExt.createSelectFork(rpcUrl);
 
     directory = ProtocolDirectory(DIRECTORY_ADDR);

@@ -172,14 +172,14 @@ describe('Transaction Classification', () => {
     expect(classifyTransaction(['EmergencyPaused'])).not.toBe('fee');
   });
 
-  it('classifies P2P events as p2p_settlement', () => {
-    expect(classifyTransaction(['TradeCreated'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['EscrowFunded'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['PaymentSubmitted'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['EscrowReleased'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['EscrowRefunded'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['TradeDisputed'])).toBe('p2p_settlement');
-    expect(classifyTransaction(['TradeCancelled'])).toBe('p2p_settlement');
+  it('does not classify P2P events as protocol action types (decoupled from protocol explorer)', () => {
+    expect(classifyTransaction(['TradeCreated'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['EscrowFunded'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['PaymentSubmitted'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['EscrowReleased'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['EscrowRefunded'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['TradeDisputed'])).not.toBe('p2p_settlement');
+    expect(classifyTransaction(['TradeCancelled'])).not.toBe('p2p_settlement');
   });
 
   it('classifies standard ERC20 transfers as wallet_transfer', () => {

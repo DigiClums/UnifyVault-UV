@@ -16,9 +16,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 
 const RPC_URL =
-  process.env.BASE_SEPOLIA_RPC_URL ||
-  process.env.NEXT_PUBLIC_RPC_URL ||
-  'https://base-sepolia.g.alchemy.com/v2/MkIl1aCbfeHNPO7ZBU7S8';
+  process.env.BASE_SEPOLIA_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
 const RELAYER_PK = (process.env.DEPLOYER_PRIVATE_KEY ||
   process.env.PRIVATE_KEY ||
   process.env.RELAYER_PRIVATE_KEY) as `0x${string}`;
