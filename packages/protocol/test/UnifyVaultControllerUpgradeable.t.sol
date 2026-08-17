@@ -271,6 +271,74 @@ contract UnifyVaultControllerUpgradeableTest is Test {
     assertTrue(v2Controller.hasRole(AccessRoles.GOVERNANCE_ROLE, governance));
   }
 
+  function testUpgradeToV2WithGapConsumptionPreservesAllSlots() public {
+    // 1. Configure non-default values across V1 storage slots
+    vm.startPrank(governance);
+    controller.setSwapSlippageBps(300); // slot 15
+    controller.setDepositLimits(75_000 * 1e6, 750_000 * 1e6); // slots 5, 7
+    controller.setRedeemLimits(80_000 * 1e18, 800_000 * 1e18); // slots 6, 8
+    controller.setMonitoringThresholds(25_000 * 1e6, 30_000 * 1e18); // slots 13, 14
+    vm.stopPrank();
+
+    // 2. Perform a deposit so tracking slots (9, 10) are mutated
+    vm.startPrank(user);
+    usdc.approve(address(controller), 10_000 * 1e6);
+    controller.deposit(address(usdc), 10_000 * 1e6, 0, user);
+    vm.stopPrank();
+
+    // 3. Capture raw EVM storage slots 0 through 15 from proxy
+    bytes32[16] memory v1Slots;
+    for (uint256 i = 0; i < 16; i++) {
+      v1Slots[i] = vm.load(address(proxy), bytes32(i));
+    }
+
+    // Confirm slot 16 (__gap[0]) is zero before V2
+    assertEq(vm.load(address(proxy), bytes32(uint256(16))), bytes32(0));
+
+    // 4. Upgrade proxy to UnifyVaultControllerV2GapMock (which consumes slot 16 from __gap)
+    UnifyVaultControllerV2GapMock v2GapImpl = new UnifyVaultControllerV2GapMock();
+    vm.prank(governance);
+    controller.upgradeToAndCall(address(v2GapImpl), '');
+
+    UnifyVaultControllerV2GapMock v2Controller = UnifyVaultControllerV2GapMock(address(proxy));
+
+    // 5. Verify every single raw storage slot 0..15 is 100% identical
+    for (uint256 i = 0; i < 16; i++) {
+      assertEq(vm.load(address(proxy), bytes32(i)), v1Slots[i]);
+    }
+
+    // 6. Verify high-level getters in V2
+    assertEq(v2Controller.directory(), address(directory));
+    assertEq(v2Controller.oracle(), address(oracleManager));
+    assertEq(v2Controller.vault(), address(vault));
+    assertEq(v2Controller.treasury(), address(treasury));
+    assertEq(v2Controller.token(), address(token));
+    assertEq(v2Controller.maxDepositPerTx(), 75_000 * 1e6);
+    assertEq(v2Controller.maxRedeemPerTx(), 80_000 * 1e18);
+    assertEq(v2Controller.dailyDepositCap(), 750_000 * 1e6);
+    assertEq(v2Controller.dailyRedeemCap(), 800_000 * 1e18);
+    assertEq(v2Controller.largeDepositThreshold(), 25_000 * 1e6);
+    assertEq(v2Controller.largeRedeemThreshold(), 30_000 * 1e18);
+    assertEq(v2Controller.swapSlippageBps(), 300);
+    assertEq(v2Controller.version(), '2.0.0-gap-consumed');
+
+    // 7. Write to the newly added variable at slot 16 (consumed gap slot)
+    assertEq(v2Controller.newVariableV2(), 0);
+    vm.prank(governance);
+    v2Controller.setNewVariableV2(123456789);
+    assertEq(v2Controller.newVariableV2(), 123456789);
+    assertEq(vm.load(address(proxy), bytes32(uint256(16))), bytes32(uint256(123456789)));
+
+    // 8. Re-verify slots 0..15 were not contaminated by writing to slot 16
+    for (uint256 i = 0; i < 16; i++) {
+      assertEq(vm.load(address(proxy), bytes32(i)), v1Slots[i]);
+    }
+
+    // 9. Verify ERC-7201 namespaced storage is intact
+    assertTrue(v2Controller.hasRole(AccessRoles.GOVERNANCE_ROLE, governance));
+    assertFalse(v2Controller.paused());
+  }
+
   // --- Live Deposit, Redeem & Accounting Through Proxy ---
 
   function testDepositThroughProxy() public {
