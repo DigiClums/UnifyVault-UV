@@ -15,6 +15,8 @@ import {
   Coins,
 } from 'lucide-react';
 import { OrderDetails, OrderSide, OrderStatus } from '../../lib/contracts/marketplace';
+import { TrustBadge } from './TrustBadge';
+import { ParticipantRole } from '../../lib/contracts/reputation';
 
 interface MarketplaceOrderBookProps {
   orders: OrderDetails[];
@@ -205,7 +207,11 @@ export function MarketplaceOrderBook({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                    <TrustBadge
+                      address={order.maker as `0x${string}`}
+                      role={isBuy ? ParticipantRole.BUYER : ParticipantRole.SELLER}
+                    />
                     <span>
                       {order.maker.slice(0, 6)}...{order.maker.slice(-4)}
                     </span>

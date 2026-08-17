@@ -23,7 +23,11 @@ import {
   Sparkles,
   CreditCard,
   Check,
+  Star,
 } from 'lucide-react';
+import { TrustBadge } from './TrustBadge';
+import { RateTradeModal } from './RateTradeModal';
+import { ParticipantRole, P2P_REPUTATION_ABI } from '../../lib/contracts/reputation';
 import {
   TradeDetails,
   TradeState,
@@ -194,6 +198,18 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
   const [upiUri, setUpiUri] = useState<string>('');
   const [isFetchingIntent, setIsFetchingIntent] = useState(false);
   const [isClaimingIntent, setIsClaimingIntent] = useState(false);
+
+  // Phase 6 Reputation & Trust Rating Modal States
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+  const { data: hasRatedData, refetch: refetchHasRated } = useReadContract({
+    address: DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation,
+    abi: P2P_REPUTATION_ABI,
+    functionName: 'hasUserRated',
+    args: userAddress ? [BigInt(trade.tradeId), userAddress] : undefined,
+    query: {
+      enabled: Boolean(userAddress && trade.state === TradeState.RELEASED),
+    },
+  });
   const [sellerUpiInput, setSellerUpiInput] = useState('');
   const [sellerUpi, setSellerUpi] = useState<string | null>(null);
   const [isLoadingSellerUpi, setIsLoadingSellerUpi] = useState<boolean>(false);
@@ -879,14 +895,31 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       )}
 
       {trade.state === TradeState.RELEASED && (
-        <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-900 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+        <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-900 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>P2P Trade Result: Fiat Proceeds − Disposed Basis</span>
           </div>
-          <span className="font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
-            {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)} Proceeds
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
+              {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)} Proceeds
+            </span>
+            {(isBuyer || isSeller) && (
+              <button
+                type="button"
+                onClick={() => setIsRateModalOpen(true)}
+                disabled={Boolean(hasRatedData)}
+                className={`px-3 py-1 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
+                  hasRatedData
+                    ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30 cursor-default'
+                    : 'bg-amber-500 text-black border border-black shadow-[2px_2px_0_#000] hover:translate-y-0.5'
+                }`}
+              >
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <span>{hasRatedData ? 'Rated ✓' : 'Rate Counterparty'}</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -910,19 +943,25 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           </p>
         </div>
 
-        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Seller (Maker)
-          </span>
+        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Seller
+            </span>
+            <TrustBadge address={trade.seller} role={ParticipantRole.SELLER} compact />
+          </div>
           <p className="text-xs font-mono font-bold text-foreground truncate">
             {trade.seller.slice(0, 6)}...{trade.seller.slice(-4)} {isSeller && '(You)'}
           </p>
         </div>
 
-        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Buyer (Taker)
-          </span>
+        <div className="p-3 rounded-xl bg-accent/40 border border-black/5 dark:border-white/5 space-y-1">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Buyer
+            </span>
+            <TrustBadge address={trade.buyer} role={ParticipantRole.BUYER} compact />
+          </div>
           <p className="text-xs font-mono font-bold text-foreground truncate">
             {trade.buyer.slice(0, 6)}...{trade.buyer.slice(-4)} {isBuyer && '(You)'}
           </p>
@@ -1722,6 +1761,18 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           if (onRefresh) onRefresh();
         }}
         onOpenWallet={txManager.openMobileWallet}
+      />
+
+      <RateTradeModal
+        isOpen={isRateModalOpen}
+        tradeId={BigInt(trade.tradeId)}
+        counterpartyAddress={isBuyer ? trade.seller : trade.buyer}
+        counterpartyRole={isBuyer ? 'Seller' : 'Buyer'}
+        onClose={() => setIsRateModalOpen(false)}
+        onSuccess={() => {
+          refetchHasRated();
+          if (onRefresh) onRefresh();
+        }}
       />
     </div>
   );

@@ -29,6 +29,7 @@ import {
   RefreshCw,
   CheckCircle2,
   LucideIcon,
+  Star,
 } from 'lucide-react';
 
 type ContractCategory =
@@ -170,6 +171,16 @@ export default function ContractsPage() {
       category: 'P2P & Escrow',
       protocolKey: 'Orderbook Matching Engine',
       icon: Store,
+      isErc20: false,
+    },
+    {
+      name: 'P2PReputation',
+      description:
+        'Decentralized Bayesian-smoothed trust and reputation engine for P2P buyers and sellers',
+      address: DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation,
+      category: 'P2P & Escrow',
+      protocolKey: 'P2P Trust & Reputation Engine',
+      icon: Star,
       isErc20: false,
     },
 

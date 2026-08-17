@@ -99,6 +99,11 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
     : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
       ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
       : '0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb') as `0x${string}`,
+  P2PReputation: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS_SEPOLIA
+    : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS)
+      ? process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS
+      : '0x49460e2fF8c20ba96121C18e7D36Fd4aE293C70c') as `0x${string}`,
   Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA)
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
