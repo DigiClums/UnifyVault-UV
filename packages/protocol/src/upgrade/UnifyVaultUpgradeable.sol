@@ -10,13 +10,10 @@ import {UnifyVaultStorage} from './UnifyVaultStorage.sol';
 /**
  * @title UnifyVaultUpgradeable
  * @notice Upgradeable protocol shell for future UnifyVault versions.
- * @dev This is an additive foundation. Existing Phase 2B/Phase 6 contracts are not
- *      modified by this contract. A new production deployment can use this shell as
- *      the stable proxy address while business modules evolve independently.
+ * @dev Existing protocol contracts remain untouched until an explicit migration plan
+ *      proves their storage and behavior can be moved safely behind this proxy.
  */
 contract UnifyVaultUpgradeable is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
-  using UnifyVaultStorage for UnifyVaultStorage.Layout;
-
   bytes32 public constant UPGRADER_ROLE = keccak256('UPGRADER_ROLE');
   bytes32 public constant MODULE_MANAGER_ROLE = keccak256('MODULE_MANAGER_ROLE');
 
@@ -26,10 +23,16 @@ contract UnifyVaultUpgradeable is Initializable, AccessControlUpgradeable, UUPSU
   error InvalidModuleVersion();
   error ModuleNotRegistered(bytes32 moduleId);
   error ModuleAlreadyRegistered(bytes32 moduleId);
-  error ModuleDisabled(bytes32 moduleId);
+  error ModuleVersionNotIncreasing(uint64 currentVersion, uint64 newVersion);
 
   event ProtocolDirectoryUpdated(address indexed previousDirectory, address indexed newDirectory);
   event ModuleRegistered(bytes32 indexed moduleId, address indexed implementation, uint64 version);
+  event ModuleUpgraded(
+    bytes32 indexed moduleId,
+    address indexed previousImplementation,
+    address indexed newImplementation,
+    uint64 version
+  );
   event ModuleEnabled(bytes32 indexed moduleId);
   event ModuleDisabled(bytes32 indexed moduleId);
   event ModuleRemoved(bytes32 indexed moduleId, address indexed implementation);
@@ -69,14 +72,7 @@ contract UnifyVaultUpgradeable is Initializable, AccessControlUpgradeable, UUPSU
   }
 
   function registerModule(address module) external onlyRole(MODULE_MANAGER_ROLE) {
-    if (module == address(0)) revert ZeroAddress();
-    if (module.code.length == 0) revert NotContract(module);
-
-    bytes32 id = IUnifyVaultModule(module).moduleId();
-    uint64 version = IUnifyVaultModule(module).moduleVersion();
-    if (id == bytes32(0)) revert InvalidModuleId(bytes32(0), id);
-    if (version == 0) revert InvalidModuleVersion();
-
+    (bytes32 id, uint64 version) = _moduleMetadata(module);
     UnifyVaultStorage.Layout storage l = UnifyVaultStorage.layout();
     if (l.modules[id].implementation != address(0)) revert ModuleAlreadyRegistered(id);
 
@@ -87,6 +83,24 @@ contract UnifyVaultUpgradeable is Initializable, AccessControlUpgradeable, UUPSU
     });
 
     emit ModuleRegistered(id, module, version);
+  }
+
+  /// @notice Replaces a registered module without changing the module identifier.
+  /// @dev The version must strictly increase, preventing accidental rollback.
+  function upgradeModule(address module) external onlyRole(MODULE_MANAGER_ROLE) {
+    (bytes32 id, uint64 newVersion) = _moduleMetadata(module);
+    UnifyVaultStorage.Layout storage l = UnifyVaultStorage.layout();
+    UnifyVaultStorage.ModuleConfig storage current = l.modules[id];
+    if (current.implementation == address(0)) revert ModuleNotRegistered(id);
+    if (newVersion <= current.version) {
+      revert ModuleVersionNotIncreasing(current.version, newVersion);
+    }
+
+    address previous = current.implementation;
+    current.implementation = module;
+    current.version = newVersion;
+
+    emit ModuleUpgraded(id, previous, module, newVersion);
   }
 
   function enableModule(bytes32 id) external onlyRole(MODULE_MANAGER_ROLE) {
@@ -123,6 +137,16 @@ contract UnifyVaultUpgradeable is Initializable, AccessControlUpgradeable, UUPSU
   function _module(bytes32 id) internal view returns (UnifyVaultStorage.ModuleConfig storage module) {
     module = UnifyVaultStorage.layout().modules[id];
     if (module.implementation == address(0)) revert ModuleNotRegistered(id);
+  }
+
+  function _moduleMetadata(address module) internal view returns (bytes32 id, uint64 version) {
+    if (module == address(0)) revert ZeroAddress();
+    if (module.code.length == 0) revert NotContract(module);
+
+    id = IUnifyVaultModule(module).moduleId();
+    version = IUnifyVaultModule(module).moduleVersion();
+    if (id == bytes32(0)) revert InvalidModuleId(bytes32(0), id);
+    if (version == 0) revert InvalidModuleVersion();
   }
 
   function _authorizeUpgrade(address newImplementation)
