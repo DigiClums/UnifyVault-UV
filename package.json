@@ -9,7 +9,7 @@
     "dev:v2": "turbo run dev --filter=@unifyvault/web-v2",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "pnpm test:all",
     "test:1": "pnpm --filter @unifyvault/protocol test:1",
     "test:2": "pnpm --filter @unifyvault/protocol test:2",
     "test:3": "pnpm --filter @unifyvault/protocol test:3",
