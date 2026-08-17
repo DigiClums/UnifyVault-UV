@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
-import { formatUnits, type Address } from 'viem';
+import { useQuery } from '@tanstack/react-query';
+import { formatUnits } from 'viem';
 import { useProtocolDirectory } from './useProtocolDirectory';
-import { CONTROLLER_ABI, CUSTODY_VAULT_ABI, ERC20_ABI } from '../lib/contracts';
-import { useOraclePrices } from './useOraclePrices';
+import { CONTROLLER_ABI, ERC20_ABI } from '../lib/contracts';
 import { NavSnapshot } from '../types';
 import { getDefaultChainId } from '../constants';
 
@@ -31,24 +30,24 @@ export interface IndexedEvent {
 }
 
 /**
- * Fetch protocol transaction events live from Base chain logs.
- * Zero off-chain indexers or database reliance.
+ * Phase E4: Fetch protocol transaction events live from Base chain logs
+ * using TanStack Query caching to eliminate duplicate log queries on navigation.
  */
 export function useTransactionHistory() {
   const { chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId });
   const { controller } = useProtocolDirectory();
-  const [transactions, setTransactions] = useState<IndexedEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchLogs() {
-      if (!publicClient || !controller) {
-        if (isMounted) setIsLoading(false);
-        return;
-      }
+  const query = useQuery({
+    queryKey: ['indexer-transaction-history', chainId, controller],
+    enabled: Boolean(publicClient && controller),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<IndexedEvent[]> => {
+      if (!publicClient || !controller) return [];
+
       try {
         const latestBlock = await publicClient.getBlockNumber();
         const fromBlock = latestBlock >= 500n ? latestBlock - 500n : 0n;
@@ -60,7 +59,7 @@ export function useTransactionHistory() {
           toBlock: latestBlock,
         });
 
-        const formatted: IndexedEvent[] = logs.map((log, idx) => {
+        return logs.map((log, idx) => {
           const eventName = log.eventName;
           const args = log.args as Record<string, unknown>;
           return {
@@ -82,48 +81,44 @@ export function useTransactionHistory() {
             timestamp: new Date().toISOString(),
           };
         });
-
-        if (isMounted) setTransactions(formatted);
       } catch (err) {
         console.warn('On-chain event log fetch warning:', err);
-      } finally {
-        if (isMounted) setIsLoading(false);
+        return [];
       }
-    }
+    },
+  });
 
-    fetchLogs();
-    return () => {
-      isMounted = false;
-    };
-  }, [publicClient, controller]);
-
-  return { transactions, isLoading };
+  return {
+    transactions: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  };
 }
 
 export function useProtocolRevenue() {
-  const { transactions, isLoading } = useTransactionHistory();
+  const { transactions, isLoading, isError, refetch } = useTransactionHistory();
   const revenueHistory = transactions.filter((t) => t.type === 'FEE_COLLECTED');
-  return { revenueHistory, isLoading };
+  return { revenueHistory, isLoading, isError, refetch };
 }
 
 /**
- * Derives NAV progression trajectory directly from live contract state and block events.
+ * Phase E4: Derives NAV progression trajectory with TanStack Query caching.
  */
 export function useHistoricalNAV(period: string = 'ALL') {
   const { chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId });
   const { token } = useProtocolDirectory();
-  const [navHistory, setNavHistory] = useState<NavSnapshot[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function deriveNAV() {
-      if (!publicClient || !token) {
-        if (isMounted) setIsLoading(false);
-        return;
-      }
+  const query = useQuery({
+    queryKey: ['indexer-historical-nav', chainId, token, period],
+    enabled: Boolean(publicClient && token),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<NavSnapshot[]> => {
+      if (!publicClient || !token) return [];
 
       try {
         const totalSupply = await publicClient
@@ -154,37 +149,36 @@ export function useHistoricalNAV(period: string = 'ALL') {
           });
         }
 
-        if (isMounted) setNavHistory(snapshots);
+        return snapshots;
       } catch (err) {
         console.warn('Live on-chain NAV derivation warning:', err);
-      } finally {
-        if (isMounted) setIsLoading(false);
+        return [];
       }
-    }
+    },
+  });
 
-    deriveNAV();
-    return () => {
-      isMounted = false;
-    };
-  }, [publicClient, token, period]);
-
-  return { navHistory, isLoading };
+  return {
+    navHistory: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  };
 }
 
 export const useHistoricalUVPrice = useHistoricalNAV;
 
 export function useHistoricalTVL() {
-  const { navHistory, isLoading } = useHistoricalNAV('ALL');
+  const { navHistory, isLoading, isError, refetch } = useHistoricalNAV('ALL');
   const tvlHistory = navHistory.map((n) => ({
     timestamp: n.timestamp,
     tvl: n.totalAssets,
   }));
-  return { tvlHistory, isLoading };
+  return { tvlHistory, isLoading, isError, refetch };
 }
 
 export function useHistoricalFees() {
-  const { revenueHistory, isLoading } = useProtocolRevenue();
-  return { feesHistory: revenueHistory, isLoading };
+  const { revenueHistory, isLoading, isError, refetch } = useProtocolRevenue();
+  return { feesHistory: revenueHistory, isLoading, isError, refetch };
 }
 
 export function useIndexerStats() {
