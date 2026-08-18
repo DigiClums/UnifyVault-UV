@@ -40,8 +40,8 @@ flowchart TD
 
 ### 2.1 Core Orchestration Layer
 
-- **`UnifyVaultController`**: The main entrypoint for user deposits, share minting, share redemption, rate limit enforcement, and portfolio rebalance triggers. Coordinates interactions across all protocol modules.
-- **`ProtocolDirectory`**: Canonical address registry mapping `bytes32` module IDs (e.g. `ModuleIds.VAULT`, `ModuleIds.ORACLE`, `ModuleIds.COST_BASIS_MANAGER`, `ModuleIds.P2P_ESCROW`) to deployed contract addresses. Supports one-way emergency freeze.
+- **`UnifyVaultControllerUpgradeable` (ERC-1967 Proxy)**: The upgrade-safe UUPS orchestrator for user deposits, share minting, share redemption, rate limit enforcement, and portfolio rebalances. Resolves sibling modules via `ProtocolDirectory`.
+- **`ProtocolDirectory`**: Canonical address registry mapping `bytes32` module IDs (e.g. `ModuleIds.VAULT`, `ModuleIds.ORACLE`, `ModuleIds.COST_BASIS_MANAGER`, `ModuleIds.P2P_ESCROW`, `ModuleIds.STAKING_MLM`) to deployed contract addresses. Supports one-way emergency freeze.
 
 ### 2.2 Asset & Token Custody Layer
 
@@ -52,7 +52,7 @@ flowchart TD
 
 ### 2.3 On-Chain Cost Basis & Performance Layer
 
-- **`CostBasisManagerV2`**: Tracks user investment cost basis, average entry prices, realized P&L, and unrealized returns. Conserves total basis on transfers and explicitly ignores P2P Escrow transfers (`_isEscrow` guard).
+- **`CostBasisManagerV2`**: Tracks user investment cost basis, average entry prices, realized P&L, and unrealized returns. Conserves total basis on transfers and explicitly ignores P2P Escrow and Staking transfers (`_isEscrow` guard).
 - **`PerformanceManager`**: Computes portfolio benchmark tracking, high-water marks, and historical returns.
 
 ### 2.4 Oracle & Pricing Layer
@@ -72,7 +72,21 @@ flowchart TD
 - **`P2PEscrowV2`**: Non-custodial escrow clearinghouse for peer-to-peer crypto-fiat settlement. Handles trade funding, cryptographic payment verification (`paymentReference` / `evidenceHash`), release, timeouts, and multi-sig arbitration.
 - **`Marketplace`**: Limit orderbook matching engine supporting partial order fills, resting order execution pricing, and automatic creation of linked `P2PEscrow` trade instances.
 
-### 2.7 Governance & Access Layer
+### 2.7 Account Abstraction & Gasless Layer (ERC-4337)
+
+- **`GasTreasury` / Self-Managed Paymaster**: Provides zero-gas sponsorship for approved operations on Base Sepolia.
+- **`PaymasterPolicy`**: Validates UserOperations with strict whitelisting for 1-click batched deposits (`[USDC.approve, Controller.deposit]`), batched P2P funding (`[UVBE.approve, P2PEscrow.fundTrade]`), and staking. Rejects arbitrary calls and unauthorized ETH transfers.
+
+### 2.8 Independent UVBE Staking & MLM Layer (Phase 0 Architecture Boundary)
+
+- **`UVBEStakingMLM`**: Independent staking vault built on already-minted UVBE tokens.
+- **Core Isolation Invariants**:
+  - Operates strictly as a consumer of already-minted UVBE ERC-20 tokens.
+  - Zero coupling with `CustodyVault`, collateral assets, or vault mint/burn mechanisms.
+  - Total `UVBE.totalSupply()` is invariant $\implies$ **Vault NAV per share is 100% unaffected**.
+  - Maintains separate on-chain ledgers for direct referral commissions, generation income, rank qualifications, and reward pool distributions.
+
+### 2.9 Governance & Access Layer
 
 - **`UnifyVaultTimelock`**: OpenZeppelin `TimelockController` derivative enforcing a mandatory 48-hour execution delay on administrative and governance transactions.
 

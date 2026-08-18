@@ -6,26 +6,27 @@ This document provides a comprehensive reference for every deployed contract in 
 
 ## Contract Inventory
 
-| Contract Name             | License | Inheritance                                                   | Key Responsibility                                                     |
-| :------------------------ | :------ | :------------------------------------------------------------ | :--------------------------------------------------------------------- |
-| `ProtocolDirectory`       | MIT     | `AccessControl`, `IProtocolDirectory`                         | Dynamic address registry for protocol modules                          |
-| `UnifyVaultController`    | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`                | Core execution orchestrator for deposits, redemptions, and NAV         |
-| `CustodyVault`            | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`, `IVault`      | Secure collateral custody with donation-attack immunity                |
-| `Treasury`                | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`, `ITreasury`   | Protocol fee vault and treasury asset balance tracking                 |
-| `FeeManager`              | MIT     | `AccessControl`, `IFeeManager`                                | Deposit/redemption fee computation and fee routing to Treasury         |
-| `LiquidityManager`        | MIT     | `AccessControl`, `ReentrancyGuard`, `ILiquidityManager`       | Liquidity reserve monitoring and vault refill/sweep execution          |
-| `OracleManager`           | MIT     | `AccessControl`, `IOracle`                                    | Multi-feed price aggregator with staleness and fallback routing        |
-| `ChainlinkOracleProvider` | MIT     | `AccessControl`, `IOracleProvider`                            | Chainlink `AggregatorV3Interface` price feed adapter                   |
-| `MockOracleProvider`      | MIT     | `AccessControl`, `IOracleProvider`                            | Controlled oracle provider for test environments and emergency pricing |
-| `StrategyManager`         | MIT     | `AccessControl`, `IStrategyManager`                           | Target asset allocation (BPS) management                               |
-| `PortfolioManager`        | MIT     | `AccessControl`, `ReentrancyGuard`, `IPortfolioManager`       | Portfolio NAV computation and automated asset rebalancing              |
-| `SwapAdapter`             | MIT     | `AccessControl`, `ISwapAdapter`                               | DEX router adapter enforcing slippage protection                       |
-| `UVBEV2`                  | MIT     | `ERC20`, `ERC20Permit`, `AccessControl`, `Pausable`, `IToken` | Index share token with locked pre-transfer cost basis hooks            |
-| `CostBasisManagerV2`      | MIT     | `AccessControl`, `ICostBasisManagerV2`                        | Realized/unrealized P&L, entry price, and P2P escrow transfer filter   |
-| `PerformanceManager`      | MIT     | `AccessControl`, `IPerformanceManager`                        | Benchmark tracking, high-water marks, and time-weighted returns        |
-| `P2PEscrowV2`             | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`, `IP2PEscrow`  | Non-custodial crypto-fiat escrow with cryptographic proof verification |
-| `Marketplace`             | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`                | Non-custodial limit orderbook engine with linked escrow creation       |
-| `UnifyVaultTimelock`      | MIT     | `TimelockController`                                          | 48-hour delay timelock controller for governance execution             |
+| Contract Name                     | License | Inheritance                                                                                              | Key Responsibility                                                     |
+| :-------------------------------- | :------ | :------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| `ProtocolDirectory`               | MIT     | `AccessControl`, `IProtocolDirectory`                                                                    | Dynamic address registry for protocol modules                          |
+| `UnifyVaultControllerUpgradeable` | MIT     | `Initializable`, `AccessControlUpgradeable`, `ReentrancyGuard`, `PausableUpgradeable`, `UUPSUpgradeable` | Core UUPS execution orchestrator for deposits, redemptions, and NAV    |
+| `CustodyVault`                    | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`, `IVault`                                                 | Secure collateral custody with donation-attack immunity                |
+| `Treasury`                        | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`, `ITreasury`                                              | Protocol fee vault and treasury asset balance tracking                 |
+| `FeeManager`                      | MIT     | `AccessControl`, `IFeeManager`                                                                           | Deposit/redemption fee computation and fee routing to Treasury         |
+| `LiquidityManager`                | MIT     | `AccessControl`, `ReentrancyGuard`, `ILiquidityManager`                                                  | Liquidity reserve monitoring and vault refill/sweep execution          |
+| `OracleManager`                   | MIT     | `AccessControl`, `IOracle`                                                                               | Multi-feed price aggregator with staleness and fallback routing        |
+| `ChainlinkOracleProvider`         | MIT     | `AccessControl`, `IOracleProvider`                                                                       | Chainlink `AggregatorV3Interface` price feed adapter                   |
+| `MockOracleProvider`              | MIT     | `AccessControl`, `IOracleProvider`                                                                       | Controlled oracle provider for test environments and emergency pricing |
+| `StrategyManager`                 | MIT     | `AccessControl`, `IStrategyManager`                                                                      | Target asset allocation (BPS) management                               |
+| `PortfolioManager`                | MIT     | `AccessControl`, `ReentrancyGuard`, `IPortfolioManager`                                                  | Portfolio NAV computation and automated asset rebalancing              |
+| `SwapAdapter`                     | MIT     | `AccessControl`, `ISwapAdapter`                                                                          | DEX router adapter enforcing slippage protection                       |
+| `UVBEV2`                          | MIT     | `ERC20`, `ERC20Permit`, `AccessControl`, `Pausable`, `IToken`                                            | Index share token with locked pre-transfer cost basis hooks            |
+| `CostBasisManagerV2`              | MIT     | `AccessControl`, `ICostBasisManagerV2`                                                                   | Realized/unrealized P&L, entry price, and P2P/Staking transfer filter  |
+| `PerformanceManager`              | MIT     | `AccessControl`, `IPerformanceManager`                                                                   | Benchmark tracking, high-water marks, and time-weighted returns        |
+| `P2PEscrowV2`                     | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`, `IP2PEscrow`                                             | Non-custodial crypto-fiat escrow with cryptographic proof verification |
+| `Marketplace`                     | MIT     | `AccessControl`, `ReentrancyGuard`, `Pausable`                                                           | Non-custodial limit orderbook engine with linked escrow creation       |
+| `GasTreasury`                     | MIT     | `AccessControl`, `ReentrancyGuard`                                                                       | ERC-4337 paymaster deposit holding and sponsorship pool                |
+| `UnifyVaultTimelock`              | MIT     | `TimelockController`                                                                                     | 48-hour delay timelock controller for governance execution             |
 
 ---
 

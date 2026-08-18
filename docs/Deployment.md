@@ -101,25 +101,25 @@ forge script script/DeployMainnet.s.sol:DeployMainnetScript \
 
 ## 6. Canonical Deployment Addresses (Base Sepolia Testnet - Chain ID 84532)
 
-| Contract Module             | Canonical Address                            |
-| :-------------------------- | :------------------------------------------- |
-| **ProtocolDirectory**       | `0x8040006d6907a84911aaC0a9aC08278311B156e2` |
-| **Treasury**                | `0xB8c8113a042f39936dD966A5983fAaE2bF7b7290` |
-| **FeeManager**              | `0x07f8BD7DAf5002C3C62B3c1280e9258AbBEfA2f1` |
-| **CustodyVault**            | `0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0` |
-| **OracleManager**           | `0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF` |
-| **ChainlinkOracleProvider** | `0xCF46A80BbF2e92c16f7e1953F9AC73935340f69B` |
-| **LiquidityManager**        | `0xd1DCd311ACD1176E35823360652FCb356a7F227F` |
-| **UVBEV2 (UVBEToken)**      | `0x006c5DF13C716E5224b33956651C4356BB90DEc0` |
-| **UnifyVaultController**    | `0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec` |
-| **StrategyManager**         | `0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb` |
-| **PortfolioManager**        | `0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b` |
-| **SwapAdapter**             | `0xbc97337dE85654aCD96182C93841f21168da65B4` |
-| **CostBasisManagerV2**      | `0x57869372AFbd7b61752f2f8d3e7F37701e28517B` |
-| **PerformanceManager**      | `0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6` |
-| **P2PEscrowV2**             | `0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb` |
-| **Marketplace**             | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` |
-| **TimelockController**      | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
+| Contract Module                        | Canonical Address                            |
+| :------------------------------------- | :------------------------------------------- |
+| **ProtocolDirectory**                  | `0x8040006d6907a84911aaC0a9aC08278311B156e2` |
+| **Treasury**                           | `0xB8c8113a042f39936dD966A5983fAaE2bF7b7290` |
+| **FeeManager**                         | `0x07f8BD7DAf5002C3C62B3c1280e9258AbBEfA2f1` |
+| **CustodyVault**                       | `0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0` |
+| **OracleManager**                      | `0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF` |
+| **ChainlinkOracleProvider**            | `0xCF46A80BbF2e92c16f7e1953F9AC73935340f69B` |
+| **LiquidityManager**                   | `0xd1DCd311ACD1176E35823360652FCb356a7F227F` |
+| **UVBEV2 (UVBEToken)**                 | `0x006c5DF13C716E5224b33956651C4356BB90DEc0` |
+| **UnifyVaultController (UUPS Proxy)**  | `0x7DC190a0bFa08c9596DfdC20E602821619E776ea` |
+| **UnifyVaultControllerImplementation** | `0x717e39A34e81A81b75B78Ff7abFfaE4822f42415` |
+| **StrategyManager**                    | `0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb` |
+| **PortfolioManager**                   | `0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b` |
+| **SwapAdapter**                        | `0xbc97337dE85654aCD96182C93841f21168da65B4` |
+| **CostBasisManagerV2**                 | `0x57869372AFbd7b61752f2f8d3e7F37701e28517B` |
+| **PerformanceManager**                 | `0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6` |
+| **P2PEscrowV2**                        | `0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb` |
+| **TimelockController**                 | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
 
 ---
 

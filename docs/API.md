@@ -71,3 +71,23 @@ All write and retrieval API endpoints enforce wallet signature verification (`ve
 
 - **Purpose**: Sole verification authority in development/test environments (`ALLOW_MOCK_VERIFIER=true`) to process automated bank webhook attestations.
 - **Security Invariant**: Strictly disabled in production unless explicit mock verifiers are enabled.
+
+---
+
+## 3. ERC-4337 Account Abstraction API Routes
+
+For gasless UserOperation sponsorship and relaying, the application provides secure endpoints located at `apps/web-v2/app/api/smart-account/`.
+
+### `POST /api/smart-account/sponsor`
+
+- **Purpose**: Evaluates UserOperation calls against the strict whitelist policy defined in `paymasterPolicy.ts`.
+- **Whitelisted Operations**:
+  - Batched Deposits: `[USDC.approve(Controller, amount), Controller.deposit(USDC, amount, minShares, receiver)]`
+  - Batched P2P Escrow: `[UVBE.approve(P2PEscrow, amount), P2PEscrow.fundTrade(tradeId)]`
+  - Single User Actions: `redeem`, `transfer`, `createTrade`, `submitPayment`, `confirmAndRelease`, `refund`, `cancelUnfundedTrade`, `raiseDispute`.
+- **Security Checks**: Validates chain ID (84532), EntryPoint v0.7, zero native ETH value, and exact token approval matching. Returns paymaster signature and sponsorship metadata.
+
+### `POST /api/smart-account/bundler`
+
+- **Purpose**: Relays signed UserOperations to the Base Sepolia ERC-4337 Bundler (`eth_sendUserOperation`, `eth_estimateUserOperationGas`, `eth_getUserOperationReceipt`).
+- **Security**: Sanitizes payloads and prevents unauthorized arbitrary RPC executions.
