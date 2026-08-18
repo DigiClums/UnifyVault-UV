@@ -45,17 +45,24 @@ export function MyOrders({ orders, isLoading, onRefresh }: MyOrdersProps) {
     );
   }
 
-  const myOrders = orders.filter((o) => o.maker.toLowerCase() === userAddress.toLowerCase());
+  const userAddressLower = userAddress?.toLowerCase();
 
-  const filtered = myOrders.filter((o) => {
-    if (activeTab === 'BUY') return o.side === OrderSide.BUY;
-    if (activeTab === 'SELL') return o.side === OrderSide.SELL;
-    if (activeTab === 'OPEN')
-      return o.status === OrderStatus.OPEN || o.status === OrderStatus.PARTIALLY_FILLED;
-    if (activeTab === 'FILLED') return o.status === OrderStatus.FILLED;
-    if (activeTab === 'CANCELLED') return o.status === OrderStatus.CANCELLED;
-    return true;
-  });
+  const myOrders = React.useMemo(() => {
+    if (!userAddressLower) return [];
+    return orders.filter((o) => o.maker.toLowerCase() === userAddressLower);
+  }, [orders, userAddressLower]);
+
+  const filtered = React.useMemo(() => {
+    return myOrders.filter((o) => {
+      if (activeTab === 'BUY') return o.side === OrderSide.BUY;
+      if (activeTab === 'SELL') return o.side === OrderSide.SELL;
+      if (activeTab === 'OPEN')
+        return o.status === OrderStatus.OPEN || o.status === OrderStatus.PARTIALLY_FILLED;
+      if (activeTab === 'FILLED') return o.status === OrderStatus.FILLED;
+      if (activeTab === 'CANCELLED') return o.status === OrderStatus.CANCELLED;
+      return true;
+    });
+  }, [myOrders, activeTab]);
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {

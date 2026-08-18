@@ -87,7 +87,7 @@ export function MobileBottomNav() {
     <>
       {/* Bottom Nav Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border-subtle"
+        className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border-subtle"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-center justify-around h-14 px-1 max-w-lg mx-auto">
@@ -208,8 +208,9 @@ export function MobileBottomNav() {
 
       {/* Spacer for content above bottom nav */}
       <div
-        className="lg:hidden h-14"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="lg:hidden w-full pointer-events-none"
+        style={{ height: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}
+        aria-hidden="true"
       />
     </>
   );

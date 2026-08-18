@@ -31,12 +31,12 @@ export default function AdminOverviewPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
               Admin Overview Dashboard
             </h1>
             <StatusBadge status="Admin" label="GOVERNANCE" />
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Central telemetry, contract status, treasury revenue, and operational controls for
             UnifyVault V2.
           </p>
@@ -85,10 +85,12 @@ export default function AdminOverviewPage() {
             <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-purple-400 transition-colors" />
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-purple-400 transition-colors" />
           </div>
-          <h3 className="text-base font-bold text-white tracking-tight">Custody Vault Release</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-base font-bold text-foreground tracking-tight">
+            Custody Vault Release
+          </h3>
+          <p className="text-xs text-muted-foreground">
             Withdraw custodied vault reserves directly into authorized admin wallet.
           </p>
         </Link>
@@ -101,10 +103,12 @@ export default function AdminOverviewPage() {
             <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
               <Vault className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-purple-400 transition-colors" />
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-purple-400 transition-colors" />
           </div>
-          <h3 className="text-base font-bold text-white tracking-tight">Treasury Management</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-base font-bold text-foreground tracking-tight">
+            Treasury Management
+          </h3>
+          <p className="text-xs text-muted-foreground">
             View accrued deposit/redeem fees and withdraw protocol revenue.
           </p>
         </Link>
@@ -117,10 +121,10 @@ export default function AdminOverviewPage() {
             <div className="p-2.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
               <Activity className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-accent-blue transition-colors" />
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-accent-blue transition-colors" />
           </div>
-          <h3 className="text-base font-bold text-white tracking-tight">Oracle Telemetry</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-base font-bold text-foreground tracking-tight">Oracle Telemetry</h3>
+          <p className="text-xs text-muted-foreground">
             Monitor cbBTC, WETH, USDC feed prices, staleness, and keeper state.
           </p>
         </Link>
@@ -133,10 +137,10 @@ export default function AdminOverviewPage() {
             <div className="p-2.5 rounded-xl bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/20">
               <RefreshCw className="w-5 h-5" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-accent-emerald transition-colors" />
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-accent-emerald transition-colors" />
           </div>
-          <h3 className="text-base font-bold text-white tracking-tight">Strategy Rebalance</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-base font-bold text-foreground tracking-tight">Strategy Rebalance</h3>
+          <p className="text-xs text-muted-foreground">
             View current vs target weight deviations and trigger rebalancing.
           </p>
         </Link>
@@ -150,7 +154,7 @@ export default function AdminOverviewPage() {
       >
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-border-subtle text-slate-400 font-semibold">
+            <tr className="border-b border-border-subtle text-muted-foreground font-semibold">
               <th className="py-3 px-3">Module Name</th>
               <th className="py-3 px-3">Contract Address</th>
               <th className="py-3 px-3">Status</th>
@@ -159,8 +163,10 @@ export default function AdminOverviewPage() {
           </thead>
           <tbody className="divide-y divide-border-subtle/40 font-mono">
             <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-3.5 px-3 font-sans font-bold text-white">UnifyVaultController</td>
-              <td className="py-3.5 px-3 text-slate-300">{shortAddr(controller)}</td>
+              <td className="py-3.5 px-3 font-sans font-bold text-foreground">
+                UnifyVaultController
+              </td>
+              <td className="py-3.5 px-3 text-foreground/80">{shortAddr(controller)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
@@ -175,13 +181,13 @@ export default function AdminOverviewPage() {
                     Block Explorer
                   </a>
                 ) : (
-                  <span className="text-slate-500">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </td>
             </tr>
             <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-3.5 px-3 font-sans font-bold text-white">CustodyVault</td>
-              <td className="py-3.5 px-3 text-slate-300">{shortAddr(vault)}</td>
+              <td className="py-3.5 px-3 font-sans font-bold text-foreground">CustodyVault</td>
+              <td className="py-3.5 px-3 text-foreground/80">{shortAddr(vault)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
@@ -196,13 +202,13 @@ export default function AdminOverviewPage() {
                     Block Explorer
                   </a>
                 ) : (
-                  <span className="text-slate-500">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </td>
             </tr>
             <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-3.5 px-3 font-sans font-bold text-white">Treasury</td>
-              <td className="py-3.5 px-3 text-slate-300">{shortAddr(treasury)}</td>
+              <td className="py-3.5 px-3 font-sans font-bold text-foreground">Treasury</td>
+              <td className="py-3.5 px-3 text-foreground/80">{shortAddr(treasury)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>
@@ -217,13 +223,13 @@ export default function AdminOverviewPage() {
                     Block Explorer
                   </a>
                 ) : (
-                  <span className="text-slate-500">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </td>
             </tr>
             <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-3.5 px-3 font-sans font-bold text-white">OracleManager</td>
-              <td className="py-3.5 px-3 text-slate-300">{shortAddr(oracle)}</td>
+              <td className="py-3.5 px-3 font-sans font-bold text-foreground">OracleManager</td>
+              <td className="py-3.5 px-3 text-foreground/80">{shortAddr(oracle)}</td>
               <td className="py-3.5 px-3 font-sans">
                 <StatusBadge status="Active" showPulse={false} />
               </td>

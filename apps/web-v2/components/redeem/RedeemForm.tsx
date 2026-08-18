@@ -118,7 +118,7 @@ export function RedeemForm() {
             </p>
           </div>
           <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#BFFF00] text-black border-2 border-black text-xs font-semibold shrink-0">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <ShieldCheck className="w-3.5 h-3.5 text-black" />
             <span>2.00% fee</span>
           </div>
         </div>
@@ -200,7 +200,10 @@ export function RedeemForm() {
           <div className="relative rounded-xl bg-black/[0.03] dark:bg-white/[0.03] p-4 border-2 border-black dark:border-white/15 focus-within:border-[#BFFF00] transition-all shadow-[3px_3px_0_rgba(0,0,0,0.85)] space-y-3">
             <div className="flex items-center justify-between gap-2">
               <input
+                id="redeem-amount-input"
                 type="number"
+                inputMode="decimal"
+                step="any"
                 placeholder="0.0000"
                 value={sharesInput}
                 onChange={(e) => {
@@ -218,18 +221,18 @@ export function RedeemForm() {
             </div>
 
             <div className="flex justify-between items-center text-xs pt-2 border-t-2 border-black dark:border-white/10">
-              <span className="font-mono text-slate-500 dark:text-slate-400">
+              <span className="font-mono text-muted-foreground">
                 Gross: {isPreviewLoading ? 'Calculating...' : grossUSD}
               </span>
 
               {/* Quick Percentage Buttons */}
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 sm:space-x-1.5">
                 {[25, 50, 75, 100].map((pct) => (
                   <button
                     key={pct}
                     type="button"
                     onClick={() => handlePercentageSelect(pct)}
-                    className="px-2 py-0.5 rounded bg-card hover:bg-[#BFFF00] hover:text-black text-[10px] font-mono font-semibold text-slate-700 dark:text-slate-300 border-2 border-black dark:border-white/15 transition-all active:scale-95 shadow-2xs"
+                    className="px-2.5 sm:px-3 py-1.5 sm:py-1 rounded bg-card hover:bg-[#BFFF00] hover:text-black text-[11px] font-mono font-semibold text-foreground border-2 border-black dark:border-white/15 transition-all active:scale-95 shadow-2xs min-h-[36px] flex items-center justify-center cursor-pointer"
                   >
                     {pct === 100 ? 'MAX' : `${pct}%`}
                   </button>

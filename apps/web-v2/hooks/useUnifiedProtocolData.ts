@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useAccount, useReadContracts } from 'wagmi';
 import {
   CUSTODY_VAULT_ABI,
@@ -198,23 +199,25 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     },
   });
 
-  const btcFeed = deriveFeedStatus(data?.[3], data?.[12]);
-  const ethFeed = deriveFeedStatus(data?.[4], data?.[13]);
-  const usdcFeed = deriveFeedStatus(data?.[5], data?.[14]);
+  const rawProtocolData = useMemo(() => {
+    const btcFeed = deriveFeedStatus(data?.[3], data?.[12]);
+    const ethFeed = deriveFeedStatus(data?.[4], data?.[13]);
+    const usdcFeed = deriveFeedStatus(data?.[5], data?.[14]);
 
-  const rawProtocolData = {
-    wbtcTotalAssets: (data?.[0]?.result as bigint) || 0n,
-    wethTotalAssets: (data?.[1]?.result as bigint) || 0n,
-    usdcTotalAssets: (data?.[2]?.result as bigint) || 0n,
-    priceWBTC: btcFeed.price18,
-    priceWETH: ethFeed.price18,
-    priceUSDC: usdcFeed.price18,
-    btcStatus: btcFeed.status,
-    ethStatus: ethFeed.status,
-    usdcStatus: usdcFeed.status,
-    totalSharesRaw: (data?.[6]?.result as bigint) || 0n,
-    onChainNAV: data?.[11]?.result as readonly [bigint, bigint] | undefined,
-  };
+    return {
+      wbtcTotalAssets: (data?.[0]?.result as bigint) || 0n,
+      wethTotalAssets: (data?.[1]?.result as bigint) || 0n,
+      usdcTotalAssets: (data?.[2]?.result as bigint) || 0n,
+      priceWBTC: btcFeed.price18,
+      priceWETH: ethFeed.price18,
+      priceUSDC: usdcFeed.price18,
+      btcStatus: btcFeed.status,
+      ethStatus: ethFeed.status,
+      usdcStatus: usdcFeed.status,
+      totalSharesRaw: (data?.[6]?.result as bigint) || 0n,
+      onChainNAV: data?.[11]?.result as readonly [bigint, bigint] | undefined,
+    };
+  }, [data]);
 
   const eoaSharesRaw = userAddress ? (data?.[7]?.result as bigint) || 0n : 0n;
   const eoaUsdcRaw = userAddress ? (data?.[8]?.result as bigint) || 0n : 0n;
@@ -222,25 +225,31 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
   const smartAccountSharesRaw = smartAccountAddress ? (data?.[15]?.result as bigint) || 0n : 0n;
   const smartAccountCostBasisRaw = smartAccountAddress ? (data?.[16]?.result as bigint) || 0n : 0n;
 
-  const { totalSharesRaw: unifiedSharesRaw, totalCostBasisRaw: unifiedCostBasisRaw } =
-    aggregatePortfolioAddresses({
-      eoaSharesRaw,
-      smartAccountSharesRaw,
-      eoaCostBasisRaw,
-      smartAccountCostBasisRaw,
-    });
+  const rawUserData = useMemo(() => {
+    const { totalSharesRaw: unifiedSharesRaw, totalCostBasisRaw: unifiedCostBasisRaw } =
+      aggregatePortfolioAddresses({
+        eoaSharesRaw,
+        smartAccountSharesRaw,
+        eoaCostBasisRaw,
+        smartAccountCostBasisRaw,
+      });
 
-  // The unified portfolio intentionally does NOT consume a single-address
-  // PerformanceManager/CostBasisManager performance struct. Aggregated value is derived
-  // from unified shares × canonical share price and unified cost basis, preventing
-  // double-counting of the EOA and Smart Account positions.
-  const rawUserData = {
+    return {
+      userAddress,
+      userSharesRaw: unifiedSharesRaw,
+      userUsdcRaw: eoaUsdcRaw,
+      contractInvestedAssetsRaw: unifiedCostBasisRaw,
+      p2pTrades: p2pTradesList,
+    };
+  }, [
     userAddress,
-    userSharesRaw: unifiedSharesRaw,
-    userUsdcRaw: eoaUsdcRaw,
-    contractInvestedAssetsRaw: unifiedCostBasisRaw,
-    p2pTrades: p2pTradesList,
-  };
+    eoaSharesRaw,
+    smartAccountSharesRaw,
+    eoaCostBasisRaw,
+    smartAccountCostBasisRaw,
+    eoaUsdcRaw,
+    p2pTradesList,
+  ]);
 
   const targetWeightsResult = data?.[10]?.result as
     [address: `0x${string}`[], weights: bigint[]] | undefined;
@@ -259,17 +268,25 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
       ? Number(targetWeightsBps[1])
       : undefined;
 
-  const strategyMetrics = {
-    targetBtcBps,
-    targetEthBps,
-    targetBtcPercent:
-      targetBtcBps !== undefined ? `${(targetBtcBps / 100).toFixed(1)}%` : undefined,
-    targetEthPercent:
-      targetEthBps !== undefined ? `${(targetEthBps / 100).toFixed(1)}%` : undefined,
-  };
+  const strategyMetrics = useMemo(
+    () => ({
+      targetBtcBps,
+      targetEthBps,
+      targetBtcPercent:
+        targetBtcBps !== undefined ? `${(targetBtcBps / 100).toFixed(1)}%` : undefined,
+      targetEthPercent:
+        targetEthBps !== undefined ? `${(targetEthBps / 100).toFixed(1)}%` : undefined,
+    }),
+    [targetBtcBps, targetEthBps],
+  );
 
-  const protocolMetrics = transformProtocolMetrics(rawProtocolData, strategyMetrics);
-  const userPortfolio = transformUserPortfolio(rawUserData, rawProtocolData, protocolMetrics);
+  const protocolMetrics = useMemo(() => {
+    return transformProtocolMetrics(rawProtocolData, strategyMetrics);
+  }, [rawProtocolData, strategyMetrics]);
+
+  const userPortfolio = useMemo(() => {
+    return transformUserPortfolio(rawUserData, rawProtocolData, protocolMetrics);
+  }, [rawUserData, rawProtocolData, protocolMetrics]);
 
   const historicalNAV: HistoricalNavPoint[] = [];
 

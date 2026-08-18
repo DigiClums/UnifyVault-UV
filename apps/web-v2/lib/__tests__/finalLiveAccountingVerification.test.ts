@@ -26,7 +26,7 @@ describe('Phase 6 Final Live Accounting Verification', () => {
     expect(CANONICAL.CustodyVault).toBe('0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0');
     expect(CANONICAL.OracleManager).toBe('0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF');
     expect(CANONICAL.UVBEV2).toBe('0x006c5DF13C716E5224b33956651C4356BB90DEc0');
-    expect(CANONICAL.UnifyVaultController).toBe('0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec');
+    expect(CANONICAL.UnifyVaultController).toBe('0x7DC190a0bFa08c9596DfdC20E602821619E776ea');
     expect(CANONICAL.StrategyManager).toBe('0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb');
     expect(CANONICAL.PortfolioManager).toBe('0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b');
     expect(CANONICAL.CostBasisManagerV2).toBe('0x57869372AFbd7b61752f2f8d3e7F37701e28517B');

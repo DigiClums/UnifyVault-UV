@@ -278,7 +278,9 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
             </label>
             <div className="relative">
               <input
+                id="trade-amount-input"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 placeholder={`Enter amount (Max ${remainingCrypto})`}
                 value={tradeAmountStr}
@@ -289,7 +291,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
               <button
                 type="button"
                 onClick={() => setTradeAmountStr(remainingCrypto.toString())}
-                className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 rounded bg-[#BFFF00] text-black font-black text-[10px] border border-black shadow-[1px_1px_0_#000]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded bg-[#BFFF00] text-black font-black text-[10px] border border-black shadow-[1px_1px_0_#000] min-h-[32px] flex items-center justify-center cursor-pointer"
               >
                 MAX
               </button>

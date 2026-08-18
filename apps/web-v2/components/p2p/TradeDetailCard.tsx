@@ -830,7 +830,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
           Trade Lifecycle Progress
         </div>
-        <div className="grid grid-cols-5 gap-1 text-center font-mono">
+        <div className="flex sm:grid sm:grid-cols-5 gap-2 sm:gap-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0 justify-between items-center text-center font-mono">
           {[
             { label: 'Create', active: trade.state >= TradeState.CREATED },
             { label: 'Fund', active: trade.state >= TradeState.FUNDED },
@@ -838,7 +838,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             { label: 'Verify', active: trade.state >= TradeState.PAYMENT_SUBMITTED },
             { label: 'Release', active: trade.state === TradeState.RELEASED },
           ].map((s, idx) => (
-            <div key={s.label} className="flex flex-col items-center gap-1 min-w-0">
+            <div
+              key={s.label}
+              className="flex flex-col items-center gap-1 min-w-[52px] sm:min-w-0 flex-1 shrink-0"
+            >
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
                   s.active

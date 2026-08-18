@@ -51,7 +51,7 @@ export default function AdminTreasuryPage() {
   const { address: connectedAddress, chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId });
-  const tokens = getChainTokens(chain?.id);
+  const tokens = useMemo(() => getChainTokens(chain?.id), [chain?.id]);
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { treasury, oracle } = useProtocolDirectory();
 
@@ -63,7 +63,7 @@ export default function AdminTreasuryPage() {
     if (tokens.USDC && !assetAddress) {
       setAssetAddress(tokens.USDC);
     }
-  }, [tokens, assetAddress]);
+  }, [tokens.USDC, assetAddress]);
 
   const [treasuryLogs, setTreasuryLogs] = useState<TreasuryEventLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);

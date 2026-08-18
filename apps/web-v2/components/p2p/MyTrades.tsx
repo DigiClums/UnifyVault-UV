@@ -37,22 +37,30 @@ export function MyTrades({ trades, isLoading, onSelectTrade, onRefresh }: MyTrad
     );
   }
 
-  const myTrades = trades.filter((t) => {
-    const userLower = userAddress.toLowerCase();
-    return t.buyer.toLowerCase() === userLower || t.seller.toLowerCase() === userLower;
-  });
+  const userAddressLower = userAddress?.toLowerCase();
 
-  const filteredTrades = myTrades.filter((t) => {
-    const userLower = userAddress.toLowerCase();
-    const isBuyer = t.buyer.toLowerCase() === userLower;
-    const isSeller = t.seller.toLowerCase() === userLower;
+  const myTrades = React.useMemo(() => {
+    if (!userAddressLower) return [];
+    return trades.filter((t) => {
+      return (
+        t.buyer.toLowerCase() === userAddressLower || t.seller.toLowerCase() === userAddressLower
+      );
+    });
+  }, [trades, userAddressLower]);
 
-    if (tab === 'BUYER') return isBuyer;
-    if (tab === 'SELLER') return isSeller;
-    if (tab === 'ACTIVE') return t.state >= TradeState.CREATED && t.state <= TradeState.DISPUTED;
-    if (tab === 'COMPLETED') return t.state >= TradeState.RELEASED;
-    return true;
-  });
+  const filteredTrades = React.useMemo(() => {
+    if (!userAddressLower) return [];
+    return myTrades.filter((t) => {
+      const isBuyer = t.buyer.toLowerCase() === userAddressLower;
+      const isSeller = t.seller.toLowerCase() === userAddressLower;
+
+      if (tab === 'BUYER') return isBuyer;
+      if (tab === 'SELLER') return isSeller;
+      if (tab === 'ACTIVE') return t.state >= TradeState.CREATED && t.state <= TradeState.DISPUTED;
+      if (tab === 'COMPLETED') return t.state >= TradeState.RELEASED;
+      return true;
+    });
+  }, [myTrades, userAddressLower, tab]);
 
   const handleCopy = (addr: string, e: React.MouseEvent) => {
     e.stopPropagation();

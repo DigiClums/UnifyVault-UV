@@ -36,7 +36,7 @@ contract FinalLiveP2PAccountingIsolationGateTest is Test {
   address public constant VAULT_ADDR = 0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0;
   address public constant ORACLE_MGR_ADDR = 0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF;
   address public constant TOKEN_V2_ADDR = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
-  address public constant CONTROLLER_ADDR = 0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec;
+  address public constant CONTROLLER_ADDR = 0x7DC190a0bFa08c9596DfdC20E602821619E776ea;
   address public constant PORTFOLIO_MGR_ADDR = 0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b;
   address public constant CBM_V2_ADDR = 0x57869372AFbd7b61752f2f8d3e7F37701e28517B;
   address public constant PERF_MGR_ADDR = 0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6;

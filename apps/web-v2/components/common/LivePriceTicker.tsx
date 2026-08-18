@@ -77,16 +77,18 @@ export function LivePriceTicker() {
   ]);
 
   return (
-    <div className="w-full bg-slate-100/90 dark:bg-slate-950/90 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md px-3 sm:px-6 py-1.5 transition-all">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+    <div className="w-full overflow-hidden bg-slate-100/90 dark:bg-slate-950/90 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md px-2 sm:px-4 lg:px-6 py-1 transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2 text-xs overflow-x-auto no-scrollbar">
         {/* Left: Status & Pulse Indicator */}
-        <div className="flex items-center space-x-2 shrink-0">
-          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-            <span className="relative flex h-2 w-2">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+          <div className="flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+            <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wide">Live Feed</span>
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide">
+              Live
+            </span>
           </div>
 
           <span className="text-slate-500 dark:text-slate-400 hidden sm:inline text-[11px]">
@@ -101,11 +103,11 @@ export function LivePriceTicker() {
         </div>
 
         {/* Center: Live Price Badges with Flash Indicators */}
-        <div className="flex items-center space-x-3 font-mono text-[11px] overflow-x-auto py-0.5">
+        <div className="flex items-center space-x-1.5 sm:space-x-3 font-mono text-[11px] shrink-0">
           {/* BTC Price Badge */}
           <div
             className={cn(
-              'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs',
+              'flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs',
               livePrices.flashStates.btc === 'up' &&
                 'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 scale-[1.02]',
               livePrices.flashStates.btc === 'down' &&
@@ -127,7 +129,7 @@ export function LivePriceTicker() {
           {/* ETH Price Badge */}
           <div
             className={cn(
-              'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs',
+              'flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs',
               livePrices.flashStates.eth === 'up' &&
                 'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 scale-[1.02]',
               livePrices.flashStates.eth === 'down' &&
@@ -147,23 +149,26 @@ export function LivePriceTicker() {
           </div>
 
           {/* USDC Peg Badge */}
-          <div className="flex items-center space-x-1 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hidden md:flex">
+          <div className="flex items-center space-x-1 px-2 py-0.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hidden md:flex">
             <span className="font-bold text-muted-foreground">USDC</span>
             <span className="font-semibold">$1.00</span>
           </div>
         </div>
 
         {/* Right: Actions & Notification Toggle */}
-        <div className="flex items-center space-x-2 shrink-0">
+        <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
           <button
             onClick={() => setNotificationsEnabled(!notificationsEnabled)}
             className={cn(
-              'p-1 rounded-md transition-colors text-[10px] flex items-center space-x-1 border',
+              'p-1 sm:px-2 sm:py-0.5 rounded-md transition-colors text-[10px] flex items-center space-x-1 border min-h-[28px] min-w-[28px] justify-center cursor-pointer',
               notificationsEnabled
                 ? 'bg-[#BFFF00]/10 border-[#BFFF00]/30 text-[#5f8f00] dark:text-[#BFFF00]'
                 : 'bg-slate-800/40 border-slate-700 text-slate-500',
             )}
             title={notificationsEnabled ? 'Mute Price Update Alerts' : 'Enable Price Update Alerts'}
+            aria-label={
+              notificationsEnabled ? 'Mute Price Update Alerts' : 'Enable Price Update Alerts'
+            }
           >
             {notificationsEnabled ? <Bell className="w-3 h-3" /> : <BellOff className="w-3 h-3" />}
             <span className="hidden lg:inline">
@@ -174,8 +179,9 @@ export function LivePriceTicker() {
           <button
             onClick={() => livePrices.refetch()}
             disabled={livePrices.isUpdating}
-            className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-300 transition-all disabled:opacity-50 cursor-pointer min-h-[28px] min-w-[28px] justify-center"
             title="Force Price Feed Refresh"
+            aria-label="Force Price Feed Refresh"
           >
             <RefreshCw
               className={cn(

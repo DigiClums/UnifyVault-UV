@@ -51,7 +51,7 @@ export default function AdminCustodyPage() {
   const { address: connectedAddress, chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId });
-  const tokens = getChainTokens(chain?.id);
+  const tokens = useMemo(() => getChainTokens(chain?.id), [chain?.id]);
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { vault, oracle } = useProtocolDirectory();
 
@@ -63,7 +63,7 @@ export default function AdminCustodyPage() {
     if (tokens.USDC && !assetAddress) {
       setAssetAddress(tokens.USDC);
     }
-  }, [tokens, assetAddress]);
+  }, [tokens.USDC, assetAddress]);
 
   const [custodyLogs, setCustodyLogs] = useState<CustodyEventLog[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);

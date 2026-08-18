@@ -467,7 +467,9 @@ export default function PublicTreasuryPage() {
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-muted-foreground">Network</span>
-              <span className="font-mono text-foreground font-semibold">Base Sepolia</span>
+              <span className="font-mono text-foreground font-semibold">
+                {chain?.name || (chainId === 8453 ? 'Base' : 'Base Sepolia')}
+              </span>
             </div>
           </div>
         )}

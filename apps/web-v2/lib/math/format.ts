@@ -163,3 +163,64 @@ export function formatHighPrecisionUSD(
     maximumFractionDigits: decimals,
   }).format(numericValue);
 }
+
+/**
+ * Formats a crypto token balance for clean, non-colliding presentation in UI cards & tables.
+ * Preserves access to full exact numeric precision for tooltips/title attributes.
+ *
+ * Examples:
+ * - "0.001883949349109012 ETH" -> "0.001884 ETH"
+ * - "1250.500000 USDC" -> "1,250.50 USDC"
+ * - "0.00000000 BTC" -> "0.0000 BTC"
+ * - "0.000000123 ETH" -> "< 0.000001 ETH"
+ */
+export function formatDisplayCryptoBalance(
+  balanceStr: string | number | bigint,
+  fallbackSymbol: string = '',
+  maxDecimals: number = 6,
+): string {
+  if (balanceStr === undefined || balanceStr === null) {
+    return `0.0000 ${fallbackSymbol}`.trim();
+  }
+
+  let raw =
+    typeof balanceStr === 'bigint' ? viemFormatUnits(balanceStr, 18) : String(balanceStr).trim();
+  let symbol = fallbackSymbol;
+
+  // Check if string contains both value and symbol like "0.001883949349109012 ETH"
+  const parts = raw.split(/\s+/);
+  if (parts.length >= 2) {
+    raw = parts[0];
+    symbol = parts[1];
+  }
+
+  const num = parseFloat(raw);
+  if (isNaN(num) || num === 0) {
+    const defaultDecimals = symbol === 'USDC' ? 2 : 4;
+    return `0.${'0'.repeat(defaultDecimals)}${symbol ? ` ${symbol}` : ''}`;
+  }
+
+  // Dust balances below 0.000001
+  if (num > 0 && num < 0.000001) {
+    return `< 0.000001${symbol ? ` ${symbol}` : ''}`;
+  }
+
+  // Stablecoins: 2 decimals with commas
+  if (symbol === 'USDC' || symbol === 'USDT' || symbol === 'DAI') {
+    const formatted = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+    return `${formatted}${symbol ? ` ${symbol}` : ''}`;
+  }
+
+  // Crypto assets (BTC / ETH / WETH / cbBTC):
+  // Format with dynamic decimal places (up to maxDecimals)
+  const decimals = num >= 1000 ? 2 : num >= 1 ? 4 : maxDecimals;
+  const formatted = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: num >= 1 ? (num >= 1000 ? 2 : 4) : 4,
+    maximumFractionDigits: decimals,
+  }).format(num);
+
+  return `${formatted}${symbol ? ` ${symbol}` : ''}`;
+}

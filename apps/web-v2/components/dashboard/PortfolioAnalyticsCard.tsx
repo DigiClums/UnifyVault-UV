@@ -24,59 +24,72 @@ interface PortfolioAnalyticsCardProps {
 export function PortfolioAnalyticsCard({ metrics }: PortfolioAnalyticsCardProps) {
   const [showCalculationDetails, setShowCalculationDetails] = useState(false);
 
-  const items = [
-    {
-      label: 'Position Value',
-      value: metrics.currentValueUSD,
-      subtitle: `${metrics.userSharesBalance} UVBE Shares`,
-      icon: DollarSign,
-      iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
-      source: 'User Shares × Share Price',
-    },
-    {
-      label: 'Vault TVL (Protocol Total)',
-      value: metrics.totalPortfolioValueUSD,
-      subtitle: 'Total Reserve Assets',
-      icon: Vault,
-      iconBg: 'bg-card text-foreground border border-border-subtle',
-      source: 'Sum of cbBTC + WETH + USDC Reserves',
-    },
-    {
-      label: 'User Cost Basis',
-      value: metrics.investedAssetsUSD,
-      subtitle: 'On-Chain Recorded Capital',
-      icon: Wallet,
-      iconBg: 'bg-card text-foreground border border-border-subtle',
-      source: 'CostBasisManager',
-    },
-    {
-      label: 'Portfolio PnL (Unrealized)',
-      value: metrics.pnlUSD,
-      subtitle: `${metrics.pnlPercentage} (${metrics.isProfitable ? 'Unrealized Gain' : 'Unrealized Loss'})`,
-      isPositive: metrics.isProfitable,
-      icon: TrendingUp,
-      iconBg: metrics.isProfitable
-        ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
-        : 'bg-rose-500/10 text-rose-500',
-      source: 'Position Value − Cost Basis',
-    },
-    {
-      label: 'Average Entry Price',
-      value: metrics.averageEntryPriceUSD,
-      subtitle: 'Per Index Share ($/Share)',
-      icon: Activity,
-      iconBg: 'bg-card text-muted-foreground border border-border-subtle',
-      source: 'Cost Basis ÷ Shares Owned',
-    },
-    {
-      label: 'Protocol Ownership Share',
-      value: metrics.ownershipPercentage,
-      subtitle: 'Share of Total Pool Supply',
-      icon: PieChart,
-      iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
-      source: 'User Shares ÷ Total Supply',
-    },
-  ];
+  const items = React.useMemo(
+    () => [
+      {
+        label: 'Position Value',
+        value: metrics.currentValueUSD,
+        subtitle: `${metrics.userSharesBalance} UVBE Shares`,
+        icon: DollarSign,
+        iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
+        source: 'User Shares × Share Price',
+      },
+      {
+        label: 'Vault TVL (Protocol Total)',
+        value: metrics.totalPortfolioValueUSD,
+        subtitle: 'Total Reserve Assets',
+        icon: Vault,
+        iconBg: 'bg-card text-foreground border border-border-subtle',
+        source: 'Sum of cbBTC + WETH + USDC Reserves',
+      },
+      {
+        label: 'User Cost Basis',
+        value: metrics.investedAssetsUSD,
+        subtitle: 'On-Chain Recorded Capital',
+        icon: Wallet,
+        iconBg: 'bg-card text-foreground border border-border-subtle',
+        source: 'CostBasisManager',
+      },
+      {
+        label: 'Portfolio PnL (Unrealized)',
+        value: metrics.pnlUSD,
+        subtitle: `${metrics.pnlPercentage} (${metrics.isProfitable ? 'Unrealized Gain' : 'Unrealized Loss'})`,
+        isPositive: metrics.isProfitable,
+        icon: TrendingUp,
+        iconBg: metrics.isProfitable
+          ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
+          : 'bg-rose-500/10 text-rose-500',
+        source: 'Position Value − Cost Basis',
+      },
+      {
+        label: 'Average Entry Price',
+        value: metrics.averageEntryPriceUSD,
+        subtitle: 'Per Index Share ($/Share)',
+        icon: Activity,
+        iconBg: 'bg-card text-muted-foreground border border-border-subtle',
+        source: 'Cost Basis ÷ Shares Owned',
+      },
+      {
+        label: 'Protocol Ownership Share',
+        value: metrics.ownershipPercentage,
+        subtitle: 'Share of Total Pool Supply',
+        icon: PieChart,
+        iconBg: 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]',
+        source: 'User Shares ÷ Total Supply',
+      },
+    ],
+    [
+      metrics.currentValueUSD,
+      metrics.userSharesBalance,
+      metrics.totalPortfolioValueUSD,
+      metrics.investedAssetsUSD,
+      metrics.pnlUSD,
+      metrics.pnlPercentage,
+      metrics.isProfitable,
+      metrics.averageEntryPriceUSD,
+      metrics.ownershipPercentage,
+    ],
+  );
 
   return (
     <div className="space-y-2.5 sm:space-y-3">

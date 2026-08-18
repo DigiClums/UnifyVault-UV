@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Eye, FileText } from 'lucide-react';
 
 export function TreasurySection() {
@@ -29,13 +30,13 @@ export function TreasurySection() {
             </div>
           </div>
 
-          <a
-            href="https://app.unifyvault.xyz/treasury"
+          <Link
+            href="/treasury"
             className="inline-flex items-center space-x-2 px-4 py-2 bg-[#BFFF00]/10 border border-[#BFFF00]/25 text-[#BFFF00] text-xs font-semibold hover:bg-[#BFFF00]/15 transition-colors"
           >
             <span>View Treasury</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          </Link>
         </div>
       </div>
     </section>

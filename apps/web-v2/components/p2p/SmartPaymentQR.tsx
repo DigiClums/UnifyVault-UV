@@ -27,6 +27,10 @@ export function SmartPaymentQR({
     return generateQrSvg(upiUri, 220);
   }, [upiUri]);
 
+  const isSafeUpiUri = Boolean(
+    upiUri && typeof upiUri === 'string' && upiUri.startsWith('upi://pay?'),
+  );
+
   useEffect(() => {
     if (!paymentIntent.expiresAt) return;
     const expiresMs = new Date(paymentIntent.expiresAt).getTime();
@@ -186,11 +190,22 @@ export function SmartPaymentQR({
             </p>
           </div>
 
+          {/* Mobile Direct Action: Open in UPI App */}
+          {isSafeUpiUri && (
+            <a
+              href={upiUri}
+              className="w-full py-2.5 px-3 rounded-xl border-2 border-black bg-[#BFFF00] text-black text-xs font-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+            >
+              <ExternalLink className="w-4 h-4 text-black" />
+              <span>Open in UPI App (GPay / PhonePe / Paytm)</span>
+            </a>
+          )}
+
           {/* Copy Raw UPI URI Action */}
           <button
             type="button"
             onClick={handleCopyUpiUri}
-            className="w-full py-2.5 px-3 rounded-xl border-2 border-black dark:border-white/20 bg-background hover:bg-accent text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[44px]"
+            className="w-full py-2.5 px-3 rounded-xl border-2 border-black dark:border-white/20 bg-background hover:bg-accent text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             <span>{copied ? 'UPI Deep Link Copied!' : 'Copy Raw UPI Deep Link'}</span>

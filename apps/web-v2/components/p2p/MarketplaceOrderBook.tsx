@@ -37,21 +37,27 @@ export function MarketplaceOrderBook({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Active statuses: strictly OPEN (0) and PARTIALLY_FILLED (1)
-  const activeOrders = orders.filter(
-    (o) => o.status === OrderStatus.OPEN || o.status === OrderStatus.PARTIALLY_FILLED,
+  const activeOrders = React.useMemo(
+    () =>
+      orders.filter(
+        (o) => o.status === OrderStatus.OPEN || o.status === OrderStatus.PARTIALLY_FILLED,
+      ),
+    [orders],
   );
 
-  const filteredOrders = activeOrders.filter((o) => {
-    if (filterSide === 'BUY' && o.side !== OrderSide.BUY) return false;
-    if (filterSide === 'SELL' && o.side !== OrderSide.SELL) return false;
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const makerLower = o.maker.toLowerCase();
-      const idStr = o.orderId.toString();
-      if (!makerLower.includes(term) && !idStr.includes(term)) return false;
-    }
-    return true;
-  });
+  const filteredOrders = React.useMemo(() => {
+    return activeOrders.filter((o) => {
+      if (filterSide === 'BUY' && o.side !== OrderSide.BUY) return false;
+      if (filterSide === 'SELL' && o.side !== OrderSide.SELL) return false;
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const makerLower = o.maker.toLowerCase();
+        const idStr = o.orderId.toString();
+        if (!makerLower.includes(term) && !idStr.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [activeOrders, filterSide, searchTerm]);
 
   const handleCopy = (addr: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -296,11 +302,22 @@ export function MarketplaceOrderBook({
                         : 'bg-emerald-500 text-black hover:bg-emerald-600'
                   }`}
                 >
-                  {isMaker
-                    ? 'Your Own Order'
-                    : isBuy
-                      ? `SELL UVBE TO BUYER (${formatPrice(order.price)})`
-                      : `BUY UVBE FROM SELLER (${formatPrice(order.price)})`}
+                  {isMaker ? (
+                    'Your Own Order'
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">
+                        {isBuy
+                          ? `SELL UVBE TO BUYER (${formatPrice(order.price)})`
+                          : `BUY UVBE FROM SELLER (${formatPrice(order.price)})`}
+                      </span>
+                      <span className="sm:hidden">
+                        {isBuy
+                          ? `SELL UVBE · ${formatPrice(order.price)}`
+                          : `BUY UVBE · ${formatPrice(order.price)}`}
+                      </span>
+                    </>
+                  )}
                 </button>
               </div>
             );

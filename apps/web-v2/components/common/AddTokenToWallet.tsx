@@ -193,7 +193,9 @@ export function AddTokenToWallet({
             </div>
             <div className="flex justify-between flex-wrap gap-1">
               <span className="text-muted-foreground font-sans">Network:</span>
-              <span className="text-foreground font-bold">Base Sepolia (Chain ID 84532)</span>
+              <span className="text-foreground font-bold">
+                {chain?.name || 'Base Sepolia'} (Chain ID {chain?.id || 84532})
+              </span>
             </div>
             <div className="flex justify-between flex-wrap gap-1">
               <span className="text-muted-foreground font-sans">Symbol:</span>

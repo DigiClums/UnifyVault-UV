@@ -336,7 +336,9 @@ export function TransferForm() {
 
               <div className="relative">
                 <input
+                  id="transfer-amount-input"
                   type="number"
+                  inputMode="decimal"
                   placeholder="0.00"
                   step="any"
                   value={amountInput}
@@ -351,7 +353,7 @@ export function TransferForm() {
                   type="button"
                   onClick={() => handlePercentageSelect(100)}
                   disabled={isProcessing || activeBalanceNum <= 0}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-[#BFFF00] text-black border border-black text-xs font-bold shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-[#BFFF00] text-black border border-black text-xs font-bold shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[32px] flex items-center justify-center"
                 >
                   MAX
                 </button>
@@ -365,7 +367,7 @@ export function TransferForm() {
                     type="button"
                     onClick={() => handlePercentageSelect(pct)}
                     disabled={isProcessing || activeBalanceNum <= 0}
-                    className="py-1.5 px-2 rounded-lg bg-card hover:bg-muted text-xs font-semibold text-foreground border border-border-subtle hover:border-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="py-2 px-2 rounded-lg bg-card hover:bg-muted text-xs font-semibold text-foreground border border-border-subtle hover:border-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px] flex items-center justify-center"
                   >
                     {pct}%
                   </button>

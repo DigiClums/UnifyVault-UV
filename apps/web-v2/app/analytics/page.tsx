@@ -74,9 +74,9 @@ export default function AnalyticsPage() {
     return transactions.filter((tx) => tx.type === 'DEPOSIT' || tx.type === 'REDEEM').slice(0, 5);
   }, [transactions]);
 
-  const activityCount = transactions.filter(
-    (tx) => tx.type === 'DEPOSIT' || tx.type === 'REDEEM',
-  ).length;
+  const activityCount = useMemo(() => {
+    return transactions.filter((tx) => tx.type === 'DEPOSIT' || tx.type === 'REDEEM').length;
+  }, [transactions]);
 
   return (
     <div className="space-y-2.5 sm:space-y-5 pt-1 pb-6 sm:py-2">
@@ -341,7 +341,7 @@ export default function AnalyticsPage() {
                       className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
                         isDeposit
                           ? 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
-                          : 'bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00]'
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                       }`}
                     >
                       {isDeposit ? (
@@ -364,7 +364,7 @@ export default function AnalyticsPage() {
                       className={`text-[11px] font-semibold font-mono ${
                         isDeposit
                           ? 'text-[#5f8f00] dark:text-[#BFFF00]'
-                          : 'text-[#5f8f00] dark:text-[#BFFF00]'
+                          : 'text-rose-600 dark:text-rose-400'
                       }`}
                     >
                       {isDeposit ? '+' : '-'}

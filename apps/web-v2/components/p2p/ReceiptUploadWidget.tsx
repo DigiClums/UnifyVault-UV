@@ -32,10 +32,27 @@ export function ReceiptUploadWidget({
   const [file, setFile] = useState<File | null>(null);
   const [utrInput, setUtrInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStage, setProcessingStage] = useState<string>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<EvidenceVerificationResult | null>(null);
 
+  const isMountedRef = React.useRef(true);
+  const activeJobIdRef = React.useRef(0);
+
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      activeJobIdRef.current += 1;
+    };
+  }, []);
+
   const processVerification = async (selectedFile: File, userUtr: string) => {
+    const jobId = ++activeJobIdRef.current;
     setIsProcessing(true);
+    setErrorMsg(null);
+    setProcessingStage('Analyzing receipt bytes & verifying trade parameters...');
+
     try {
       // Execute REAL receipt OCR pipeline directly on original uploaded bytes (NO synthetic text)
       const res = await verifyPaymentEvidence({
@@ -46,12 +63,22 @@ export function ReceiptUploadWidget({
         },
       });
 
+      if (!isMountedRef.current || jobId !== activeJobIdRef.current) return;
+
       setResult(res);
+      setProcessingStage('done');
       onEvidenceProcessed(res, userUtr.trim());
-    } catch (err) {
+    } catch (err: any) {
+      if (!isMountedRef.current || jobId !== activeJobIdRef.current) return;
       console.error('Evidence processing error:', err);
+      setErrorMsg(
+        err?.message || 'Evidence verification failed. Please check network and try again.',
+      );
+      setProcessingStage('error');
     } finally {
-      setIsProcessing(false);
+      if (isMountedRef.current && jobId === activeJobIdRef.current) {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -71,6 +98,12 @@ export function ReceiptUploadWidget({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFileSelected(e.target.files[0]);
+    }
+  };
+
+  const handleRetry = () => {
+    if (file) {
+      processVerification(file, utrInput);
     }
   };
 
@@ -136,12 +169,25 @@ export function ReceiptUploadWidget({
       </div>
 
       {isProcessing && (
-        <div className="p-3 rounded-xl bg-accent/40 text-xs font-mono flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin text-[#BFFF00]" />
-          <span>
-            Executing optical character recognition & verifying trade parameters on uploaded
-            bytes...
-          </span>
+        <div className="p-3 rounded-xl bg-accent/40 text-xs font-mono flex items-center gap-2 text-muted-foreground animate-pulse">
+          <Loader2 className="w-4 h-4 animate-spin text-[#BFFF00] shrink-0" />
+          <span>{processingStage || 'Processing receipt evidence...'}</span>
+        </div>
+      )}
+
+      {errorMsg && !isProcessing && (
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border-2 border-rose-500/30 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-600 dark:text-rose-400">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted text-foreground border border-border-subtle font-bold text-xs shrink-0 self-start sm:self-auto cursor-pointer"
+          >
+            Retry Verification
+          </button>
         </div>
       )}
 

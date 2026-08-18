@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 export function AppCTASection() {
@@ -18,13 +19,13 @@ export function AppCTASection() {
             Access the full protocol — portfolio management, deposits, and on-chain transparency.
           </p>
 
-          <a
-            href="https://app.unifyvault.xyz/"
+          <Link
+            href="/app-home"
             className="relative inline-flex items-center space-x-2 px-6 py-2.5 bg-[#BFFF00] hover:bg-[#d7ff66] text-black text-sm font-black shadow-[4px_4px_0_#000] transition-all duration-200 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_#000]"
           >
             <span>Launch App</span>
             <ArrowRight className="w-4 h-4" />
-          </a>
+          </Link>
         </div>
       </div>
     </section>

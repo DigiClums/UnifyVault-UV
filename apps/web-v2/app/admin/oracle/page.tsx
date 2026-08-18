@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAccount, useReadContracts } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
-import { ORACLE_MANAGER_ABI, PORTFOLIO_MANAGER_ABI } from '../../../lib/contracts';
 import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { useUnifiedProtocolData } from '../../../hooks/useUnifiedProtocolData';
@@ -14,28 +13,6 @@ import { TableCard } from '../../../components/ui/TableCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { OracleFeedStatus } from '../../../types';
 import { Activity, Zap, RefreshCw, Clock, ShieldCheck, Info, AlertTriangle } from 'lucide-react';
-
-function deriveStatus(
-  readItem: { status?: 'success' | 'failure'; result?: unknown; error?: Error } | undefined,
-  freshItem: { status?: 'success' | 'failure'; result?: unknown } | undefined,
-): { status: OracleFeedStatus; priceNum: number | null; priceUSD: string } {
-  if (!readItem) {
-    return { status: 'UNAVAILABLE', priceNum: null, priceUSD: 'Price unavailable' };
-  }
-  if (readItem.status === 'failure' || readItem.error) {
-    return { status: 'REVERTED', priceNum: null, priceUSD: 'Price unavailable' };
-  }
-  const raw = readItem.result as bigint | undefined;
-  if (raw === undefined || raw === 0n) {
-    return { status: 'UNAVAILABLE', priceNum: null, priceUSD: 'Price unavailable' };
-  }
-  const isFresh = Boolean(freshItem?.result ?? true);
-  const num = Number(formatUnits(raw, 18));
-  if (!isFresh) {
-    return { status: 'STALE', priceNum: num, priceUSD: 'Price unavailable' };
-  }
-  return { status: 'LIVE', priceNum: num, priceUSD: formatUSD(num) };
-}
 
 export default function AdminOraclePage() {
   const { chain } = useAccount();
@@ -49,67 +26,27 @@ export default function AdminOraclePage() {
   const livePrices = useLivePrices();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
-  const { data, refetch, isFetching } = useReadContracts({
-    contracts: [
-      {
-        address: oracle,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'getAssetPrice',
-        args: [tokens.cbBTC],
-      },
-      {
-        address: oracle,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'getAssetPrice',
-        args: [tokens.WETH],
-      },
-      {
-        address: oracle,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'getAssetPrice',
-        args: [tokens.USDC],
-      },
-      {
-        address: oracle,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'isPriceFresh',
-        args: [tokens.cbBTC],
-      },
-      {
-        address: oracle,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'isPriceFresh',
-        args: [tokens.WETH],
-      },
-      {
-        address: oracle,
-        abi: ORACLE_MANAGER_ABI,
-        functionName: 'isPriceFresh',
-        args: [tokens.USDC],
-      },
-      {
-        address: pm,
-        abi: PORTFOLIO_MANAGER_ABI,
-        functionName: 'calculateUVPrice',
-      },
-    ],
-    query: {
-      enabled: !!oracle,
-      staleTime: 5_000,
-      refetchInterval: 5_000,
-      gcTime: 60_000,
-    },
-  });
+  const btcHolding = protocolData.protocolHoldings.find((h) => h.symbol === 'cbBTC');
+  const ethHolding = protocolData.protocolHoldings.find((h) => h.symbol === 'WETH');
+  const usdcHolding = protocolData.protocolHoldings.find((h) => h.symbol === 'USDC');
 
-  const btcFeed = deriveStatus(data?.[0], data?.[3]);
-  const ethFeed = deriveStatus(data?.[1], data?.[4]);
-  const usdcFeed = deriveStatus(data?.[2], data?.[5]);
+  const btcFeed = {
+    status: protocolData.btcOracleStatus || ('UNAVAILABLE' as OracleFeedStatus),
+    priceUSD: btcHolding?.priceUSD || 'Price unavailable',
+  };
+  const ethFeed = {
+    status: protocolData.ethOracleStatus || ('UNAVAILABLE' as OracleFeedStatus),
+    priceUSD: ethHolding?.priceUSD || 'Price unavailable',
+  };
+  const usdcFeed = {
+    status: protocolData.usdcOracleStatus || ('UNAVAILABLE' as OracleFeedStatus),
+    priceUSD: usdcHolding?.priceUSD || 'Price unavailable',
+  };
 
   const handleRefreshAll = async () => {
     setIsManualRefreshing(true);
     try {
       await Promise.allSettled([
-        refetch(),
         protocolData.refetch(),
         livePrices.refetch(),
         queryClient.invalidateQueries(),
@@ -119,7 +56,7 @@ export default function AdminOraclePage() {
     }
   };
 
-  const isBusy = isFetching || isManualRefreshing || protocolData.isLoading;
+  const isBusy = isManualRefreshing || protocolData.isLoading;
 
   const shortAddr = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 

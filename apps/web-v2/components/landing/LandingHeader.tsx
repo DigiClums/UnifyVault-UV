@@ -52,12 +52,12 @@ export function LandingHeader() {
 
         {/* Desktop CTA + Mobile Menu */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          <a
-            href="https://app.unifyvault.xyz/"
+          <Link
+            href="/app-home"
             className="hidden sm:inline-flex px-4 py-1.5 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black text-xs font-bold border-2 border-black shadow-[2px_2px_0_#000] transition-all cursor-pointer"
           >
             Launch App
-          </a>
+          </Link>
 
           {/* Mobile Menu Button */}
           <button
@@ -94,13 +94,13 @@ export function LandingHeader() {
               <ExternalLink className="w-3 h-3 opacity-60" />
             </a>
             <div className="pt-2">
-              <a
-                href="https://app.unifyvault.xyz/"
+              <Link
+                href="/app-home"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center w-full px-4 py-2.5 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black text-sm font-bold border-2 border-black shadow-[2px_2px_0_#000] transition-colors"
               >
                 Launch App
-              </a>
+              </Link>
             </div>
           </div>
         </div>

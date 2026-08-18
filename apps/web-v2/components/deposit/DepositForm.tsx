@@ -8,7 +8,6 @@ import { Card } from '../common/Card';
 import { useDeposit } from '../../hooks/useDeposit';
 import { useBalances } from '../../hooks/useBalances';
 import { useUnifiedProtocolData } from '../../hooks/useUnifiedProtocolData';
-import { useStrategyMetrics } from '../../hooks/useStrategyMetrics';
 import { getExplorerBaseUrl } from '../../constants';
 import { formatUnits, formatUSD, formatShares } from '../../lib/math';
 import {
@@ -34,7 +33,14 @@ export function DepositForm() {
   const { isConnected, chain } = useAccount();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const { sharesBalance: eoaSharesBalance, usdcBalance, refetch: refetchBalances } = useBalances();
-  const { navPerShareUSD } = useUnifiedProtocolData();
+  const {
+    navPerShareUSD,
+    targetBtcBps,
+    targetEthBps,
+    targetBtcPercent,
+    targetEthPercent,
+    isLoading: strategyLoading,
+  } = useUnifiedProtocolData();
   const { token: uvTokenAddress } = useProtocolDirectory();
   const {
     depositAmountInput,
@@ -92,13 +98,6 @@ export function DepositForm() {
   const activeTxHash = depositTxHash || approvalTxHash || lastTxHash;
   const explorerTxUrl = activeTxHash ? `${explorerBaseUrl}/tx/${activeTxHash}` : explorerBaseUrl;
 
-  const {
-    targetBtcBps,
-    targetEthBps,
-    targetBtcPercent,
-    targetEthPercent,
-    isLoading: strategyLoading,
-  } = useStrategyMetrics();
   const depositVal = parseFloat(depositAmountInput || '0') || 0;
   const netDepositVal = depositVal * 0.9975; // 0.25% fee deduction
   const btcDepositUSD = targetBtcBps !== undefined ? (netDepositVal * targetBtcBps) / 10000 : 0;
@@ -137,7 +136,7 @@ export function DepositForm() {
             </p>
           </div>
           <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#BFFF00] text-black border-2 border-black text-xs font-semibold shrink-0">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <ShieldCheck className="w-3.5 h-3.5 text-black" />
             <span>0.25% fee</span>
           </div>
         </div>
@@ -218,7 +217,10 @@ export function DepositForm() {
           <div className="relative rounded-xl bg-black/[0.03] dark:bg-white/[0.03] p-3.5 border-2 border-black dark:border-white/15 focus-within:border-[#BFFF00] transition-all shadow-[3px_3px_0_rgba(0,0,0,0.85)] space-y-3">
             <div className="flex items-center justify-between gap-2">
               <input
+                id="deposit-amount-input"
                 type="number"
+                inputMode="decimal"
+                step="any"
                 placeholder="0.00"
                 value={depositAmountInput}
                 onChange={(e) => {
@@ -236,18 +238,18 @@ export function DepositForm() {
             </div>
 
             <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-200 dark:border-slate-800/80">
-              <span className="font-mono text-slate-500 dark:text-slate-400">
+              <span className="font-mono text-muted-foreground">
                 Gross: ${depositVal.toFixed(2)}
               </span>
 
               {/* Quick Percentage Buttons */}
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 sm:space-x-1.5">
                 {[25, 50, 75, 100].map((pct) => (
                   <button
                     key={pct}
                     type="button"
                     onClick={() => handlePercentageSelect(pct)}
-                    className="px-2 py-0.5 rounded bg-card hover:bg-[#BFFF00] hover:text-black text-[10px] font-mono font-semibold text-slate-700 dark:text-slate-300 border-2 border-black dark:border-white/15 transition-all active:scale-95 shadow-2xs"
+                    className="px-2.5 sm:px-3 py-1.5 sm:py-1 rounded bg-card hover:bg-[#BFFF00] hover:text-black text-[11px] font-mono font-semibold text-foreground border-2 border-black dark:border-white/15 transition-all active:scale-95 shadow-2xs min-h-[36px] flex items-center justify-center cursor-pointer"
                   >
                     {pct === 100 ? 'MAX' : `${pct}%`}
                   </button>

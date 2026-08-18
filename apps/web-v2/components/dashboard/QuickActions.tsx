@@ -60,10 +60,22 @@ export function QuickActions() {
               <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <span className="text-xs sm:text-sm font-bold text-foreground block leading-tight">
+              <span
+                className={`text-xs sm:text-sm font-bold block leading-tight ${
+                  action.href === '/deposit'
+                    ? 'text-black'
+                    : 'text-foreground group-hover:text-black'
+                }`}
+              >
                 {action.label}
               </span>
-              <span className="text-[10px] text-muted-foreground hidden sm:block leading-tight">
+              <span
+                className={`text-[10px] hidden sm:block leading-tight ${
+                  action.href === '/deposit'
+                    ? 'text-black/75'
+                    : 'text-muted-foreground group-hover:text-black/75'
+                }`}
+              >
                 {action.desc}
               </span>
             </div>

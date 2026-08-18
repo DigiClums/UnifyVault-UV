@@ -84,7 +84,8 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   LiquidityManager: '0xd1DCd311ACD1176E35823360652FCb356a7F227F' as `0x${string}`,
   UVBEToken: '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as `0x${string}`,
   UVBTCETHToken: '0x006c5DF13C716E5224b33956651C4356BB90DEc0' as `0x${string}`,
-  UnifyVaultController: '0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec' as `0x${string}`,
+  UnifyVaultController: '0x7DC190a0bFa08c9596DfdC20E602821619E776ea' as `0x${string}`,
+  UnifyVaultControllerImplementation: '0x717e39A34e81A81b75B78Ff7abFfaE4822f42415' as `0x${string}`,
   StrategyManager: '0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb' as `0x${string}`,
   PortfolioManager: '0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b' as `0x${string}`,
   SwapAdapter: '0xbc97337dE85654aCD96182C93841f21168da65B4' as `0x${string}`,
@@ -201,6 +202,10 @@ export const MODULE_IDS = {
   PERFORMANCE_MANAGER:
     '0x3cc6e30a00fc20cd55b209638eb88a197234ab24baed9e238b01e2c52159a815' as `0x${string}`,
   CONTROLLER: '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
+  DEPOSIT_MANAGER:
+    '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
+  REDEEM_MANAGER:
+    '0xe803baf6f12e8c3726dae7c58f60b9acc928d735b12c65a16c742fdabbca8623' as `0x${string}`,
   P2P_ESCROW: '0x4d5e9ec2ddae603ed61a153eeaa5905d914ec7a7a505e83ea647904cf72d8a57' as `0x${string}`,
 };
 

@@ -311,6 +311,8 @@ export function CreateMarketplaceOrderModal({
 
   const chainName = activeChainId === 8453 ? 'Base Mainnet' : 'Base Sepolia';
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[8px_8px_0_#000] p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto font-mono">
@@ -458,6 +460,7 @@ export function CreateMarketplaceOrderModal({
               <input
                 id="unit-price-input"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 placeholder="e.g. 500"
                 value={priceStr}
@@ -478,6 +481,7 @@ export function CreateMarketplaceOrderModal({
               <input
                 id="total-amount-input"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 placeholder="e.g. 100"
                 value={amountStr}
@@ -541,6 +545,7 @@ export function CreateMarketplaceOrderModal({
                 <input
                   id="min-limit-input"
                   type="number"
+                  inputMode="decimal"
                   step="any"
                   placeholder="Min Limit (e.g. 10)"
                   value={minLimitStr}
@@ -553,6 +558,7 @@ export function CreateMarketplaceOrderModal({
                 <input
                   id="max-limit-input"
                   type="number"
+                  inputMode="decimal"
                   step="any"
                   placeholder="Max Limit (e.g. 100)"
                   value={maxLimitStr}

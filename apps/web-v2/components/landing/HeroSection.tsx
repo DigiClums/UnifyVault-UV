@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   ShieldCheck,
   ArrowRight,
@@ -59,12 +60,12 @@ export function HeroSection() {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="https://app.unifyvault.xyz/"
+            <Link
+              href="/app-home"
               className="inline-flex min-h-11 items-center justify-center gap-2 border-2 border-black bg-[#BFFF00] px-5 py-2.5 text-sm font-black text-black shadow-[4px_4px_0_#000] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0_#000]"
             >
               Launch App <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <button
               onClick={scrollToFeatures}
               className="inline-flex min-h-11 items-center justify-center gap-2 border-2 border-white/15 bg-white/[0.035] px-5 py-2.5 text-sm font-bold text-white transition hover:border-[#BFFF00]/40 hover:bg-[#BFFF00]/[0.05] hover:text-[#BFFF00]"

@@ -349,9 +349,10 @@ export function reconcileAccountLedger(params: ReconcileLedgerParams): UserDecou
       case 'P2P_SELL':
         p2pTradesCount++;
         // If explicit origin is VAULT, or if seller has no P2P shares, sell from Vault
-        if (evt.origin === 'VAULT' || (p2pActiveSharesRaw === 0n && vaultSharesRaw > 0n)) {
-          p2pSoldFromVaultRaw += evt.sharesRaw;
-          vaultSharesRaw = vaultSharesRaw >= evt.sharesRaw ? vaultSharesRaw - evt.sharesRaw : 0n;
+        if ((evt.origin === 'VAULT' || p2pActiveSharesRaw === 0n) && vaultSharesRaw > 0n) {
+          const soldFromVault = vaultSharesRaw >= evt.sharesRaw ? evt.sharesRaw : vaultSharesRaw;
+          p2pSoldFromVaultRaw += soldFromVault;
+          vaultSharesRaw -= soldFromVault;
         } else if (p2pActiveSharesRaw >= evt.sharesRaw) {
           // Sold entirely from P2P available inventory (Weighted Average Cost)
           const shareFraction =
@@ -364,7 +365,11 @@ export function reconcileAccountLedger(params: ReconcileLedgerParams): UserDecou
         } else {
           // Sold from P2P first, remainder from Vault inventory
           const remainder = evt.sharesRaw - p2pActiveSharesRaw;
-          p2pSoldFromVaultRaw += remainder;
+          if (vaultSharesRaw > 0n) {
+            const soldFromVault = vaultSharesRaw >= remainder ? remainder : vaultSharesRaw;
+            p2pSoldFromVaultRaw += soldFromVault;
+            vaultSharesRaw -= soldFromVault;
+          }
           if (p2pActiveSharesRaw > 0n) {
             const shareFractionP2P = Number(p2pActiveSharesRaw) / Number(evt.sharesRaw);
             const revenueP2P = (evt.usdValue ?? 0) * shareFractionP2P;
@@ -372,7 +377,6 @@ export function reconcileAccountLedger(params: ReconcileLedgerParams): UserDecou
             p2pCumulativeCostUSD = 0;
             p2pActiveSharesRaw = 0n;
           }
-          vaultSharesRaw = vaultSharesRaw >= remainder ? vaultSharesRaw - remainder : 0n;
         }
         break;
 
@@ -389,9 +393,12 @@ export function reconcileAccountLedger(params: ReconcileLedgerParams): UserDecou
           p2pActiveSharesRaw -= evt.sharesRaw;
         } else {
           const rem = evt.sharesRaw - p2pActiveSharesRaw;
-          p2pSoldFromVaultRaw += rem;
+          if (vaultSharesRaw > 0n) {
+            const soldFromVault = vaultSharesRaw >= rem ? rem : vaultSharesRaw;
+            p2pSoldFromVaultRaw += soldFromVault;
+            vaultSharesRaw -= soldFromVault;
+          }
           p2pActiveSharesRaw = 0n;
-          vaultSharesRaw = vaultSharesRaw >= rem ? vaultSharesRaw - rem : 0n;
         }
         break;
     }
@@ -435,9 +442,14 @@ export function reconcileAccountLedger(params: ReconcileLedgerParams): UserDecou
   let vaultPositionValueUSD = vaultSharesNum * sharePrice;
 
   // Derive Vault Cost Basis:
-  // Scale down proportionally ONLY when Vault shares were disposed through P2P or secondary transfers.
+  // Scale down proportionally ONLY when Vault shares were disposed through P2P or secondary transfers
+  // and the ledger had active deposit events reconstructing that specific vault position lifecycle.
   let vaultCostBasisUSD = onChainCostBasisUSD;
-  if (p2pSoldFromVaultRaw > 0n && vaultSharesRaw + p2pSoldFromVaultRaw > 0n) {
+  if (
+    vaultCumulativeMintedRaw > 0n &&
+    p2pSoldFromVaultRaw > 0n &&
+    vaultSharesRaw + p2pSoldFromVaultRaw > 0n
+  ) {
     const fraction = Number(vaultSharesRaw) / Number(vaultSharesRaw + p2pSoldFromVaultRaw);
     vaultCostBasisUSD = onChainCostBasisUSD * fraction;
   } else if (

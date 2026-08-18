@@ -76,7 +76,9 @@ export function SmartAccountBadge() {
               : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
           }`}
         >
-          {isGaslessSupported ? 'Gasless Enabled (Base Sepolia)' : 'Standard EOA Mode'}
+          {isGaslessSupported
+            ? `Gasless Enabled (${chain?.name || 'Base Sepolia'})`
+            : 'Standard EOA Mode'}
         </span>
       </div>
     </div>

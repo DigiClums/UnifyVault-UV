@@ -163,12 +163,12 @@ function TimelineStep({
       <div className="flex-shrink-0 mt-0.5">{getContractIcon(contractName)}</div>
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-white">{displayName}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+          <span className="text-sm font-semibold text-foreground">{displayName}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
             {contractName}
           </span>
         </div>
-        <div className="text-xs text-slate-400 space-y-0.5">{details}</div>
+        <div className="text-xs text-muted-foreground space-y-0.5">{details}</div>
       </div>
     </div>
   );
@@ -200,9 +200,9 @@ function renderEventDetails(
       const isBurn = to === '0x0000000000000000000000000000000000000000';
       const label = isMint ? 'Mint to' : isBurn ? 'Burn from' : 'Transfer';
       rows.push(
-        <span key="dir" className="text-slate-500">
+        <span key="dir" className="text-muted-foreground">
           {label}:{' '}
-          <span className="text-slate-300 font-mono">
+          <span className="text-foreground/90 font-mono">
             {isMint ? short(to) : isBurn ? short(from) : `${short(from)} → ${short(to)}`}
           </span>
         </span>,
@@ -216,9 +216,9 @@ function renderEventDetails(
             ? 'UVBE'
             : contractName;
         rows.push(
-          <span key="val" className="text-slate-500">
+          <span key="val" className="text-muted-foreground">
             Amount:{' '}
-            <span className="text-white font-mono">
+            <span className="text-foreground font-mono">
               {formatAmount(value, decimals)} {symbol}
             </span>
           </span>,
@@ -239,28 +239,28 @@ function renderEventDetails(
 
     if (user)
       rows.push(
-        <span key="u" className="text-slate-500">
-          User: <span className="text-slate-300 font-mono">{short(user)}</span>
+        <span key="u" className="text-muted-foreground">
+          User: <span className="text-foreground/90 font-mono">{short(user)}</span>
         </span>,
       );
     if (depositAmount !== undefined)
       rows.push(
-        <span key="da" className="text-slate-500">
+        <span key="da" className="text-muted-foreground">
           Deposit:{' '}
-          <span className="text-white font-mono">{formatAmount(depositAmount, 6)} USDC</span>
+          <span className="text-foreground font-mono">{formatAmount(depositAmount, 6)} USDC</span>
         </span>,
       );
     if (fee !== undefined && fee > 0n)
       rows.push(
-        <span key="f" className="text-slate-500">
+        <span key="f" className="text-muted-foreground">
           Fee: <span className="text-amber-400 font-mono">{formatAmount(fee, 6)} USDC</span>
         </span>,
       );
     if (sharesMinted !== undefined)
       rows.push(
-        <span key="sm" className="text-slate-500">
+        <span key="sm" className="text-muted-foreground">
           Shares Minted:{' '}
-          <span className="text-white font-mono">{formatAmount(sharesMinted, 18)}</span>
+          <span className="text-foreground font-mono">{formatAmount(sharesMinted, 18)}</span>
         </span>,
       );
 
@@ -272,8 +272,8 @@ function renderEventDetails(
         )
         .join(', ');
       rows.push(
-        <span key="sw" className="text-slate-500">
-          Swapped to: <span className="text-white font-mono">{swapInfo}</span>
+        <span key="sw" className="text-muted-foreground">
+          Swapped to: <span className="text-foreground font-mono">{swapInfo}</span>
         </span>,
       );
     }
@@ -291,27 +291,27 @@ function renderEventDetails(
 
     if (user)
       rows.push(
-        <span key="u" className="text-slate-500">
-          User: <span className="text-slate-300 font-mono">{short(user)}</span>
+        <span key="u" className="text-muted-foreground">
+          User: <span className="text-foreground/90 font-mono">{short(user)}</span>
         </span>,
       );
     if (sharesBurned !== undefined)
       rows.push(
-        <span key="sb" className="text-slate-500">
+        <span key="sb" className="text-muted-foreground">
           Shares Burned:{' '}
-          <span className="text-white font-mono">{formatAmount(sharesBurned, 18)}</span>
+          <span className="text-foreground font-mono">{formatAmount(sharesBurned, 18)}</span>
         </span>,
       );
     if (usdcReturned !== undefined)
       rows.push(
-        <span key="ur" className="text-slate-500">
+        <span key="ur" className="text-muted-foreground">
           USDC Returned:{' '}
-          <span className="text-white font-mono">{formatAmount(usdcReturned, 6)} USDC</span>
+          <span className="text-foreground font-mono">{formatAmount(usdcReturned, 6)} USDC</span>
         </span>,
       );
     if (fee !== undefined && fee > 0n)
       rows.push(
-        <span key="f" className="text-slate-500">
+        <span key="f" className="text-muted-foreground">
           Fee: <span className="text-amber-400 font-mono">{formatAmount(fee, 6)} USDC</span>
         </span>,
       );
@@ -324,8 +324,8 @@ function renderEventDetails(
         )
         .join(', ');
       rows.push(
-        <span key="sw" className="text-slate-500">
-          Swapped from: <span className="text-white font-mono">{swapInfo}</span>
+        <span key="sw" className="text-muted-foreground">
+          Swapped from: <span className="text-foreground font-mono">{swapInfo}</span>
         </span>,
       );
     }
@@ -897,13 +897,13 @@ export const TimelineCard = React.memo(
 
           {/* Method name */}
           <div className="flex-shrink-0 min-w-[80px]">
-            <span className="text-sm font-semibold text-slate-200 font-mono">{tx.method}</span>
+            <span className="text-sm font-semibold text-foreground font-mono">{tx.method}</span>
           </div>
 
           {/* Summary amount */}
           {tx.summaryAmount && (
             <div className="flex-shrink-0 hidden sm:block">
-              <span className="text-sm font-bold text-white font-mono">
+              <span className="text-sm font-bold text-foreground font-mono">
                 {tx.summaryAmount} {tx.summaryAsset}
               </span>
             </div>

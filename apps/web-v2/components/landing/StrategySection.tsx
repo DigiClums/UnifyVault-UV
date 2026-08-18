@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useUnifiedProtocolData } from '../../hooks/useUnifiedProtocolData';
 import { Skeleton } from '../ui/Skeleton';
@@ -75,13 +76,13 @@ export function StrategySection() {
             )}
 
             <div className="mt-5 pt-4 border-t border-white/[0.08]">
-              <a
-                href="https://app.unifyvault.xyz/portfolio"
+              <Link
+                href="/portfolio"
                 className="inline-flex items-center space-x-2 text-xs font-semibold text-[#BFFF00] hover:text-[#d7ff66] transition-colors"
               >
                 <span>View Portfolio Details</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </a>
+              </Link>
             </div>
           </div>
         </div>

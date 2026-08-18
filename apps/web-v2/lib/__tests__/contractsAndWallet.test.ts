@@ -10,7 +10,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
       '0x006c5DF13C716E5224b33956651C4356BB90DEc0',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toBe(
-      '0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec',
+      '0x7DC190a0bFa08c9596DfdC20E602821619E776ea',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toBe(
       '0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b',

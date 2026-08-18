@@ -59,6 +59,7 @@ export function useTransactionExplorer(pageIndex: number) {
   const queryClient = useQueryClient();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('syncing');
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const lastSyncTimeRef = useRef<number>(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const tokens = getChainTokens(chainId);
@@ -122,7 +123,9 @@ export function useTransactionExplorer(pageIndex: number) {
         admin: groups.filter((g) => g.actionType === 'admin').length,
       };
 
-      setLastSyncTime(Date.now());
+      const now = Date.now();
+      lastSyncTimeRef.current = now;
+      setLastSyncTime(now);
       setSyncStatus('live');
 
       return {
@@ -136,15 +139,32 @@ export function useTransactionExplorer(pageIndex: number) {
 
   // ─── State derivation ────────────────────────────────────────────────
 
+  const {
+    isLoading: isQueryLoading,
+    isFetching: isQueryFetching,
+    isError: isQueryError,
+    data: queryData,
+  } = query;
+
   const state: ExplorerState = useMemo(() => {
     if (!chainId || !publicClient || !controller) {
       return isDirLoading ? 'loading' : 'unsupported';
     }
-    if (query.isLoading) return 'loading';
-    if (query.isFetching && query.data) return 'syncing';
-    if (query.isError || isDirError) return 'error';
+    if (isQueryLoading) return 'loading';
+    if (isQueryFetching && queryData) return 'syncing';
+    if (isQueryError || isDirError) return 'error';
     return 'ready';
-  }, [chainId, controller, isDirError, isDirLoading, publicClient, query]);
+  }, [
+    chainId,
+    controller,
+    isDirError,
+    isDirLoading,
+    isQueryError,
+    isQueryFetching,
+    isQueryLoading,
+    publicClient,
+    queryData,
+  ]);
 
   // ─── Live Watcher ────────────────────────────────────────────────────
 
@@ -238,7 +258,7 @@ export function useTransactionExplorer(pageIndex: number) {
     // Fallback polling
     pollRef.current = setInterval(() => {
       if (!active) return;
-      const sinceLastSync = Date.now() - lastSyncTime;
+      const sinceLastSync = Date.now() - lastSyncTimeRef.current;
       if (sinceLastSync > 60_000) {
         setSyncStatus('stale');
       }
@@ -255,7 +275,7 @@ export function useTransactionExplorer(pageIndex: number) {
         pollRef.current = null;
       }
     };
-  }, [chainId, controller, publicClient, queryClient, lastSyncTime]);
+  }, [chainId, controller, publicClient, queryClient]);
 
   // ─── Refresh ─────────────────────────────────────────────────────────
 
