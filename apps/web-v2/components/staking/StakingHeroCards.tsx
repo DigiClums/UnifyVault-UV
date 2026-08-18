@@ -38,10 +38,10 @@ export function StakingHeroCards() {
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-black dark:text-[#BFFF00]" />
-            Permanent Staked
+            Active Staked
           </span>
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#BFFF00]/20 text-black dark:text-[#BFFF00] border border-[#BFFF00]/40">
-            Locked Forever
+            18% APY Active
           </span>
         </div>
         {isLoading ? (

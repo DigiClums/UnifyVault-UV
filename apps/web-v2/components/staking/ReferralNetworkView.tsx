@@ -140,7 +140,7 @@ export function ReferralNetworkView() {
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
           <span>Your Unique Referral Link</span>
           <span className="text-[10px] text-slate-500 font-mono">
-            Binds new stakers permanently
+            Invites partners to your team
           </span>
         </div>
         <div className="flex items-center gap-2">

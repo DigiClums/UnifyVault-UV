@@ -24,13 +24,13 @@ export default function StakingPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-foreground tracking-tight flex items-center gap-2">
-              <Lock className="w-6 h-6 text-black dark:text-[#BFFF00]" />
-              UVBE Permanent Staking & MLM Engine
+              <Sparkles className="w-6 h-6 text-black dark:text-[#BFFF00]" />
+              UVBE Staking & Yield Hub
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {networkName} · 18.00% APY Perpetual Recurring Yield · 10-Generation Direct & Override
-            Commissions
+            {networkName} · 18.00% APY Perpetual Yield · 10-Generation Affiliate & Leadership
+            Rewards
           </p>
         </div>
         <div className="flex items-center space-x-2 shrink-0">

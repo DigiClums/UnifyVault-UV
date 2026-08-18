@@ -172,10 +172,10 @@ export default function ContractsPage() {
       // 2. Staking & MLM Subsystem
       {
         name: 'UVBEStakingVault',
-        description: 'Permanent locked UVBE staking vault with non-withdrawable principal',
+        description: 'Perpetual locked UVBE staking vault generating 18% APY recurring rewards',
         address: DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
         category: 'Staking & MLM',
-        protocolKey: 'UVBE Permanent Staking Vault',
+        protocolKey: 'UVBE Staking Vault',
         icon: Lock,
         isErc20: false,
       },

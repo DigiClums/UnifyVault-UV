@@ -123,8 +123,7 @@ export function StakeActionForm() {
               Stake UVBE Principal
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Principal is permanently locked forever. Yields 18% APY recurring yield + MLM
-              commissions.
+              Earn continuous 18% APY perpetual yield + unlock 10-generation affiliate commissions.
             </p>
           </div>
           <div className="text-right">
@@ -199,7 +198,7 @@ export function StakeActionForm() {
               </span>
               {hasGenesisReferrer && (
                 <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  Permanently Bound
+                  Connected Upline
                 </span>
               )}
             </div>
@@ -239,13 +238,13 @@ export function StakeActionForm() {
             </div>
           )}
 
-          {/* Permanent Lock Warning Banner */}
+          {/* Value Highlights Banner */}
           <div className="flex items-start gap-2 p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-black dark:text-white text-xs">
-            <Info className="w-4 h-4 text-black dark:text-[#BFFF00] shrink-0 mt-0.5" />
+            <Sparkles className="w-4 h-4 text-black dark:text-[#BFFF00] shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">Permanent Principal Lock:</span> Staked UVBE principal
-              mathematically cannot be withdrawn. It permanently earns 18% APY continuous rewards
-              and unlocks MLM generation commissions.
+              <span className="font-bold">Perpetual Yield Staking:</span> Your staked UVBE generates
+              continuous 18% APY rewards, streaming live every second. Rewards can be claimed
+              anytime directly to your wallet or compounded with 0% fee.
             </div>
           </div>
 
@@ -289,7 +288,7 @@ export function StakeActionForm() {
                 className="w-full py-3.5 rounded-xl bg-[#BFFF00] text-black font-black text-sm uppercase tracking-wider border-2 border-black shadow-[4px_4px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Lock className="w-4 h-4" />
-                Confirm & Stake {stakeAmountStr} UVBE Permanently
+                Confirm & Stake {stakeAmountStr} UVBE
               </button>
             </div>
           )}
