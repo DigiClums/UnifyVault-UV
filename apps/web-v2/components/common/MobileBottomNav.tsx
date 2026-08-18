@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Send,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
@@ -33,6 +34,7 @@ const mainItems: NavItem[] = [
 ];
 
 const moreItems: NavItem[] = [
+  { href: '/staking', label: 'Staking', icon: Sparkles },
   { href: '/transfer', label: 'Transfer', icon: Send },
   { href: '/p2p', label: 'P2P', icon: ShieldCheck },
   { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },

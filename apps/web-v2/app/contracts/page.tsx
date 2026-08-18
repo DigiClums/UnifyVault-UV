@@ -30,11 +30,14 @@ import {
   CheckCircle2,
   LucideIcon,
   Star,
+  Users,
+  Sparkles,
 } from 'lucide-react';
 
 type ContractCategory =
   | 'All'
   | 'Core Vault'
+  | 'Staking & MLM'
   | 'P2P & Escrow'
   | 'Accounting'
   | 'Oracle'
@@ -57,6 +60,7 @@ interface ContractItem {
 const CATEGORIES: ContractCategory[] = [
   'All',
   'Core Vault',
+  'Staking & MLM',
   'P2P & Escrow',
   'Accounting',
   'Oracle',
@@ -165,7 +169,45 @@ export default function ContractsPage() {
         isErc20: false,
       },
 
-      // 2. P2P Settlement & Marketplace
+      // 2. Staking & MLM Subsystem
+      {
+        name: 'UVBEStakingVault',
+        description: 'Permanent locked UVBE staking vault with non-withdrawable principal',
+        address: DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
+        category: 'Staking & MLM',
+        protocolKey: 'UVBE Permanent Staking Vault',
+        icon: Lock,
+        isErc20: false,
+      },
+      {
+        name: 'UVBEReferralRegistry',
+        description: '10-generation immutable referral tree & deterministic rank engine',
+        address: DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
+        category: 'Staking & MLM',
+        protocolKey: 'UVBE Referral Registry',
+        icon: Users,
+        isErc20: false,
+      },
+      {
+        name: 'UVBERewardDistributor',
+        description: '18% APY recurring yield, generation commission, and DAO leadership engine',
+        address: DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
+        category: 'Staking & MLM',
+        protocolKey: 'UVBE Reward Distributor',
+        icon: Sparkles,
+        isErc20: false,
+      },
+      {
+        name: 'UVBERewardReserve',
+        description: 'Dedicated custody reward reserve vault disbursing funded UVBE yield',
+        address: DEPLOYED_CONTRACTS_SEPOLIA.RewardReserve,
+        category: 'Staking & MLM',
+        protocolKey: 'UVBE Reward Reserve',
+        icon: Coins,
+        isErc20: false,
+      },
+
+      // 3. P2P Settlement & Marketplace
       {
         name: 'P2PEscrow',
         description:

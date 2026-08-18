@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Globe,
   Send,
+  Sparkles,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
@@ -28,6 +29,7 @@ interface NavItem {
 
 const navLinks: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
+  { href: '/staking', label: 'Staking', icon: Sparkles },
   { href: '/p2p', label: 'P2P', icon: ShieldCheck },
   { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
   { href: '/transfer', label: 'Transfer', icon: Send },

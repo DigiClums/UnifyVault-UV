@@ -9,3 +9,4 @@ export * from './directory';
 export * from './portfolioManager';
 export * from './escrow';
 export * from './reputation';
+export * from './staking';
