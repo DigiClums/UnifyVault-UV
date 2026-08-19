@@ -21,8 +21,11 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   uint256 public constant MIN_STAKE = 50 * 1e18; // 50 UVBE minimum stake
   uint256 public constant MAX_STAKE = 100_000 * 1e18; // 100,000 UVBE max per transaction
+  uint256 public constant ADMIN_FEE_BPS = 500; // 5.00% admin treasury fee
+  uint256 public constant BPS_DENOMINATOR = 10_000;
 
   address public immutable override token;
+  address public immutable treasury;
   address public override registry;
   address public override distributor;
 
@@ -39,6 +42,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   event RegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
   event DistributorUpdated(address indexed oldDistributor, address indexed newDistributor);
+  event TreasuryFeeCollected(address indexed user, address indexed treasury, uint256 feeAmount);
   event StakeCreated(
     address indexed user,
     uint256 indexed stakeId,
@@ -65,6 +69,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     _grantRole(AccessRoles.GUARDIAN_ROLE, admin);
 
     token = tokenAddress;
+    treasury = admin;
   }
 
   /**
@@ -86,7 +91,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   /**
    * @notice Stakes already-minted UVBE tokens permanently into the vault
-   * @param amount Token amount to stake
+   * @param amount Gross user stake amount before the 5% admin treasury fee
    * @param referrer Referrer address for new stakers
    */
   function stake(uint256 amount, address referrer) external override nonReentrant whenNotPaused {
@@ -110,7 +115,8 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   /**
    * @notice Records permanent stake generated via reward restaking
-   * @dev Called strictly by UVBERewardDistributor after transferring tokens from UVBERewardReserve
+   * @dev Called strictly by UVBERewardDistributor after transferring tokens from UVBERewardReserve.
+   * Restaked rewards do not pay the 5% admin treasury fee.
    */
   function recordRestake(
     address user,
@@ -141,32 +147,40 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     if (amount < MIN_STAKE) revert BelowMinStake(amount, MIN_STAKE);
     if (amount > MAX_STAKE) revert ExceedsMaxStake(amount, MAX_STAKE);
 
-    // 1. Pull already-minted UVBE from user wallet
+    // 1. Pull the gross stake amount from the user.
     IERC20(token).safeTransferFrom(user, address(this), amount);
 
-    // 2. State accounting
-    _totalPermanentStaked += amount;
-    _permanentStakeOf[user] += amount;
+    // 2. Send exactly 5% of the gross stake to the admin treasury.
+    uint256 feeAmount = (amount * ADMIN_FEE_BPS) / BPS_DENOMINATOR;
+    uint256 principalAmount = amount - feeAmount;
+    if (feeAmount > 0) {
+      IERC20(token).safeTransfer(treasury, feeAmount);
+      emit TreasuryFeeCollected(user, treasury, feeAmount);
+    }
+
+    // 3. Only the net 95% becomes permanent protocol staking principal.
+    _totalPermanentStaked += principalAmount;
+    _permanentStakeOf[user] += principalAmount;
 
     uint256 stakeId = _stakeRecords[user].length;
     _stakeRecords[user].push(
-      IUVBEStakingMLM.StakeRecord({ amount: amount, stakedAt: block.timestamp })
+      IUVBEStakingMLM.StakeRecord({ amount: principalAmount, stakedAt: block.timestamp })
     );
 
-    // 3. Notify Registry (Referral bindings, Team Volume, Rank evaluations)
+    // 4. Notify Registry (Referral bindings, Team Volume, Rank evaluations)
     if (registry != address(0)) {
-      IUVBEReferralRegistry(registry).recordStake(user, amount, referrer, false);
+      IUVBEReferralRegistry(registry).recordStake(user, principalAmount, referrer, false);
     }
 
-    // 4. Trigger Reward Distributor (Direct Referral, Gen 2-10 matching, DAO Leadership pool)
+    // 5. Trigger Reward Distributor using the actual permanent principal amount.
     if (distributor != address(0)) {
-      IUVBERewardDistributor(distributor).distributeCommissions(user, amount, false);
+      IUVBERewardDistributor(distributor).distributeCommissions(user, principalAmount, false);
     }
 
     if (stakeId == 0) {
-      emit StakeCreated(user, stakeId, amount, referrer);
+      emit StakeCreated(user, stakeId, principalAmount, referrer);
     } else {
-      emit PermanentStakeIncreased(user, stakeId, amount, false);
+      emit PermanentStakeIncreased(user, stakeId, principalAmount, false);
     }
   }
 
