@@ -12,6 +12,9 @@ import {
   CheckCircle2,
   TrendingUp,
   ShieldCheck,
+  Coins,
+  ArrowRight,
+  Info,
 } from 'lucide-react';
 import { formatUnits, parseUnits } from 'viem';
 import { useStaking } from '../../hooks/useStaking';
@@ -21,6 +24,7 @@ export function RewardsClaimPanel() {
   const { isConnected } = useAccount();
   const {
     rewards,
+    dynamicApy,
     claimRewards,
     claimAllRewards,
     restakeRewards,
@@ -31,6 +35,7 @@ export function RewardsClaimPanel() {
 
   const [claimAmountInput, setClaimAmountInput] = useState<string>('');
   const [restakeAmountInput, setRestakeAmountInput] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'all' | 'claim' | 'restake'>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const hasClaimable = rewards.totalClaimable > 0n;
@@ -57,6 +62,8 @@ export function RewardsClaimPanel() {
 
   const handleClaimSpecific = async () => {
     try {
+      if (!claimAmountInput || isNaN(Number(claimAmountInput)) || Number(claimAmountInput) <= 0)
+        return;
       const amt = parseUnits(claimAmountInput, 18);
       if (amt === 0n || amt > rewards.totalClaimable) return;
       setIsModalOpen(true);
@@ -69,6 +76,12 @@ export function RewardsClaimPanel() {
 
   const handleRestakeSpecific = async () => {
     try {
+      if (
+        !restakeAmountInput ||
+        isNaN(Number(restakeAmountInput)) ||
+        Number(restakeAmountInput) <= 0
+      )
+        return;
       const amt = parseUnits(restakeAmountInput, 18);
       if (amt === 0n || amt > rewards.totalClaimable) return;
       setIsModalOpen(true);
@@ -87,105 +100,223 @@ export function RewardsClaimPanel() {
 
   return (
     <>
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-5 sm:p-6 shadow-[6px_6px_0_#3B82F6]">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-blue-500" />
-              Rewards & Yield Engine
-            </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Accrues 18% APY continuous recurring rewards + generation referral commissions.
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] font-mono uppercase font-bold text-slate-500">
-              Total Claimable
-            </span>
-            <div className="text-sm sm:text-base font-mono font-black text-blue-600 dark:text-blue-400">
-              {formatUVBE(rewards.totalClaimable, 6)} UVBE
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-5 sm:p-6 shadow-[6px_6px_0_#3B82F6] flex flex-col justify-between">
+        <div>
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue-500" />
+                Rewards Engine
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                Disbursed directly from UVBEStakingVault protocol-owned capital upon claim or
+                compound restake.
+              </p>
             </div>
-          </div>
-        </div>
-
-        {/* Detailed Breakdown Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-5">
-          {/* Recurring 18% APY */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
-            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-              <TrendingUp className="w-3 h-3 text-emerald-500" />
-              18% APY Recurring
-            </div>
-            <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
-              {formatUVBE(rewards.recurringReward, 6)}{' '}
-              <span className="text-[10px] text-slate-500">UVBE</span>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] font-mono uppercase font-bold text-slate-500 block">
+                Total Claimable
+              </span>
+              <div className="text-base sm:text-lg font-mono font-black text-blue-600 dark:text-blue-400">
+                {formatUVBE(rewards.totalClaimable, 6)} UVBE
+              </div>
             </div>
           </div>
 
-          {/* Gen 1 Direct (5%) */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
-            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-              <Users className="w-3 h-3 text-blue-500" />
-              Gen 1 Direct (5%)
+          {/* Detailed Breakdown Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5 mb-4">
+            {/* 1. Dynamic Recurring APY */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
+              <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1 truncate">
+                <TrendingUp className="w-3 h-3 text-emerald-500 shrink-0" />
+                Recurring APY ({dynamicApy}%)
+              </div>
+              <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
+                {formatUVBE(rewards.recurringReward, 4)}{' '}
+                <span className="text-[10px] text-slate-500 font-normal">UVBE</span>
+              </div>
             </div>
-            <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
-              {formatUVBE(rewards.directReward)}{' '}
-              <span className="text-[10px] text-slate-500">UVBE</span>
+
+            {/* 2. Direct Referral (5%) */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
+              <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1 truncate">
+                <Users className="w-3 h-3 text-blue-500 shrink-0" />
+                Direct Referral (5%)
+              </div>
+              <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
+                {formatUVBE(rewards.directReward, 4)}{' '}
+                <span className="text-[10px] text-slate-500 font-normal">UVBE</span>
+              </div>
+            </div>
+
+            {/* 3. Generation Matching */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
+              <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1 truncate">
+                <Layers className="w-3 h-3 text-violet-500 shrink-0" />
+                Gen 2-10 Matching
+              </div>
+              <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
+                {formatUVBE(rewards.generationReward, 4)}{' '}
+                <span className="text-[10px] text-slate-500 font-normal">UVBE</span>
+              </div>
+            </div>
+
+            {/* 4. Rank Milestones */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
+              <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1 truncate">
+                <Award className="w-3 h-3 text-amber-500 shrink-0" />
+                Rank Milestones
+              </div>
+              <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
+                {formatUVBE(rewards.rankReward, 4)}{' '}
+                <span className="text-[10px] text-slate-500 font-normal">UVBE</span>
+              </div>
+            </div>
+
+            {/* 5. DAO Leadership Pool */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
+              <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1 truncate">
+                <ShieldCheck className="w-3 h-3 text-indigo-500 shrink-0" />
+                DAO Leadership
+              </div>
+              <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
+                {formatUVBE(rewards.daoReward, 4)}{' '}
+                <span className="text-[10px] text-slate-500 font-normal">UVBE</span>
+              </div>
+            </div>
+
+            {/* 6. Lifetime Stats (Claimed + Restaked) */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
+              <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1 truncate">
+                <CheckCircle2 className="w-3 h-3 text-slate-400 shrink-0" />
+                Lifetime Claimed
+              </div>
+              <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
+                {formatUVBE(rewards.totalClaimed, 2)}{' '}
+                <span className="text-[10px] text-slate-500 font-normal">UVBE</span>
+              </div>
             </div>
           </div>
 
-          {/* Gen 2-10 Overrides */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
-            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-              <Layers className="w-3 h-3 text-violet-500" />
-              Gen 2-10 Matching
-            </div>
-            <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
-              {formatUVBE(rewards.generationReward)}{' '}
-              <span className="text-[10px] text-slate-500">UVBE</span>
+          {/* Restake Info Alert */}
+          <div className="p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs text-slate-800 dark:text-slate-200 flex items-start gap-2 mb-4">
+            <RefreshCw className="w-4 h-4 text-black dark:text-[#BFFF00] shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-slate-950 dark:text-white">0% Fee Compound Restaking:</strong>{' '}
+              Restaking rewards compounds tokens directly into your permanent protocol stake with
+              zero treasury fee and zero recursive MLM commissions.
             </div>
           </div>
 
-          {/* Rank Milestones */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
-            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-              <Award className="w-3 h-3 text-amber-500" />
-              Rank Milestone
+          {/* Action Tabs & Custom Inputs */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-colors ${
+                  activeTab === 'all'
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-black dark:hover:text-white'
+                }`}
+              >
+                1-Click All
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('claim')}
+                className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-colors ${
+                  activeTab === 'claim'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-blue-500'
+                }`}
+              >
+                Custom Claim
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('restake')}
+                className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-colors ${
+                  activeTab === 'restake'
+                    ? 'bg-[#BFFF00] text-black'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-[#5f8f00] dark:hover:text-[#BFFF00]'
+                }`}
+              >
+                Custom Restake
+              </button>
             </div>
-            <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
-              {formatUVBE(rewards.rankReward)}{' '}
-              <span className="text-[10px] text-slate-500">UVBE</span>
-            </div>
-          </div>
 
-          {/* DAO Leadership Pool */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
-            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-              <ShieldCheck className="w-3 h-3 text-indigo-500" />
-              DAO Leadership
-            </div>
-            <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
-              {formatUVBE(rewards.daoReward)}{' '}
-              <span className="text-[10px] text-slate-500">UVBE</span>
-            </div>
-          </div>
+            {activeTab === 'claim' && (
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 flex items-center gap-2">
+                <input
+                  type="number"
+                  step="any"
+                  max={formatUnits(rewards.totalClaimable, 18)}
+                  value={claimAmountInput}
+                  onChange={(e) => setClaimAmountInput(e.target.value)}
+                  placeholder={`Amount (Max: ${formatUVBE(rewards.totalClaimable, 4)})`}
+                  className="w-full bg-transparent text-sm font-mono font-bold text-slate-950 dark:text-white focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setClaimAmountInput(formatUnits(rewards.totalClaimable, 18))}
+                  className="px-2 py-1 rounded bg-black dark:bg-white/10 text-white dark:text-white text-[10px] font-mono font-bold"
+                >
+                  MAX
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClaimSpecific}
+                  disabled={
+                    !isConnected ||
+                    !hasClaimable ||
+                    txManager.progressState.state.includes('PENDING')
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs uppercase tracking-wider disabled:opacity-50 shrink-0"
+                >
+                  Claim
+                </button>
+              </div>
+            )}
 
-          {/* Lifetime Historical Claims */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10">
-            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-              <CheckCircle2 className="w-3 h-3 text-slate-400" />
-              Lifetime Claimed
-            </div>
-            <div className="text-sm font-mono font-black text-slate-950 dark:text-white">
-              {formatUVBE(rewards.totalClaimed)}{' '}
-              <span className="text-[10px] text-slate-500">UVBE</span>
-            </div>
+            {activeTab === 'restake' && (
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 flex items-center gap-2">
+                <input
+                  type="number"
+                  step="any"
+                  max={formatUnits(rewards.totalClaimable, 18)}
+                  value={restakeAmountInput}
+                  onChange={(e) => setRestakeAmountInput(e.target.value)}
+                  placeholder={`Amount (Max: ${formatUVBE(rewards.totalClaimable, 4)})`}
+                  className="w-full bg-transparent text-sm font-mono font-bold text-slate-950 dark:text-white focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRestakeAmountInput(formatUnits(rewards.totalClaimable, 18))}
+                  className="px-2 py-1 rounded bg-black dark:bg-white/10 text-white dark:text-white text-[10px] font-mono font-bold"
+                >
+                  MAX
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestakeSpecific}
+                  disabled={
+                    !isConnected ||
+                    !hasClaimable ||
+                    txManager.progressState.state.includes('PENDING')
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-[#BFFF00] text-black font-black text-xs uppercase tracking-wider disabled:opacity-50 shrink-0"
+                >
+                  Restake
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* 1-Click Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
           {/* Claim All to Wallet */}
           <button
             type="button"
@@ -221,7 +352,7 @@ export function RewardsClaimPanel() {
         progressState={txManager.progressState}
         onRetry={txManager.retryLastTransaction}
         onCancel={() => setIsModalOpen(false)}
-        title="Reward Distribution Action"
+        title="Reward Execution Action"
       />
     </>
   );

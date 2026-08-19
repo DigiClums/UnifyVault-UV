@@ -3,41 +3,54 @@ import {
   STAKING_VAULT_ABI,
   REFERRAL_REGISTRY_ABI,
   REWARD_DISTRIBUTOR_ABI,
-  REWARD_RESERVE_ABI,
 } from '../contracts/staking';
 import { DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
 import { formatUnits, parseUnits } from 'viem';
-import { MIN_STAKE_AMOUNT, MAX_STAKE_AMOUNT, RANK_REQUIREMENTS } from '../../hooks/useStaking';
+import {
+  MIN_STAKE_AMOUNT,
+  MAX_STAKE_AMOUNT,
+  MIN_ACTIVE_STAKE,
+  ADMIN_FEE_BPS,
+  BPS_DENOMINATOR,
+  RANK_REQUIREMENTS,
+} from '../../hooks/useStaking';
 
 describe('Staking Contracts & Frontend Integration', () => {
   it('has valid deployed Base Sepolia staking addresses', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault).toBe(
-      '0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4',
+      '0x59F60d3D9EE0e253fEDACa2A2435A0F6aCBEBE4E',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry).toBe(
-      '0xc1F00539B6869b2445d85056EDc036114b939Ddd',
+      '0x183dBEe157fD7f275e95634A3B3781B50d95cdf7',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor).toBe(
-      '0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9',
+      '0xF902dC96D6aB062f2cE529dFD6501ae79CFDBF56',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardReserve).toBe(
-      '0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda',
-    );
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0x006c5DF13C716E5224b33956651C4356BB90DEc0');
     expect(DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer).toBe(
       '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1',
     );
   });
 
-  it('contains expected ABIs with all functions', () => {
-    expect(STAKING_VAULT_ABI.length).toBeGreaterThan(5);
-    expect(REFERRAL_REGISTRY_ABI.length).toBeGreaterThan(5);
-    expect(REWARD_DISTRIBUTOR_ABI.length).toBeGreaterThan(5);
-    expect(REWARD_RESERVE_ABI.length).toBeGreaterThan(3);
+  it('contains expected ABIs with all functions for new architecture', () => {
+    expect(STAKING_VAULT_ABI.length).toBeGreaterThan(15);
+    expect(REFERRAL_REGISTRY_ABI.length).toBeGreaterThan(10);
+    expect(REWARD_DISTRIBUTOR_ABI.length).toBeGreaterThan(15);
   });
 
   it('enforces min 50 UVBE stake and max 100,000 UVBE', () => {
     expect(MIN_STAKE_AMOUNT).toBe(parseUnits('50', 18));
     expect(MAX_STAKE_AMOUNT).toBe(parseUnits('100000', 18));
+    expect(MIN_ACTIVE_STAKE).toBe(parseUnits('47.5', 18));
+  });
+
+  it('computes 5% treasury fee and 95% protocol-owned capital correctly', () => {
+    const stake100 = parseUnits('100', 18);
+    const fee = (stake100 * ADMIN_FEE_BPS) / BPS_DENOMINATOR;
+    const protocolCapital = stake100 - fee;
+
+    expect(fee).toBe(parseUnits('5', 18));
+    expect(protocolCapital).toBe(parseUnits('95', 18));
   });
 
   it('validates deterministic rank progression structure', () => {
@@ -52,6 +65,15 @@ describe('Staking Contracts & Frontend Integration', () => {
 
     // Milestones
     expect(RANK_REQUIREMENTS[1].milestoneReward).toBe(parseUnits('25', 18));
+    expect(RANK_REQUIREMENTS[2].milestoneReward).toBe(parseUnits('100', 18));
+    expect(RANK_REQUIREMENTS[3].milestoneReward).toBe(parseUnits('500', 18));
+    expect(RANK_REQUIREMENTS[4].milestoneReward).toBe(parseUnits('1500', 18));
+    expect(RANK_REQUIREMENTS[5].milestoneReward).toBe(parseUnits('5000', 18));
     expect(RANK_REQUIREMENTS[6].milestoneReward).toBe(parseUnits('20000', 18));
+
+    // DAO Leadership Shares
+    expect(RANK_REQUIREMENTS[4].daoShares).toBe(1);
+    expect(RANK_REQUIREMENTS[5].daoShares).toBe(3);
+    expect(RANK_REQUIREMENTS[6].daoShares).toBe(10);
   });
 });

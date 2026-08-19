@@ -169,10 +169,10 @@ export default function ContractsPage() {
         isErc20: false,
       },
 
-      // 2. Staking & MLM Subsystem
+      // 2. Staking & MLM Subsystem (Dynamic Protocol-Owned Architecture)
       {
         name: 'UVBEStakingVault',
-        description: 'Perpetual locked UVBE staking vault generating 18% APY recurring rewards',
+        description: 'Permanent locked protocol-owned staking capital vault & reward custodian',
         address: DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
         category: 'Staking & MLM',
         protocolKey: 'UVBE Staking Vault',
@@ -181,7 +181,8 @@ export default function ContractsPage() {
       },
       {
         name: 'UVBEReferralRegistry',
-        description: '10-generation immutable referral tree & deterministic rank engine',
+        description:
+          '10-generation immutable referral tree & deterministic rank progression engine',
         address: DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
         category: 'Staking & MLM',
         protocolKey: 'UVBE Referral Registry',
@@ -190,20 +191,12 @@ export default function ContractsPage() {
       },
       {
         name: 'UVBERewardDistributor',
-        description: '18% APY recurring yield, generation commission, and DAO leadership engine',
+        description:
+          'Dynamic APY, 10-gen affiliate commissions & 30-day DAO leadership pool engine',
         address: DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
         category: 'Staking & MLM',
         protocolKey: 'UVBE Reward Distributor',
         icon: Sparkles,
-        isErc20: false,
-      },
-      {
-        name: 'UVBERewardReserve',
-        description: 'Dedicated custody reward reserve vault disbursing funded UVBE yield',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.RewardReserve,
-        category: 'Staking & MLM',
-        protocolKey: 'UVBE Reward Reserve',
-        icon: Coins,
         isErc20: false,
       },
 

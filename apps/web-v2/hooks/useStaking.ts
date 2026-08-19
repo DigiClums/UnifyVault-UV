@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useAccount, useReadContracts, useWriteContract, usePublicClient } from 'wagmi';
-import { type Address, formatUnits, parseUnits } from 'viem';
+import {
+  useAccount,
+  useReadContracts,
+  useReadContract,
+  useWriteContract,
+  usePublicClient,
+} from 'wagmi';
+import { type Address, formatUnits, parseUnits, isAddress } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   STAKING_VAULT_ABI,
   REFERRAL_REGISTRY_ABI,
   REWARD_DISTRIBUTOR_ABI,
-  REWARD_RESERVE_ABI,
   ERC20_ABI,
 } from '../lib/contracts';
 import { DEPLOYED_CONTRACTS_SEPOLIA, TOKENS_BY_CHAIN } from '../constants';
@@ -17,6 +22,9 @@ import { baseSepolia } from 'viem/chains';
 
 export const MIN_STAKE_AMOUNT = 50_000_000_000_000_000_000n; // 50 UVBE
 export const MAX_STAKE_AMOUNT = 100_000_000_000_000_000_000_000n; // 100,000 UVBE
+export const MIN_ACTIVE_STAKE = 47_500_000_000_000_000_000n; // 47.5 UVBE net principal (95% of 50 UVBE)
+export const ADMIN_FEE_BPS = 500n; // 5.00% Treasury fee
+export const BPS_DENOMINATOR = 10_000n;
 
 export interface DetailedRewards {
   recurringReward: bigint;
@@ -27,6 +35,11 @@ export interface DetailedRewards {
   totalClaimable: bigint;
   totalClaimed: bigint;
   totalRestaked: bigint;
+}
+
+export interface StakeRecordInfo {
+  amount: bigint;
+  stakedAt: bigint;
 }
 
 export const RANK_NAMES = [
@@ -47,6 +60,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 0,
     teamVolume: 0n,
     milestoneReward: 0n,
+    daoShares: 0,
   },
   {
     rank: 1,
@@ -55,6 +69,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 2,
     teamVolume: 1_000_000_000_000_000_000_000n,
     milestoneReward: 25_000_000_000_000_000_000n,
+    daoShares: 0,
   },
   {
     rank: 2,
@@ -63,6 +78,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 3,
     teamVolume: 5_000_000_000_000_000_000_000n,
     milestoneReward: 100_000_000_000_000_000_000n,
+    daoShares: 0,
   },
   {
     rank: 3,
@@ -71,6 +87,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 4,
     teamVolume: 20_000_000_000_000_000_000_000n,
     milestoneReward: 500_000_000_000_000_000_000n,
+    daoShares: 0,
   },
   {
     rank: 4,
@@ -79,6 +96,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 5,
     teamVolume: 50_000_000_000_000_000_000_000n,
     milestoneReward: 1_500_000_000_000_000_000_000n,
+    daoShares: 1,
   },
   {
     rank: 5,
@@ -87,6 +105,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 7,
     teamVolume: 150_000_000_000_000_000_000_000n,
     milestoneReward: 5_000_000_000_000_000_000_000n,
+    daoShares: 3,
   },
   {
     rank: 6,
@@ -95,6 +114,7 @@ export const RANK_REQUIREMENTS = [
     activeDirects: 10,
     teamVolume: 500_000_000_000_000_000_000n,
     milestoneReward: 20_000_000_000_000_000_000_000n,
+    daoShares: 10,
   },
 ];
 
@@ -110,10 +130,9 @@ export function useStaking() {
   const stakingVaultAddress = DEPLOYED_CONTRACTS_SEPOLIA.StakingVault as Address;
   const registryAddress = DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry as Address;
   const distributorAddress = DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor as Address;
-  const reserveAddress = DEPLOYED_CONTRACTS_SEPOLIA.RewardReserve as Address;
-  const genesisReferrer = DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer as Address;
+  const fallbackGenesisReferrer = DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer as Address;
 
-  // 1. Batch Read On-Chain State
+  // 1. Batch Read On-Chain State from Deployed Architecture
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
       // 0: UVBE balance
@@ -130,7 +149,7 @@ export function useStaking() {
         functionName: 'allowance',
         args: userAddress ? [userAddress, stakingVaultAddress] : undefined,
       },
-      // 2: Permanent stake of user
+      // 2: Permanent stake of user (Protocol-Owned Capital)
       {
         address: stakingVaultAddress,
         abi: STAKING_VAULT_ABI,
@@ -157,7 +176,7 @@ export function useStaking() {
         functionName: 'isUserActive',
         args: userAddress ? [userAddress] : undefined,
       },
-      // 6: User Rank
+      // 6: User Rank (0 to 6)
       {
         address: registryAddress,
         abi: REFERRAL_REGISTRY_ABI,
@@ -205,17 +224,41 @@ export function useStaking() {
         abi: REWARD_DISTRIBUTOR_ABI,
         functionName: 'totalOutstandingLiabilities',
       },
-      // 13: Available Reward Reserve
+      // 13: Available Protocol Capital (UVBEStakingVault balance backing rewards)
       {
-        address: reserveAddress,
-        abi: REWARD_RESERVE_ABI,
-        functionName: 'getAvailableReserve',
+        address: stakingVaultAddress,
+        abi: STAKING_VAULT_ABI,
+        functionName: 'getAvailableProtocolCapital',
       },
       // 14: Current DAO Epoch ID
       {
         address: distributorAddress,
         abi: REWARD_DISTRIBUTOR_ABI,
         functionName: 'currentDaoEpochId',
+      },
+      // 15: Dynamic Annual Rate in BPS
+      {
+        address: distributorAddress,
+        abi: REWARD_DISTRIBUTOR_ABI,
+        functionName: 'getCurrentAnnualBps',
+      },
+      // 16: Detailed Reward Capacity
+      {
+        address: distributorAddress,
+        abi: REWARD_DISTRIBUTOR_ABI,
+        functionName: 'getRewardCapacity',
+      },
+      // 17: Genesis Referrer Root
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'genesisReferrer',
+      },
+      // 18: Total Reward Paid
+      {
+        address: distributorAddress,
+        abi: REWARD_DISTRIBUTOR_ABI,
+        functionName: 'totalRewardPaid',
       },
     ],
     query: {
@@ -268,8 +311,45 @@ export function useStaking() {
   }, [rawRewardInfo]);
 
   const totalOutstandingLiabilities = (data?.[12]?.result as bigint) || 0n;
-  const availableReserve = (data?.[13]?.result as bigint) || 0n;
+  const availableProtocolCapital = (data?.[13]?.result as bigint) || 0n;
   const currentDaoEpochId = Number(data?.[14]?.result || 1n);
+
+  const dynamicApyBps = Number((data?.[15]?.result as bigint) || 0n);
+  const dynamicApy = Number((dynamicApyBps / 100).toFixed(2));
+
+  const rawCapacity = data?.[16]?.result as [bigint, bigint, bigint, bigint] | undefined;
+  const surplusCapacity =
+    rawCapacity?.[2] ??
+    (availableProtocolCapital > totalOutstandingLiabilities
+      ? availableProtocolCapital - totalOutstandingLiabilities
+      : 0n);
+
+  const healthRatio =
+    availableProtocolCapital > 0n
+      ? Math.min(100, Math.round(Number((surplusCapacity * 100n) / availableProtocolCapital)))
+      : 0;
+
+  const genesisReferrer = (data?.[17]?.result as Address) || fallbackGenesisReferrer;
+  const totalRewardPaid = (data?.[18]?.result as bigint) || 0n;
+
+  // Optional: Read first stake record if user has staked
+  const { data: firstStakeRecord } = useReadContract({
+    address: stakingVaultAddress,
+    abi: STAKING_VAULT_ABI,
+    functionName: 'getStakeRecord',
+    args: userAddress && stakeCount > 0 ? [userAddress, 0n] : undefined,
+    query: {
+      enabled: Boolean(userAddress && stakeCount > 0),
+      staleTime: 60_000,
+    },
+  });
+
+  const initialStakeTimestamp = firstStakeRecord ? (firstStakeRecord as [bigint, bigint])[1] : null;
+  const initialStakeDate = initialStakeTimestamp
+    ? new Date(Number(initialStakeTimestamp) * 1000)
+    : null;
+
+  const estimatedAnnualReward = (permanentStake * BigInt(dynamicApyBps)) / 10_000n;
 
   const hasGenesisReferrer =
     boundReferrer.toLowerCase() !== '0x0000000000000000000000000000000000000000';
@@ -326,7 +406,8 @@ export function useStaking() {
       if (
         referrerInput &&
         referrerInput.trim().startsWith('0x') &&
-        referrerInput.trim().length === 42
+        referrerInput.trim().length === 42 &&
+        isAddress(referrerInput.trim())
       ) {
         if (referrerInput.trim().toLowerCase() !== userAddress.toLowerCase()) {
           finalReferrer = referrerInput.trim() as Address;
@@ -369,7 +450,7 @@ export function useStaking() {
 
       return txManager.executeWithApprovalIfNeeded(approveFn, mainActionFn, {
         stepName: 'Stake UVBE',
-        stepDescription: `Permanently staking ${formatUnits(amount, 18)} UVBE`,
+        stepDescription: `Permanently staking ${formatUnits(amount, 18)} UVBE as protocol-owned capital`,
         assetAddress: tokenAddress,
         spenderAddress: stakingVaultAddress,
         requiredAmount: amount,
@@ -483,7 +564,7 @@ export function useStaking() {
         },
         {
           stepName: 'Compound Restake',
-          stepDescription: `Compounding ${formatUnits(amount, 18)} UVBE into permanent principal`,
+          stepDescription: `Compounding ${formatUnits(amount, 18)} UVBE into permanent protocol capital (0% fee)`,
         },
       );
     },
@@ -518,12 +599,43 @@ export function useStaking() {
       },
       {
         stepName: 'Compound All Rewards',
-        stepDescription: `Compounding all (${formatUnits(rewards.totalClaimable, 18)} UVBE) rewards into permanent principal`,
+        stepDescription: `Compounding all (${formatUnits(rewards.totalClaimable, 18)} UVBE) rewards into permanent protocol capital (0% fee)`,
       },
     );
   }, [
     userAddress,
     rewards.totalClaimable,
+    distributorAddress,
+    writeContractAsync,
+    publicClient,
+    refetch,
+    queryClient,
+    txManager,
+  ]);
+
+  const checkpoint = useCallback(async () => {
+    if (!userAddress) throw new Error('Wallet not connected');
+    return txManager.executeTransaction(
+      async () => {
+        const hash = await writeContractAsync({
+          address: distributorAddress,
+          abi: REWARD_DISTRIBUTOR_ABI,
+          functionName: 'checkpoint',
+        });
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+        }
+        await refetch();
+        queryClient.invalidateQueries();
+        return hash;
+      },
+      {
+        stepName: 'Synchronize Dynamic Rate',
+        stepDescription: 'Synchronizing global reward index and dynamic APY rate on-chain',
+      },
+    );
+  }, [
+    userAddress,
     distributorAddress,
     writeContractAsync,
     publicClient,
@@ -554,6 +666,9 @@ export function useStaking() {
           : 100;
     }
 
+    const daoShares = current.daoShares;
+    const isDaoEligible = currentRank >= 4;
+
     return {
       current,
       next,
@@ -561,6 +676,8 @@ export function useStaking() {
       directsProgress,
       volumeProgress,
       rankName: RANK_NAMES[safeRank],
+      daoShares,
+      isDaoEligible,
     };
   }, [currentRank, permanentStake, activeDirectCount, teamVolume]);
 
@@ -571,6 +688,8 @@ export function useStaking() {
     permanentStake,
     totalPermanentStaked,
     stakeCount,
+    initialStakeTimestamp,
+    initialStakeDate,
     isUserActive,
     currentRank,
     boundReferrer,
@@ -580,10 +699,17 @@ export function useStaking() {
     teamVolume,
     rewards,
     totalOutstandingLiabilities,
-    availableReserve,
+    availableProtocolCapital,
+    availableReserve: availableProtocolCapital, // Backwards compatibility alias
+    surplusCapacity,
+    healthRatio,
+    dynamicApy,
+    dynamicApyBps,
+    estimatedAnnualReward,
     currentDaoEpochId,
     rankDetails,
     genesisReferrer,
+    totalRewardPaid,
 
     // Loading & Status
     isLoading,
@@ -598,9 +724,13 @@ export function useStaking() {
     claimAllRewards,
     restakeRewards,
     restakeAllRewards,
+    checkpoint,
 
     // Constants
     MIN_STAKE_AMOUNT,
     MAX_STAKE_AMOUNT,
+    MIN_ACTIVE_STAKE,
+    ADMIN_FEE_BPS,
+    BPS_DENOMINATOR,
   };
 }

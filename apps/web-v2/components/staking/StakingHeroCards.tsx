@@ -1,13 +1,23 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, Award, Sparkles, Lock, TrendingUp, Users } from 'lucide-react';
+import { ShieldCheck, Award, Sparkles, Lock, TrendingUp, Users, Coins } from 'lucide-react';
 import { formatUnits } from 'viem';
 import { useStaking } from '../../hooks/useStaking';
 
 export function StakingHeroCards() {
-  const { permanentStake, rewards, isUserActive, rankDetails, totalPermanentStaked, isLoading } =
-    useStaking();
+  const {
+    permanentStake,
+    rewards,
+    isUserActive,
+    rankDetails,
+    totalPermanentStaked,
+    availableProtocolCapital,
+    dynamicApy,
+    healthRatio,
+    surplusCapacity,
+    isLoading,
+  } = useStaking();
 
   const formattedPermStake = Number(formatUnits(permanentStake, 18)).toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -18,7 +28,7 @@ export function StakingHeroCards() {
     undefined,
     {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 6,
+      maximumFractionDigits: 4,
     },
   );
 
@@ -30,18 +40,23 @@ export function StakingHeroCards() {
     },
   );
 
+  const formattedSurplus = Number(formatUnits(surplusCapacity, 18)).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {/* 1. Permanent Staked Principal */}
+      {/* 1. Protocol-Owned Capital (User Position) */}
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#BFFF00]" />
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-black dark:text-[#BFFF00]" />
-            Active Staked
+            Your Permanent Stake
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#BFFF00]/20 text-black dark:text-[#BFFF00] border border-[#BFFF00]/40">
-            18% APY Active
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            Non-Withdrawable
           </span>
         </div>
         {isLoading ? (
@@ -52,13 +67,39 @@ export function StakingHeroCards() {
               {formattedPermStake} <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Protocol Total: {formattedTotalVaultStake} UVBE
+              Protocol-owned capital backing dynamic rewards
             </p>
           </div>
         )}
       </div>
 
-      {/* 2. Total Claimable Rewards */}
+      {/* 2. Live Dynamic APY & Health */}
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-[#10B981]" />
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+            Dynamic APY
+          </span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+            Capacity-Backed
+          </span>
+        </div>
+        {isLoading ? (
+          <div className="h-8 w-28 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
+        ) : (
+          <div className="space-y-0.5">
+            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+              {dynamicApy}% <span className="text-xs font-bold text-slate-500">APY</span>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              Surplus: {formattedSurplus} UVBE · Max 100% Cap
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Total Claimable Rewards */}
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#3B82F6]" />
         <div className="flex items-center justify-between mb-2">
@@ -67,7 +108,7 @@ export function StakingHeroCards() {
             Claimable Rewards
           </span>
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-            18% APY Active
+            Yield + MLM + DAO
           </span>
         </div>
         {isLoading ? (
@@ -78,72 +119,34 @@ export function StakingHeroCards() {
               {formattedClaimable} <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Accruing continuously per second
+              Claim directly to wallet or restake at 0% fee
             </p>
           </div>
         )}
       </div>
 
-      {/* 3. Active Direct Status */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
-        <div
-          className={`absolute inset-x-0 top-0 h-1.5 ${isUserActive ? 'bg-[#10B981]' : 'bg-slate-400'}`}
-        />
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            Active Direct Status
-          </span>
-          <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border ${
-              isUserActive
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${isUserActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}
-            />
-            {isUserActive ? 'QUALIFIED' : 'INACTIVE'}
-          </span>
-        </div>
-        {isLoading ? (
-          <div className="h-8 w-28 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
-        ) : (
-          <div className="space-y-0.5">
-            <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-slate-950 dark:text-white">
-              {isUserActive ? 'Active Direct' : 'Needs ≥ 50 UVBE'}
-            </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              {isUserActive
-                ? 'Qualifies uplines for Gen commissions'
-                : 'Stake min 50 UVBE to activate'}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* 4. Current Rank Tier */}
+      {/* 4. Total Protocol Capital Staked */}
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#8B5CF6]" />
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Award className="w-3.5 h-3.5 text-violet-500" />
-            Current Rank
+            <Coins className="w-3.5 h-3.5 text-violet-500" />
+            Protocol-Owned Capital
           </span>
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
-            Tier {rankDetails.current.rank} / 6
+            Tier {rankDetails.current.rank} ({rankDetails.rankName})
           </span>
         </div>
         {isLoading ? (
           <div className="h-8 w-28 bg-slate-200 dark:bg-white/10 rounded animate-pulse" />
         ) : (
           <div className="space-y-0.5">
-            <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-slate-950 dark:text-white">
-              {rankDetails.rankName}
+            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-slate-950 dark:text-white">
+              {formattedTotalVaultStake}{' '}
+              <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              {rankDetails.next ? `Next: ${rankDetails.next.name}` : 'Max Rank Achieved'}
+              Total permanent vault capital
             </p>
           </div>
         )}
