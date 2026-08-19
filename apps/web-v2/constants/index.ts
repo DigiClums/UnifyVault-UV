@@ -120,10 +120,10 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   Admin: (isNonZeroAddress(process.env.NEXT_PUBLIC_ADMIN_ADDRESS)
     ? process.env.NEXT_PUBLIC_ADMIN_ADDRESS
     : '0xd905920c91853039060246Ed5724AA72B91a96DA') as `0x${string}`,
-  StakingVault: '0xcbb989e0cf69a1919ed06dd2be88b7310e325b1d' as `0x${string}`,
-  ReferralRegistry: '0x810d6450A31E72eB51a37e4A785fF97781E5d3a2' as `0x${string}`,
-  RewardDistributor: '0xfd61819e52bfa534eb5d106463f21740c598deb5' as `0x${string}`,
-  RewardReserve: '0xB8aA50768F1a3e8fAcE40EdF05e430fA000d6aBb' as `0x${string}`,
+  StakingVault: '0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4' as `0x${string}`,
+  ReferralRegistry: '0xc1F00539B6869b2445d85056EDc036114b939Ddd' as `0x${string}`,
+  RewardDistributor: '0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9' as `0x${string}`,
+  RewardReserve: '0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda' as `0x${string}`,
   GenesisReferrer: '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1' as `0x${string}`,
 };
 
