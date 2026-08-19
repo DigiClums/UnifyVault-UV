@@ -93,23 +93,24 @@ contract ZeroTouchAccountingGateTest is Test {
     uint256 initialTotalSupply = uvbe.totalSupply();
     assertEq(initialTotalSupply, 120_000 * 1e18);
 
-    // 1. Alice stakes 2,000 UVBE
+    // 1. Alice stakes 2,000 UVBE gross (1,900 net principal)
     vm.prank(alice);
     vault.stake(2_000 * 1e18, genesis);
 
-    // 2. Bob stakes 5,000 UVBE under Alice
+    // 2. Bob stakes 5,000 UVBE gross (4,750 net principal) under Alice
     vm.prank(bob);
     vault.stake(5_000 * 1e18, alice);
 
-    // 3. Alice restakes her earned rewards (250 UVBE) into permanent principal
+    // 3. Alice restakes her earned rewards (5% of 4,750 = 237.5 UVBE) into permanent principal
     uint256 aliceClaimable = distributor.getClaimableRewards(alice);
-    assertEq(aliceClaimable, 250 * 1e18);
+    uint256 expectedDirect = (4_750 * 1e18 * 500) / 10_000; // 237.5 UVBE
+    assertEq(aliceClaimable, expectedDirect);
 
     vm.prank(alice);
     distributor.restakeAllRewards();
 
     assertEq(distributor.getClaimableRewards(alice), 0);
-    assertEq(vault.getPermanentStake(alice), 2_250 * 1e18);
+    assertEq(vault.getPermanentStake(alice), 1_900 * 1e18 + expectedDirect); // 2,137.5 UVBE
 
     // CRITICAL INVARIANT: Total Supply must be 100.000% unchanged
     assertEq(
@@ -125,24 +126,25 @@ contract ZeroTouchAccountingGateTest is Test {
       cbm.costBasis(address(reserve)) + cbm.costBasis(alice) + cbm.costBasis(bob);
     assertEq(initialSumBasis, 120_000 * 1e18);
 
-    // Alice stakes 2,000 UVBE
+    // Alice stakes 2,000 UVBE (100 fee to admin, 1,900 net to vault)
     vm.prank(alice);
     vault.stake(2_000 * 1e18, genesis);
 
-    // Bob stakes 5,000 UVBE
+    // Bob stakes 5,000 UVBE (250 fee to admin, 4,750 net to vault)
     vm.prank(bob);
     vault.stake(5_000 * 1e18, alice);
 
-    // Alice claims rewards (250 UVBE)
+    // Alice claims rewards (237.5 UVBE)
     vm.prank(alice);
     distributor.claimAllRewards();
 
-    // Sum of cost basis across all system addresses (including staking vault and reserve)
+    // Sum of cost basis across all system addresses (including staking vault, reserve, and admin treasury)
     uint256 currentSumBasis =
       cbm.costBasis(alice) +
         cbm.costBasis(bob) +
         cbm.costBasis(address(reserve)) +
-        cbm.costBasis(address(vault));
+        cbm.costBasis(address(vault)) +
+        cbm.costBasis(admin);
 
     assertEq(
       currentSumBasis,
@@ -152,7 +154,7 @@ contract ZeroTouchAccountingGateTest is Test {
   }
 
   function test_ZeroTouch_LiquidRedemptionAndP2PIsolation() public {
-    // Alice has 10,000 UVBE initially. She stakes 2,000 UVBE.
+    // Alice has 10,000 UVBE initially. She stakes 2,000 UVBE gross (1,900 net).
     vm.prank(alice);
     vault.stake(2_000 * 1e18, genesis);
 
@@ -166,7 +168,7 @@ contract ZeroTouchAccountingGateTest is Test {
     assertEq(uvbe.balanceOf(alice), 7_000 * 1e18);
     assertEq(uvbe.balanceOf(bob), 11_000 * 1e18);
 
-    // Staked principal remains locked in vault
-    assertEq(vault.getPermanentStake(alice), 2_000 * 1e18);
+    // Staked net permanent principal remains locked in vault (1,900 UVBE)
+    assertEq(vault.getPermanentStake(alice), 1_900 * 1e18);
   }
 }

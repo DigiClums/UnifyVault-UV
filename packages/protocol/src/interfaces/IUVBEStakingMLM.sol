@@ -117,6 +117,13 @@ interface IUVBEStakingMLM {
   );
   event RewardReserveFunded(address indexed funder, uint256 amount, uint256 newReserveBalance);
   event SolvencyWarning(uint256 totalOutstandingLiability, uint256 reserveBalance);
+  event DynamicRateUpdated(
+    uint256 oldBps,
+    uint256 newBps,
+    uint256 surplusCapacity,
+    uint256 totalStaked
+  );
+  event GlobalRewardAccrued(uint256 amount, uint256 newRewardIndex, uint256 annualBps);
 }
 
 interface IUVBERewardReserve {
@@ -183,7 +190,23 @@ interface IUVBERewardDistributor {
   function restakeAllRewards() external;
   function finalizeDaoEpoch(uint256 epochId) external;
   function claimDaoEpochReward(uint256 epochId) external;
+  function checkpoint() external;
   function getClaimableRewards(address user) external view returns (uint256);
+  function getPendingRecurringReward(address user) external view returns (uint256);
+  function getCurrentAnnualBps() external view returns (uint256);
+  function MAX_RECURRING_ANNUAL_BPS() external pure returns (uint256);
+  function RECURRING_ANNUAL_BPS() external view returns (uint256);
+  function getRewardCapacity()
+    external
+    view
+    returns (
+      uint256 availableReserve,
+      uint256 liabilities,
+      uint256 surplusCapacity,
+      uint256 currentBps
+    );
+  function rewardIndex() external view returns (uint256);
+  function lastUpdateTimestamp() external view returns (uint256);
   function getDetailedRewardInfo(
     address user
   )

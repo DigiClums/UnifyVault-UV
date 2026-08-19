@@ -92,16 +92,19 @@ contract UVBEDaoDistributionInvariantTest is Test {
   // --- Invariant 1: Sum of Claims <= Pool Amount ---
 
   function test_DaoInvariant_SumOfClaimsNeverExceedsPoolAmount() public {
-    // 1. Qualify Platinum (Rank 4: 1,000 personal, 5 directs, 50,000 team volume) -> 1 share
-    _qualifyLeader(platinumLeader, 1_000 * 1e18, 5, 10_000 * 1e18);
+    // 1. Qualify Platinum (Rank 4: net >= 1,000 personal, 5 directs, net >= 50,000 team volume) -> 1 share
+    // Gross: 1,200 personal (1,140 net), 5 directs * 12,000 gross (57,000 net team vol)
+    _qualifyLeader(platinumLeader, 1_200 * 1e18, 5, 12_000 * 1e18);
     assertEq(registry.getRank(platinumLeader), 4);
 
-    // 2. Qualify Diamond (Rank 5: 2,500 personal, 7 directs, 150,000 team volume) -> 3 shares
-    _qualifyLeader(diamondLeader, 2_500 * 1e18, 7, 22_000 * 1e18);
+    // 2. Qualify Diamond (Rank 5: net >= 2,500 personal, 7 directs, net >= 150,000 team volume) -> 3 shares
+    // Gross: 3,000 personal (2,850 net), 7 directs * 25,000 gross (166,250 net team vol)
+    _qualifyLeader(diamondLeader, 3_000 * 1e18, 7, 25_000 * 1e18);
     assertEq(registry.getRank(diamondLeader), 5);
 
-    // 3. Qualify Crown (Rank 6: 5,000 personal, 10 directs, 500,000 team volume) -> 10 shares
-    _qualifyLeader(crownLeader, 5_000 * 1e18, 10, 50_000 * 1e18);
+    // 3. Qualify Crown (Rank 6: net >= 5,000 personal, 10 directs, net >= 500,000 team volume) -> 10 shares
+    // Gross: 6,000 personal (5,700 net), 10 directs * 55,000 gross (522,500 net team vol)
+    _qualifyLeader(crownLeader, 6_000 * 1e18, 10, 55_000 * 1e18);
     assertEq(registry.getRank(crownLeader), 6);
 
     // Total shares = 1 + 3 + 10 = 14 shares
@@ -133,7 +136,6 @@ contract UVBEDaoDistributionInvariantTest is Test {
     assertApproxEqAbs(crownDao, platDao * 10, 10);
 
     // MATHEMATICAL INVARIANT: Total claimed must strictly be <= pool amount
-    // Staking deposits created 1% DAO allocation.
     assertLe(totalClaimedDao, reserve.getAvailableReserve());
   }
 
@@ -141,7 +143,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
 
   function test_DaoInvariant_RankChangesAfterFinalizationDoNotAffectFinalizedEpoch() public {
     // 1. Qualify Platinum (Rank 4) -> 1 share
-    _qualifyLeader(platinumLeader, 1_000 * 1e18, 5, 10_000 * 1e18);
+    _qualifyLeader(platinumLeader, 1_200 * 1e18, 5, 12_000 * 1e18);
     assertEq(registry.getRank(platinumLeader), 4);
 
     // Warp 31 days and finalize Epoch 1
@@ -149,7 +151,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
     distributor.finalizeDaoEpoch(1);
 
     // Now in Epoch 2, upgrade Platinum to Diamond (Rank 5)
-    _qualifyLeader(platinumLeader, 2_500 * 1e18, 7, 25_000 * 1e18);
+    _qualifyLeader(platinumLeader, 3_000 * 1e18, 7, 25_000 * 1e18);
     assertEq(registry.getRank(platinumLeader), 5);
 
     // Claim Epoch 1: Should receive Rank 4 (1 share), NOT Rank 5 (3 shares)!
@@ -164,7 +166,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
   // --- Invariant 3: Replay Attack Defense (Same Epoch Cannot Be Claimed Twice) ---
 
   function test_DaoInvariant_RevertOnDoubleClaim() public {
-    _qualifyLeader(platinumLeader, 1_000 * 1e18, 5, 10_000 * 1e18);
+    _qualifyLeader(platinumLeader, 1_200 * 1e18, 5, 12_000 * 1e18);
 
     vm.warp(block.timestamp + 31 days);
     distributor.finalizeDaoEpoch(1);
@@ -183,7 +185,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
   // --- Invariant 4: Non-Eligible Users Cannot Claim ---
 
   function test_DaoInvariant_NonLeaderCannotClaim() public {
-    _qualifyLeader(platinumLeader, 1_000 * 1e18, 5, 10_000 * 1e18);
+    _qualifyLeader(platinumLeader, 1_200 * 1e18, 5, 12_000 * 1e18);
 
     // nonLeader stakes 100 UVBE (Bronze: Rank 1)
     helper.stakeFor(nonLeader, 100 * 1e18, genesis);
@@ -200,7 +202,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
 
   function test_DaoInvariant_ZeroLeadersRollsOverPool() public {
     // Only nonLeader stakes (no DAO leader exists)
-    helper.stakeFor(nonLeader, 10_000 * 1e18, genesis); // 1% = 100 UVBE to DAO pool
+    helper.stakeFor(nonLeader, 10_000 * 1e18, genesis); // 1% of 9,500 = 95 UVBE to DAO pool
 
     vm.warp(block.timestamp + 31 days);
 
@@ -208,7 +210,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
     distributor.finalizeDaoEpoch(1);
 
     // In Epoch 2, Platinum leader arrives
-    _qualifyLeader(platinumLeader, 1_000 * 1e18, 5, 10_000 * 1e18);
+    _qualifyLeader(platinumLeader, 1_200 * 1e18, 5, 12_000 * 1e18);
 
     vm.warp(block.timestamp + 32 days);
     distributor.finalizeDaoEpoch(2);
@@ -218,7 +220,7 @@ contract UVBEDaoDistributionInvariantTest is Test {
     distributor.claimDaoEpochReward(2);
 
     (, , , , uint256 platDao, , , ) = _getDetailedReward(platinumLeader);
-    assertGt(platDao, 100 * 1e18); // Includes rolled-over funds from Epoch 1!
+    assertGt(platDao, 90 * 1e18); // Includes rolled-over funds from Epoch 1!
   }
 
   function _getDetailedReward(

@@ -60,7 +60,9 @@ contract UVBEReferralRegistry is IUVBEReferralRegistry, AccessControl, Reentranc
     address vaultAddress,
     address distributorAddress
   ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
-    if (vault != address(0) || distributor != address(0)) revert ModuleAlreadyInitialized();
+    if (vault != address(0) || distributor != address(0)) {
+      revert ModuleAlreadyInitialized();
+    }
     if (vaultAddress == address(0) || distributorAddress == address(0)) revert ZeroAddress();
     vault = vaultAddress;
     distributor = distributorAddress;

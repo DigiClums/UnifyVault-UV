@@ -84,20 +84,22 @@ contract UVBEStakingMLMTest is Test {
   // --- 1. Permanent Staking Invariant Tests ---
 
   function test_PermanentStakingLock() public {
-    uint256 stakeAmount = 500 * 1e18;
+    uint256 stakeAmount = 500 * 1e18; // Gross stake
+    uint256 expectedFee = (stakeAmount * 500) / 10_000; // 25 UVBE to admin treasury
+    uint256 expectedNetStake = stakeAmount - expectedFee; // 475 UVBE permanent principal
 
     vm.prank(alice);
     vault.stake(stakeAmount, genesis);
 
-    assertEq(vault.getPermanentStake(alice), stakeAmount);
-    assertEq(vault.totalPermanentStaked(), stakeAmount);
-    assertEq(token.balanceOf(address(vault)), stakeAmount);
+    assertEq(vault.getPermanentStake(alice), expectedNetStake);
+    assertEq(vault.totalPermanentStaked(), expectedNetStake);
+    assertEq(token.balanceOf(address(vault)), expectedNetStake);
     assertEq(token.balanceOf(alice), 9_500 * 1e18);
 
     // Verify there are no unstake functions and tokens remain permanently in vault
     assertEq(vault.getStakeCount(alice), 1);
     (uint256 amt, uint256 ts) = vault.getStakeRecord(alice, 0);
-    assertEq(amt, stakeAmount);
+    assertEq(amt, expectedNetStake);
     assertEq(ts, block.timestamp);
   }
 
@@ -112,92 +114,99 @@ contract UVBEStakingMLMTest is Test {
   // --- 2. Referral & Direct (Gen 1) Commission Tests ---
 
   function test_DirectReferralCommission_Gen1IsDirect() public {
-    // Alice stakes 500 UVBE with Genesis
+    // Alice stakes 500 UVBE gross (475 net) with Genesis
     vm.prank(alice);
     vault.stake(500 * 1e18, genesis);
 
-    // Bob stakes 1,000 UVBE with Alice as referrer
+    // Bob stakes 1,000 UVBE gross (950 net) with Alice as referrer
     vm.prank(bob);
     vault.stake(1_000 * 1e18, alice);
 
-    // Alice is Gen 1 (Direct) -> 5.00% of 1000 UVBE = 50 UVBE
-    assertEq(distributor.getClaimableRewards(alice), 50 * 1e18);
+    // Alice is Gen 1 (Direct) -> 5.00% of Bob's 950 net stake = 47.5 UVBE
+    uint256 expectedDirect = (950 * 1e18 * 500) / 10_000;
+    assertEq(distributor.getClaimableRewards(alice), expectedDirect);
 
     (, uint256 directReward, uint256 genReward, , , uint256 totalClaimable, , ) = distributor
       .getDetailedRewardInfo(alice);
-    assertEq(directReward, 50 * 1e18);
+    assertEq(directReward, expectedDirect);
     assertEq(genReward, 0); // No double payment! Gen 1 IS the Direct Referral
-    assertEq(totalClaimable, 50 * 1e18);
+    assertEq(totalClaimable, expectedDirect);
   }
 
   function test_MultiGenerationMatchingCommissions() public {
     // Tree: Genesis -> Alice -> Bob -> Charlie -> David
-    // 1. Alice stakes 1,000 UVBE with Genesis
+    // 1. Alice stakes 1,000 UVBE gross (950 net) with Genesis
     vm.prank(alice);
     vault.stake(1_000 * 1e18, genesis);
 
-    // 2. Eve stakes 500 UVBE under Alice -> Alice now has 1 active direct
+    // 2. Eve stakes 500 UVBE gross (475 net) under Alice -> Alice now has 1 active direct (Eve >= 50)
     vm.prank(eve);
     vault.stake(500 * 1e18, alice);
 
-    // 3. Bob stakes 1,000 UVBE under Alice -> Alice now has 2 active directs (Qualifies for Gen 2 & 3!)
+    // 3. Bob stakes 1,000 UVBE gross (950 net) under Alice -> Alice now has 2 active directs (Qualifies for Gen 2 & 3!)
     vm.prank(bob);
     vault.stake(1_000 * 1e18, alice);
 
-    // 4. Charlie stakes 1,000 UVBE under Bob (Gen 1 for Bob, Gen 2 for Alice)
+    // 4. Charlie stakes 1,000 UVBE gross (950 net) under Bob (Gen 1 for Bob, Gen 2 for Alice)
     vm.prank(charlie);
     vault.stake(1_000 * 1e18, bob);
 
-    // 5. David stakes 2,000 UVBE under Charlie (Gen 1 for Charlie, Gen 2 for Bob, Gen 3 for Alice)
+    // 5. David stakes 2,000 UVBE gross (1,900 net) under Charlie (Gen 1 for Charlie, Gen 2 for Bob, Gen 3 for Alice)
     vm.prank(david);
     vault.stake(2_000 * 1e18, charlie);
 
-    // Charlie is Gen 1 for David -> 5.00% of 2000 = 100 UVBE
+    // Charlie is Gen 1 for David -> 5.00% of 1,900 net = 95 UVBE
+    uint256 expectedCharlieDirect = (1_900 * 1e18 * 500) / 10_000;
     (, uint256 charlieDirect, , , , uint256 charlieTotal, , ) = distributor.getDetailedRewardInfo(
       charlie
     );
-    assertEq(charlieDirect, 100 * 1e18);
-    assertEq(charlieTotal, 100 * 1e18);
+    assertEq(charlieDirect, expectedCharlieDirect);
+    assertEq(charlieTotal, expectedCharlieDirect);
 
     // Bob has only 1 direct (Charlie), so Bob is unqualified for Gen 2 (needs 2 directs)
     (, , uint256 bobGen, , , , , ) = distributor.getDetailedRewardInfo(bob);
     assertEq(bobGen, 0); // Correct! Anti-Sybil qualification strictly enforced
 
     // Alice has 2 active directs (Bob and Eve):
-    // - Gen 1 from Eve: 25 UVBE (Direct)
-    // - Gen 1 from Bob: 50 UVBE (Direct)
-    // - Gen 2 from Charlie: 20 UVBE (Gen 2 = 2.00% of 1000)
-    // - Gen 3 from David: 30 UVBE (Gen 3 = 1.50% of 2000)
+    // - Gen 1 from Eve: 5% of 475 = 23.75 UVBE (Direct)
+    // - Gen 1 from Bob: 5% of 950 = 47.50 UVBE (Direct)
+    // - Gen 2 from Charlie: 2% of 950 = 19.00 UVBE (Gen 2)
+    // - Gen 3 from David: 1.5% of 1900 = 28.50 UVBE (Gen 3)
+    uint256 expectedAliceDirect = ((475 + 950) * 1e18 * 500) / 10_000; // 71.25 UVBE
+    uint256 expectedAliceGen = (950 * 1e18 * 200) / 10_000 + (1_900 * 1e18 * 150) / 10_000; // 47.50 UVBE
+    uint256 expectedAliceTotal = expectedAliceDirect + expectedAliceGen; // 118.75 UVBE
+
     (, uint256 aliceDirect, uint256 aliceGen, , , uint256 aliceTotal, , ) = distributor
       .getDetailedRewardInfo(alice);
-    assertEq(aliceDirect, 75 * 1e18); // 25 + 50
-    assertEq(aliceGen, 50 * 1e18); // 20 + 30
-    assertEq(aliceTotal, 125 * 1e18); // 75 + 50
+    assertEq(aliceDirect, expectedAliceDirect);
+    assertEq(aliceGen, expectedAliceGen);
+    assertEq(aliceTotal, expectedAliceTotal);
   }
 
   // --- 3. Restaking Tests (Frozen Invariant: Restake creates NO new commissions) ---
 
   function test_RestakeRewards_CreatesNoNewCommissions() public {
-    // 1. Alice stakes 500 UVBE
+    // 1. Alice stakes 500 UVBE gross (475 net)
     vm.prank(alice);
     vault.stake(500 * 1e18, genesis);
 
-    // 2. Bob stakes 1,000 UVBE with Alice
+    // 2. Bob stakes 1,000 UVBE gross (950 net) with Alice
     vm.prank(bob);
     vault.stake(1_000 * 1e18, alice);
 
-    // Alice has 50 UVBE claimable reward
-    assertEq(distributor.getClaimableRewards(alice), 50 * 1e18);
+    // Alice has 47.5 UVBE claimable reward (5% of 950)
+    uint256 expectedReward = (950 * 1e18 * 500) / 10_000;
+    assertEq(distributor.getClaimableRewards(alice), expectedReward);
 
     uint256 genesisInitialReward = distributor.getClaimableRewards(genesis);
 
-    // 3. Alice restakes all 50 UVBE into permanent principal
+    // 3. Alice restakes all 47.5 UVBE into permanent principal
     vm.prank(alice);
     distributor.restakeAllRewards();
 
     // Invariant checks:
     assertEq(distributor.getClaimableRewards(alice), 0);
-    assertEq(vault.getPermanentStake(alice), 550 * 1e18); // Principal increased!
+    assertEq(vault.getPermanentStake(alice), 475 * 1e18 + expectedReward); // 522.5 UVBE Principal!
     assertEq(vault.getStakeCount(alice), 2);
 
     // FROZEN DECISION 1: Genesis gets ZERO new referral commission on restaked rewards!
@@ -215,7 +224,8 @@ contract UVBEStakingMLMTest is Test {
 
     uint256 aliceWalletBefore = token.balanceOf(alice);
     uint256 claimable = distributor.getClaimableRewards(alice);
-    assertEq(claimable, 50 * 1e18);
+    uint256 expectedDirect = (950 * 1e18 * 500) / 10_000; // 47.5 UVBE
+    assertEq(claimable, expectedDirect);
 
     vm.prank(alice);
     distributor.claimRewards(claimable);

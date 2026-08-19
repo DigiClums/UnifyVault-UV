@@ -118,17 +118,22 @@ contract UVBESolvencyAndInvariantsTest is Test {
   }
 
   function test_PrincipalExtractionImpossible() public {
-    vm.prank(userA);
-    vault.stake(1_000 * 1e18, genesis);
+    uint256 grossStake = 1_000 * 1e18;
+    uint256 expectedFee = (grossStake * 500) / 10_000; // 50 UVBE
+    uint256 expectedNet = grossStake - expectedFee; // 950 UVBE
 
-    assertEq(token.balanceOf(address(vault)), 1_000 * 1e18);
+    vm.prank(userA);
+    vault.stake(grossStake, genesis);
+
+    assertEq(token.balanceOf(address(vault)), expectedNet);
 
     // Attempting any unauthorized transfer from vault will revert
     vm.expectRevert();
     vm.prank(userA);
-    token.transferFrom(address(vault), userA, 1_000 * 1e18);
+    token.transferFrom(address(vault), userA, expectedNet);
 
-    // Verify vault balance remains 1,000 UVBE
-    assertEq(token.balanceOf(address(vault)), 1_000 * 1e18);
+    // Verify vault balance remains 950 UVBE
+    assertEq(token.balanceOf(address(vault)), expectedNet);
+    assertEq(vault.totalPermanentStaked(), expectedNet);
   }
 }

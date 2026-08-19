@@ -122,38 +122,42 @@ contract UVBEReserveSecurityHardeningTest is Test {
   }
 
   function test_Revert_ClaimExceedingAccruedLiability() public {
-    // Alice stakes 500 UVBE, Bob stakes 1,000 UVBE under Alice -> Alice gets 50 UVBE
+    // Alice stakes 500 UVBE gross (475 net), Bob stakes 1,000 UVBE gross (950 net) under Alice -> Alice gets 5% of 950 = 47.5 UVBE
     vm.prank(alice);
     vault.stake(500 * 1e18, genesis);
 
     vm.prank(bob);
     vault.stake(1_000 * 1e18, alice);
 
-    assertEq(distributor.getClaimableRewards(alice), 50 * 1e18);
+    uint256 expectedClaimable = (950 * 1e18 * 500) / 10_000; // 47.5 UVBE
+    assertEq(distributor.getClaimableRewards(alice), expectedClaimable);
 
-    // Alice attempts to claim 51 UVBE (exceeding her liability by 1 wei)
+    // Alice attempts to claim 47.5 UVBE + 1 wei (exceeding her liability by 1 wei)
     vm.prank(alice);
     vm.expectRevert(
       abi.encodeWithSelector(
         UVBERewardDistributor.InsufficientRewardBalance.selector,
-        50 * 1e18 + 1,
-        50 * 1e18
+        expectedClaimable + 1,
+        expectedClaimable
       )
     );
-    distributor.claimRewards(50 * 1e18 + 1);
+    distributor.claimRewards(expectedClaimable + 1);
   }
 
   // --- 4. Permanent Principal Lock Immunity ---
 
   function test_StakingVaultPrincipalCannotBeExtracted() public {
-    uint256 stakeAmount = 5_000 * 1e18;
-    vm.prank(alice);
-    vault.stake(stakeAmount, genesis);
+    uint256 grossStake = 5_000 * 1e18;
+    uint256 expectedFee = (grossStake * 500) / 10_000; // 250 UVBE
+    uint256 expectedNet = grossStake - expectedFee; // 4,750 UVBE
 
-    assertEq(token.balanceOf(address(vault)), stakeAmount);
+    vm.prank(alice);
+    vault.stake(grossStake, genesis);
+
+    assertEq(token.balanceOf(address(vault)), expectedNet);
 
     // No admin or user has any extraction method
-    assertEq(vault.totalPermanentStaked(), stakeAmount);
-    assertEq(vault.getPermanentStake(alice), stakeAmount);
+    assertEq(vault.totalPermanentStaked(), expectedNet);
+    assertEq(vault.getPermanentStake(alice), expectedNet);
   }
 }
