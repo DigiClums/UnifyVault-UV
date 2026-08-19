@@ -11,7 +11,8 @@ import '../libraries/AccessRoles.sol';
 /**
  * @title UVBERewardDistributor
  * @notice Solvent dynamic recurring reward system, multi-tier generation commission, rank bonus, and DAO leadership pool engine
- * @dev Enforces strict reward reserve solvency invariants, dynamic reward capacity calculations, and zero-minting guarantees.
+ * @dev Enforces strict protocol capital solvency invariants, dynamic reward capacity calculations, and zero-minting guarantees.
+ * Rewards are funded directly from protocol-owned staking capital held in UVBEStakingVault.
  */
 contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, ReentrancyGuard, Pausable {
   uint256 public constant BPS_DENOMINATOR = 10_000;
@@ -22,11 +23,11 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
   uint256 public constant INDEX_PRECISION = 1e18; // WAD scaling for cumulative reward index
 
   address public immutable override token;
-  address public override reserve;
   address public override vault;
   address public override registry;
 
   uint256 private _totalOutstandingLiabilities;
+  uint256 private _totalRewardPaid;
   uint256 private _currentEpochId;
   uint256 private _currentEpochStartTime;
   uint256 private _currentEpochPoolAmount;
@@ -84,7 +85,7 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     uint256 amount,
     uint256 timestamp
   );
-  event SolvencyWarning(uint256 totalOutstandingLiability, uint256 reserveBalance);
+  event SolvencyWarning(uint256 totalOutstandingLiability, uint256 availableCapital);
   event DynamicRateUpdated(
     uint256 oldBps,
     uint256 newBps,
@@ -115,23 +116,30 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
    * @notice Sets authorized module addresses exactly once, freezing them permanently
    */
   function setModules(
-    address reserveAddress,
     address vaultAddress,
     address registryAddress
-  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
-    if (reserve != address(0) || vault != address(0) || registry != address(0)) {
+  ) public onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    if (vault != address(0) || registry != address(0)) {
       revert ModuleAlreadyInitialized();
     }
-    if (
-      reserveAddress == address(0) || vaultAddress == address(0) || registryAddress == address(0)
-    ) {
+    if (vaultAddress == address(0) || registryAddress == address(0)) {
       revert ZeroAddress();
     }
-    reserve = reserveAddress;
     vault = vaultAddress;
     registry = registryAddress;
 
     lastUpdateTimestamp = block.timestamp;
+  }
+
+  /**
+   * @notice 3-arg overload for backwards compatibility
+   */
+  function setModules(
+    address /* reserveAddress */,
+    address vaultAddress,
+    address registryAddress
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    setModules(vaultAddress, registryAddress);
   }
 
   /**
@@ -158,14 +166,14 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     // 2. Restake check: Restaked rewards never generate referral commissions or DAO pool allocation
     if (isRestake) return;
 
-    // 3. Check total commission demand against available reward reserve
+    // 3. Check total commission demand against available protocol capital in vault
     uint256 maxPossibleDemand = (amount * 1300) / BPS_DENOMINATOR; // 12% generations + 1% DAO = 13%
-    uint256 availableReserve = IUVBERewardReserve(reserve).getAvailableReserve();
+    uint256 availableCapital = IUVBEStakingVault(vault).getAvailableProtocolCapital();
 
-    if (_totalOutstandingLiabilities + maxPossibleDemand > availableReserve) {
-      emit SolvencyWarning(_totalOutstandingLiabilities + maxPossibleDemand, availableReserve);
+    if (_totalOutstandingLiabilities + maxPossibleDemand > availableCapital) {
+      emit SolvencyWarning(_totalOutstandingLiabilities + maxPossibleDemand, availableCapital);
       // Limit accrual to available solvency
-      if (_totalOutstandingLiabilities >= availableReserve) return;
+      if (_totalOutstandingLiabilities >= availableCapital) return;
     }
 
     // 4. Fund DAO Leadership Pool (1.00%)
@@ -205,8 +213,8 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
 
     if (oldBps != newBps) {
       uint256 surplus =
-        availableReserve > _totalOutstandingLiabilities
-          ? availableReserve - _totalOutstandingLiabilities
+        availableCapital > _totalOutstandingLiabilities
+          ? availableCapital - _totalOutstandingLiabilities
           : 0;
       emit DynamicRateUpdated(oldBps, newBps, surplus, totalStaked);
     }
@@ -340,11 +348,27 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       if (timeDelta > 0 && totalStaked > 0 && currentAnnualBps > 0) {
         uint256 deltaIndex =
           (timeDelta * currentAnnualBps * INDEX_PRECISION) / (SECONDS_PER_YEAR * BPS_DENOMINATOR);
-        rewardIndex += deltaIndex;
 
         uint256 accruedLiab = (totalStaked * deltaIndex) / INDEX_PRECISION;
-        _totalOutstandingLiabilities += accruedLiab;
-        emit GlobalRewardAccrued(accruedLiab, rewardIndex, currentAnnualBps);
+
+        // Hard Solvency Guarantee: Accrual can never exceed available surplus capital
+        uint256 availableCapital =
+          vault != address(0) ? IUVBEStakingVault(vault).getAvailableProtocolCapital() : 0;
+        uint256 surplus =
+          availableCapital > _totalOutstandingLiabilities
+            ? availableCapital - _totalOutstandingLiabilities
+            : 0;
+
+        if (accruedLiab > surplus) {
+          accruedLiab = surplus;
+          deltaIndex = (surplus * INDEX_PRECISION) / totalStaked;
+        }
+
+        if (deltaIndex > 0) {
+          rewardIndex += deltaIndex;
+          _totalOutstandingLiabilities += accruedLiab;
+          emit GlobalRewardAccrued(accruedLiab, rewardIndex, currentAnnualBps);
+        }
       }
 
       lastUpdateTimestamp = currentTimestamp;
@@ -356,11 +380,11 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     currentAnnualBps = newBps;
 
     if (oldBps != newBps) {
-      uint256 availableReserve =
-        reserve != address(0) ? IUVBERewardReserve(reserve).getAvailableReserve() : 0;
+      uint256 availableCapital =
+        vault != address(0) ? IUVBEStakingVault(vault).getAvailableProtocolCapital() : 0;
       uint256 surplus =
-        availableReserve > _totalOutstandingLiabilities
-          ? availableReserve - _totalOutstandingLiabilities
+        availableCapital > _totalOutstandingLiabilities
+          ? availableCapital - _totalOutstandingLiabilities
           : 0;
       emit DynamicRateUpdated(oldBps, newBps, surplus, totalStaked);
     }
@@ -397,10 +421,25 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       if (timeDelta > 0 && preStakeTotal > 0 && currentAnnualBps > 0) {
         uint256 deltaIndex =
           (timeDelta * currentAnnualBps * INDEX_PRECISION) / (SECONDS_PER_YEAR * BPS_DENOMINATOR);
-        rewardIndex += deltaIndex;
         uint256 accruedLiab = (preStakeTotal * deltaIndex) / INDEX_PRECISION;
-        _totalOutstandingLiabilities += accruedLiab;
-        emit GlobalRewardAccrued(accruedLiab, rewardIndex, currentAnnualBps);
+
+        // Hard Solvency Guarantee
+        uint256 availableCapital = IUVBEStakingVault(vault).getAvailableProtocolCapital();
+        uint256 surplus =
+          availableCapital > _totalOutstandingLiabilities
+            ? availableCapital - _totalOutstandingLiabilities
+            : 0;
+
+        if (accruedLiab > surplus) {
+          accruedLiab = surplus;
+          deltaIndex = (surplus * INDEX_PRECISION) / preStakeTotal;
+        }
+
+        if (deltaIndex > 0) {
+          rewardIndex += deltaIndex;
+          _totalOutstandingLiabilities += accruedLiab;
+          emit GlobalRewardAccrued(accruedLiab, rewardIndex, currentAnnualBps);
+        }
       }
       lastUpdateTimestamp = currentTimestamp;
     }
@@ -432,27 +471,27 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     currentAnnualBps = newBps;
 
     if (oldBps != newBps) {
-      uint256 availableReserve =
-        reserve != address(0) ? IUVBERewardReserve(reserve).getAvailableReserve() : 0;
+      uint256 availableCapital =
+        vault != address(0) ? IUVBEStakingVault(vault).getAvailableProtocolCapital() : 0;
       uint256 surplus =
-        availableReserve > _totalOutstandingLiabilities
-          ? availableReserve - _totalOutstandingLiabilities
+        availableCapital > _totalOutstandingLiabilities
+          ? availableCapital - _totalOutstandingLiabilities
           : 0;
       emit DynamicRateUpdated(oldBps, newBps, surplus, newTotalStaked);
     }
   }
 
   function _calculateDynamicAnnualBps(uint256 totalStaked) internal view returns (uint256) {
-    if (totalStaked == 0 || reserve == address(0)) {
+    if (totalStaked == 0 || vault == address(0)) {
       return 0;
     }
 
-    uint256 availableReserve = IUVBERewardReserve(reserve).getAvailableReserve();
-    if (availableReserve <= _totalOutstandingLiabilities) {
+    uint256 availableCapital = IUVBEStakingVault(vault).getAvailableProtocolCapital();
+    if (availableCapital <= _totalOutstandingLiabilities) {
       return 0; // Solvency depletion: 0% APY
     }
 
-    uint256 surplusCapacity = availableReserve - _totalOutstandingLiabilities;
+    uint256 surplusCapacity = availableCapital - _totalOutstandingLiabilities;
 
     // Annual capacity in BPS: (surplusCapacity * BPS_DENOMINATOR) / totalStaked
     uint256 calculatedBps = (surplusCapacity * BPS_DENOMINATOR) / totalStaked;
@@ -476,10 +515,11 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     // 1. Deduct liability (CEI)
     _deductClaimable(user, amount);
     _totalClaimed[user] += amount;
+    _totalRewardPaid += amount;
     _totalOutstandingLiabilities -= amount;
 
-    // 2. Disburse UVBE from reserve directly to user wallet
-    IUVBERewardReserve(reserve).disburseReward(user, amount);
+    // 2. Disburse UVBE directly from protocol-owned capital in StakingVault to user wallet
+    IUVBEStakingVault(vault).disburseReward(user, amount);
 
     // 3. Re-evaluate rate prospectively (surplus capacity is preserved)
     uint256 totalStaked = IUVBEStakingVault(vault).totalPermanentStaked();
@@ -501,16 +541,13 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     _totalRestaked[user] += amount;
     _totalOutstandingLiabilities -= amount;
 
-    // 2. Direct Internal Transfer: Reserve -> StakingVault
-    IUVBERewardReserve(reserve).transferToVault(vault, amount);
-
-    // 3. Record new permanent principal in vault
+    // 2. Record new permanent principal in vault (tokens already in vault)
     IUVBEStakingVault(vault).recordRestake(user, amount);
 
-    // 4. Staker's reward index is updated to current index for the newly added restake amount
+    // 3. Staker's reward index is updated to current index for the newly added restake amount
     _userRewardIndex[user] = rewardIndex;
 
-    // 5. Re-evaluate rate prospectively for expanded staking base
+    // 4. Re-evaluate rate prospectively for expanded staking base
     uint256 newTotalStaked = IUVBEStakingVault(vault).totalPermanentStaked();
     currentAnnualBps = _calculateDynamicAnnualBps(newTotalStaked);
 
@@ -520,30 +557,31 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
   function _deductClaimable(address user, uint256 amount) internal {
     uint256 remaining = amount;
 
-    if (_claimableRecurring[user] > 0) {
-      uint256 rec = Math.min(_claimableRecurring[user], remaining);
-      _claimableRecurring[user] -= rec;
-      remaining -= rec;
+    // Order: recurring -> direct -> generation -> rank -> dao
+    if (_claimableRecurring[user] > 0 && remaining > 0) {
+      uint256 take = Math.min(_claimableRecurring[user], remaining);
+      _claimableRecurring[user] -= take;
+      remaining -= take;
     }
-    if (remaining > 0 && _claimableDirect[user] > 0) {
-      uint256 d = Math.min(_claimableDirect[user], remaining);
-      _claimableDirect[user] -= d;
-      remaining -= d;
+    if (_claimableDirect[user] > 0 && remaining > 0) {
+      uint256 take = Math.min(_claimableDirect[user], remaining);
+      _claimableDirect[user] -= take;
+      remaining -= take;
     }
-    if (remaining > 0 && _claimableGeneration[user] > 0) {
-      uint256 g = Math.min(_claimableGeneration[user], remaining);
-      _claimableGeneration[user] -= g;
-      remaining -= g;
+    if (_claimableGeneration[user] > 0 && remaining > 0) {
+      uint256 take = Math.min(_claimableGeneration[user], remaining);
+      _claimableGeneration[user] -= take;
+      remaining -= take;
     }
-    if (remaining > 0 && _claimableRank[user] > 0) {
-      uint256 r = Math.min(_claimableRank[user], remaining);
-      _claimableRank[user] -= r;
-      remaining -= r;
+    if (_claimableRank[user] > 0 && remaining > 0) {
+      uint256 take = Math.min(_claimableRank[user], remaining);
+      _claimableRank[user] -= take;
+      remaining -= take;
     }
-    if (remaining > 0 && _claimableDao[user] > 0) {
-      uint256 dao = Math.min(_claimableDao[user], remaining);
-      _claimableDao[user] -= dao;
-      remaining -= dao;
+    if (_claimableDao[user] > 0 && remaining > 0) {
+      uint256 take = Math.min(_claimableDao[user], remaining);
+      _claimableDao[user] -= take;
+      remaining -= take;
     }
   }
 
@@ -556,133 +594,124 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       _claimableDao[user];
   }
 
+  // --- Internal MLM Rate & Qualification Helpers ---
+
   function _getGenerationBps(uint8 gen) internal pure returns (uint256) {
-    if (gen == 1) return 500; // Gen 1 (Direct): 5.00%
-    if (gen == 2) return 200; // Gen 2: 2.00%
-    if (gen == 3) return 150; // Gen 3: 1.50%
-    if (gen == 4) return 100; // Gen 4: 1.00%
-    if (gen == 5) return 75; // Gen 5: 0.75%
-    if (gen == 6) return 50; // Gen 6: 0.50%
-    if (gen == 7) return 50; // Gen 7: 0.50%
-    if (gen == 8) return 25; // Gen 8: 0.25%
-    if (gen == 9) return 25; // Gen 9: 0.25%
-    if (gen == 10) return 25; // Gen 10: 0.25%
+    if (gen == 1) return 500; // 5.00%
+    if (gen == 2) return 200; // 2.00%
+    if (gen == 3) return 150; // 1.50%
+    if (gen == 4) return 100; // 1.00%
+    if (gen == 5) return 75; // 0.75%
+    if (gen == 6) return 50; // 0.50%
+    if (gen == 7) return 50; // 0.50%
+    if (gen == 8) return 25; // 0.25%
+    if (gen == 9) return 25; // 0.25%
+    if (gen == 10) return 25; // 0.25%
     return 0;
   }
 
-  function _isQualifiedForGeneration(address user, uint8 gen) internal view returns (bool) {
-    if (user == address(0) || registry == address(0) || vault == address(0)) return false;
+  function _isQualifiedForGeneration(address account, uint8 gen) internal view returns (bool) {
+    if (account == address(0) || registry == address(0) || vault == address(0)) return false;
 
-    uint256 stake = IUVBEStakingVault(vault).getPermanentStake(user);
-    uint256 directs = IUVBEReferralRegistry(registry).getActiveDirectCount(user);
+    // Genesis referrer is qualified for all 10 generations unconditionally
+    if (account == IUVBEReferralRegistry(registry).genesisReferrer()) return true;
 
-    if (gen == 1) return directs >= 1 && stake >= 50 * 1e18;
-    if (gen <= 3) return directs >= 2 && stake >= 100 * 1e18;
-    if (gen <= 5) return directs >= 3 && stake >= 250 * 1e18;
-    if (gen <= 7) return directs >= 4 && stake >= 500 * 1e18;
-    if (gen <= 10) return directs >= 5 && stake >= 1_000 * 1e18;
-    return false;
-  }
+    // Gen 1 (Direct): Requires active direct status (personal stake >= 47.5 UVBE)
+    if (gen == 1) {
+      return IUVBEReferralRegistry(registry).isUserActive(account);
+    }
 
-  function _getDaoSharesForRank(uint8 rank) internal pure returns (uint256) {
-    if (rank == 4) return 1; // Platinum: 1 share
-    if (rank == 5) return 3; // Diamond: 3 shares
-    if (rank == 6) return 10; // Crown Ambassador: 10 shares
-    return 0;
+    // Gen 2-10: Requires active directs threshold >= gen
+    uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(account);
+    return activeDirects >= gen;
   }
 
   // --- View Methods ---
 
-  /**
-   * @notice Returns total claimable rewards including pending virtual recurring accruals
-   */
   function getClaimableRewards(address user) external view override returns (uint256) {
-    return
-      getPendingRecurringReward(user) +
-      _claimableDirect[user] +
-      _claimableGeneration[user] +
-      _claimableRank[user] +
-      _claimableDao[user];
+    uint256 pendingRec = getPendingRecurringReward(user);
+    return _getTotalClaimable(user) + pendingRec;
   }
 
-  /**
-   * @notice Calculates real-time pending recurring rewards for a user up to block.timestamp
-   */
   function getPendingRecurringReward(address user) public view override returns (uint256) {
-    uint256 userStake = vault != address(0) ? IUVBEStakingVault(vault).getPermanentStake(user) : 0;
-    if (userStake == 0) return _claimableRecurring[user];
+    if (user == address(0) || vault == address(0)) return 0;
+    uint256 userStake = IUVBEStakingVault(vault).getPermanentStake(user);
+    if (userStake == 0) return 0;
 
-    uint256 currentTimestamp = block.timestamp;
-    uint256 timeDelta =
-      currentTimestamp > lastUpdateTimestamp ? currentTimestamp - lastUpdateTimestamp : 0;
+    uint256 simulatedIndex = rewardIndex;
+    uint256 totalStaked = IUVBEStakingVault(vault).totalPermanentStaked();
 
-    uint256 virtualIndex = rewardIndex;
-    if (timeDelta > 0 && currentAnnualBps > 0) {
+    if (block.timestamp > lastUpdateTimestamp && totalStaked > 0 && currentAnnualBps > 0) {
+      uint256 timeDelta = block.timestamp - lastUpdateTimestamp;
       uint256 deltaIndex =
         (timeDelta * currentAnnualBps * INDEX_PRECISION) / (SECONDS_PER_YEAR * BPS_DENOMINATOR);
-      virtualIndex += deltaIndex;
+
+      uint256 potentialLiab = (totalStaked * deltaIndex) / INDEX_PRECISION;
+      uint256 availableCapital = IUVBEStakingVault(vault).getAvailableProtocolCapital();
+      uint256 surplus =
+        availableCapital > _totalOutstandingLiabilities
+          ? availableCapital - _totalOutstandingLiabilities
+          : 0;
+
+      if (potentialLiab > surplus) {
+        deltaIndex = (surplus * INDEX_PRECISION) / totalStaked;
+      }
+      simulatedIndex += deltaIndex;
     }
 
     uint256 userIdx = _userRewardIndex[user];
-    uint256 pending = 0;
-    if (userIdx < virtualIndex) {
-      pending = (userStake * (virtualIndex - userIdx)) / INDEX_PRECISION;
+    if (simulatedIndex > userIdx) {
+      return (userStake * (simulatedIndex - userIdx)) / INDEX_PRECISION;
     }
-    return _claimableRecurring[user] + pending;
+    return 0;
   }
 
-  /**
-   * @notice Returns the currently active dynamic annual BPS rate
-   */
-  function getCurrentAnnualBps() external view override returns (uint256) {
-    return currentAnnualBps;
+  function getCurrentAnnualBps() public view override returns (uint256) {
+    (, , , uint256 currentBps) = getRewardCapacity();
+    return currentBps;
   }
 
-  /**
-   * @notice Returns the active dynamic annual BPS rate (backward-compatible view)
-   */
-  function RECURRING_ANNUAL_BPS() external view override returns (uint256) {
-    return currentAnnualBps;
-  }
-
-  /**
-   * @notice Returns detailed reward breakdown and economic capacity metrics
-   */
   function getRewardCapacity()
-    external
+    public
     view
     override
     returns (
-      uint256 availableReserve,
+      uint256 availableCapital,
       uint256 liabilities,
       uint256 surplusCapacity,
       uint256 currentBps
     )
   {
-    availableReserve =
-      reserve != address(0) ? IUVBERewardReserve(reserve).getAvailableReserve() : 0;
+    availableCapital =
+      vault != address(0) ? IUVBEStakingVault(vault).getAvailableProtocolCapital() : 0;
 
-    uint256 pendingGlobalLiab = 0;
-    uint256 currentTimestamp = block.timestamp;
-    if (currentTimestamp > lastUpdateTimestamp && vault != address(0)) {
-      uint256 totalStaked = IUVBEStakingVault(vault).totalPermanentStaked();
-      if (totalStaked > 0 && currentAnnualBps > 0) {
-        uint256 timeDelta = currentTimestamp - lastUpdateTimestamp;
-        uint256 deltaIndex =
-          (timeDelta * currentAnnualBps * INDEX_PRECISION) / (SECONDS_PER_YEAR * BPS_DENOMINATOR);
-        pendingGlobalLiab = (totalStaked * deltaIndex) / INDEX_PRECISION;
+    uint256 totalStaked = vault != address(0) ? IUVBEStakingVault(vault).totalPermanentStaked() : 0;
+    uint256 pendingLiab = 0;
+
+    if (block.timestamp > lastUpdateTimestamp && totalStaked > 0 && currentAnnualBps > 0) {
+      uint256 timeDelta = block.timestamp - lastUpdateTimestamp;
+      uint256 deltaIndex =
+        (timeDelta * currentAnnualBps * INDEX_PRECISION) / (SECONDS_PER_YEAR * BPS_DENOMINATOR);
+      pendingLiab = (totalStaked * deltaIndex) / INDEX_PRECISION;
+      uint256 uncheckpointedSurplus =
+        availableCapital > _totalOutstandingLiabilities
+          ? availableCapital - _totalOutstandingLiabilities
+          : 0;
+      if (pendingLiab > uncheckpointedSurplus) {
+        pendingLiab = uncheckpointedSurplus;
       }
     }
 
-    liabilities = _totalOutstandingLiabilities + pendingGlobalLiab;
-    surplusCapacity = availableReserve > liabilities ? availableReserve - liabilities : 0;
-
-    uint256 totalStakedNow =
-      vault != address(0) ? IUVBEStakingVault(vault).totalPermanentStaked() : 0;
+    liabilities = _totalOutstandingLiabilities + pendingLiab;
+    surplusCapacity = availableCapital > liabilities ? availableCapital - liabilities : 0;
     currentBps =
-      (totalStakedNow > 0 && surplusCapacity > 0)
-        ? Math.min(MAX_RECURRING_ANNUAL_BPS, (surplusCapacity * BPS_DENOMINATOR) / totalStakedNow)
+      (totalStaked > 0 && surplusCapacity > 0)
+        ? (surplusCapacity * BPS_DENOMINATOR) / totalStaked
         : 0;
+
+    if (currentBps > MAX_RECURRING_ANNUAL_BPS) {
+      currentBps = MAX_RECURRING_ANNUAL_BPS;
+    }
   }
 
   function getDetailedRewardInfo(
@@ -702,7 +731,8 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       uint256 totalRestaked
     )
   {
-    recurringReward = getPendingRecurringReward(user);
+    uint256 pendingRec = getPendingRecurringReward(user);
+    recurringReward = _claimableRecurring[user] + pendingRec;
     directReward = _claimableDirect[user];
     generationReward = _claimableGeneration[user];
     rankReward = _claimableRank[user];
@@ -716,8 +746,16 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     return _totalOutstandingLiabilities;
   }
 
+  function totalRewardPaid() external view override returns (uint256) {
+    return _totalRewardPaid;
+  }
+
   function currentDaoEpochId() external view override returns (uint256) {
     return _currentEpochId;
+  }
+
+  function getDaoEpoch(uint256 epochId) external view returns (IUVBEStakingMLM.DaoEpoch memory) {
+    return _daoEpochs[epochId];
   }
 
   // --- Emergency Controls ---

@@ -61,8 +61,10 @@ contract FreshLiveSimpleAccount {
   }
 
   function validateUserOp(
-    PackedUserOperation calldata /* userOp */,
-    bytes32 /* userOpHash */,
+    PackedUserOperation calldata,
+    /* userOp */
+    bytes32,
+    /* userOpHash */
     uint256 missingAccountFunds
   ) external returns (uint256 validationData) {
     require(msg.sender == entryPoint, 'account: not EntryPoint');

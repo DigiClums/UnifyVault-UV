@@ -70,48 +70,63 @@ contract UnifyVaultControllerV2GapMock is
   function directory() external view returns (address) {
     return _directory;
   }
+
   function oracle() external view returns (address) {
     return _oracle;
   }
+
   function vault() external view returns (address) {
     return _vault;
   }
+
   function treasury() external view returns (address) {
     return _treasury;
   }
+
   function token() external view returns (address) {
     return _token;
   }
+
   function maxDepositPerTx() external view returns (uint256) {
     return _maxDepositPerTx;
   }
+
   function maxRedeemPerTx() external view returns (uint256) {
     return _maxRedeemPerTx;
   }
+
   function dailyDepositCap() external view returns (uint256) {
     return _dailyDepositCap;
   }
+
   function dailyRedeemCap() external view returns (uint256) {
     return _dailyRedeemCap;
   }
+
   function currentDepositDay() external view returns (uint256) {
     return _currentDepositDay;
   }
+
   function dailyDepositTotal() external view returns (uint256) {
     return _dailyDepositTotal;
   }
+
   function currentRedeemDay() external view returns (uint256) {
     return _currentRedeemDay;
   }
+
   function dailyRedeemTotal() external view returns (uint256) {
     return _dailyRedeemTotal;
   }
+
   function largeDepositThreshold() external view returns (uint256) {
     return _largeDepositThreshold;
   }
+
   function largeRedeemThreshold() external view returns (uint256) {
     return _largeRedeemThreshold;
   }
+
   function swapSlippageBps() external view returns (uint256) {
     return _swapSlippageBps;
   }

@@ -3,8 +3,10 @@ pragma solidity 0.8.24;
 
 /**
  * @title IUVBEStakingMLM
- * @notice Unified interface and data types for the independent permanent UVBE Staking & MLM subsystem
- * @dev Staked UVBE principal is permanently locked forever. Rewards are funded exclusively from already-minted UVBE.
+ * @notice Unified interface and data types for the permanent UVBE Staking & MLM subsystem
+ * @dev Staked UVBE principal is 100% protocol-owned staking capital backing the dynamic reward engine.
+ * Users have ZERO principal withdrawal rights (no unstake, withdraw, or redemption).
+ * Rewards are funded directly from protocol-owned staking capital.
  */
 interface IUVBEStakingMLM {
   // --- Structs ---
@@ -66,6 +68,7 @@ interface IUVBEStakingMLM {
   error CircularReferralDetected(address cyclicAncestor);
   error ReferrerAlreadySet(address existingReferrer);
   error InsufficientRewardBalance(uint256 requested, uint256 available);
+  error InsufficientProtocolCapital(uint256 requested, uint256 available);
   error ZeroAmount();
   error ZeroAddress();
   error UnauthorizedCaller(address caller);
@@ -74,15 +77,18 @@ interface IUVBEStakingMLM {
   error UnauthorizedRegistry(address caller);
   error EpochNotEnded(uint256 epochId, uint256 currentTimestamp, uint256 epochEndTime);
   error EpochAlreadyClaimed(address user, uint256 epochId);
+  error EpochAlreadyFinalized(uint256 epochId);
   error NoEligibleShares();
-  error SolvencyViolation(uint256 liability, uint256 reserveBalance);
+  error SolvencyViolation(uint256 liability, uint256 availableCapital);
 
   // --- Events ---
 
   event StakeCreated(
     address indexed user,
     uint256 indexed stakeId,
-    uint256 amount,
+    uint256 grossAmount,
+    uint256 protocolCapital,
+    uint256 treasuryFee,
     address indexed referrer
   );
   event PermanentStakeIncreased(
@@ -91,6 +97,7 @@ interface IUVBEStakingMLM {
     uint256 amount,
     bool isRestake
   );
+  event TreasuryFeeCollected(address indexed user, address indexed treasury, uint256 feeAmount);
   event ReferralRegistered(address indexed user, address indexed referrer, uint256 timestamp);
   event RecurringRewardAccrued(
     address indexed user,
@@ -115,8 +122,7 @@ interface IUVBEStakingMLM {
     uint256 amount,
     uint256 timestamp
   );
-  event RewardReserveFunded(address indexed funder, uint256 amount, uint256 newReserveBalance);
-  event SolvencyWarning(uint256 totalOutstandingLiability, uint256 reserveBalance);
+  event SolvencyWarning(uint256 totalOutstandingLiability, uint256 availableCapital);
   event DynamicRateUpdated(
     uint256 oldBps,
     uint256 newBps,
@@ -124,19 +130,12 @@ interface IUVBEStakingMLM {
     uint256 totalStaked
   );
   event GlobalRewardAccrued(uint256 amount, uint256 newRewardIndex, uint256 annualBps);
-}
-
-interface IUVBERewardReserve {
-  function token() external view returns (address);
-  function distributor() external view returns (address);
-  function depositRewardFunds(uint256 amount) external;
-  function disburseReward(address recipient, uint256 amount) external;
-  function transferToVault(address vault, uint256 amount) external;
-  function getAvailableReserve() external view returns (uint256);
+  event RewardDisbursed(address indexed recipient, uint256 amount, uint256 remainingCapital);
 }
 
 interface IUVBEStakingVault {
   function token() external view returns (address);
+  function treasury() external view returns (address);
   function registry() external view returns (address);
   function distributor() external view returns (address);
   function stake(uint256 amount, address referrer) external;
@@ -149,6 +148,7 @@ interface IUVBEStakingVault {
     bytes32 s
   ) external;
   function recordRestake(address user, uint256 amount) external;
+  function disburseReward(address recipient, uint256 amount) external;
   function getPermanentStake(address user) external view returns (uint256);
   function getStakeRecord(
     address user,
@@ -156,6 +156,8 @@ interface IUVBEStakingVault {
   ) external view returns (uint256 amount, uint256 stakedAt);
   function getStakeCount(address user) external view returns (uint256);
   function totalPermanentStaked() external view returns (uint256);
+  function getAvailableProtocolCapital() external view returns (uint256);
+  function totalProtocolCapital() external view returns (uint256);
 }
 
 interface IUVBEReferralRegistry {
@@ -179,7 +181,6 @@ interface IUVBEReferralRegistry {
 
 interface IUVBERewardDistributor {
   function token() external view returns (address);
-  function reserve() external view returns (address);
   function vault() external view returns (address);
   function registry() external view returns (address);
   function distributeCommissions(address staker, uint256 amount, bool isRestake) external;
@@ -195,12 +196,11 @@ interface IUVBERewardDistributor {
   function getPendingRecurringReward(address user) external view returns (uint256);
   function getCurrentAnnualBps() external view returns (uint256);
   function MAX_RECURRING_ANNUAL_BPS() external pure returns (uint256);
-  function RECURRING_ANNUAL_BPS() external view returns (uint256);
   function getRewardCapacity()
     external
     view
     returns (
-      uint256 availableReserve,
+      uint256 availableCapital,
       uint256 liabilities,
       uint256 surplusCapacity,
       uint256 currentBps
@@ -223,5 +223,6 @@ interface IUVBERewardDistributor {
       uint256 totalRestaked
     );
   function totalOutstandingLiabilities() external view returns (uint256);
+  function totalRewardPaid() external view returns (uint256);
   function currentDaoEpochId() external view returns (uint256);
 }

@@ -102,8 +102,9 @@ contract Marketplace is IMarketplace, AccessControl, ReentrancyGuard, Pausable {
   ) private returns (uint256 orderId) {
     if (msg.sender == address(0)) revert InvalidOrderMaker();
     if (asset == address(0)) revert InvalidAssetAddress();
-    if (uvbeToken != address(0) && asset != uvbeToken)
+    if (uvbeToken != address(0) && asset != uvbeToken) {
       revert IncompatibleOrderAssets(asset, uvbeToken);
+    }
     if (amount == 0) revert InvalidOrderAmount();
     if (price == 0) revert InvalidOrderPrice();
     if (fiatCurrency == bytes32(0)) revert IncompatibleFiatCurrencies(bytes32(0), bytes32(0));

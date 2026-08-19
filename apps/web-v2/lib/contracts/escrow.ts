@@ -123,8 +123,60 @@ export const P2P_ESCROW_ABI = [
   },
   {
     inputs: [],
-    name: 'feeBps',
-    outputs: [{ name: '', type: 'uint256' }],
+    name: 'treasury',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'newFeeBps', type: 'uint256' }],
+    name: 'setFeeConfig',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'newTreasury', type: 'address' }],
+    name: 'setTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'pause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'unpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'hasRole',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'paymentReference', type: 'bytes32' }],
+    name: 'isPaymentReferenceUsed',
+    outputs: [{ name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -315,7 +367,65 @@ export const P2P_ESCROW_ABI = [
   },
   {
     inputs: [],
+    name: 'feeBps',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'ProtocolPaused',
     type: 'error',
   },
 ] as const;
+
+/**
+ * Escrow Trade Lifecycle State Enum matching Solidity EscrowTypes.TradeState
+ */
+export enum TradeState {
+  NONE = 0,
+  CREATED = 1,
+  FUNDED = 2,
+  PAYMENT_SUBMITTED = 3,
+  DISPUTED = 4,
+  RELEASED = 5,
+  REFUNDED = 6,
+  CANCELLED = 7,
+}
+
+/**
+ * Escrow Dispute Resolution Outcome Enum matching Solidity EscrowTypes.DisputeOutcome
+ */
+export enum DisputeOutcome {
+  RELEASE_TO_BUYER = 0,
+  REFUND_TO_SELLER = 1,
+}
+
+/**
+ * Role hashes matching packages/protocol/src/libraries/AccessRoles.sol
+ */
+export const ARBITRATOR_ROLE_HASH =
+  '0x16ceee8289685dd2a02b9c8ae81d2df373176ce53519e6284e2a2950d6546ffa' as const;
+export const GOVERNANCE_ROLE_HASH =
+  '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1' as const;
+export const GUARDIAN_ROLE_HASH =
+  '0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365284bb7f0a5041' as const;
+export const DEFAULT_ADMIN_ROLE_HASH =
+  '0x0000000000000000000000000000000000000000000000000000000000000000' as const;
+
+export interface EscrowTrade {
+  tradeId: bigint;
+  buyer: `0x${string}`;
+  seller: `0x${string}`;
+  asset: `0x${string}`;
+  amount: bigint;
+  fiatAmount: bigint;
+  fiatCurrency: `0x${string}`;
+  state: TradeState;
+  paymentWindow: bigint;
+  fundingTimestamp: bigint;
+  paymentTimestamp: bigint;
+  paymentReference: `0x${string}`;
+  evidenceHash: `0x${string}`;
+  disputeInitiator: `0x${string}`;
+}

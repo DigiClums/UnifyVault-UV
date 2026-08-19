@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Server,
   ChevronDown,
+  Gavel,
+  Coins,
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
@@ -29,6 +31,8 @@ export function AdminSidebar() {
     {
       title: 'OPERATIONS',
       items: [
+        { href: '/admin/staking', label: 'Staking & Solvency', icon: Coins },
+        { href: '/admin/p2p-arbitration', label: 'P2P Arbitration', icon: Gavel },
         { href: '/admin/custody', label: 'Custody Vault', icon: ShieldCheck },
         { href: '/admin/treasury', label: 'Treasury & Revenue', icon: Vault },
         { href: '/admin/users', label: 'User Accounting', icon: Users },

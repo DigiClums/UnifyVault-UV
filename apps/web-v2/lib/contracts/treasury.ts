@@ -48,6 +48,63 @@ export const TREASURY_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'decimals', type: 'uint8' },
+    ],
+    name: 'registerAsset',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'enableAsset',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'disableAsset',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'assetConfig',
+    outputs: [
+      {
+        components: [
+          { name: 'decimals', type: 'uint8' },
+          { name: 'enabled', type: 'bool' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'hasRole',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 
   // --- Treasury Events ---
   {

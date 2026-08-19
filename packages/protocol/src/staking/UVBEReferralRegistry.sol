@@ -12,7 +12,7 @@ import '../libraries/AccessRoles.sol';
  * @dev Enforces strict anti-cycle checks, anti-Sybil active requirements, and bounded generation traversal.
  */
 contract UVBEReferralRegistry is IUVBEReferralRegistry, AccessControl, ReentrancyGuard {
-  uint256 public constant MIN_ACTIVE_STAKE = 50 * 1e18; // 50 UVBE for active direct status
+  uint256 public constant MIN_ACTIVE_STAKE = 47.5 * 1e18; // 47.5 UVBE net principal (50 UVBE gross min stake minus 5% fee)
   uint8 public constant MAX_GENERATION_DEPTH = 10;
   uint8 public constant MAX_CYCLE_CHECK_DEPTH = 15;
 

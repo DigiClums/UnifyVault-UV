@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   useAccount,
+  useReadContract,
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -13,7 +14,6 @@ import { TREASURY_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
 import { getChainTokens, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
-import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -112,7 +112,9 @@ export default function AdminTreasuryPage() {
 
         const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === tokens.cbBTC.toLowerCase()) {
+        if (assetAddr === tokens.UVBE?.toLowerCase()) {
+          assetSymbol = 'UVBE';
+        } else if (assetAddr === tokens.cbBTC.toLowerCase()) {
           assetSymbol = 'cbBTC';
         } else if (assetAddr === tokens.WETH.toLowerCase()) {
           assetSymbol = 'WETH';
@@ -120,7 +122,8 @@ export default function AdminTreasuryPage() {
           assetSymbol = 'USDC';
         }
 
-        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+        const decimals =
+          assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' || assetSymbol === 'UVBE' ? 18 : 6;
 
         if (eventName === 'TreasuryWithdrawal') {
           rec = (args.recipient as string) || rec;
@@ -191,13 +194,19 @@ export default function AdminTreasuryPage() {
   }, [treasury, publicClient, fetchTreasuryLogs]);
 
   // Read Treasury balance & Oracle asset prices
-  const { data: treasuryData } = useReadContracts({
+  const { data: treasuryData, refetch: refetchTreasuryData } = useReadContracts({
     contracts: [
       {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
         args: [tokens.USDC],
+      },
+      {
+        address: treasury,
+        abi: TREASURY_ABI,
+        functionName: 'totalAssetBalance',
+        args: [tokens.UVBE || '0x0000000000000000000000000000000000000000'],
       },
       {
         address: treasury,
@@ -238,23 +247,27 @@ export default function AdminTreasuryPage() {
   });
 
   const usdcBalRaw = (treasuryData?.[0]?.result as bigint) || 0n;
-  const wbtcBalRaw = (treasuryData?.[1]?.result as bigint) || 0n;
-  const wethBalRaw = (treasuryData?.[2]?.result as bigint) || 0n;
-  const btcPriceRaw = (treasuryData?.[3]?.result as bigint) || 0n;
-  const ethPriceRaw = (treasuryData?.[4]?.result as bigint) || 0n;
-  const usdcPriceRaw = (treasuryData?.[5]?.result as bigint) || 0n;
+  const uvbeBalRaw = (treasuryData?.[1]?.result as bigint) || 0n;
+  const wbtcBalRaw = (treasuryData?.[2]?.result as bigint) || 0n;
+  const wethBalRaw = (treasuryData?.[3]?.result as bigint) || 0n;
+  const btcPriceRaw = (treasuryData?.[4]?.result as bigint) || 0n;
+  const ethPriceRaw = (treasuryData?.[5]?.result as bigint) || 0n;
+  const usdcPriceRaw = (treasuryData?.[6]?.result as bigint) || 0n;
 
   const btcPrice = Number(formatUnits(btcPriceRaw, 18));
   const ethPrice = Number(formatUnits(ethPriceRaw, 18));
   const usdcPrice = Number(formatUnits(usdcPriceRaw, 18));
+  const uvbePrice = 1.0; // Pegged NAV representation for UVBE
 
   const usdcUSD = Number(formatUnits(usdcBalRaw, 6)) * usdcPrice;
+  const uvbeUSD = Number(formatUnits(uvbeBalRaw, 18)) * uvbePrice;
   const wbtcUSD = Number(formatUnits(wbtcBalRaw, 8)) * btcPrice;
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
-  const totalTreasuryValUSD = usdcUSD + wbtcUSD + wethUSD;
+  const totalTreasuryValUSD = usdcUSD + uvbeUSD + wbtcUSD + wethUSD;
 
   const selectedAssetSymbol = useMemo(() => {
     if (!assetAddress) return 'USDC';
+    if (tokens.UVBE && assetAddress.toLowerCase() === tokens.UVBE.toLowerCase()) return 'UVBE';
     if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return 'cbBTC';
     if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return 'WETH';
     return 'USDC';
@@ -262,6 +275,7 @@ export default function AdminTreasuryPage() {
 
   const selectedAssetDecimals = useMemo(() => {
     if (!assetAddress) return 6;
+    if (tokens.UVBE && assetAddress.toLowerCase() === tokens.UVBE.toLowerCase()) return 18;
     if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return 8;
     if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return 18;
     return 6;
@@ -269,19 +283,21 @@ export default function AdminTreasuryPage() {
 
   const selectedAssetBalRaw = useMemo(() => {
     if (!assetAddress) return usdcBalRaw;
+    if (tokens.UVBE && assetAddress.toLowerCase() === tokens.UVBE.toLowerCase()) return uvbeBalRaw;
     if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return wbtcBalRaw;
     if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return wethBalRaw;
     return usdcBalRaw;
-  }, [assetAddress, tokens, wbtcBalRaw, wethBalRaw, usdcBalRaw]);
+  }, [assetAddress, tokens, uvbeBalRaw, wbtcBalRaw, wethBalRaw, usdcBalRaw]);
 
   const selectedAssetBalFormatted = formatUnits(selectedAssetBalRaw, selectedAssetDecimals);
 
   const selectedAssetPrice = useMemo(() => {
     if (!assetAddress) return usdcPrice;
+    if (tokens.UVBE && assetAddress.toLowerCase() === tokens.UVBE.toLowerCase()) return uvbePrice;
     if (assetAddress.toLowerCase() === tokens.cbBTC?.toLowerCase()) return btcPrice;
     if (assetAddress.toLowerCase() === tokens.WETH?.toLowerCase()) return ethPrice;
     return usdcPrice;
-  }, [assetAddress, tokens, btcPrice, ethPrice, usdcPrice]);
+  }, [assetAddress, tokens, btcPrice, ethPrice, usdcPrice, uvbePrice]);
 
   const estimatedWithdrawUSD = useMemo(() => {
     const amtNum = parseFloat(amount || '0') || 0;
@@ -295,6 +311,48 @@ export default function AdminTreasuryPage() {
     setAmount(val);
   };
 
+  const GOVERNANCE_ROLE_HASH =
+    '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1' as const;
+  const AUTHORIZED_PROTOCOL_ADMIN = '0xd905920c91853039060246Ed5724AA72B91a96DA';
+
+  const { data: isAssetSupported, refetch: refetchIsSupported } = useReadContract({
+    address: treasury,
+    abi: TREASURY_ABI,
+    functionName: 'isSupported',
+    args: assetAddress ? [assetAddress as `0x${string}`] : undefined,
+    query: {
+      enabled: !!treasury && !!assetAddress,
+      staleTime: 5_000,
+    },
+  });
+
+  const { data: hasGovRole } = useReadContract({
+    address: treasury,
+    abi: TREASURY_ABI,
+    functionName: 'hasRole',
+    args: connectedAddress ? [GOVERNANCE_ROLE_HASH, connectedAddress as `0x${string}`] : undefined,
+    query: {
+      enabled: !!treasury && !!connectedAddress,
+      staleTime: 15_000,
+    },
+  });
+
+  const { data: isTreasuryPaused } = useReadContract({
+    address: treasury,
+    abi: TREASURY_ABI,
+    functionName: 'paused',
+    query: {
+      enabled: !!treasury,
+      staleTime: 10_000,
+    },
+  });
+
+  const isAuthorizedGovAdmin = Boolean(
+    connectedAddress &&
+    (connectedAddress.toLowerCase() === AUTHORIZED_PROTOCOL_ADMIN.toLowerCase() ||
+      hasGovRole === true),
+  );
+
   const {
     writeContract,
     data: txHash,
@@ -305,27 +363,51 @@ export default function AdminTreasuryPage() {
     hash: txHash,
   });
 
+  useEffect(() => {
+    if (isTxSuccess) {
+      refetchIsSupported();
+      refetchTreasuryData();
+      fetchTreasuryLogs();
+    }
+  }, [isTxSuccess, refetchIsSupported, refetchTreasuryData, fetchTreasuryLogs]);
+
+  const [regError, setRegError] = useState<string | null>(null);
+
+  const handleRegisterAsset = async () => {
+    setRegError(null);
+    if (!assetAddress || !treasury || !connectedAddress) return;
+
+    if (!isAuthorizedGovAdmin) {
+      setRegError(
+        'Connected wallet is not authorized as Governance Admin (0xd905920c91853039060246Ed5724AA72B91a96DA).',
+      );
+      return;
+    }
+
+    writeContract({
+      address: treasury,
+      abi: TREASURY_ABI,
+      functionName: 'registerAsset',
+      args: [assetAddress as `0x${string}`, selectedAssetDecimals],
+    });
+  };
+
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !recipient ||
-      !amount ||
-      parseFloat(amount) <= 0 ||
-      !treasury ||
-      !connectedAddress ||
-      !publicClient
-    )
+    if (!isAssetSupported) {
+      await handleRegisterAsset();
       return;
+    }
+
+    if (!recipient || !amount || parseFloat(amount) <= 0 || !treasury || !connectedAddress) return;
 
     const amountRaw = parseUnits(amount, selectedAssetDecimals);
-    const nonce = await getTransactionNonce(publicClient, connectedAddress);
 
     writeContract({
       address: treasury,
       abi: TREASURY_ABI,
       functionName: 'withdraw',
       args: [assetAddress as `0x${string}`, recipient as `0x${string}`, amountRaw],
-      nonce,
     });
   };
 
@@ -348,7 +430,10 @@ export default function AdminTreasuryPage() {
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Treasury Revenue & Releases Log
             </h1>
-            <StatusBadge status="Admin" label="GOVERNANCE" />
+            <StatusBadge
+              status={isTreasuryPaused ? 'Paused' : 'Active'}
+              label={isTreasuryPaused ? 'PAUSED' : 'LIVE'}
+            />
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
             Safeguard protocol-owned fee reserves, audit release history, and execute authorized
@@ -389,13 +474,20 @@ export default function AdminTreasuryPage() {
       </div>
 
       {/* Asset Reserves Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="USDC Fee Reserves"
           value={formatUSD(usdcUSD)}
           subtitle={`${formatUnits(usdcBalRaw, 6)} USDC`}
           icon={Vault}
           glowColor="blue"
+        />
+        <StatCard
+          title="UVBE Fee Reserves"
+          value={formatUSD(uvbeUSD)}
+          subtitle={`${Number(formatUnits(uvbeBalRaw, 18)).toFixed(4)} UVBE`}
+          icon={ShieldCheck}
+          glowColor="cyan"
         />
         <StatCard
           title="cbBTC Reserves"
@@ -461,15 +553,20 @@ export default function AdminTreasuryPage() {
                   className="w-full min-h-[48px] pl-10 pr-10 py-3 rounded-xl bg-slate-950/90 border border-border-subtle text-white focus:outline-none focus:border-purple-500/80 focus:ring-2 focus:ring-purple-500/30 font-mono font-bold text-xs appearance-none transition-all cursor-pointer shadow-inner"
                 >
                   <option value={tokens.USDC}>USDC (USD Coin — 6 Decimals)</option>
+                  {tokens.UVBE && (
+                    <option value={tokens.UVBE}>UVBE (Canonical UVBE Token — 18 Decimals)</option>
+                  )}
                   <option value={tokens.cbBTC}>cbBTC (Coinbase Wrapped BTC — 8 Decimals)</option>
                   <option value={tokens.WETH}>WETH (Wrapped Ether — 18 Decimals)</option>
                 </select>
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-xs">
                   {selectedAssetSymbol === 'USDC'
                     ? '💲'
-                    : selectedAssetSymbol === 'cbBTC'
-                      ? '🟠'
-                      : '🔷'}
+                    : selectedAssetSymbol === 'UVBE'
+                      ? '⚡'
+                      : selectedAssetSymbol === 'cbBTC'
+                        ? '🟠'
+                        : '🔷'}
                 </div>
                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
                   ▼
@@ -505,19 +602,22 @@ export default function AdminTreasuryPage() {
             {/* 3. Withdraw Amount */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label className="text-slate-300 font-bold">Withdraw Amount</label>
-                <div className="flex items-center space-x-1">
-                  {[25, 50, 75, 100].map((pct) => (
-                    <button
-                      key={pct}
-                      type="button"
-                      onClick={() => handlePercentageSelect(pct)}
-                      className="px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-purple-500/20 text-[10px] font-mono font-semibold text-slate-300 hover:text-purple-300 border border-slate-700/60 hover:border-purple-500/40 transition-all active:scale-95"
-                    >
-                      {pct === 100 ? 'MAX' : `${pct}%`}
-                    </button>
-                  ))}
-                </div>
+                <label className="text-slate-300 font-bold">Release Amount</label>
+                {isAssetSupported && (
+                  <div className="flex items-center space-x-1">
+                    {[25, 50, 75, 100].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => handlePercentageSelect(pct)}
+                        disabled={Boolean(isTreasuryPaused)}
+                        className="px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-purple-500/20 text-[10px] font-mono font-semibold text-slate-300 hover:text-purple-300 border border-slate-700/60 hover:border-purple-500/40 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {pct === 100 ? 'MAX' : `${pct}%`}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="relative rounded-xl bg-slate-950/90 border border-border-subtle focus-within:border-purple-500/80 focus-within:ring-2 focus-within:ring-purple-500/30 transition-all p-3 shadow-inner">
@@ -528,12 +628,14 @@ export default function AdminTreasuryPage() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-transparent text-xl font-mono font-extrabold text-white placeholder:text-slate-600 focus:outline-none tracking-tight"
+                    disabled={!isAssetSupported || Boolean(isTreasuryPaused)}
+                    className="w-full bg-transparent text-xl font-mono font-extrabold text-white placeholder:text-slate-600 focus:outline-none tracking-tight disabled:opacity-40 disabled:cursor-not-allowed"
                   />
                   <span className="text-xs font-bold text-slate-300 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700/80 shrink-0 font-mono shadow-xs">
                     {selectedAssetSymbol}
                   </span>
                 </div>
+
                 <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-800/60 font-mono">
                   <span>≈ {formatUSD(estimatedWithdrawUSD)}</span>
                   <span>
@@ -543,6 +645,44 @@ export default function AdminTreasuryPage() {
               </div>
             </div>
 
+            {isAssetSupported === false && (
+              <div
+                className={`p-3.5 rounded-xl border text-[11px] leading-relaxed flex items-start space-x-2.5 ${
+                  isAuthorizedGovAdmin
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                }`}
+              >
+                <AlertCircle
+                  className={`w-4 h-4 shrink-0 mt-0.5 ${
+                    isAuthorizedGovAdmin ? 'text-amber-400' : 'text-rose-400'
+                  }`}
+                />
+                <div>
+                  <span className="font-bold">{selectedAssetSymbol} is not yet registered</span> in
+                  the Treasury contract.
+                  {isAuthorizedGovAdmin ? (
+                    <span className="block mt-0.5 text-slate-300">
+                      Click below to register this asset with {selectedAssetDecimals} decimals as
+                      Governance Admin.
+                    </span>
+                  ) : (
+                    <span className="block mt-0.5 text-rose-200">
+                      Only the authorized Governance Admin (0xd905...96DA) can register this asset.
+                      Please connect with the Governance Admin wallet to proceed.
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {regError && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{regError}</span>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
@@ -550,17 +690,39 @@ export default function AdminTreasuryPage() {
                 isWritePending ||
                 isTxWaiting ||
                 !treasury ||
-                !amount ||
-                parseFloat(amount) <= 0 ||
-                !recipient
+                Boolean(isTreasuryPaused) ||
+                (!isAssetSupported && !isAuthorizedGovAdmin) ||
+                (isAssetSupported && (!amount || parseFloat(amount) <= 0 || !recipient))
               }
-              className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.99] font-bold text-white text-xs shadow-glow-purple disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50 mt-2"
+              className={`w-full min-h-[48px] py-3.5 px-4 rounded-xl font-bold text-white text-xs shadow-glow-purple disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-all focus:ring-2 mt-2 ${
+                !isAssetSupported
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 focus:ring-amber-500/50'
+                  : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 focus:ring-purple-500/50 active:scale-[0.99]'
+              }`}
             >
               {isWritePending || isTxWaiting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
                   <span>
-                    {isWritePending ? 'Confirming in Wallet...' : 'Broadcasting Revenue Release...'}
+                    {isWritePending
+                      ? 'Awaiting Wallet Signature...'
+                      : !isAssetSupported
+                        ? 'Registering Asset in Treasury...'
+                        : 'Confirming on Base...'}
+                  </span>
+                </>
+              ) : isTreasuryPaused ? (
+                <>
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Treasury Paused</span>
+                </>
+              ) : !isAssetSupported ? (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>
+                    {isAuthorizedGovAdmin
+                      ? `Register ${selectedAssetSymbol} in Treasury (${selectedAssetDecimals} Decimals)`
+                      : `Requires Governance Admin (0xd905...96DA)`}
                   </span>
                 </>
               ) : (
@@ -572,10 +734,41 @@ export default function AdminTreasuryPage() {
             </button>
           </form>
 
+          {isTxWaiting && txHash && (
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <span>Transaction broadcasted. Awaiting confirmation...</span>
+              </div>
+              <a
+                href={`${explorerBaseUrl}/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              >
+                <span>Basescan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center space-x-2 text-xs font-semibold shadow-lg">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span>Revenue release executed successfully on Base!</span>
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Revenue release executed successfully on Base!</span>
+              </div>
+              {txHash && (
+                <a
+                  href={`${explorerBaseUrl}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                >
+                  <span>Basescan</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
           )}
 

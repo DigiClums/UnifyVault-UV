@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   useAccount,
   useReadContract,
@@ -10,9 +10,8 @@ import {
   usePublicClient,
 } from 'wagmi';
 import { CONTROLLER_ABI, FEE_MANAGER_ABI, PROTOCOL_DIRECTORY_ABI } from '../../../lib/contracts';
-import { MODULE_IDS, getDefaultChainId } from '../../../constants';
+import { MODULE_IDS, getDefaultChainId, getExplorerBaseUrl } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
-import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
@@ -23,12 +22,14 @@ import {
   Loader2,
   ArrowDownLeft,
   ArrowUpRight,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const { address, chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId });
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const {
     directory,
     controller,
@@ -56,7 +57,7 @@ export default function AdminSettingsPage() {
 
   const targetFeeManager = (feeManagerAddress as `0x${string}`) || directoryFeeManager;
 
-  const { data: controllerSettings } = useReadContracts({
+  const { data: controllerSettings, refetch: refetchControllerSettings } = useReadContracts({
     contracts: [
       {
         address: controller,
@@ -102,69 +103,61 @@ export default function AdminSettingsPage() {
     hash: txHash,
   });
 
+  useEffect(() => {
+    if (isTxSuccess) {
+      refetchControllerSettings();
+    }
+  }, [isTxSuccess, refetchControllerSettings]);
+
   const handleUpdateDepositFee = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(depositFeeInput);
-    if (
-      isNaN(parsed) ||
-      parsed < 0 ||
-      parsed > 500 ||
-      !targetFeeManager ||
-      !address ||
-      !publicClient
-    )
-      return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 500 || !targetFeeManager || !address) return;
 
     setActiveAction('depositFee');
-    const nonce = await getTransactionNonce(publicClient, address);
     writeContract({
       address: targetFeeManager,
       abi: FEE_MANAGER_ABI,
       functionName: 'setDepositFeeBps',
       args: [BigInt(parsed)],
-      nonce,
     });
   };
 
   const handleUpdateRedeemFee = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(redeemFeeInput);
-    if (
-      isNaN(parsed) ||
-      parsed < 0 ||
-      parsed > 500 ||
-      !targetFeeManager ||
-      !address ||
-      !publicClient
-    )
-      return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 500 || !targetFeeManager || !address) return;
 
     setActiveAction('redeemFee');
-    const nonce = await getTransactionNonce(publicClient, address);
     writeContract({
       address: targetFeeManager,
       abi: FEE_MANAGER_ABI,
       functionName: 'setRedeemFeeBps',
       args: [BigInt(parsed)],
-      nonce,
     });
   };
 
   const handleUpdateSlippage = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(slippageBps);
-    if (isNaN(parsed) || parsed < 0 || parsed > 10000 || !controller || !address || !publicClient)
-      return;
+    if (isNaN(parsed) || parsed < 0 || parsed > 10000 || !controller || !address) return;
 
     setActiveAction('slippage');
-    const nonce = await getTransactionNonce(publicClient, address);
     writeContract({
       address: controller,
       abi: CONTROLLER_ABI,
       functionName: 'setSwapSlippageBps',
       args: [BigInt(parsed)],
-      nonce,
     });
+  };
+
+  const getFriendlyErrorMessage = (err: unknown): string => {
+    if (!err) return '';
+    console.error('[Developer Logs - Settings Error]:', err);
+    const errorObj = err as { shortMessage?: string; message?: string };
+    if (errorObj.shortMessage) return errorObj.shortMessage;
+    if (errorObj.message) return errorObj.message;
+    return 'Transaction failed or requires Admin Role permission.';
   };
 
   const treasuryShort = treasury
@@ -270,18 +263,56 @@ export default function AdminSettingsPage() {
               )}
               <span>
                 {activeAction === 'depositFee' && isWritePending
-                  ? 'Confirming in Wallet...'
+                  ? 'Awaiting Wallet Signature...'
                   : activeAction === 'depositFee' && isTxWaiting
-                    ? 'Broadcasting Tx...'
+                    ? 'Confirming on Base...'
                     : 'Set Deposit Fee'}
               </span>
             </button>
           </form>
 
+          {activeAction === 'depositFee' && isTxWaiting && txHash && (
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <span>Transaction broadcasted. Awaiting confirmation...</span>
+              </div>
+              <a
+                href={`${explorerBaseUrl}/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              >
+                <span>Basescan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {activeAction === 'depositFee' && isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Deposit fee successfully updated on-chain!</span>
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                <span>Deposit fee successfully updated on-chain!</span>
+              </div>
+              {txHash && (
+                <a
+                  href={`${explorerBaseUrl}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                >
+                  <span>Basescan</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          )}
+
+          {activeAction === 'depositFee' && writeError && (
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{getFriendlyErrorMessage(writeError)}</span>
             </div>
           )}
         </div>
@@ -334,18 +365,56 @@ export default function AdminSettingsPage() {
               )}
               <span>
                 {activeAction === 'redeemFee' && isWritePending
-                  ? 'Confirming in Wallet...'
+                  ? 'Awaiting Wallet Signature...'
                   : activeAction === 'redeemFee' && isTxWaiting
-                    ? 'Broadcasting Tx...'
+                    ? 'Confirming on Base...'
                     : 'Set Redemption Fee'}
               </span>
             </button>
           </form>
 
+          {activeAction === 'redeemFee' && isTxWaiting && txHash && (
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <span>Transaction broadcasted. Awaiting confirmation...</span>
+              </div>
+              <a
+                href={`${explorerBaseUrl}/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              >
+                <span>Basescan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {activeAction === 'redeemFee' && isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center space-x-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Redemption fee successfully updated on-chain!</span>
+            <div className="p-3.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>Redemption fee successfully updated on-chain!</span>
+              </div>
+              {txHash && (
+                <a
+                  href={`${explorerBaseUrl}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 underline font-mono text-purple-300 hover:text-purple-200"
+                >
+                  <span>Basescan</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          )}
+
+          {activeAction === 'redeemFee' && writeError && (
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{getFriendlyErrorMessage(writeError)}</span>
             </div>
           )}
         </div>
@@ -396,25 +465,56 @@ export default function AdminSettingsPage() {
               )}
               <span>
                 {activeAction === 'slippage' && isWritePending
-                  ? 'Confirming in Wallet...'
+                  ? 'Awaiting Wallet Signature...'
                   : activeAction === 'slippage' && isTxWaiting
-                    ? 'Broadcasting Tx...'
+                    ? 'Confirming on Base...'
                     : 'Update Slippage Limit'}
               </span>
             </button>
           </form>
 
-          {activeAction === 'slippage' && isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Slippage limit successfully updated on-chain!</span>
+          {activeAction === 'slippage' && isTxWaiting && txHash && (
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <span>Transaction broadcasted. Awaiting confirmation...</span>
+              </div>
+              <a
+                href={`${explorerBaseUrl}/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              >
+                <span>Basescan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
           )}
 
-          {writeError && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
-              <span>Transaction failed or requires Admin Role permission.</span>
+          {activeAction === 'slippage' && isTxSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>Slippage limit successfully updated on-chain!</span>
+              </div>
+              {txHash && (
+                <a
+                  href={`${explorerBaseUrl}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                >
+                  <span>Basescan</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          )}
+
+          {activeAction === 'slippage' && writeError && (
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{getFriendlyErrorMessage(writeError)}</span>
             </div>
           )}
         </div>

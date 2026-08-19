@@ -12,9 +12,10 @@ import '../libraries/AccessRoles.sol';
 
 /**
  * @title UVBEStakingVault
- * @notice Permanent UVBE staking vault where principal is permanently locked forever
- * @dev Staked UVBE principal mathematically can never leave this contract.
- * There is NO unstake, unlock, withdraw, or recovery function.
+ * @notice Permanent UVBE staking vault and protocol-owned reward capital custodian
+ * @dev Staked UVBE principal (95%) is permanently locked protocol-owned capital backing the reward engine.
+ * Users have ZERO principal withdrawal rights (no unstake, withdraw, or unlock).
+ * Authorized reward payouts are disbursed directly from this protocol-owned capital upon verified distributor calls.
  */
 contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, Pausable {
   using SafeERC20 for IERC20;
@@ -25,7 +26,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
   uint256 public constant BPS_DENOMINATOR = 10_000;
 
   address public immutable override token;
-  address public immutable treasury;
+  address public immutable override treasury;
   address public override registry;
   address public override distributor;
 
@@ -36,6 +37,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
   error BelowMinStake(uint256 provided, uint256 minimum);
   error ExceedsMaxStake(uint256 provided, uint256 maximum);
   error UnauthorizedDistributor(address caller);
+  error InsufficientProtocolCapital(uint256 requested, uint256 available);
   error ModuleAlreadyInitialized();
   error ZeroAddress();
   error ZeroAmount();
@@ -46,7 +48,9 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
   event StakeCreated(
     address indexed user,
     uint256 indexed stakeId,
-    uint256 amount,
+    uint256 grossAmount,
+    uint256 protocolCapital,
+    uint256 treasuryFee,
     address indexed referrer
   );
   event PermanentStakeIncreased(
@@ -55,6 +59,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     uint256 amount,
     bool isRestake
   );
+  event RewardDisbursed(address indexed recipient, uint256 amount, uint256 remainingCapital);
 
   modifier onlyDistributor() {
     if (msg.sender != distributor) revert UnauthorizedDistributor(msg.sender);
@@ -90,7 +95,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
   }
 
   /**
-   * @notice Stakes already-minted UVBE tokens permanently into the vault
+   * @notice Stakes already-minted UVBE tokens permanently into the vault as protocol-owned capital
    * @param amount Gross user stake amount before the 5% admin treasury fee
    * @param referrer Referrer address for new stakers
    */
@@ -115,8 +120,8 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   /**
    * @notice Records permanent stake generated via reward restaking
-   * @dev Called strictly by UVBERewardDistributor after transferring tokens from UVBERewardReserve.
-   * Restaked rewards do not pay the 5% admin treasury fee.
+   * @dev Called strictly by UVBERewardDistributor. Restaked tokens are already in this vault,
+   * so no token transfer is required. Restakes are exempt from the 5% treasury fee.
    */
   function recordRestake(
     address user,
@@ -141,13 +146,35 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     emit PermanentStakeIncreased(user, stakeId, amount, true);
   }
 
+  /**
+   * @notice Disburses verified reward payouts directly to a user from protocol-owned staking capital
+   * @dev Called strictly by UVBERewardDistributor upon claim
+   * @param recipient Target user address
+   * @param amount Reward amount to disburse
+   */
+  function disburseReward(
+    address recipient,
+    uint256 amount
+  ) external override onlyDistributor nonReentrant whenNotPaused {
+    if (recipient == address(0)) revert ZeroAddress();
+    if (amount == 0) revert ZeroAmount();
+
+    uint256 available = IERC20(token).balanceOf(address(this));
+    if (amount > available) revert InsufficientProtocolCapital(amount, available);
+
+    IERC20(token).safeTransfer(recipient, amount);
+    uint256 remaining = available - amount;
+
+    emit RewardDisbursed(recipient, amount, remaining);
+  }
+
   // --- Internal Stake Logic ---
 
   function _executeStake(address user, uint256 amount, address referrer) internal {
     if (amount < MIN_STAKE) revert BelowMinStake(amount, MIN_STAKE);
     if (amount > MAX_STAKE) revert ExceedsMaxStake(amount, MAX_STAKE);
 
-    // 1. Pull the gross stake amount from the user.
+    // 1. Pull the gross stake amount from the user into the vault.
     IERC20(token).safeTransferFrom(user, address(this), amount);
 
     // 2. Send exactly 5% of the gross stake to the admin treasury.
@@ -158,7 +185,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
       emit TreasuryFeeCollected(user, treasury, feeAmount);
     }
 
-    // 3. Only the net 95% becomes permanent protocol staking principal.
+    // 3. The net 95% remains in this vault as permanent protocol-owned staking capital.
     _totalPermanentStaked += principalAmount;
     _permanentStakeOf[user] += principalAmount;
 
@@ -172,13 +199,13 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
       IUVBEReferralRegistry(registry).recordStake(user, principalAmount, referrer, false);
     }
 
-    // 5. Trigger Reward Distributor using the actual permanent principal amount.
+    // 5. Trigger Reward Distributor to allocate commissions and update dynamic rate.
     if (distributor != address(0)) {
       IUVBERewardDistributor(distributor).distributeCommissions(user, principalAmount, false);
     }
 
     if (stakeId == 0) {
-      emit StakeCreated(user, stakeId, principalAmount, referrer);
+      emit StakeCreated(user, stakeId, amount, principalAmount, feeAmount, referrer);
     } else {
       emit PermanentStakeIncreased(user, stakeId, principalAmount, false);
     }
@@ -204,6 +231,20 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   function totalPermanentStaked() external view override returns (uint256) {
     return _totalPermanentStaked;
+  }
+
+  /**
+   * @notice Returns total liquid protocol-owned UVBE held in this vault backing the reward system
+   */
+  function getAvailableProtocolCapital() public view override returns (uint256) {
+    return IERC20(token).balanceOf(address(this));
+  }
+
+  /**
+   * @notice Alias for getAvailableProtocolCapital
+   */
+  function totalProtocolCapital() external view override returns (uint256) {
+    return getAvailableProtocolCapital();
   }
 
   // --- Emergency Controls ---

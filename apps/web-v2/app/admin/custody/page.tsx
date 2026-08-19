@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   useAccount,
+  useReadContract,
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -13,7 +14,6 @@ import { CUSTODY_VAULT_ABI, ORACLE_MANAGER_ABI } from '../../../lib/contracts';
 import { getChainTokens, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../../lib/math';
-import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -184,8 +184,19 @@ export default function AdminCustodyPage() {
     };
   }, [vault, publicClient, fetchCustodyLogs]);
 
+  // Read CustodyVault paused status
+  const { data: isVaultPaused } = useReadContract({
+    address: vault,
+    abi: CUSTODY_VAULT_ABI,
+    functionName: 'paused',
+    query: {
+      enabled: !!vault,
+      staleTime: 10_000,
+    },
+  });
+
   // Read CustodyVault collateral balances & Oracle asset prices
-  const { data: vaultData } = useReadContracts({
+  const { data: vaultData, refetch: refetchVaultData } = useReadContracts({
     contracts: [
       {
         address: vault,
@@ -275,27 +286,24 @@ export default function AdminCustodyPage() {
     hash: txHash,
   });
 
+  useEffect(() => {
+    if (isTxSuccess) {
+      refetchVaultData();
+      fetchCustodyLogs();
+    }
+  }, [isTxSuccess, refetchVaultData, fetchCustodyLogs]);
+
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !recipient ||
-      !amount ||
-      parseFloat(amount) <= 0 ||
-      !vault ||
-      !connectedAddress ||
-      !publicClient
-    )
-      return;
+    if (!recipient || !amount || parseFloat(amount) <= 0 || !vault || !connectedAddress) return;
 
     const amountRaw = parseUnits(amount, selectedAssetDecimals);
-    const nonce = await getTransactionNonce(publicClient, connectedAddress);
 
     writeContract({
       address: vault,
       abi: CUSTODY_VAULT_ABI,
       functionName: 'withdraw',
       args: [assetAddress as `0x${string}`, recipient as `0x${string}`, amountRaw],
-      nonce,
     });
   };
 
@@ -313,6 +321,9 @@ export default function AdminCustodyPage() {
   const getFriendlyErrorMessage = (err: unknown): string => {
     if (!err) return '';
     console.error('[Developer Logs - CustodyVault Error]:', err);
+    const errorObj = err as { shortMessage?: string; message?: string };
+    if (errorObj.shortMessage) return errorObj.shortMessage;
+    if (errorObj.message) return errorObj.message;
     return 'CustodyVault withdrawal failed. Ensure connected account holds authorized Admin/Governance Role and contract reserves are sufficient.';
   };
 
@@ -327,7 +338,10 @@ export default function AdminCustodyPage() {
             <h1 className="text-2xl font-bold text-white tracking-tight">
               CustodyVault Admin Wallet Release
             </h1>
-            <StatusBadge status="Admin" label="GOVERNANCE" />
+            <StatusBadge
+              status={isVaultPaused ? 'Paused' : 'Active'}
+              label={isVaultPaused ? 'PAUSED' : 'LIVE'}
+            />
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
             Directly release custodied vault reserve assets into authorized admin/governance wallet
@@ -409,6 +423,18 @@ export default function AdminCustodyPage() {
             </span>
           </div>
 
+          {isVaultPaused && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-start space-x-2.5 text-xs">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">CustodyVault is currently PAUSED.</span>
+                <span className="block text-slate-300 mt-0.5">
+                  State-mutating withdrawals are suspended by Guardian/Governance on-chain.
+                </span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleWithdraw} className="space-y-4 text-xs">
             <div>
               <div className="flex justify-between items-center mb-1">
@@ -421,7 +447,8 @@ export default function AdminCustodyPage() {
               <select
                 value={assetAddress}
                 onChange={(e) => setAssetAddress(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono"
+                disabled={Boolean(isVaultPaused)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono disabled:opacity-50"
               >
                 <option value={tokens.USDC}>USDC (USD Coin - 6 Decimals)</option>
                 <option value={tokens.cbBTC}>cbBTC (Coinbase Wrapped BTC - 8 Decimals)</option>
@@ -438,7 +465,8 @@ export default function AdminCustodyPage() {
                   <button
                     type="button"
                     onClick={handleUseMyWallet}
-                    className="text-[11px] font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center space-x-1"
+                    disabled={Boolean(isVaultPaused)}
+                    className="text-[11px] font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center space-x-1 disabled:opacity-50"
                   >
                     <Wallet className="w-3 h-3" />
                     <span>Use Connected Wallet</span>
@@ -450,7 +478,8 @@ export default function AdminCustodyPage() {
                 placeholder="0x..."
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                disabled={Boolean(isVaultPaused)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
               />
             </div>
 
@@ -460,7 +489,8 @@ export default function AdminCustodyPage() {
                 <button
                   type="button"
                   onClick={handleSetMaxAmount}
-                  className="text-[11px] font-bold text-purple-400 hover:text-purple-300 transition-colors uppercase tracking-wider"
+                  disabled={Boolean(isVaultPaused)}
+                  className="text-[11px] font-bold text-purple-400 hover:text-purple-300 transition-colors uppercase tracking-wider disabled:opacity-50"
                 >
                   [ MAX ]
                 </button>
@@ -471,36 +501,70 @@ export default function AdminCustodyPage() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                disabled={Boolean(isVaultPaused)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
-              disabled={isWritePending || isTxWaiting || !vault}
-              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50"
+              disabled={isWritePending || isTxWaiting || !vault || Boolean(isVaultPaused)}
+              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-purple-500/50 disabled:cursor-not-allowed"
             >
               {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>
                 {isWritePending
-                  ? 'Confirming in Wallet...'
+                  ? 'Awaiting Wallet Signature...'
                   : isTxWaiting
-                    ? 'Broadcasting Tx...'
-                    : 'Withdraw Custody Funds'}
+                    ? 'Confirming on Base...'
+                    : isVaultPaused
+                      ? 'CustodyVault Paused'
+                      : 'Withdraw Custody Funds'}
               </span>
             </button>
           </form>
 
+          {isTxWaiting && txHash && (
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <span>Transaction broadcasted. Awaiting block confirmation...</span>
+              </div>
+              <a
+                href={`${explorerBaseUrl}/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              >
+                <span>Basescan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>CustodyVault funds successfully withdrawn to wallet on Base Mainnet!</span>
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>CustodyVault funds successfully withdrawn to wallet on Base!</span>
+              </div>
+              {txHash && (
+                <a
+                  href={`${explorerBaseUrl}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                >
+                  <span>Basescan</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
           )}
 
           {writeError && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{getFriendlyErrorMessage(writeError)}</span>
             </div>
           )}

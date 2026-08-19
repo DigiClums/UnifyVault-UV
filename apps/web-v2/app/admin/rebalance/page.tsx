@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   useAccount,
   useReadContract,
@@ -8,10 +8,9 @@ import {
   useWaitForTransactionReceipt,
   usePublicClient,
 } from 'wagmi';
-import { getTransactionNonce } from '../../../lib/utils/getTransactionNonce';
 import { usePortfolio } from '../../../hooks/usePortfolio';
 import { STRATEGY_MANAGER_ABI, CONTROLLER_ABI } from '../../../lib/contracts';
-import { getChainTokens, getDefaultChainId } from '../../../constants';
+import { getChainTokens, getDefaultChainId, getExplorerBaseUrl } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -26,12 +25,14 @@ import {
   Sliders,
   Loader2,
   AlertCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AdminRebalancePage() {
   const { address, chain } = useAccount();
   const chainId = chain?.id || getDefaultChainId();
   const publicClient = usePublicClient({ chainId });
+  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
   const tokens = getChainTokens(chain?.id);
   const { holdings } = usePortfolio();
   const { controller, strategyManager } = useProtocolDirectory();
@@ -104,11 +105,15 @@ export default function AdminRebalancePage() {
     hash: txHash,
   });
 
+  useEffect(() => {
+    if (isTxSuccess) {
+      refetchWeights();
+    }
+  }, [isTxSuccess, refetchWeights]);
+
   const handleUpdateWeights = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeStrategyManager || !isValidBps || !address || !publicClient) return;
-
-    const nonce = await getTransactionNonce(publicClient, address);
+    if (!activeStrategyManager || !isValidBps || !address) return;
 
     writeContract({
       address: activeStrategyManager,
@@ -118,7 +123,6 @@ export default function AdminRebalancePage() {
         [tokens.cbBTC, tokens.WETH],
         [BigInt(wbtcBpsVal), BigInt(wethBpsVal)],
       ],
-      nonce,
     });
   };
 
@@ -288,24 +292,55 @@ export default function AdminRebalancePage() {
               {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>
                 {isWritePending
-                  ? 'Confirming in Wallet...'
+                  ? 'Awaiting Wallet Signature...'
                   : isTxWaiting
-                    ? 'Broadcasting Tx...'
+                    ? 'Confirming on Base...'
                     : 'Update Strategy Target Weights'}
               </span>
             </button>
           </form>
 
+          {isTxWaiting && txHash && (
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <span>Transaction broadcasted. Awaiting block confirmation...</span>
+              </div>
+              <a
+                href={`${explorerBaseUrl}/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              >
+                <span>Basescan</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-2 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Strategy target weights updated successfully on StrategyManager!</span>
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                <span>Strategy target weights updated successfully on Base!</span>
+              </div>
+              {txHash && (
+                <a
+                  href={`${explorerBaseUrl}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                >
+                  <span>Basescan</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
           )}
 
           {writeError && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center space-x-2 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
               <span>{getFriendlyErrorMessage(writeError)}</span>
             </div>
           )}

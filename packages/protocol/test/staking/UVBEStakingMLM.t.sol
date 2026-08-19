@@ -139,11 +139,20 @@ contract UVBEStakingMLMTest is Test {
     vm.prank(alice);
     vault.stake(1_000 * 1e18, genesis);
 
-    // 2. Eve stakes 500 UVBE gross (475 net) under Alice -> Alice now has 1 active direct (Eve >= 50)
+    // 2. Eve stakes 500 UVBE gross (475 net) under Alice -> Alice now has 1 active direct (Eve >= 47.5)
     vm.prank(eve);
     vault.stake(500 * 1e18, alice);
 
-    // 3. Bob stakes 1,000 UVBE gross (950 net) under Alice -> Alice now has 2 active directs (Qualifies for Gen 2 & 3!)
+    // 2b. Frank (admin-minted) stakes 500 UVBE gross (475 net) under Alice -> Alice now has 2 active directs
+    address frank = address(0xF6);
+    vm.prank(admin);
+    token.mint(frank, 10_000 * 1e18);
+    vm.prank(frank);
+    token.approve(address(vault), type(uint256).max);
+    vm.prank(frank);
+    vault.stake(500 * 1e18, alice);
+
+    // 3. Bob stakes 1,000 UVBE gross (950 net) under Alice -> Alice now has 3 active directs (Qualifies for Gen 2 & 3!)
     vm.prank(bob);
     vault.stake(1_000 * 1e18, alice);
 
@@ -167,14 +176,15 @@ contract UVBEStakingMLMTest is Test {
     (, , uint256 bobGen, , , , , ) = distributor.getDetailedRewardInfo(bob);
     assertEq(bobGen, 0); // Correct! Anti-Sybil qualification strictly enforced
 
-    // Alice has 2 active directs (Bob and Eve):
+    // Alice has 3 active directs (Eve, Frank, Bob):
     // - Gen 1 from Eve: 5% of 475 = 23.75 UVBE (Direct)
+    // - Gen 1 from Frank: 5% of 475 = 23.75 UVBE (Direct)
     // - Gen 1 from Bob: 5% of 950 = 47.50 UVBE (Direct)
     // - Gen 2 from Charlie: 2% of 950 = 19.00 UVBE (Gen 2)
     // - Gen 3 from David: 1.5% of 1900 = 28.50 UVBE (Gen 3)
-    uint256 expectedAliceDirect = ((475 + 950) * 1e18 * 500) / 10_000; // 71.25 UVBE
+    uint256 expectedAliceDirect = ((475 + 475 + 950) * 1e18 * 500) / 10_000; // 95.00 UVBE
     uint256 expectedAliceGen = (950 * 1e18 * 200) / 10_000 + (1_900 * 1e18 * 150) / 10_000; // 47.50 UVBE
-    uint256 expectedAliceTotal = expectedAliceDirect + expectedAliceGen; // 118.75 UVBE
+    uint256 expectedAliceTotal = expectedAliceDirect + expectedAliceGen; // 142.50 UVBE
 
     (, uint256 aliceDirect, uint256 aliceGen, , , uint256 aliceTotal, , ) = distributor
       .getDetailedRewardInfo(alice);

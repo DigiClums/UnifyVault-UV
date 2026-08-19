@@ -75,8 +75,9 @@ contract GasTreasury is Ownable {
   function refillPaymaster(uint256 amount) external onlyOperatorOrOwner whenNotPaused {
     if (paymaster == address(0)) revert InvalidPaymaster();
     if (amount > maxRefillPerTx) revert ExceedsMaxRefillPerTx(amount, maxRefillPerTx);
-    if (address(this).balance < amount)
+    if (address(this).balance < amount) {
       revert InsufficientTreasuryBalance(amount, address(this).balance);
+    }
 
     // Update 24h rolling limit
     if (block.timestamp >= currentDayWindowStart + 1 days) {

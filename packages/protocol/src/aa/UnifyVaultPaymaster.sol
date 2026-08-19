@@ -245,8 +245,9 @@ contract UnifyVaultPaymaster is IPaymasterV07, Ownable {
         if (!approvedTargets[dests[i]]) revert InvalidTarget(dests[i]);
 
         bytes4 funcSelector = bytes4(funcs[i]);
-        if (!approvedSelectors[dests[i]][funcSelector])
+        if (!approvedSelectors[dests[i]][funcSelector]) {
           revert InvalidSelector(dests[i], funcSelector);
+        }
       }
 
       // Check exact allowance matching if batch is Approve + Deposit

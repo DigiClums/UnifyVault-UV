@@ -16,24 +16,31 @@ contract RevertingCBM is ICostBasisManagerV2 {
   function recordDeposit(address, uint256, uint256) external override {}
   function recordRedeem(address, uint256, uint256, uint256) external override {}
   function migrateAccounting(address, uint256, int256, uint256) external override {}
+
   function costBasis(address) external pure override returns (uint256) {
     return 0;
   }
+
   function averageEntryPrice(address) external pure override returns (uint256) {
     return 0;
   }
+
   function realizedPnL(address) external pure override returns (int256) {
     return 0;
   }
+
   function unrealizedPnL(address) external pure override returns (int256) {
     return 0;
   }
+
   function firstDepositTimestamp(address) external pure override returns (uint256) {
     return 0;
   }
+
   function isEscrow(address) external pure override returns (bool) {
     return false;
   }
+
   function indexToken() external pure override returns (address) {
     return address(0);
   }

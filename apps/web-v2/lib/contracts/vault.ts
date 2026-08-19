@@ -62,6 +62,13 @@ export const CUSTODY_VAULT_ABI = [
     type: 'function',
   },
   {
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     anonymous: false,
     inputs: [
       { indexed: true, name: 'asset', type: 'address' },

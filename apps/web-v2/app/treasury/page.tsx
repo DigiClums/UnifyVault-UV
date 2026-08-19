@@ -86,7 +86,9 @@ export default function PublicTreasuryPage() {
 
         const assetAddr = (args.asset as string)?.toLowerCase() || '';
 
-        if (assetAddr === tokens.cbBTC.toLowerCase()) {
+        if (assetAddr === tokens.UVBE?.toLowerCase()) {
+          assetSymbol = 'UVBE';
+        } else if (assetAddr === tokens.cbBTC.toLowerCase()) {
           assetSymbol = 'cbBTC';
         } else if (assetAddr === tokens.WETH.toLowerCase()) {
           assetSymbol = 'WETH';
@@ -94,7 +96,8 @@ export default function PublicTreasuryPage() {
           assetSymbol = 'USDC';
         }
 
-        const decimals = assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' ? 18 : 6;
+        const decimals =
+          assetSymbol === 'cbBTC' ? 8 : assetSymbol === 'WETH' || assetSymbol === 'UVBE' ? 18 : 6;
 
         if (eventName === 'TreasuryWithdrawal') {
           rec = (args.recipient as `0x${string}`) || rec;
@@ -173,6 +176,12 @@ export default function PublicTreasuryPage() {
         address: treasury,
         abi: TREASURY_ABI,
         functionName: 'totalAssetBalance',
+        args: [tokens.UVBE || '0x0000000000000000000000000000000000000000'],
+      },
+      {
+        address: treasury,
+        abi: TREASURY_ABI,
+        functionName: 'totalAssetBalance',
         args: [tokens.cbBTC],
       },
       {
@@ -218,25 +227,28 @@ export default function PublicTreasuryPage() {
   });
 
   const usdcBalRaw = (data?.[0]?.result as bigint) || 0n;
-  const wbtcBalRaw = (data?.[1]?.result as bigint) || 0n;
-  const wethBalRaw = (data?.[2]?.result as bigint) || 0n;
+  const uvbeBalRaw = (data?.[1]?.result as bigint) || 0n;
+  const wbtcBalRaw = (data?.[2]?.result as bigint) || 0n;
+  const wethBalRaw = (data?.[3]?.result as bigint) || 0n;
 
-  const depositFeeBps = (data?.[3]?.result as bigint) || 25n;
-  const redeemFeeBps = (data?.[4]?.result as bigint) || 200n;
+  const depositFeeBps = (data?.[4]?.result as bigint) || 25n;
+  const redeemFeeBps = (data?.[5]?.result as bigint) || 200n;
 
-  const btcPriceRaw = (data?.[5]?.result as bigint) || 0n;
-  const ethPriceRaw = (data?.[6]?.result as bigint) || 0n;
-  const usdcPriceRaw = (data?.[7]?.result as bigint) || 0n;
+  const btcPriceRaw = (data?.[6]?.result as bigint) || 0n;
+  const ethPriceRaw = (data?.[7]?.result as bigint) || 0n;
+  const usdcPriceRaw = (data?.[8]?.result as bigint) || 0n;
 
   const usdcBalFormatted = formatUnits(usdcBalRaw, 6);
   const btcPrice = Number(formatUnits(btcPriceRaw, 18));
   const ethPrice = Number(formatUnits(ethPriceRaw, 18));
   const usdcPrice = Number(formatUnits(usdcPriceRaw, 18));
+  const uvbePrice = 1.0;
 
   const usdcUSD = Number(usdcBalFormatted) * usdcPrice;
+  const uvbeUSD = Number(formatUnits(uvbeBalRaw, 18)) * uvbePrice;
   const wbtcUSD = Number(formatUnits(wbtcBalRaw, 8)) * btcPrice;
   const wethUSD = Number(formatUnits(wethBalRaw, 18)) * ethPrice;
-  const totalTreasuryUSD = usdcUSD + wbtcUSD + wethUSD;
+  const totalTreasuryUSD = usdcUSD + uvbeUSD + wbtcUSD + wethUSD;
 
   const treasuryShort = treasury
     ? `${treasury.slice(0, 6)}...${treasury.slice(-4)}`
@@ -252,6 +264,14 @@ export default function PublicTreasuryPage() {
         usdValue: usdcUSD,
         iconBg: 'bg-[#BFFF00]/10 border-[#BFFF00]/25 text-[#5f8f00] dark:text-[#BFFF00]',
         iconLabel: 'USD',
+      },
+      {
+        symbol: 'UVBE',
+        balanceRaw: uvbeBalRaw,
+        balanceFormatted: `${Number(formatUnits(uvbeBalRaw, 18)).toFixed(4)} UVBE`,
+        usdValue: uvbeUSD,
+        iconBg: 'bg-[#BFFF00]/10 border-[#BFFF00]/25 text-[#5f8f00] dark:text-[#BFFF00]',
+        iconLabel: 'UVBE',
       },
       {
         symbol: 'cbBTC',
@@ -270,7 +290,7 @@ export default function PublicTreasuryPage() {
         iconLabel: 'ETH',
       },
     ];
-  }, [usdcBalRaw, wbtcBalRaw, wethBalRaw, usdcUSD, wbtcUSD, wethUSD]);
+  }, [usdcBalRaw, uvbeBalRaw, wbtcBalRaw, wethBalRaw, usdcUSD, uvbeUSD, wbtcUSD, wethUSD]);
 
   const secondsAgoStr = lastSyncTime
     ? `${Math.max(0, Math.floor((Date.now() - lastSyncTime.getTime()) / 1000))}s ago`

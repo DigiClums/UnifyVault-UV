@@ -13,6 +13,7 @@ export const STAKING_VAULT_ABI = parseAbi([
   'function registry() external view returns (address)',
   'function distributor() external view returns (address)',
   'function paused() external view returns (bool)',
+  'function hasRole(bytes32 role, address account) external view returns (bool)',
   'function totalPermanentStaked() external view returns (uint256)',
   'function getPermanentStake(address user) external view returns (uint256)',
   'function getAvailableProtocolCapital() external view returns (uint256)',
@@ -75,6 +76,7 @@ export const REWARD_DISTRIBUTOR_ABI = parseAbi([
   'function BPS_DENOMINATOR() external view returns (uint256)',
   'function MAX_RECURRING_ANNUAL_BPS() external pure returns (uint256)',
   'function getCurrentAnnualBps() external view returns (uint256)',
+  'function currentAnnualBps() external view returns (uint256)',
   'function getRewardCapacity() external view returns (uint256 availableCapital, uint256 liabilities, uint256 surplusCapacity, uint256 currentBps)',
   'function SECONDS_PER_YEAR() external view returns (uint256)',
   'function DAO_POOL_BPS() external view returns (uint256)',
@@ -83,9 +85,11 @@ export const REWARD_DISTRIBUTOR_ABI = parseAbi([
   'function vault() external view returns (address)',
   'function registry() external view returns (address)',
   'function paused() external view returns (bool)',
+  'function hasRole(bytes32 role, address account) external view returns (bool)',
   'function totalOutstandingLiabilities() external view returns (uint256)',
   'function totalRewardPaid() external view returns (uint256)',
   'function currentDaoEpochId() external view returns (uint256)',
+  'function getDaoEpoch(uint256 epochId) external view returns ((uint256 epochId, uint256 poolAmount, uint256 totalShares, uint256 startTime, uint256 endTime, bool isFinalized))',
   'function rewardIndex() external view returns (uint256)',
   'function lastUpdateTimestamp() external view returns (uint256)',
 
@@ -122,3 +126,25 @@ export const REWARD_DISTRIBUTOR_ABI = parseAbi([
   'event DynamicRateUpdated(uint256 oldBps, uint256 newBps, uint256 surplusCapacity, uint256 totalStaked)',
   'event GlobalRewardAccrued(uint256 amount, uint256 newRewardIndex, uint256 annualBps)',
 ]);
+
+export interface DaoEpoch {
+  epochId: bigint;
+  poolAmount: bigint;
+  totalShares: bigint;
+  startTime: bigint;
+  endTime: bigint;
+  isFinalized: boolean;
+}
+
+export interface RewardCapacity {
+  availableCapital: bigint;
+  liabilities: bigint;
+  surplusCapacity: bigint;
+  currentBps: bigint;
+}
+
+export interface DaoLeaderShares {
+  leaders: `0x${string}`[];
+  shares: bigint[];
+  totalShares: bigint;
+}
