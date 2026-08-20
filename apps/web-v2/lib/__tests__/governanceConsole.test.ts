@@ -35,8 +35,8 @@ import {
 import { decodeTransactionError } from '../utils/errorDecoder';
 
 describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
-  const MOCK_ADMIN_WALLET = '0xd905920c91853039060246Ed5724AA72B91a96DA' as `0x${string}`;
-  const MOCK_TARGET_CONTRACT = '0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0' as `0x${string}`;
+  const MOCK_ADMIN_WALLET = '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`;
+  const MOCK_TARGET_CONTRACT = '0x27B5C6DEA90678B78856b0B10DBA37A789fDe97e' as `0x${string}`;
   const MOCK_USER_ACCOUNT = '0x1111111111111111111111111111111111111111' as `0x${string}`;
 
   describe('1. Canonical Constants & Deployed Address Integrity', () => {
@@ -45,7 +45,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
         DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase(),
       );
       expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase()).toBe(
-        '0x8040006d6907a84911aac0a9ac08278311b156e2',
+        '0xd2715141a0f5998b707baa963990bfc2e94cf145',
       );
     });
 
@@ -60,7 +60,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
 
     it('verifies UnifyVaultController canonical Sepolia address matches deployment', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController.toLowerCase()).toBe(
-        '0x7dc190a0bfa08c9596dfdc20e602821619e776ea',
+        '0x07f3d3432b64dbf67c5b061af2bc8aef70221cea',
       );
     });
   });

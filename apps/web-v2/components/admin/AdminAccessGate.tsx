@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAdminAccess } from '../../hooks/useAdminAccess';
-import { ShieldAlert, Lock, Wallet, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, Lock, Wallet, ArrowLeft, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
@@ -58,17 +58,38 @@ export function AdminAccessGate({ children }: AdminAccessGateProps) {
           </p>
         </div>
 
+        {/* Quick Route to Deployment Runner */}
+        <div className="p-4 rounded-2xl bg-[#BFFF00]/10 border-2 border-[#BFFF00]/30 text-left max-w-md w-full space-y-2">
+          <div className="flex items-center space-x-2 text-foreground font-bold text-xs">
+            <Rocket className="w-4 h-4 text-[#BFFF00]" />
+            <span>Deploying the Protocol?</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            If you are currently deploying or replaying transactions on Base Sepolia, access the
+            unrestricted browser deployment runner directly:
+          </p>
+          <div className="pt-1">
+            <Link
+              href="/deploy"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#BFFF00] text-black font-black text-xs hover:bg-[#d0ff66] transition-all shadow-[2px_2px_0_#000]"
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              <span>Open Deployment Runner (/deploy)</span>
+            </Link>
+          </div>
+        </div>
+
         <div className="p-4 rounded-xl bg-surface border border-border-subtle text-left max-w-md w-full space-y-2 text-xs">
           <div className="flex items-center space-x-2 text-foreground font-semibold">
             <Lock className="w-4 h-4 text-purple-400" />
             <span>On-Chain Role Verification Status:</span>
           </div>
           <ul className="list-disc list-inside text-muted-foreground space-y-1 text-[11px]">
-            <li>DEFAULT_ADMIN_ROLE: ❌ Not Granted</li>
+            <li>DEFAULT_ADMIN_ROLE: ❌ Not Granted (Assigned during Phase 7 of deployment)</li>
           </ul>
         </div>
 
-        <div className="pt-2 flex items-center space-x-3">
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/"
             className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-surface border border-border-subtle text-muted-foreground hover:text-foreground text-xs font-semibold"

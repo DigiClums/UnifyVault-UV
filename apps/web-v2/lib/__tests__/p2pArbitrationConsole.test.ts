@@ -30,7 +30,7 @@ describe('P2P Arbitration Console Test Suite', () => {
   describe('1. Exact Deployed Escrow Address Verification', () => {
     it('verifies exact Base Sepolia P2PEscrow deployment address', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow.toLowerCase()).toBe(
-        '0xd2a5489618759a6c8ca07163acdc845cf7d104bb',
+        '0xbac9c1b440adf74688abbd5be950abd2766e5b7b',
       );
     });
 

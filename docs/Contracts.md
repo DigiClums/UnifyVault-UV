@@ -244,20 +244,20 @@ Inherits OpenZeppelin `TimelockController` to enforce a 48-hour delay on governa
 
 | Contract Module             | Canonical Address                            |
 | :-------------------------- | :------------------------------------------- |
-| **ProtocolDirectory**       | `0x8040006d6907a84911aaC0a9aC08278311B156e2` |
-| **Treasury**                | `0xB8c8113a042f39936dD966A5983fAaE2bF7b7290` |
-| **FeeManager**              | `0x07f8BD7DAf5002C3C62B3c1280e9258AbBEfA2f1` |
-| **CustodyVault**            | `0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0` |
-| **OracleManager**           | `0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF` |
-| **ChainlinkOracleProvider** | `0xCF46A80BbF2e92c16f7e1953F9AC73935340f69B` |
-| **LiquidityManager**        | `0xd1DCd311ACD1176E35823360652FCb356a7F227F` |
-| **UVBEV2 (UVBEToken)**      | `0x006c5DF13C716E5224b33956651C4356BB90DEc0` |
-| **UnifyVaultController**    | `0x424F3D9874BD97dDFDc9C267498dc4E8769B13ec` |
-| **StrategyManager**         | `0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb` |
-| **PortfolioManager**        | `0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b` |
-| **SwapAdapter**             | `0xbc97337dE85654aCD96182C93841f21168da65B4` |
-| **CostBasisManagerV2**      | `0x57869372AFbd7b61752f2f8d3e7F37701e28517B` |
-| **PerformanceManager**      | `0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6` |
-| **P2PEscrowV2**             | `0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb` |
+| **ProtocolDirectory**       | `0xD2715141a0F5998B707BaA963990bFC2E94cF145` |
+| **Treasury**                | `0x66182F56BD5E523c655f6890290aB519f528e83f` |
+| **FeeManager**              | `0x0721465B01b586B7AAdF957A4a884acE46CfbEc9` |
+| **CustodyVault**            | `0x27B5C6DEA90678B78856b0B10DBA37A789fDe97e` |
+| **OracleManager**           | `0x5B6067982C6ccE2DC760EB4731c1b40136776D4A` |
+| **ChainlinkOracleProvider** | `0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a` |
+| **LiquidityManager**        | `0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329` |
+| **UVBEV2 (UVBEToken)**      | `0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE` |
+| **UnifyVaultController**    | `0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea` |
+| **StrategyManager**         | `0x14058459198a2CfFc8cE89C364334a80Da82D6a3` |
+| **PortfolioManager**        | `0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4` |
+| **SwapAdapter**             | `0xCb1a434c5ebe2F2F8672Ca507Ee819C6888ae634` |
+| **CostBasisManagerV2**      | `0xF71706A2Fd8692e3C739855B2A33C0E679b4c382` |
+| **PerformanceManager**      | `0x133fD024EA635694A223e66B936c2afAB4F2DB78` |
+| **P2PEscrowV2**             | `0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b` |
 | **Marketplace**             | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` |
 | **TimelockController**      | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |

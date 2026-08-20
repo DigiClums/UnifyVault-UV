@@ -22,7 +22,7 @@ interface VmExt {
 contract BaseSepoliaDynamicStakingIntegrationTest is Test {
   VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
 
-  // Live Base Sepolia Addresses
+  // Live Base Sepolia Addresses (Historical Staking Deployment)
   address public constant UVBE = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
   address public constant REWARD_RESERVE = 0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda;
   address public constant STAKING_VAULT = 0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4;

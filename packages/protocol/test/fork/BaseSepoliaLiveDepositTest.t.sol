@@ -4,8 +4,10 @@ pragma solidity 0.8.24;
 import { Test, console } from 'forge-std/Test.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { UnifyVaultController } from '../../src/controller/UnifyVaultController.sol';
-import { UVBTCETHToken } from '../../src/token/UVBTCETHToken.sol';
+import { UVBEV2 } from '../../src/token/UVBEV2.sol';
 import { PortfolioManager } from '../../src/strategy/PortfolioManager.sol';
+import { ProtocolDirectory } from '../../src/ProtocolDirectory.sol';
+import { ModuleIds } from '../../src/constants/ModuleIds.sol';
 import { Errors } from '../../src/errors/Errors.sol';
 
 interface VmExt {
@@ -16,21 +18,27 @@ interface VmExt {
 contract BaseSepoliaLiveDepositTest is Test {
   VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
 
+  address public constant DIRECTORY = 0xD2715141a0F5998B707BaA963990bFC2E94cF145;
   address public constant SEPOLIA_USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
   address public constant SEPOLIA_CBBTC = 0xB0B47F113Bcab2b0e49fD5d3Bd2CC0e9Aa408b29;
   address public constant SEPOLIA_WETH = 0xd116ab1c943cf15904eC4c8dd701086f175FA323;
-
-  address public constant CONTROLLER = 0xC99868355790A58A737a4841B963CB32030DdBab;
-  address public constant TOKEN = 0x5c0C26A825639adc58C6edf3aE864616F1dA94b9;
-  address public constant PORTFOLIO_MANAGER = 0x5d597C08F5f2B2A7870b081dC741A776Ed730601;
   address public constant TEST_SWAP_ROUTER = 0x63f3432b1ca616bb8fdF46058e6d855262C195f7;
 
+  ProtocolDirectory public dir;
+  address public controller;
+  address public token;
+  address public portfolioManager;
   address public newWallet;
 
   function setUp() public {
     // Select Base Sepolia RPC fork
     string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
     vmExt.createSelectFork(rpcUrl);
+
+    dir = ProtocolDirectory(DIRECTORY);
+    controller = dir.getAddress(ModuleIds.DEPOSIT_MANAGER);
+    token = dir.getAddress(ModuleIds.TOKEN);
+    portfolioManager = dir.getAddress(ModuleIds.PORTFOLIO_MANAGER);
 
     // Create fresh brand new wallet
     newWallet = address(0x9999999999999999999999999999999999999999);
@@ -46,11 +54,11 @@ contract BaseSepoliaLiveDepositTest is Test {
     deal(SEPOLIA_USDC, newWallet, depositAmount);
 
     vm.startPrank(newWallet);
-    IERC20(SEPOLIA_USDC).approve(CONTROLLER, depositAmount);
+    IERC20(SEPOLIA_USDC).approve(controller, depositAmount);
 
     // UnifyVaultController now has post-swap realized USD validation against _swapSlippageBps.
     // Setting swapSlippageBps to 0 (0% slippage allowed) or requiring strict output validates the gate.
-    UnifyVaultController(CONTROLLER).deposit(SEPOLIA_USDC, depositAmount, 0, newWallet);
+    UnifyVaultController(controller).deposit(SEPOLIA_USDC, depositAmount, 0, newWallet);
     vm.stopPrank();
 
     console.log('[PASS] Post-swap output validation gate verified on live Base Sepolia RPC');
@@ -66,13 +74,13 @@ contract BaseSepoliaLiveDepositTest is Test {
     deal(SEPOLIA_CBBTC, TEST_SWAP_ROUTER, 100_000_000); // 1 cbBTC
     deal(SEPOLIA_WETH, TEST_SWAP_ROUTER, 10 ether); // 10 WETH
 
-    uint256 sharesBefore = IERC20(TOKEN).balanceOf(newWallet);
+    uint256 sharesBefore = IERC20(token).balanceOf(newWallet);
     assertEq(sharesBefore, 0, 'New wallet must start with 0 shares');
 
     vm.startPrank(newWallet);
-    IERC20(SEPOLIA_USDC).approve(CONTROLLER, depositAmount);
+    IERC20(SEPOLIA_USDC).approve(controller, depositAmount);
 
-    UnifyVaultController.DepositQuote memory quote = UnifyVaultController(CONTROLLER).deposit(
+    UnifyVaultController.DepositQuote memory quote = UnifyVaultController(controller).deposit(
       SEPOLIA_USDC,
       depositAmount,
       0,
@@ -80,8 +88,8 @@ contract BaseSepoliaLiveDepositTest is Test {
     );
     vm.stopPrank();
 
-    uint256 sharesAfter = IERC20(TOKEN).balanceOf(newWallet);
-    (uint256 totalValUSD, uint256 navPerShare) = PortfolioManager(PORTFOLIO_MANAGER).calculateNAV();
+    uint256 sharesAfter = IERC20(token).balanceOf(newWallet);
+    (uint256 totalValUSD, uint256 navPerShare) = PortfolioManager(portfolioManager).calculateNAV();
 
     console.log('--- DEPOSIT METRICS ---');
     console.log('Deposit Net USDC Amount: ', quote.netDeposit);

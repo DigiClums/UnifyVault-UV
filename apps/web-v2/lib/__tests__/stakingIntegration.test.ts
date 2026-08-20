@@ -26,9 +26,9 @@ describe('Staking Contracts & Frontend Integration', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor).toBe(
       '0xF902dC96D6aB062f2cE529dFD6501ae79CFDBF56',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0x006c5DF13C716E5224b33956651C4356BB90DEc0');
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE');
     expect(DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer).toBe(
-      '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1',
+      '0x441dbf8076d0b143EC17199baE94Daa884161454',
     );
   });
 

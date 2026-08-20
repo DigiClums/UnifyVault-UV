@@ -360,13 +360,13 @@ describe('Phase 6: User Accounting & Performance Analytics Admin Test Suite', ()
   describe('11. Deployed Addresses on Base Sepolia', () => {
     it('resolves canonical CostBasisManager and PerformanceManager addresses', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager.toLowerCase()).toBe(
-        '0x57869372afbd7b61752f2f8d3e7f37701e28517b',
+        '0xf71706a2fd8692e3c739855b2a33c0e679b4c382',
       );
       expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager.toLowerCase()).toBe(
-        '0xf1670ca0054d649d1e3dd2f1d642cc8ed70109f6',
+        '0x133fd024ea635694a223e66b936c2afab4f2db78',
       );
       expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase()).toBe(
-        '0x006c5df13c716e5224b33956651c4356bb90dec0',
+        '0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde',
       );
     });
 

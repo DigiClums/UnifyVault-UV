@@ -99,6 +99,14 @@ export function Footer() {
               <span>Contracts Directory</span>
             </Link>
 
+            <Link
+              href="/deploy"
+              className="text-muted-foreground hover:text-[#5f8f00] dark:hover:text-[#BFFF00] transition-colors flex items-center space-x-1"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+              <span>Deploy Protocol</span>
+            </Link>
+
             <button
               onClick={() => setPanelOpen(!panelOpen)}
               className="flex items-center space-x-1 hover:text-[#5f8f00] dark:hover:text-[#BFFF00] transition-colors font-mono text-[11px] px-2.5 py-1 rounded-lg bg-card border border-border-subtle text-foreground shadow-2xs"

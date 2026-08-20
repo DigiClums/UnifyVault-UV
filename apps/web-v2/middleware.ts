@@ -14,6 +14,10 @@ export function middleware(request: NextRequest) {
 
   // ── v2.unifyvault.xyz → Admin application ──────────────────────────
   if (hostname === ADMIN_HOST) {
+    if (pathname.startsWith('/deploy') || pathname.startsWith('/deployer')) {
+      return NextResponse.next();
+    }
+
     if (pathname.startsWith('/admin')) {
       return NextResponse.next();
     }

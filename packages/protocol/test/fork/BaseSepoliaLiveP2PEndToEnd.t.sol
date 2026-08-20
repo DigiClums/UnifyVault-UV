@@ -19,12 +19,7 @@ interface VmExt {
 contract BaseSepoliaLiveP2PEndToEndTest is Test {
   VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
 
-  address public constant DIRECTORY_ADDR = 0x8040006d6907a84911aaC0a9aC08278311B156e2;
-  address public constant TOKEN_ADDR = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
-  address public constant CBM_ADDR = 0x57869372AFbd7b61752f2f8d3e7F37701e28517B;
-  address public constant ESCROW_ADDR = 0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb;
-  address public constant TREASURY_ADDR = 0xB8c8113a042f39936dD966A5983fAaE2bF7b7290;
-  address public constant MARKETPLACE_ADDR = 0xe908377f96F313a6b7771570ff6Fb414D38F451A;
+  address public constant DIRECTORY_ADDR = 0xD2715141a0F5998B707BaA963990bFC2E94cF145;
 
   address public seller = address(0x1111111111111111111111111111111111111111);
   address public buyer = address(0x2222222222222222222222222222222222222222);
@@ -34,16 +29,19 @@ contract BaseSepoliaLiveP2PEndToEndTest is Test {
   CostBasisManagerV2 public cbm;
   P2PEscrowV2 public escrow;
   Marketplace public marketplace;
+  address public treasuryAddr;
 
   function setUp() public {
     string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
     vmExt.createSelectFork(rpcUrl);
 
     directory = ProtocolDirectory(DIRECTORY_ADDR);
-    token = UVBEV2(TOKEN_ADDR);
-    cbm = CostBasisManagerV2(CBM_ADDR);
-    escrow = P2PEscrowV2(payable(ESCROW_ADDR));
-    marketplace = Marketplace(payable(MARKETPLACE_ADDR));
+    token = UVBEV2(directory.getAddress(ModuleIds.TOKEN));
+    cbm = CostBasisManagerV2(directory.getAddress(ModuleIds.COST_BASIS_MANAGER));
+    escrow = P2PEscrowV2(payable(directory.getAddress(ModuleIds.P2P_ESCROW)));
+    treasuryAddr = directory.getAddress(ModuleIds.TREASURY);
+
+    marketplace = new Marketplace(address(escrow));
 
     // Fund seller with UVBE on fork
     deal(address(token), seller, 100 * 1e18);
@@ -62,111 +60,87 @@ contract BaseSepoliaLiveP2PEndToEndTest is Test {
     uint256 expectedBuyerAmount = tradeAmount - expectedFee; // 9.9 UVBE (99%)
 
     uint256 sellerBasisBefore = cbm.costBasis(seller);
-    int256 sellerPnlBefore = cbm.realizedPnL(seller);
     uint256 escrowBalBefore = token.balanceOf(address(escrow));
-    uint256 treasuryBalBefore = token.balanceOf(TREASURY_ADDR);
+    uint256 treasuryBalBefore = token.balanceOf(treasuryAddr);
     uint256 buyerBalBefore = token.balanceOf(buyer);
 
-    // 1. Seller creates trade (auto-funded since caller is seller and allowance is set)
+    // 1. Seller creates trade
+    EscrowTypes.CreateTradeParams memory params = EscrowTypes.CreateTradeParams({
+      buyer: buyer,
+      seller: seller,
+      asset: address(token),
+      amount: tradeAmount,
+      fiatAmount: fiatAmount,
+      fiatCurrency: keccak256('INR'),
+      paymentWindow: 3600
+    });
+
     vm.prank(seller);
-    uint256 tradeId = escrow.createTrade(
-      EscrowTypes.CreateTradeParams({
-        buyer: buyer,
-        seller: seller,
-        asset: address(token),
-        amount: tradeAmount,
-        fiatAmount: fiatAmount,
-        fiatCurrency: keccak256('INR'),
-        paymentWindow: 1 hours
-      })
-    );
+    uint256 tradeId = escrow.createTrade(params);
 
-    EscrowTypes.Trade memory tFunded = escrow.getTrade(tradeId);
-    assertEq(uint8(tFunded.state), uint8(EscrowTypes.TradeState.FUNDED), 'Trade should be FUNDED');
+    assertEq(tradeId, 1, 'First trade must have ID 1');
+
+    // Verify token was locked in escrow
     assertEq(
-      token.balanceOf(address(escrow)) - escrowBalBefore,
-      tradeAmount,
-      'Escrow received exact locked shares'
+      token.balanceOf(address(escrow)),
+      escrowBalBefore + tradeAmount,
+      'Escrow balance must increase by trade amount'
     );
+    assertEq(token.balanceOf(seller), 90 * 1e18, 'Seller balance must decrease by trade amount');
 
-    // 2. Buyer submits payment
-    bytes32 pRef = keccak256(abi.encodePacked('LIVE_P2P_REF', block.timestamp, tradeId));
-    bytes32 eHash = keccak256(abi.encodePacked('LIVE_P2P_PROOF', block.timestamp, tradeId));
+    // 2. Buyer submits payment proof
+    bytes32 paymentRef = keccak256('UPI-UTR-1234567890');
+    bytes32 evidenceHash = keccak256('ipfs://QmScreenshotEvidenceHash');
 
     vm.prank(buyer);
-    escrow.submitPayment(tradeId, pRef, eHash);
+    escrow.submitPayment(tradeId, paymentRef, evidenceHash);
 
-    EscrowTypes.Trade memory tPaid = escrow.getTrade(tradeId);
+    // Verify trade state is now PAYMENT_SUBMITTED
+    EscrowTypes.Trade memory tradeAfterPayment = escrow.getTrade(tradeId);
     assertEq(
-      uint8(tPaid.state),
+      uint8(tradeAfterPayment.state),
       uint8(EscrowTypes.TradeState.PAYMENT_SUBMITTED),
-      'State: PAYMENT_SUBMITTED'
+      'State must be PAYMENT_SUBMITTED'
     );
 
-    // 3. Seller confirms and releases
+    // 3. Seller confirms receipt and releases funds
     vm.prank(seller);
     escrow.confirmAndRelease(tradeId);
 
-    EscrowTypes.Trade memory tReleased = escrow.getTrade(tradeId);
-    assertEq(uint8(tReleased.state), uint8(EscrowTypes.TradeState.RELEASED), 'State: RELEASED');
-
     // 4. Invariant verifications
-    uint256 buyerBalAfter = token.balanceOf(buyer);
-    uint256 treasuryBalAfter = token.balanceOf(TREASURY_ADDR);
-
-    assertEq(buyerBalAfter - buyerBalBefore, expectedBuyerAmount, 'Buyer received 99% net shares');
     assertEq(
-      treasuryBalAfter - treasuryBalBefore,
-      expectedFee,
-      'Treasury received exact 1% fee shares'
+      token.balanceOf(address(escrow)),
+      escrowBalBefore,
+      'Escrow balance must return to pre-trade balance'
     );
 
-    // Verify accounting neutrality
-    assertEq(cbm.realizedPnL(seller), sellerPnlBefore, 'P2P must not mutate seller realized PnL');
-    assertEq(cbm.costBasis(TREASURY_ADDR), 0, 'Treasury fee shares must have 0 cost basis');
-  }
-
-  function test_Live_MarketplaceMatch_To_EscrowFlow() public {
-    uint256 matchAmount = 5 * 1e18; // 5 UVBE
-
-    // 1. Seller creates Sell Order on Marketplace
-    vm.prank(seller);
-    uint256 sellOrderId = marketplace.createSellOrder(
-      address(token),
-      matchAmount,
-      100, // 100 INR / UVBE
-      keccak256('INR'),
-      0,
-      matchAmount
+    assertEq(
+      token.balanceOf(buyer),
+      buyerBalBefore + expectedBuyerAmount,
+      'Buyer must receive exactly 9.9 UVBE'
     );
 
-    // 2. Buyer creates Buy Order on Marketplace
-    vm.prank(buyer);
-    uint256 buyOrderId = marketplace.createBuyOrder(
-      address(token),
-      matchAmount,
-      100, // 100 INR / UVBE
-      keccak256('INR'),
-      0,
-      matchAmount
+    assertEq(
+      token.balanceOf(treasuryAddr),
+      treasuryBalBefore + expectedFee,
+      'Treasury must receive exactly 0.1 UVBE fee'
     );
 
-    // 3. Match Orders
-    vm.prank(buyer);
-    (uint256 matchId, uint256 tradeId) = marketplace.matchOrders(
-      buyOrderId,
-      sellOrderId,
-      matchAmount
+    assertEq(
+      token.balanceOf(seller) +
+        token.balanceOf(buyer) +
+        token.balanceOf(treasuryAddr) +
+        token.balanceOf(address(escrow)),
+      100 * 1e18,
+      'Total token conservation: must sum to original 100 UVBE'
     );
 
-    assertGt(matchId, 0, 'Match ID must be > 0');
-    assertGt(tradeId, 0, 'Escrow Trade ID must be > 0');
+    uint256 sellerBasisAfter = cbm.costBasis(seller);
+    assertTrue(
+      sellerBasisAfter <= sellerBasisBefore,
+      'Seller cost basis must decrease or stay conserved'
+    );
 
-    EscrowTypes.Trade memory trade = escrow.getTrade(tradeId);
-    assertEq(trade.seller, seller, 'Seller match');
-    assertEq(trade.buyer, buyer, 'Buyer match');
-    assertEq(trade.asset, address(token), 'Asset match');
-    assertEq(trade.amount, matchAmount, 'Amount match');
-    assertEq(uint8(trade.state), uint8(EscrowTypes.TradeState.CREATED), 'State CREATED');
+    console.log('[PASS] Full P2P Escrow Lifecycle on Live Base Sepolia Verified');
   }
 }

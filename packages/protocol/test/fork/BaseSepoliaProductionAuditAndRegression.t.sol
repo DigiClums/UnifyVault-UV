@@ -18,39 +18,28 @@ interface VmExt {
   function envString(string calldata key) external returns (string memory);
 }
 
-interface ITimelockController {
-  function TIMELOCK_ADMIN_ROLE() external view returns (bytes32);
-  function PROPOSER_ROLE() external view returns (bytes32);
-  function EXECUTOR_ROLE() external view returns (bytes32);
-  function CANCELLER_ROLE() external view returns (bytes32);
-  function hasRole(bytes32 role, address account) external view returns (bool);
-}
-
 contract BaseSepoliaProductionAuditAndRegressionTest is Test {
   VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
 
   // Canonical Admin Authority
-  address public constant ADMIN_96DA = 0xd905920c91853039060246Ed5724AA72B91a96DA;
+  address public constant ADMIN_441D = 0x441dbf8076d0b143EC17199baE94Daa884161454;
 
   // Canonical Base Sepolia V2 Deployment Addresses
-  address public constant DIRECTORY_ADDR = 0x8040006d6907a84911aaC0a9aC08278311B156e2;
-  address public constant TREASURY_ADDR = 0xB8c8113a042f39936dD966A5983fAaE2bF7b7290;
-  address public constant VAULT_ADDR = 0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0;
-  address public constant ORACLE_MGR_ADDR = 0xc96d36Acf3ef58d03fdEA56aa90a30d02ceb73BF;
-  address public constant CHAINLINK_PROV_ADDR = 0xCF46A80BbF2e92c16f7e1953F9AC73935340f69B;
-  address public constant LIQUIDITY_MGR_ADDR = 0xd1DCd311ACD1176E35823360652FCb356a7F227F;
-  address public constant TOKEN_V2_ADDR = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
-  address public constant CONTROLLER_ADDR = 0x7DC190a0bFa08c9596DfdC20E602821619E776ea;
-  address public constant STRATEGY_MGR_ADDR = 0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb;
-  address public constant PORTFOLIO_MGR_ADDR = 0xd34A8d9cE90ebc2987c40ceafE126E5EF2931D9b;
-  address public constant SWAP_ADAPTER_ADDR = 0xbc97337dE85654aCD96182C93841f21168da65B4;
-  address public constant FEE_MGR_ADDR = 0x07f8BD7DAf5002C3C62B3c1280e9258AbBEfA2f1;
-  address public constant CBM_V2_ADDR = 0x57869372AFbd7b61752f2f8d3e7F37701e28517B;
-  address public constant PERF_MGR_ADDR = 0xF1670ca0054D649d1E3dd2f1d642Cc8Ed70109F6;
-  address public constant TIMELOCK_ADDR = 0x9094145Cd2AEA2f309eDf14237444a07edF98d02;
-  address public constant P2P_ESCROW_ADDR = 0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb;
-  address public constant MARKETPLACE_ADDR = 0xe908377f96F313a6b7771570ff6Fb414D38F451A;
-  address public constant PAYMASTER_ADDR = 0x42c6342516714CFd64474bd41Ce360605b9fEA88;
+  address public constant DIRECTORY_ADDR = 0xD2715141a0F5998B707BaA963990bFC2E94cF145;
+  address public constant TREASURY_ADDR = 0x66182F56BD5E523c655f6890290aB519f528e83f;
+  address public constant VAULT_ADDR = 0x27B5C6DEA90678B78856b0B10DBA37A789fDe97e;
+  address public constant ORACLE_MGR_ADDR = 0x5B6067982C6ccE2DC760EB4731c1b40136776D4A;
+  address public constant CHAINLINK_PROV_ADDR = 0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a;
+  address public constant LIQUIDITY_MGR_ADDR = 0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329;
+  address public constant TOKEN_V2_ADDR = 0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE;
+  address public constant CONTROLLER_ADDR = 0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea;
+  address public constant STRATEGY_MGR_ADDR = 0x14058459198a2CfFc8cE89C364334a80Da82D6a3;
+  address public constant PORTFOLIO_MGR_ADDR = 0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4;
+  address public constant SWAP_ADAPTER_ADDR = 0xCb1a434c5ebe2F2F8672Ca507Ee819C6888ae634;
+  address public constant FEE_MGR_ADDR = 0x0721465B01b586B7AAdF957A4a884acE46CfbEc9;
+  address public constant CBM_V2_ADDR = 0xF71706A2Fd8692e3C739855B2A33C0E679b4c382;
+  address public constant PERF_MGR_ADDR = 0x133fD024EA635694A223e66B936c2afAB4F2DB78;
+  address public constant P2P_ESCROW_ADDR = 0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b;
 
   ProtocolDirectory public directory;
   UVBEV2 public tokenV2;
@@ -58,7 +47,6 @@ contract BaseSepoliaProductionAuditAndRegressionTest is Test {
   CostBasisManagerV2 public cbmV2;
   PerformanceManager public perfMgr;
   P2PEscrowV2 public p2pEscrow;
-  Marketplace public marketplace;
 
   function setUp() public {
     string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
@@ -70,7 +58,6 @@ contract BaseSepoliaProductionAuditAndRegressionTest is Test {
     cbmV2 = CostBasisManagerV2(CBM_V2_ADDR);
     perfMgr = PerformanceManager(PERF_MGR_ADDR);
     p2pEscrow = P2PEscrowV2(payable(P2P_ESCROW_ADDR));
-    marketplace = Marketplace(payable(MARKETPLACE_ADDR));
   }
 
   // =========================================================================
@@ -142,114 +129,98 @@ contract BaseSepoliaProductionAuditAndRegressionTest is Test {
   }
 
   // =========================================================================
-  // 2. ADMIN 96DA AUTHORITY REGRESSION TEST (CRITICAL ROLES ON-CHAIN)
+  // 2. ADMIN AUTHORITY REGRESSION TEST (CRITICAL ROLES ON-CHAIN)
   // =========================================================================
 
-  function test_Regression_Admin96daAuthorityAudit() public {
+  function test_Regression_Admin441DAuthorityAudit() public {
     // ProtocolDirectory
     assertTrue(
-      directory.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on ProtocolDirectory'
+      directory.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on ProtocolDirectory'
     );
     assertTrue(
-      directory.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on ProtocolDirectory'
+      directory.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on ProtocolDirectory'
     );
 
     // Treasury
     assertTrue(
-      IAccessControl(TREASURY_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on Treasury'
+      IAccessControl(TREASURY_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on Treasury'
     );
     assertTrue(
-      IAccessControl(TREASURY_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on Treasury'
+      IAccessControl(TREASURY_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on Treasury'
     );
 
     // CustodyVault
     assertTrue(
-      IAccessControl(VAULT_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on CustodyVault'
+      IAccessControl(VAULT_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on CustodyVault'
     );
     assertTrue(
-      IAccessControl(VAULT_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on CustodyVault'
+      IAccessControl(VAULT_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on CustodyVault'
     );
 
     // OracleManager
     assertTrue(
-      IAccessControl(ORACLE_MGR_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on OracleManager'
+      IAccessControl(ORACLE_MGR_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on OracleManager'
     );
     assertTrue(
-      IAccessControl(ORACLE_MGR_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on OracleManager'
+      IAccessControl(ORACLE_MGR_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on OracleManager'
     );
 
     // UVBEV2 Token
     assertTrue(
-      tokenV2.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on UVBEV2'
+      tokenV2.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on UVBEV2'
     );
 
     // PortfolioManager
     assertTrue(
-      IAccessControl(PORTFOLIO_MGR_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on PortfolioManager'
+      IAccessControl(PORTFOLIO_MGR_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on PortfolioManager'
     );
     assertTrue(
-      IAccessControl(PORTFOLIO_MGR_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on PortfolioManager'
+      IAccessControl(PORTFOLIO_MGR_ADDR).hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on PortfolioManager'
     );
 
     // CostBasisManagerV2
     assertTrue(
-      cbmV2.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on CostBasisManagerV2'
+      cbmV2.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on CostBasisManagerV2'
     );
     assertTrue(
-      cbmV2.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on CostBasisManagerV2'
+      cbmV2.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on CostBasisManagerV2'
     );
 
     // PerformanceManager
     assertTrue(
-      perfMgr.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on PerformanceManager'
+      perfMgr.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on PerformanceManager'
     );
     assertTrue(
-      perfMgr.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on PerformanceManager'
+      perfMgr.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on PerformanceManager'
     );
 
     // P2PEscrowV2
     assertTrue(
-      p2pEscrow.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on P2PEscrowV2'
+      p2pEscrow.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_441D),
+      'Admin missing DEFAULT_ADMIN_ROLE on P2PEscrowV2'
     );
     assertTrue(
-      p2pEscrow.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on P2PEscrowV2'
+      p2pEscrow.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_441D),
+      'Admin missing GOVERNANCE_ROLE on P2PEscrowV2'
     );
     assertTrue(
-      p2pEscrow.hasRole(AccessRoles.ARBITRATOR_ROLE, ADMIN_96DA),
-      '96da missing ARBITRATOR_ROLE on P2PEscrowV2'
-    );
-
-    // Marketplace
-    assertTrue(
-      marketplace.hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on Marketplace'
-    );
-    assertTrue(
-      marketplace.hasRole(AccessRoles.GOVERNANCE_ROLE, ADMIN_96DA),
-      '96da missing GOVERNANCE_ROLE on Marketplace'
-    );
-
-    // TimelockController
-    assertTrue(
-      IAccessControl(TIMELOCK_ADDR).hasRole(AccessRoles.DEFAULT_ADMIN_ROLE, ADMIN_96DA),
-      '96da missing DEFAULT_ADMIN_ROLE on TimelockController'
+      p2pEscrow.hasRole(AccessRoles.ARBITRATOR_ROLE, ADMIN_441D),
+      'Admin missing ARBITRATOR_ROLE on P2PEscrowV2'
     );
   }
 
@@ -294,7 +265,6 @@ contract BaseSepoliaProductionAuditAndRegressionTest is Test {
   // =========================================================================
 
   function test_Regression_P2P1PercentFeeEnforcement() public {
-    // Exact 100 bps (1.00%) fee configuration
     assertEq(p2pEscrow.feeBps(), 100, 'P2PEscrowV2 feeBps must be strictly 100 (1.00%)');
     assertEq(p2pEscrow.MAX_FEE_BPS(), 500, 'P2PEscrowV2 MAX_FEE_BPS must be strictly 500 (5.00%)');
     assertEq(

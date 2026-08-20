@@ -109,12 +109,13 @@ contract BaseSepoliaAALiveTest is Test {
   // Canonical Base Sepolia Addresses
   address public constant CANONICAL_ENTRYPOINT_V07 = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
   address public constant BASE_SEPOLIA_USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-  address public constant DEPLOYED_DIRECTORY = 0x8040006d6907a84911aaC0a9aC08278311B156e2;
-  address public constant DEPLOYED_CONTROLLER = 0x7DC190a0bFa08c9596DfdC20E602821619E776ea;
-  address public constant DEPLOYED_VAULT = 0x5534469dA659dC4bB092Df9F7421Ec08fD2588A0;
-  address public constant DEPLOYED_TOKEN = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
-  address public constant DEPLOYED_CBM = 0x57869372AFbd7b61752f2f8d3e7F37701e28517B;
-  address public constant DEPLOYED_ESCROW = 0xd2A5489618759a6c8CA07163ACdC845Cf7D104Bb;
+  address public constant DEPLOYED_DIRECTORY = 0xD2715141a0F5998B707BaA963990bFC2E94cF145;
+
+  address public deployedController;
+  address public deployedVault;
+  address public deployedToken;
+  address public deployedCbm;
+  address public deployedEscrow;
 
   UnifyVaultPaymaster public paymaster;
   GasTreasury public gasTreasury;
@@ -125,11 +126,18 @@ contract BaseSepoliaAALiveTest is Test {
   address public userEOA;
 
   address public bundlerRelayer = address(0xB0B);
-  address public admin = 0xd905920c91853039060246Ed5724AA72B91a96DA;
+  address public admin = 0x441dbf8076d0b143EC17199baE94Daa884161454;
 
   function setUp() public {
     string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
     vmExt.createSelectFork(rpcUrl);
+
+    ProtocolDirectory dir = ProtocolDirectory(DEPLOYED_DIRECTORY);
+    deployedController = dir.getAddress(ModuleIds.DEPOSIT_MANAGER);
+    deployedVault = dir.getAddress(ModuleIds.VAULT);
+    deployedToken = dir.getAddress(ModuleIds.TOKEN);
+    deployedCbm = dir.getAddress(ModuleIds.COST_BASIS_MANAGER);
+    deployedEscrow = dir.getAddress(ModuleIds.P2P_ESCROW);
 
     userEOA = vm.addr(userPrivateKey);
     entryPoint = IEntryPointV07Canonical(CANONICAL_ENTRYPOINT_V07);
@@ -154,15 +162,15 @@ contract BaseSepoliaAALiveTest is Test {
     // Configure Paymaster approved targets & selectors as admin
     vm.startPrank(admin);
     paymaster.setApprovedTarget(BASE_SEPOLIA_USDC, true);
-    paymaster.setApprovedTarget(DEPLOYED_CONTROLLER, true);
-    paymaster.setApprovedTarget(DEPLOYED_TOKEN, true);
-    paymaster.setApprovedTarget(DEPLOYED_ESCROW, true);
+    paymaster.setApprovedTarget(deployedController, true);
+    paymaster.setApprovedTarget(deployedToken, true);
+    paymaster.setApprovedTarget(deployedEscrow, true);
 
     paymaster.setApprovedSelector(BASE_SEPOLIA_USDC, IERC20.approve.selector, true);
-    paymaster.setApprovedSelector(DEPLOYED_CONTROLLER, UnifyVaultController.deposit.selector, true);
-    paymaster.setApprovedSelector(DEPLOYED_CONTROLLER, UnifyVaultController.redeem.selector, true);
-    paymaster.setApprovedSelector(DEPLOYED_TOKEN, IERC20.transfer.selector, true);
-    paymaster.setApprovedSelector(DEPLOYED_TOKEN, IERC20.approve.selector, true);
+    paymaster.setApprovedSelector(deployedController, UnifyVaultController.deposit.selector, true);
+    paymaster.setApprovedSelector(deployedController, UnifyVaultController.redeem.selector, true);
+    paymaster.setApprovedSelector(deployedToken, IERC20.transfer.selector, true);
+    paymaster.setApprovedSelector(deployedToken, IERC20.approve.selector, true);
     vm.stopPrank();
 
     // 3. Fund GasTreasury with 1 ETH testnet infrastructure funds
@@ -183,6 +191,13 @@ contract BaseSepoliaAALiveTest is Test {
     address swapRouter = 0x63f3432b1ca616bb8fdF46058e6d855262C195f7;
     deal(0xB0B47F113Bcab2b0e49fD5d3Bd2CC0e9Aa408b29, swapRouter, 100_000_000); // 1 cbBTC
     deal(0xd116ab1c943cf15904eC4c8dd701086f175FA323, swapRouter, 10 ether); // 10 WETH
+    deal(BASE_SEPOLIA_USDC, swapRouter, 100_000 * 1e6); // 100,000 USDC for sell swaps
+
+    // Point test router to canonical OracleManager for accurate mock swap execution
+    (bool sSetOracle, ) = swapRouter.call(
+      abi.encodeWithSignature('setOracle(address)', dir.getAddress(ModuleIds.ORACLE))
+    );
+    require(sSetOracle, 'Failed to set router oracle');
 
     // Fund Bundler Relayer with 0.1 ETH to submit handleOps
     vm.deal(bundlerRelayer, 0.1 ether);
@@ -192,8 +207,8 @@ contract BaseSepoliaAALiveTest is Test {
     address testUser = address(0x123);
     deal(BASE_SEPOLIA_USDC, testUser, 50 * 1e6);
     vm.startPrank(testUser);
-    IERC20(BASE_SEPOLIA_USDC).approve(DEPLOYED_CONTROLLER, 50 * 1e6);
-    UnifyVaultController(DEPLOYED_CONTROLLER).deposit(BASE_SEPOLIA_USDC, 50 * 1e6, 0, testUser);
+    IERC20(BASE_SEPOLIA_USDC).approve(deployedController, 50 * 1e6);
+    UnifyVaultController(deployedController).deposit(BASE_SEPOLIA_USDC, 50 * 1e6, 0, testUser);
     vm.stopPrank();
   }
 
@@ -220,14 +235,14 @@ contract BaseSepoliaAALiveTest is Test {
     // Build Batched UserOp calls: [USDC.approve(Controller, 50e6), Controller.deposit(USDC, 50e6, ...)]
     address[] memory dests = new address[](2);
     dests[0] = BASE_SEPOLIA_USDC;
-    dests[1] = DEPLOYED_CONTROLLER;
+    dests[1] = deployedController;
 
     uint256[] memory values = new uint256[](2);
     values[0] = 0;
     values[1] = 0;
 
     bytes[] memory funcs = new bytes[](2);
-    funcs[0] = abi.encodeWithSelector(IERC20.approve.selector, DEPLOYED_CONTROLLER, depositAmount);
+    funcs[0] = abi.encodeWithSelector(IERC20.approve.selector, deployedController, depositAmount);
     funcs[1] = abi.encodeWithSelector(
       UnifyVaultController.deposit.selector,
       BASE_SEPOLIA_USDC,
@@ -280,13 +295,13 @@ contract BaseSepoliaAALiveTest is Test {
       'Smart Account remaining USDC is 50'
     );
     assertEq(
-      IERC20(BASE_SEPOLIA_USDC).allowance(address(smartAccount), DEPLOYED_CONTROLLER),
+      IERC20(BASE_SEPOLIA_USDC).allowance(address(smartAccount), deployedController),
       0,
       'USDC allowance must be 0 (exact approval consumed)'
     );
 
     // UVBE shares received
-    uint256 uvbeShares = IERC20(DEPLOYED_TOKEN).balanceOf(address(smartAccount));
+    uint256 uvbeShares = IERC20(deployedToken).balanceOf(address(smartAccount));
     assertGt(uvbeShares, 0, 'Smart Account received UVBE shares without paying gas');
 
     // Paymaster sponsored the gas
@@ -298,7 +313,7 @@ contract BaseSepoliaAALiveTest is Test {
     // 1. First perform deposit
     test_BaseSepolia_EndToEndGaslessDeposit();
 
-    uint256 sharesToRedeem = IERC20(DEPLOYED_TOKEN).balanceOf(address(smartAccount));
+    uint256 sharesToRedeem = IERC20(deployedToken).balanceOf(address(smartAccount));
     assertGt(sharesToRedeem, 0);
 
     // 2. Build Redeem UserOp call: [Controller.redeem(USDC, shares, minAssetsOut, receiver, deadline)]
@@ -313,7 +328,7 @@ contract BaseSepoliaAALiveTest is Test {
 
     bytes memory callData = abi.encodeWithSelector(
       smartAccount.execute.selector,
-      DEPLOYED_CONTROLLER,
+      deployedController,
       0,
       redeemCalldata
     );
@@ -324,10 +339,10 @@ contract BaseSepoliaAALiveTest is Test {
       nonce: 1,
       initCode: '',
       callData: callData,
-      accountGasLimits: bytes32(abi.encodePacked(uint128(250000), uint128(1500000))),
+      accountGasLimits: bytes32(abi.encodePacked(uint128(500000), uint128(2500000))),
       preVerificationGas: 100000,
       gasFees: bytes32(abi.encodePacked(uint128(1 gwei), uint128(5 gwei))),
-      paymasterAndData: abi.encodePacked(address(paymaster), uint128(150000), uint128(100000)),
+      paymasterAndData: abi.encodePacked(address(paymaster), uint128(200000), uint128(200000)),
       signature: ''
     });
 
@@ -348,7 +363,7 @@ contract BaseSepoliaAALiveTest is Test {
       0,
       'Smart account MUST maintain 0 native ETH after gasless redeem'
     );
-    assertEq(IERC20(DEPLOYED_TOKEN).balanceOf(address(smartAccount)), 0, 'UVBE shares burned');
+    assertEq(IERC20(deployedToken).balanceOf(address(smartAccount)), 0, 'UVBE shares burned');
     assertGt(
       IERC20(BASE_SEPOLIA_USDC).balanceOf(address(smartAccount)),
       50 * 1e6,
@@ -389,7 +404,7 @@ contract BaseSepoliaAALiveTest is Test {
   function test_BaseSepolia_Revert_NativeETHTransfer() public {
     bytes memory callData = abi.encodeWithSelector(
       smartAccount.execute.selector,
-      DEPLOYED_CONTROLLER,
+      deployedController,
       1 ether, // Attempting native ETH value transfer
       '0x'
     );
@@ -444,7 +459,7 @@ contract BaseSepoliaAALiveTest is Test {
     // Attempting unlimited approval (type(uint256).max) with deposit of only 50 USDC
     address[] memory dests = new address[](2);
     dests[0] = BASE_SEPOLIA_USDC;
-    dests[1] = DEPLOYED_CONTROLLER;
+    dests[1] = deployedController;
 
     uint256[] memory values = new uint256[](2);
     values[0] = 0;
@@ -453,7 +468,7 @@ contract BaseSepoliaAALiveTest is Test {
     bytes[] memory funcs = new bytes[](2);
     funcs[0] = abi.encodeWithSelector(
       IERC20.approve.selector,
-      DEPLOYED_CONTROLLER,
+      deployedController,
       type(uint256).max
     );
     funcs[1] = abi.encodeWithSelector(
@@ -498,7 +513,7 @@ contract BaseSepoliaAALiveTest is Test {
       smartAccount.execute.selector,
       BASE_SEPOLIA_USDC,
       0,
-      abi.encodeWithSelector(IERC20.approve.selector, DEPLOYED_CONTROLLER, 50 * 1e6)
+      abi.encodeWithSelector(IERC20.approve.selector, deployedController, 50 * 1e6)
     );
 
     PackedUserOperation[] memory ops = new PackedUserOperation[](1);
@@ -537,15 +552,15 @@ contract BaseSepoliaAALiveTest is Test {
 
   // Verification 11: Accounting Isolation Invariant: CustodyVault funds NEVER used for gas
   function test_BaseSepolia_AccountingIsolation_GasDepositUntouchedFromCustodyVault() public {
-    uint256 custodyVaultUsdcBefore = IERC20(BASE_SEPOLIA_USDC).balanceOf(DEPLOYED_VAULT);
-    uint256 custodyVaultEthBefore = DEPLOYED_VAULT.balance;
+    uint256 custodyVaultUsdcBefore = IERC20(BASE_SEPOLIA_USDC).balanceOf(deployedVault);
+    uint256 custodyVaultEthBefore = deployedVault.balance;
 
     // Perform gasless deposit
     test_BaseSepolia_EndToEndGaslessDeposit();
 
     // CustodyVault ETH balance must remain identical (0)
     assertEq(
-      DEPLOYED_VAULT.balance,
+      deployedVault.balance,
       custodyVaultEthBefore,
       'CustodyVault ETH balance must remain 0'
     );

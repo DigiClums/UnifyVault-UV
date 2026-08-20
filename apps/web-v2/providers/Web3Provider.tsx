@@ -61,18 +61,14 @@ const config = getDefaultConfig({
     ]),
     [baseSepolia.id]: fallback([
       http(sepoliaPrimaryRpc, {
-        batch: true,
-        retryCount: 2,
+        retryCount: 3,
         retryDelay: 800,
       }),
-      http(sepoliaFallbackRpc, {
-        batch: true,
-        retryCount: 2,
+      http('https://sepolia.base.org', {
+        retryCount: 3,
         retryDelay: 800,
       }),
-      http('https://base-sepolia-rpc.publicnode.com', {
-        batch: true,
-      }),
+      http('https://base-sepolia-rpc.publicnode.com'),
     ]),
   },
   storage: createSafeWagmiStorage(),

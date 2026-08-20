@@ -8,6 +8,8 @@ import '../../src/controller/UnifyVaultController.sol';
 import '../../src/token/UVBEV2.sol';
 import '../../src/treasury/CostBasisManagerV2.sol';
 import '../../src/treasury/PerformanceManager.sol';
+import '../../src/oracle/OracleManager.sol';
+import '../../src/oracle/ChainlinkOracleProvider.sol';
 import '../../src/escrow/P2PEscrowV2.sol';
 import '../../src/constants/ModuleIds.sol';
 import '../../src/libraries/AccessRoles.sol';
@@ -18,6 +20,10 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 interface VmExt {
   function createSelectFork(string calldata urlOrAlias) external returns (uint256);
   function envString(string calldata key) external returns (string memory);
+}
+
+interface IOraclePriceFetcher {
+  function getAssetPrice(address asset) external view returns (uint256);
 }
 
 contract RevertingCBMV2ForkMock is ICostBasisManagerV2 {
@@ -135,6 +141,24 @@ contract BaseSepoliaV2MigrationTest is Test {
     deal(CBBTC, address(vault), 10 * 1e8);
     deal(WETH, address(vault), 100 * 1e18);
     deal(USDC, 0x63f3432b1ca616bb8fdF46058e6d855262C195f7, 10_000_000 * 1e6);
+
+    // Mock getAssetPrice on historical V1 OracleManager to enable pre-migration portfolio valuation
+    address v1Oracle = 0x375e023eBDc2866c6c8AF6Ac6394Ed16197d266F;
+    vm.mockCall(
+      v1Oracle,
+      abi.encodeWithSelector(IOraclePriceFetcher.getAssetPrice.selector, WETH),
+      abi.encode(uint256(2500 * 1e18))
+    );
+    vm.mockCall(
+      v1Oracle,
+      abi.encodeWithSelector(IOraclePriceFetcher.getAssetPrice.selector, CBBTC),
+      abi.encode(uint256(65000 * 1e18))
+    );
+    vm.mockCall(
+      v1Oracle,
+      abi.encodeWithSelector(IOraclePriceFetcher.getAssetPrice.selector, USDC),
+      abi.encode(uint256(1 * 1e18))
+    );
 
     // Snapshot pre-migration NAV & Vault collateral
     (initialPortfolioNAV, initialNAVPerShare) = pm.calculateNAV();
