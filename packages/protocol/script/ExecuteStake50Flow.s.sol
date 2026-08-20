@@ -26,7 +26,7 @@ contract ExecuteStake50FlowScript is Script {
 
   // Economic Parameters
   // Minimum required USDC collateral to mint >= 50 UVBE (with safety margin for 0.25% fee + NAV + swap slippage)
-  uint256 public constant DEPOSIT_USDC_AMOUNT = 51_000_000; // 51.0 USDC (Exact math threshold is 50.383864 USDC)
+  uint256 public constant DEPOSIT_USDC_AMOUNT = 55_000_000; // 55.0 USDC (At current NAV ~$1.044, 55 USDC yields ~52.5 UVBE >= 50 UVBE)
   uint256 public constant MIN_UVBE_SHARES = 50_000_000_000_000_000_000; // 50.0 UVBE
   uint256 public constant STAKE_AMOUNT = 50_000_000_000_000_000_000; // 50.0 UVBE (MIN_STAKE)
 

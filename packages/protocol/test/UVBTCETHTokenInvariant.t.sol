@@ -104,6 +104,9 @@ contract UVBTCETHTokenInvariantTest is Test {
     token.grantRole(token.CONTROLLER_ROLE(), handler.controller());
     token.grantRole(token.GUARDIAN_ROLE(), handler.guardian());
 
+    // Revoke controller role on token from test contract to prevent fuzzer calling mint directly
+    token.revokeRole(token.CONTROLLER_ROLE(), address(this));
+
     targetContracts.push(address(handler));
   }
 

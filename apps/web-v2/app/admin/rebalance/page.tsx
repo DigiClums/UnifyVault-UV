@@ -1,17 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  useAccount,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  usePublicClient,
-} from 'wagmi';
-import { usePortfolio } from '../../../hooks/usePortfolio';
-import { STRATEGY_MANAGER_ABI, CONTROLLER_ABI } from '../../../lib/contracts';
-import { getChainTokens, getDefaultChainId, getExplorerBaseUrl } from '../../../constants';
-import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
+import React, { useState } from 'react';
+import { useStrategyAdmin } from '../../../hooks/useStrategyAdmin';
+import { StrategyWeightsEditor } from '../../../components/strategy/StrategyWeightsEditor';
+import { StrategyAssetManager } from '../../../components/strategy/StrategyAssetManager';
+import { StrategyEventHistory } from '../../../components/strategy/StrategyEventHistory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
@@ -20,496 +13,277 @@ import {
   PieChart,
   ShieldCheck,
   Zap,
-  CheckCircle2,
-  ArrowRightLeft,
   Sliders,
-  Loader2,
-  AlertCircle,
-  ExternalLink,
+  Layers,
+  History,
+  Info,
+  DollarSign,
 } from 'lucide-react';
 
 export default function AdminRebalancePage() {
-  const { address, chain } = useAccount();
-  const chainId = chain?.id || getDefaultChainId();
-  const publicClient = usePublicClient({ chainId });
-  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
-  const tokens = getChainTokens(chain?.id);
-  const { holdings } = usePortfolio();
-  const { controller, strategyManager } = useProtocolDirectory();
-
-  const { data: controllerStrategyManager } = useReadContract({
-    address: controller,
-    abi: CONTROLLER_ABI,
-    functionName: 'strategyManager',
-    query: {
-      enabled: !!controller,
-    },
-  });
-
-  const activeStrategyManager =
-    controllerStrategyManager &&
-    controllerStrategyManager !== '0x0000000000000000000000000000000000000000'
-      ? (controllerStrategyManager as `0x${string}`)
-      : strategyManager;
-
   const {
-    data: targetWeightsData,
-    isLoading: weightsLoading,
-    refetch: refetchWeights,
-  } = useReadContract({
-    address: activeStrategyManager,
-    abi: STRATEGY_MANAGER_ABI,
-    functionName: 'getTargetWeights',
-    query: {
-      enabled: !!activeStrategyManager,
-      staleTime: 60_000,
-      gcTime: 5 * 60 * 1000,
-    },
-  });
+    strategyManagerAddress,
+    portfolioManagerAddress,
+    explorerBaseUrl,
+    isGovernanceAdmin,
+    currentWeights,
+    totalAllocationBps,
+    assetCount,
+    portfolioValueUSDFormatted,
+    uvPriceUSDFormatted,
+    events,
+    isLoading,
+    isLoadingEvents,
+    refetch,
+  } = useStrategyAdmin();
 
-  // NO FALLBACK: weights are null when data hasn't loaded.
-  const targetWeightsBps: bigint[] | null =
-    (targetWeightsData?.[1] as bigint[] | undefined) ?? null;
-  const targetWbtcBpsNum: number | undefined =
-    targetWeightsBps !== null && targetWeightsBps.length > 0
-      ? Number(targetWeightsBps[0])
-      : undefined;
-  const targetWethBpsNum: number | undefined =
-    targetWeightsBps !== null && targetWeightsBps.length > 1
-      ? Number(targetWeightsBps[1])
-      : undefined;
-
-  const targetWbtcPct = targetWbtcBpsNum !== undefined ? targetWbtcBpsNum / 100 : 0;
-  const targetWethPct = targetWethBpsNum !== undefined ? targetWethBpsNum / 100 : 0;
-
-  const [wbtcBpsInput, setWbtcBpsInput] = useState<string>(
-    targetWbtcBpsNum !== undefined ? targetWbtcBpsNum.toString() : '',
-  );
-  const [wethBpsInput, setWethBpsInput] = useState<string>(
-    targetWethBpsNum !== undefined ? targetWethBpsNum.toString() : '',
+  const [currentTab, setCurrentTab] = useState<'weights' | 'assets' | 'overview' | 'activity'>(
+    'weights',
   );
 
-  const wbtcBpsVal = parseInt(wbtcBpsInput || '0', 10);
-  const wethBpsVal = parseInt(wethBpsInput || '0', 10);
-  const totalBpsVal = wbtcBpsVal + wethBpsVal;
-  const isValidBps = totalBpsVal === 10000;
-
-  const {
-    writeContract,
-    data: txHash,
-    isPending: isWritePending,
-    error: writeError,
-  } = useWriteContract();
-
-  const { isLoading: isTxWaiting, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
-    hash: txHash,
-  });
-
-  useEffect(() => {
-    if (isTxSuccess) {
-      refetchWeights();
-    }
-  }, [isTxSuccess, refetchWeights]);
-
-  const handleUpdateWeights = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeStrategyManager || !isValidBps || !address) return;
-
-    writeContract({
-      address: activeStrategyManager,
-      abi: STRATEGY_MANAGER_ABI,
-      functionName: 'updateWeights',
-      args: [
-        [tokens.cbBTC, tokens.WETH],
-        [BigInt(wbtcBpsVal), BigInt(wethBpsVal)],
-      ],
-    });
-  };
-
-  const getFriendlyErrorMessage = (err: unknown): string => {
-    if (!err) return '';
-    console.error('[Developer Logs - Strategy Update Error]:', err);
-    const errorObj = err as { shortMessage?: string; message?: string };
-    if (errorObj.shortMessage) return errorObj.shortMessage;
-    if (errorObj.message) return errorObj.message;
-    return 'Strategy weight update failed. Please check your wallet connection and permissions.';
-  };
-
-  const btcHolding = holdings.find((h) => h.symbol === 'BTC');
-  const ethHolding = holdings.find((h) => h.symbol === 'ETH');
-
-  const btcWeight = btcHolding ? parseFloat(btcHolding.weightPercent.replace('%', '')) : 0;
-  const ethWeight = ethHolding ? parseFloat(ethHolding.weightPercent.replace('%', '')) : 0;
-
-  const strategyShort = activeStrategyManager
-    ? `${activeStrategyManager.slice(0, 6)}...${activeStrategyManager.slice(-4)}`
-    : 'Resolving...';
+  const isValidAllocation = totalAllocationBps === 10000n;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Strategy Target Weight Management
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+              Strategy & Target Allocation Console
             </h1>
-            <StatusBadge status="Admin" label="GOVERNANCE RESTRICTED" />
+            <StatusBadge
+              status={isValidAllocation ? 'Healthy' : 'Warning'}
+              label={isValidAllocation ? '10,000 BPS INVARIANT OK' : 'ALLOCATION MISALIGNED'}
+            />
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Configure index portfolio target asset weights (BPS) on StrategyManager contract.
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configure index portfolio target asset weights (BPS), manage supported constituents, and
+            audit atomic DEX rebalancing.
           </p>
         </div>
 
         <button
-          onClick={() => refetchWeights()}
-          disabled={!activeStrategyManager}
-          className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all self-start sm:self-auto disabled:opacity-50"
+          type="button"
+          onClick={() => refetch()}
+          disabled={isLoading}
+          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-card hover:bg-muted border border-border-subtle text-foreground text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50 min-h-[38px]"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Weights</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-purple-400' : ''}`} />
+          <span>Refresh Strategy Data</span>
         </button>
       </div>
 
-      {/* On-Chain Target Weight Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Architecture Notice */}
+      <div className="rounded-xl bg-card/60 border border-border-subtle p-4 space-y-2 text-xs">
+        <div className="flex items-center space-x-2 font-bold text-foreground">
+          <Info className="w-4 h-4 text-purple-400" />
+          <span>Stateless Atomic DEX Rebalancing Engine</span>
+        </div>
+        <p className="text-muted-foreground leading-relaxed">
+          UnifyVault V2 implements a stateless atomic rebalance mechanism: when users deposit
+          collateral into CustodyVault, the{' '}
+          <strong className="text-foreground">PortfolioManager</strong> calculates the target
+          breakdown based on the authoritative weights in{' '}
+          <strong className="text-foreground">StrategyManager (0x73c8...A7Bb)</strong>. Constituent
+          weights must sum to exactly{' '}
+          <code className="text-purple-400 font-mono">10,000 BPS (100.00%)</code>.
+        </p>
+      </div>
+
+      {/* Overview Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Target cbBTC Weight"
-          value={
-            weightsLoading
-              ? 'Loading...'
-              : targetWbtcBpsNum !== undefined
-                ? `${targetWbtcPct.toFixed(1)}%`
-                : 'N/A'
-          }
-          subtitle={
-            targetWbtcBpsNum !== undefined
-              ? `${targetWbtcBpsNum.toLocaleString()} BPS`
-              : 'Awaiting on-chain data'
-          }
+          title="Total Strategy Allocation"
+          value={`${totalAllocationBps.toString()} BPS`}
+          subtitle={isValidAllocation ? '100.00% Exact Sum' : 'Invariant Breached'}
           icon={PieChart}
-          glowColor="amber"
+          glowColor={isValidAllocation ? 'emerald' : 'amber'}
         />
+
         <StatCard
-          title="Target WETH Weight"
-          value={
-            weightsLoading
-              ? 'Loading...'
-              : targetWethBpsNum !== undefined
-                ? `${targetWethPct.toFixed(1)}%`
-                : 'N/A'
-          }
-          subtitle={
-            targetWethBpsNum !== undefined
-              ? `${targetWethBpsNum.toLocaleString()} BPS`
-              : 'Awaiting on-chain data'
-          }
-          icon={PieChart}
+          title="Constituent Assets"
+          value={`${assetCount.toString()} Tokens`}
+          subtitle="Active Strategy Basket"
+          icon={Layers}
+          glowColor="purple"
+        />
+
+        <StatCard
+          title="UV Token Price"
+          value={uvPriceUSDFormatted}
+          subtitle="PortfolioManager NAV"
+          icon={Zap}
           glowColor="blue"
         />
+
         <StatCard
-          title="Rebalance Execution"
-          value="Atomic DEX"
-          subtitle="Stateless Auto-Balance"
-          icon={ArrowRightLeft}
-          glowColor="emerald"
+          title="Total Vault Valuation"
+          value={portfolioValueUSDFormatted}
+          subtitle="Aggregate Collateral NAV"
+          icon={DollarSign}
+          glowColor="cyan"
         />
       </div>
 
-      {/* Form & Safeguards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Admin Weight Configuration Form */}
-        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
-          <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
-            <Sliders className="w-5 h-5 text-accent-blue" />
-            <h3 className="text-base font-bold text-white tracking-tight">
-              Update Strategy Target Weights
-            </h3>
-          </div>
+      {/* Sub-Tabs Navigation */}
+      <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar border-b border-border-subtle/60 pb-1">
+        <button
+          type="button"
+          onClick={() => setCurrentTab('weights')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'weights'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Target Weights Editor</span>
+        </button>
 
-          <form onSubmit={handleUpdateWeights} className="space-y-4 text-xs">
-            <div>
-              <div className="flex justify-between items-center mb-1 font-semibold text-slate-300">
-                <label>cbBTC Target Weight (in BPS)</label>
-                <span className="font-mono text-amber-400">{(wbtcBpsVal / 100).toFixed(2)}%</span>
-              </div>
-              <input
-                type="number"
-                placeholder="Enter BPS..."
-                value={wbtcBpsInput}
-                onChange={(e) => setWbtcBpsInput(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
-              />
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Enter basis points (10000 BPS = 100.00%)
-              </span>
-            </div>
+        <button
+          type="button"
+          onClick={() => setCurrentTab('assets')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'assets'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Constituent Asset Management</span>
+        </button>
 
-            <div>
-              <div className="flex justify-between items-center mb-1 font-semibold text-slate-300">
-                <label>WETH Target Weight (in BPS)</label>
-                <span className="font-mono text-cyan-400 font-bold">
-                  {(wethBpsVal / 100).toFixed(2)}%
-                </span>
-              </div>
-              <input
-                type="number"
-                placeholder="Enter BPS..."
-                value={wethBpsInput}
-                onChange={(e) => setWethBpsInput(e.target.value)}
-                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-blue/50"
-              />
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Enter basis points (10000 BPS = 100.00%)
-              </span>
-            </div>
+        <button
+          type="button"
+          onClick={() => setCurrentTab('overview')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'overview'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <PieChart className="w-4 h-4" />
+          <span>Strategy Breakdown & Safeguards</span>
+        </button>
 
-            {/* Total BPS Live Indicator */}
-            <div
-              className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono ${
-                isValidBps
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-              }`}
-            >
-              <span>Total Strategy Weight:</span>
-              <span className="font-bold">
-                {totalBpsVal.toLocaleString()} BPS ({(totalBpsVal / 100).toFixed(2)}%)
-              </span>
-            </div>
-
-            {!isValidBps && (
-              <p className="text-[11px] text-amber-400">
-                ⚠️ Target weights must sum to exactly 10,000 BPS (100.00%).
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={!isValidBps || isWritePending || isTxWaiting || !activeStrategyManager}
-              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-accent-blue hover:bg-blue-600 active:scale-[0.99] font-bold text-white shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all focus:ring-2 focus:ring-accent-blue/50"
-            >
-              {(isWritePending || isTxWaiting) && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>
-                {isWritePending
-                  ? 'Awaiting Wallet Signature...'
-                  : isTxWaiting
-                    ? 'Confirming on Base...'
-                    : 'Update Strategy Target Weights'}
-              </span>
-            </button>
-          </form>
-
-          {isTxWaiting && txHash && (
-            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
-                <span>Transaction broadcasted. Awaiting block confirmation...</span>
-              </div>
-              <a
-                href={`${explorerBaseUrl}/tx/${txHash}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
-              >
-                <span>Basescan</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          )}
-
-          {isTxSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
-                <span>Strategy target weights updated successfully on Base!</span>
-              </div>
-              {txHash && (
-                <a
-                  href={`${explorerBaseUrl}/tx/${txHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
-                >
-                  <span>Basescan</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-            </div>
-          )}
-
-          {writeError && (
-            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-              <span>{getFriendlyErrorMessage(writeError)}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Strategy Safeguards Card */}
-        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-5">
-          <div className="flex items-center space-x-2 text-white font-bold text-base border-b border-border-subtle/40 pb-3">
-            <ShieldCheck className="w-5 h-5 text-accent-blue" />
-            <span>StrategyManager Safeguards</span>
-          </div>
-
-          <div className="space-y-3.5 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-200">StrategyManager Module</span>
-              </div>
-              <span className="font-mono text-accent-blue font-bold">{strategyShort}</span>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Governance Restricted</span>
-              </div>
-              <span className="font-mono text-purple-400 font-bold">Admin Role Only</span>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Strict Sum Invariant</span>
-              </div>
-              <span className="font-mono text-emerald-400 font-bold">Exact 10,000 BPS</span>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-200">Execution Network</span>
-              </div>
-              <span className="font-mono text-slate-300 font-bold">Base Mainnet L2</span>
-            </div>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setCurrentTab('activity')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'activity'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Audit Logs ({events.length})</span>
+        </button>
       </div>
 
-      {/* Allocation Breakdown Table */}
-      <TableCard
-        title="Asset Allocation vs Strategy Target Breakdown"
-        subtitle="Live custody weights vs StrategyManager target allocations"
-        icon={RefreshCw}
-      >
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-border-subtle text-slate-400 font-semibold">
-              <th className="py-3 px-3">Strategy Asset</th>
-              <th className="py-3 px-3">Custody Balance</th>
-              <th className="py-3 px-3">USD Valuation</th>
-              <th className="py-3 px-3">Current Weight</th>
-              <th className="py-3 px-3">Target Weight</th>
-              <th className="py-3 px-3 text-right">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border-subtle/40 font-mono">
-            <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-4 px-3 font-sans font-bold text-white flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-[10px] font-extrabold">
-                  BTC
-                </div>
-                <span>cbBTC (Coinbase Wrapped BTC)</span>
-              </td>
-              <td className="py-4 px-3 text-slate-200">
-                {btcHolding?.balanceFormatted || '0.0000'} BTC
-              </td>
-              <td className="py-4 px-3 text-emerald-400 font-bold">
-                {btcHolding?.valueUSD || '$0.00'}
-              </td>
-              <td className="py-4 px-3 text-accent-blue font-bold">{btcWeight.toFixed(1)}%</td>
-              <td className="py-4 px-3 text-slate-400">
-                {weightsLoading
-                  ? 'Loading...'
-                  : targetWbtcBpsNum !== undefined
-                    ? `${targetWbtcPct.toFixed(1)}% (${targetWbtcBpsNum.toLocaleString()} BPS)`
-                    : 'N/A'}
-              </td>
-              <td className="py-4 px-3 text-right font-sans">
-                <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Aligned</span>
-                </span>
-              </td>
-            </tr>
+      {/* Tab Panels */}
+      {currentTab === 'weights' && (
+        <StrategyWeightsEditor
+          strategyManagerAddress={strategyManagerAddress}
+          explorerBaseUrl={explorerBaseUrl}
+          isGovernanceAdmin={isGovernanceAdmin}
+          currentWeights={currentWeights}
+          onRefresh={refetch}
+        />
+      )}
 
-            <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-4 px-3 font-sans font-bold text-white flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-[10px] font-extrabold">
-                  ETH
-                </div>
-                <span>WETH (Wrapped Ether)</span>
-              </td>
-              <td className="py-4 px-3 text-slate-200">
-                {ethHolding?.balanceFormatted || '0.0000'} ETH
-              </td>
-              <td className="py-4 px-3 text-emerald-400 font-bold">
-                {ethHolding?.valueUSD || '$0.00'}
-              </td>
-              <td className="py-4 px-3 text-accent-blue font-bold">{ethWeight.toFixed(1)}%</td>
-              <td className="py-4 px-3 text-slate-400">
-                {weightsLoading
-                  ? 'Loading...'
-                  : targetWethBpsNum !== undefined
-                    ? `${targetWethPct.toFixed(1)}% (${targetWethBpsNum.toLocaleString()} BPS)`
-                    : 'N/A'}
-              </td>
-              <td className="py-4 px-3 text-right font-sans">
-                <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Aligned</span>
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </TableCard>
+      {currentTab === 'assets' && (
+        <StrategyAssetManager
+          strategyManagerAddress={strategyManagerAddress}
+          explorerBaseUrl={explorerBaseUrl}
+          isGovernanceAdmin={isGovernanceAdmin}
+          currentWeights={currentWeights}
+          onRefresh={refetch}
+        />
+      )}
 
-      {/* Protocol Rebalance Architecture Overview */}
-      <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
-        <div className="flex items-center space-x-2 text-white font-bold text-base border-b border-border-subtle/40 pb-3">
-          <Zap className="w-5 h-5 text-accent-blue" />
-          <span>Stateless Atomic DEX Rebalance Engine</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1.5">
-            <div className="flex items-center space-x-2 text-emerald-400 font-bold">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Atomic DEX Swaps</span>
+      {currentTab === 'overview' && (
+        <div className="space-y-6">
+          <TableCard
+            title="Active Strategy Allocation Breakdown"
+            subtitle="Current target weights enforced by StrategyManager on Base Sepolia"
+            icon={PieChart}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border-subtle bg-card/40 text-muted-foreground font-semibold">
+                    <th className="py-3 px-4">Constituent Asset</th>
+                    <th className="py-3 px-4">Target Weight (BPS)</th>
+                    <th className="py-3 px-4">Allocation Percentage</th>
+                    <th className="py-3 px-4 text-right">Invariant Check</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle/40 font-mono">
+                  {currentWeights.map((w) => (
+                    <tr key={w.asset} className="hover:bg-card/40 transition-colors">
+                      <td className="py-3.5 px-4 font-sans font-bold text-foreground">{w.asset}</td>
+                      <td className="py-3.5 px-4 text-foreground font-bold">
+                        {w.weightBps.toString()} BPS
+                      </td>
+                      <td className="py-3.5 px-4 font-sans font-semibold text-purple-400">
+                        {w.weightPercent.toFixed(2)}%
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-sans">
+                        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <ShieldCheck className="w-3 h-3" />
+                          <span>Active</span>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <p className="text-slate-400 leading-relaxed">
-              Every deposit splits collateral into target ratio weights via atomic Uniswap V3 DEX
-              routing.
-            </p>
-          </div>
+          </TableCard>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1.5">
-            <div className="flex items-center space-x-2 text-accent-blue font-bold">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Slippage Protection</span>
+          <div className="p-6 rounded-2xl bg-surface/90 border border-border-subtle backdrop-blur-xl space-y-4 shadow-xl text-xs">
+            <div className="flex items-center space-x-2 text-foreground font-bold text-sm border-b border-border-subtle/40 pb-3">
+              <ShieldCheck className="w-4 h-4 text-purple-400" />
+              <span>StrategyManager Invariant Rules</span>
             </div>
-            <p className="text-slate-400 leading-relaxed">
-              DEX swaps enforce strict configurable slippage limits (0.25% - 1.00%) to protect vault
-              reserves.
-            </p>
-          </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1.5">
-            <div className="flex items-center space-x-2 text-purple-400 font-bold">
-              <ArrowRightLeft className="w-4 h-4" />
-              <span>Zero Keeper Overhead</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-card/60 border border-border-subtle space-y-1">
+                <span className="font-bold text-foreground block">Strict Sum Invariant</span>
+                <p className="text-muted-foreground leading-relaxed">
+                  Sum of target weights must equal exactly 10,000 BPS at all times. Partial sums or
+                  overflows revert on-chain.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-card/60 border border-border-subtle space-y-1">
+                <span className="font-bold text-foreground block">Non-Zero Weights</span>
+                <p className="text-muted-foreground leading-relaxed">
+                  Zero weights are forbidden. To drop an asset from index basket, invoke removeAsset
+                  instead of setting 0 BPS.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-card/60 border border-border-subtle space-y-1">
+                <span className="font-bold text-foreground block">Atomic DEX Execution</span>
+                <p className="text-muted-foreground leading-relaxed">
+                  Deposit flows calculate exact multi-asset split during execution, preventing
+                  portfolio drift.
+                </p>
+              </div>
             </div>
-            <p className="text-slate-400 leading-relaxed">
-              Target ratios are maintained continuously on-chain without requiring manual keeper gas
-              expenditure.
-            </p>
           </div>
         </div>
-      </div>
+      )}
+
+      {currentTab === 'activity' && (
+        <StrategyEventHistory
+          events={events}
+          isLoadingEvents={isLoadingEvents}
+          explorerBaseUrl={explorerBaseUrl}
+        />
+      )}
     </div>
   );
 }

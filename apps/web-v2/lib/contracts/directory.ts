@@ -6,6 +6,91 @@ export const PROTOCOL_DIRECTORY_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'id', type: 'bytes32' },
+      { name: 'target', type: 'address' },
+    ],
+    name: 'registerAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'id', type: 'bytes32' },
+      { name: 'target', type: 'address' },
+    ],
+    name: 'updateAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'id', type: 'bytes32' }],
+    name: 'removeAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'freeze',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'name', type: 'bytes32' }],
+    name: 'exists',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'isFrozen',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'hasRole',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'role', type: 'bytes32' }],
+    name: 'getRoleAdmin',
+    outputs: [{ name: '', type: 'bytes32' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'grantRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'revokeRole',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const;
 
 export const FEE_MANAGER_ABI = [
@@ -33,36 +118,6 @@ export const FEE_MANAGER_ABI = [
   {
     inputs: [{ name: 'newFeeBps', type: 'uint256' }],
     name: 'setRedeemFeeBps',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-] as const;
-
-export const STRATEGY_MANAGER_ABI = [
-  {
-    inputs: [],
-    name: 'getTargetWeights',
-    outputs: [
-      { name: 'assets', type: 'address[]' },
-      { name: 'weightsBps', type: 'uint256[]' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'asset', type: 'address' }],
-    name: 'getAssetWeight',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'assets', type: 'address[]' },
-      { name: 'weightsBps', type: 'uint256[]' },
-    ],
-    name: 'updateWeights',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',

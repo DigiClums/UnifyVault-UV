@@ -55,3 +55,6 @@ export const ERC20_ABI = [
     type: 'function',
   },
 ] as const;
+
+export const UVBE_TOKEN_ABI = ERC20_ABI;
+export const UVBTCETH_TOKEN_ABI = ERC20_ABI;

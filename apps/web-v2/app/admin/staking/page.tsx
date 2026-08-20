@@ -534,14 +534,19 @@ export default function AdminStakingPage() {
         </div>
 
         {/* Mathematical Formula Footnote */}
-        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center justify-between">
+        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span>
             Solvency Invariant: Available Capital ({formatUnits(vaultAvailableCapital, 18)} UVBE) ≥
             Liabilities ({formatUnits(rawLiabilities, 18)} UVBE)
           </span>
-          <span className="text-purple-300">
-            Surplus Capacity: {formatUnits(surplusCapacity, 18)} UVBE
-          </span>
+          <div className="flex items-center space-x-3">
+            <span className="text-amber-300 font-semibold">
+              MAXIMUM PENALTY / FEE CAP: 5,000 BPS (50.00%)
+            </span>
+            <span className="text-purple-300">
+              Surplus Capacity: {formatUnits(surplusCapacity, 18)} UVBE
+            </span>
+          </div>
         </div>
       </div>
 

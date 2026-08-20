@@ -1,260 +1,247 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAccount } from 'wagmi';
-import { useQueryClient } from '@tanstack/react-query';
-import { getChainTokens, DEPLOYED_CONTRACTS_SEPOLIA } from '../../../constants';
-import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
-import { useUnifiedProtocolData } from '../../../hooks/useUnifiedProtocolData';
-import { useLivePrices } from '../../../hooks/useLivePrices';
-import { formatUSD, formatUnits } from '../../../lib/math';
+import { useOracleAdmin } from '../../../hooks/useOracleAdmin';
+import { OracleFeedCard } from '../../../components/oracle/OracleFeedCard';
+import { CircuitBreakerSection } from '../../../components/oracle/CircuitBreakerSection';
+import { OracleConfigSection } from '../../../components/oracle/OracleConfigSection';
+import { ChainlinkFeedAdminSection } from '../../../components/oracle/ChainlinkFeedAdminSection';
+import { OracleEventHistory } from '../../../components/oracle/OracleEventHistory';
 import { StatCard } from '../../../components/ui/StatCard';
-import { TableCard } from '../../../components/ui/TableCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
-import { OracleFeedStatus } from '../../../types';
-import { Activity, Zap, RefreshCw, Clock, ShieldCheck, Info, AlertTriangle } from 'lucide-react';
+import {
+  Activity,
+  ShieldAlert,
+  ShieldCheck,
+  Zap,
+  RefreshCw,
+  Sliders,
+  Settings,
+  Link2,
+  History,
+  Info,
+} from 'lucide-react';
 
 export default function AdminOraclePage() {
-  const { chain } = useAccount();
-  const tokens = getChainTokens(chain?.id);
-  const queryClient = useQueryClient();
-  const { oracle: directoryOracle, portfolioManager } = useProtocolDirectory();
-  const oracle = directoryOracle || DEPLOYED_CONTRACTS_SEPOLIA.OracleManager;
-  const pm = portfolioManager || DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager;
+  const {
+    oracleManagerAddress,
+    chainlinkProviderAddress,
+    explorerBaseUrl,
+    isGovernanceAdmin,
+    isChainlinkAdmin,
+    assetStatuses,
+    events,
+    isLoading,
+    isLoadingEvents,
+    refetch,
+  } = useOracleAdmin();
 
-  const protocolData = useUnifiedProtocolData();
-  const livePrices = useLivePrices();
-  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [currentTab, setCurrentTab] = useState<
+    'status' | 'breaker' | 'config' | 'chainlink' | 'activity'
+  >('status');
 
-  const btcHolding = protocolData.protocolHoldings.find((h) => h.symbol === 'cbBTC');
-  const ethHolding = protocolData.protocolHoldings.find((h) => h.symbol === 'WETH');
-  const usdcHolding = protocolData.protocolHoldings.find((h) => h.symbol === 'USDC');
-
-  const btcFeed = {
-    status: protocolData.btcOracleStatus || ('UNAVAILABLE' as OracleFeedStatus),
-    priceUSD: btcHolding?.priceUSD || 'Price unavailable',
-  };
-  const ethFeed = {
-    status: protocolData.ethOracleStatus || ('UNAVAILABLE' as OracleFeedStatus),
-    priceUSD: ethHolding?.priceUSD || 'Price unavailable',
-  };
-  const usdcFeed = {
-    status: protocolData.usdcOracleStatus || ('UNAVAILABLE' as OracleFeedStatus),
-    priceUSD: usdcHolding?.priceUSD || 'Price unavailable',
-  };
-
-  const handleRefreshAll = async () => {
-    setIsManualRefreshing(true);
-    try {
-      await Promise.allSettled([
-        protocolData.refetch(),
-        livePrices.refetch(),
-        queryClient.invalidateQueries(),
-      ]);
-    } finally {
-      setIsManualRefreshing(false);
-    }
-  };
-
-  const isBusy = isManualRefreshing || protocolData.isLoading;
-
-  const shortAddr = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-
-  const getStatusBadge = (status: OracleFeedStatus) => {
-    switch (status) {
-      case 'LIVE':
-        return <StatusBadge status="Healthy" label="LIVE" />;
-      case 'STALE':
-        return <StatusBadge status="Warning" label="STALE" />;
-      case 'REVERTED':
-        return <StatusBadge status="Error" label="REVERTED" />;
-      case 'UNAVAILABLE':
-      default:
-        return <StatusBadge status="Error" label="UNAVAILABLE" />;
-    }
-  };
-
-  const isAllLive =
-    btcFeed.status === 'LIVE' && ethFeed.status === 'LIVE' && usdcFeed.status === 'LIVE';
+  const allHealthy = assetStatuses.every((a) => a.isHealthy && a.enabled);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
         <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Oracle Price Feed Telemetry
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+              Oracle & Circuit Breaker Risk Console
             </h1>
             <StatusBadge
-              status={isAllLive ? 'Healthy' : 'Warning'}
-              label={isAllLive ? 'Feeds Fresh' : 'Attention Required'}
+              status={allHealthy ? 'Healthy' : 'Warning'}
+              label={allHealthy ? 'FEEDS NOMINAL' : 'ATTENTION REQUIRED'}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            On-chain price feed verification, heartbeat monitoring, and UVBE valuation coordination.
+          <p className="text-xs text-muted-foreground mt-0.5">
+            On-chain price feeds, heartbeat telemetry, max deviation circuit breakers, and
+            AggregatorV3 provider routing.
           </p>
         </div>
 
         <button
-          onClick={handleRefreshAll}
-          disabled={isBusy}
-          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-surface border border-border-subtle text-slate-300 hover:text-white text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50 cursor-pointer"
+          type="button"
+          onClick={() => refetch()}
+          disabled={isLoading}
+          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-card hover:bg-muted border border-border-subtle text-foreground text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50 min-h-[38px]"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isBusy ? 'animate-spin text-[#BFFF00]' : ''}`} />
-          <span>{isBusy ? 'Synchronizing...' : 'Refresh Feeds'}</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-purple-400' : ''}`} />
+          <span>Refresh Oracle Telemetry</span>
         </button>
       </div>
 
-      {/* Testnet / Architecture Architecture Notice */}
-      <div className="rounded-xl bg-muted/40 border border-border-subtle p-4 space-y-2">
-        <div className="flex items-center space-x-2 text-xs font-semibold text-white">
-          <Info className="w-4 h-4 text-[#BFFF00]" />
-          <span>Protocol Architecture: Market Spot vs Protocol Oracle</span>
+      {/* Architecture Notice */}
+      <div className="rounded-xl bg-card/60 border border-border-subtle p-4 space-y-2 text-xs">
+        <div className="flex items-center space-x-2 font-bold text-foreground">
+          <Info className="w-4 h-4 text-purple-400" />
+          <span>Institutional Pricing Pipeline Architecture</span>
         </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          <strong className="text-slate-300">Market Price:</strong> External live ticker (Coinbase /
-          CoinGecko) displays real-time spot pricing.{' '}
-          <strong className="text-slate-300">Protocol Price:</strong> Authoritative on-chain oracle
-          (Chainlink &rarr; OracleManager &rarr; PortfolioManager) powers UVBE token NAV, TVL, and
-          collateral valuation. Base Sepolia oracle updates depend on the configured Chainlink
-          testnet feed.
+        <p className="text-muted-foreground leading-relaxed">
+          <strong className="text-foreground">OracleManager (0xc96d...73BF)</strong> acts as the
+          central coordinator on Base Sepolia. It queries the configured{' '}
+          <strong className="text-foreground">Primary Provider (ChainlinkOracleProvider)</strong>,
+          validates price freshness and deviation against{' '}
+          <code className="text-purple-400 font-mono">lastValidPrice</code>, automatically shifts to
+          fallback routing if the primary breaches limits, and trips the circuit breaker on unsafe
+          pricing.
         </p>
       </div>
 
-      {/* Top Stat Cards */}
+      {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="BTC Protocol Feed"
-          value={btcFeed.priceUSD}
-          subtitle={`Status: ${btcFeed.status} · Chainlink`}
+          title="cbBTC / USD Feed"
+          value={assetStatuses[0]?.priceFormatted || '$0.00'}
+          subtitle={assetStatuses[0]?.isHealthy ? 'Healthy · Primary Feed' : 'Breach / Stale'}
           icon={Activity}
-          glowColor={btcFeed.status === 'LIVE' ? 'amber' : undefined}
+          glowColor={assetStatuses[0]?.isHealthy ? 'amber' : undefined}
         />
         <StatCard
-          title="ETH Protocol Feed"
-          value={ethFeed.priceUSD}
-          subtitle={`Status: ${ethFeed.status} · Chainlink`}
+          title="WETH / USD Feed"
+          value={assetStatuses[1]?.priceFormatted || '$0.00'}
+          subtitle={assetStatuses[1]?.isHealthy ? 'Healthy · Primary Feed' : 'Breach / Stale'}
           icon={Activity}
-          glowColor={ethFeed.status === 'LIVE' ? 'blue' : undefined}
+          glowColor={assetStatuses[1]?.isHealthy ? 'blue' : undefined}
         />
         <StatCard
-          title="USDC Protocol Feed"
-          value={usdcFeed.priceUSD}
-          subtitle={`Status: ${usdcFeed.status} · Chainlink`}
+          title="USDC / USD Feed"
+          value={assetStatuses[2]?.priceFormatted || '$0.00'}
+          subtitle={assetStatuses[2]?.isHealthy ? 'Healthy · Peg Verified' : 'Breach / Stale'}
           icon={ShieldCheck}
-          glowColor={usdcFeed.status === 'LIVE' ? 'emerald' : undefined}
+          glowColor={assetStatuses[2]?.isHealthy ? 'emerald' : undefined}
         />
         <StatCard
-          title="UVBE Valuation Engine"
-          value={protocolData.currentUVPriceUSD || '$1.00000000'}
-          subtitle={`TVL: ${protocolData.totalVaultNAVUSD}`}
+          title="Circuit Breakers"
+          value={allHealthy ? 'ALL ARMED' : 'TRIPPED / STALE'}
+          subtitle={`Max Dev: ${(Number(assetStatuses[0]?.maxDeviationBps || 1000n) / 100).toFixed(0)}% BPS Cap`}
           icon={Zap}
           glowColor="purple"
         />
       </div>
 
-      {/* Detailed Oracle Feeds Table */}
-      <TableCard
-        title="Active Asset Price Feeds & Heartbeat Monitoring"
-        subtitle="On-chain price feeds registered inside OracleManager"
-        icon={Clock}
-      >
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-border-subtle text-slate-400 font-semibold">
-              <th className="py-3.5 px-3">Asset</th>
-              <th className="py-3.5 px-3">Oracle Provider</th>
-              <th className="py-3.5 px-3">Current Price</th>
-              <th className="py-3.5 px-3">Heartbeat Timeout</th>
-              <th className="py-3.5 px-3">Feed Status</th>
-              <th className="py-3.5 px-3 text-right">Data Source</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border-subtle/40">
-            <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-4 px-3 font-bold text-white flex items-center space-x-2">
-                <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-extrabold text-[10px]">
-                  BTC
-                </div>
-                <div>
-                  <div className="font-bold">cbBTC / USD</div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    {shortAddr(tokens.cbBTC)}
-                  </div>
-                </div>
-              </td>
-              <td className="py-4 px-3 text-slate-300 font-semibold">Chainlink (AggregatorV3)</td>
-              <td
-                className={`py-4 px-3 font-mono font-bold ${
-                  btcFeed.status === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'
-                }`}
-              >
-                {btcFeed.priceUSD}
-              </td>
-              <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
-              <td className="py-4 px-3">{getStatusBadge(btcFeed.status)}</td>
-              <td className="py-4 px-3 text-right font-mono text-slate-400">
-                On-Chain OracleManager
-              </td>
-            </tr>
+      {/* Sub-Tabs Navigation */}
+      <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar border-b border-border-subtle/60 pb-1">
+        <button
+          type="button"
+          onClick={() => setCurrentTab('status')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'status'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>Live Oracle Feeds ({assetStatuses.length})</span>
+        </button>
 
-            <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-4 px-3 font-bold text-white flex items-center space-x-2">
-                <div className="w-7 h-7 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-extrabold text-[10px]">
-                  ETH
-                </div>
-                <div>
-                  <div className="font-bold">WETH / USD</div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    {shortAddr(tokens.WETH)}
-                  </div>
-                </div>
-              </td>
-              <td className="py-4 px-3 text-slate-300 font-semibold">Chainlink (AggregatorV3)</td>
-              <td
-                className={`py-4 px-3 font-mono font-bold ${
-                  ethFeed.status === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'
-                }`}
-              >
-                {ethFeed.priceUSD}
-              </td>
-              <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
-              <td className="py-4 px-3">{getStatusBadge(ethFeed.status)}</td>
-              <td className="py-4 px-3 text-right font-mono text-slate-400">
-                On-Chain OracleManager
-              </td>
-            </tr>
+        <button
+          type="button"
+          onClick={() => setCurrentTab('breaker')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'breaker'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          <span>Circuit Breaker Controls</span>
+        </button>
 
-            <tr className="hover:bg-card/40 transition-colors">
-              <td className="py-4 px-3 font-bold text-white flex items-center space-x-2">
-                <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-extrabold text-[10px]">
-                  USD
-                </div>
-                <div>
-                  <div className="font-bold">USDC / USD</div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    {shortAddr(tokens.USDC)}
-                  </div>
-                </div>
-              </td>
-              <td className="py-4 px-3 text-slate-300 font-semibold">Chainlink (AggregatorV3)</td>
-              <td
-                className={`py-4 px-3 font-mono font-bold ${
-                  usdcFeed.status === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'
-                }`}
-              >
-                {usdcFeed.priceUSD}
-              </td>
-              <td className="py-4 px-3 font-mono text-slate-400">86,400s (24h)</td>
-              <td className="py-4 px-3">{getStatusBadge(usdcFeed.status)}</td>
-              <td className="py-4 px-3 text-right font-mono text-slate-400">
-                On-Chain OracleManager
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </TableCard>
+        <button
+          type="button"
+          onClick={() => setCurrentTab('config')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'config'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Oracle Routing Config</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentTab('chainlink')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'chainlink'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <Link2 className="w-4 h-4" />
+          <span>Chainlink Aggregator Admin</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentTab('activity')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
+            currentTab === 'activity'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Audit Logs ({events.length})</span>
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {currentTab === 'status' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {assetStatuses.map((status) => (
+              <OracleFeedCard
+                key={status.symbol}
+                status={status}
+                explorerBaseUrl={explorerBaseUrl}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {currentTab === 'breaker' && (
+        <CircuitBreakerSection
+          oracleManagerAddress={oracleManagerAddress}
+          explorerBaseUrl={explorerBaseUrl}
+          isGovernanceAdmin={isGovernanceAdmin}
+          assetStatuses={assetStatuses}
+          onRefresh={refetch}
+        />
+      )}
+
+      {currentTab === 'config' && (
+        <OracleConfigSection
+          oracleManagerAddress={oracleManagerAddress}
+          explorerBaseUrl={explorerBaseUrl}
+          isGovernanceAdmin={isGovernanceAdmin}
+          assetStatuses={assetStatuses}
+          onRefresh={refetch}
+        />
+      )}
+
+      {currentTab === 'chainlink' && (
+        <ChainlinkFeedAdminSection
+          chainlinkProviderAddress={chainlinkProviderAddress}
+          explorerBaseUrl={explorerBaseUrl}
+          isChainlinkAdmin={isChainlinkAdmin}
+          assetStatuses={assetStatuses}
+          onRefresh={refetch}
+        />
+      )}
+
+      {currentTab === 'activity' && (
+        <OracleEventHistory
+          events={events}
+          isLoadingEvents={isLoadingEvents}
+          explorerBaseUrl={explorerBaseUrl}
+        />
+      )}
     </div>
   );
 }

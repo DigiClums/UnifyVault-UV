@@ -16,6 +16,8 @@ import {
   ChevronDown,
   Gavel,
   Coins,
+  Fuel,
+  Droplets,
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
@@ -42,8 +44,11 @@ export function AdminSidebar() {
     {
       title: 'PROTOCOL',
       items: [
+        { href: '/admin/paymaster', label: 'Paymaster & Gas', icon: Fuel },
+        { href: '/admin/governance', label: 'Governance & Timelock', icon: ShieldCheck },
         { href: '/admin/oracle', label: 'Oracle Manager', icon: Activity },
         { href: '/admin/rebalance', label: 'Strategy Rebalance', icon: RefreshCw },
+        { href: '/admin/liquidity', label: 'Liquidity & Reserves', icon: Droplets },
         { href: '/admin/monitoring', label: 'System Monitoring', icon: Server },
       ],
     },

@@ -7,7 +7,14 @@ import { UnifyVaultControllerUpgradeable } from '../src/controller/UnifyVaultCon
 import { UVBEStakingVault } from '../src/staking/UVBEStakingVault.sol';
 import { UVBEV2 } from '../src/token/UVBEV2.sol';
 
+interface VmExt {
+  function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+  function envString(string calldata key) external returns (string memory);
+}
+
 contract ExecuteStake50FlowTest is Test {
+  VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
+
   address public constant CONTROLLER_PROXY = 0x7DC190a0bFa08c9596DfdC20E602821619E776ea;
   address public constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
   address public constant UVBE = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
@@ -16,9 +23,14 @@ contract ExecuteStake50FlowTest is Test {
   address public user = address(0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1);
   address public referrer = address(0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1);
 
-  uint256 public constant DEPOSIT_USDC_AMOUNT = 51_000_000; // 51 USDC
+  uint256 public constant DEPOSIT_USDC_AMOUNT = 55_000_000; // 55 USDC (sufficient to mint >= 50 UVBE at current NAV)
   uint256 public constant MIN_UVBE_SHARES = 50_000_000_000_000_000_000; // 50 UVBE
   uint256 public constant STAKE_AMOUNT = 50_000_000_000_000_000_000; // 50 UVBE
+
+  function setUp() public {
+    string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
+    vmExt.createSelectFork(rpcUrl);
+  }
 
   function testFork_Complete50UVBEDepositAndStakeFlow() public {
     IERC20 usdcToken = IERC20(USDC);
@@ -26,7 +38,7 @@ contract ExecuteStake50FlowTest is Test {
     UnifyVaultControllerUpgradeable controller = UnifyVaultControllerUpgradeable(CONTROLLER_PROXY);
     UVBEStakingVault stakingVault = UVBEStakingVault(STAKING_VAULT);
 
-    // Provide test user with 51 USDC
+    // Provide test user with 55 USDC
     deal(USDC, user, DEPOSIT_USDC_AMOUNT);
     assertEq(usdcToken.balanceOf(user), DEPOSIT_USDC_AMOUNT);
 

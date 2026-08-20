@@ -123,7 +123,8 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   StakingVault: '0x59F60d3D9EE0e253fEDACa2A2435A0F6aCBEBE4E' as `0x${string}`,
   ReferralRegistry: '0x183dBEe157fD7f275e95634A3B3781B50d95cdf7' as `0x${string}`,
   RewardDistributor: '0xF902dC96D6aB062f2cE529dFD6501ae79CFDBF56' as `0x${string}`,
-  RewardReserve: '0x0000000000000000000000000000000000000000' as `0x${string}`, // Deprecated / removed in dynamic architecture
+  /** @deprecated Removed in dynamic staking architecture; retained for interface backward-compatibility */
+  RewardReserve: '0x0000000000000000000000000000000000000000' as `0x${string}`,
   GenesisReferrer: '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1' as `0x${string}`,
 };
 
@@ -214,9 +215,20 @@ export const MODULE_IDS = {
   P2P_ESCROW: '0x4d5e9ec2ddae603ed61a153eeaa5905d914ec7a7a505e83ea647904cf72d8a57' as `0x${string}`,
 };
 
+/**
+ * Canonical Role Hashes matching packages/protocol/src/libraries/AccessRoles.sol
+ */
 export const DEFAULT_ADMIN_ROLE =
   '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
+export const GOVERNANCE_ROLE =
+  '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1' as `0x${string}`;
 export const GUARDIAN_ROLE =
-  '0x5543555f475541524449414e5f524f4c45000000000000000000000000000000' as `0x${string}`;
+  '0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365284bb7f0a5041' as `0x${string}`;
+export const CONTROLLER_ROLE =
+  '0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357' as `0x${string}`;
+export const ARBITRATOR_ROLE =
+  '0x16ceee8289685dd2a02b9c8ae81d2df373176ce53519e6284e2a2950d6546ffa' as `0x${string}`;
+export const BOT_ROLE =
+  '0x6d5c9827c1f410bbb61d3b2a0a34b6b30492d9a1fd38588edca7ec4562ab9c9b' as `0x${string}`;
 export const TIMELOCK_ROLE =
   '0x5543555f54494d454c4f434b5f524f4c45000000000000000000000000000000' as `0x${string}`;
