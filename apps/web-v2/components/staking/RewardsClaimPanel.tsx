@@ -110,8 +110,7 @@ export function RewardsClaimPanel() {
                 Rewards Engine
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                Disbursed directly from UVBEStakingVault protocol-owned capital upon claim or
-                compound restake.
+                Earned rewards can be claimed directly to your wallet or compounded with 0% fees.
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -204,8 +203,7 @@ export function RewardsClaimPanel() {
             <RefreshCw className="w-4 h-4 text-black dark:text-[#BFFF00] shrink-0 mt-0.5" />
             <div>
               <strong className="text-slate-950 dark:text-white">0% Fee Compound Restaking:</strong>{' '}
-              Restaking rewards compounds tokens directly into your permanent protocol stake with
-              zero treasury fee and zero recursive MLM commissions.
+              Restaking rewards compounds directly into your staking balance with 0% protocol fees.
             </div>
           </div>
 

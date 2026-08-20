@@ -8,11 +8,11 @@ export default function TransferPage() {
     <div className="py-5 sm:py-6 space-y-4 sm:space-y-5 max-w-2xl mx-auto">
       <div className="text-center space-y-1 px-4">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-          UVBE Wallet-to-Wallet Transfer
+          Transfer UVBE
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
-          Transfer UVBE vault shares directly to another wallet. Gas is sponsored via Account
-          Abstraction.
+          Send UVBE index shares directly to any wallet address. Gas fees can be sponsored for smart
+          accounts.
         </p>
       </div>
       <TransferForm />

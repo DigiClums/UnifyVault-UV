@@ -120,8 +120,8 @@ export default function P2PPage() {
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground font-sans">
               UnifyVault P2P Marketplace
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-              Exclusively UVBE • Non-custodial limit orderbook & escrow settlement.
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Buy and sell UVBE directly with other users via secure non-custodial escrow.
             </p>
           </div>
         </div>

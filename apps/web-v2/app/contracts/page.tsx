@@ -37,7 +37,7 @@ import {
 type ContractCategory =
   | 'All'
   | 'Core Vault'
-  | 'Staking & MLM'
+  | 'Staking & Referrals'
   | 'P2P & Escrow'
   | 'Accounting'
   | 'Oracle'
@@ -60,7 +60,7 @@ interface ContractItem {
 const CATEGORIES: ContractCategory[] = [
   'All',
   'Core Vault',
-  'Staking & MLM',
+  'Staking & Referrals',
   'P2P & Escrow',
   'Accounting',
   'Oracle',
@@ -169,22 +169,21 @@ export default function ContractsPage() {
         isErc20: false,
       },
 
-      // 2. Staking & MLM Subsystem (Dynamic Protocol-Owned Architecture)
+      // 2. Staking & Referrals Subsystem
       {
         name: 'UVBEStakingVault',
-        description: 'Permanent locked protocol-owned staking capital vault & reward custodian',
+        description: 'Staking vault backing dynamic APY, referral tiers, and reward engine',
         address: DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
-        category: 'Staking & MLM',
+        category: 'Staking & Referrals',
         protocolKey: 'UVBE Staking Vault',
         icon: Lock,
         isErc20: false,
       },
       {
         name: 'UVBEReferralRegistry',
-        description:
-          '10-generation immutable referral tree & deterministic rank progression engine',
+        description: '10-tier immutable referral tree & deterministic rank progression system',
         address: DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
-        category: 'Staking & MLM',
+        category: 'Staking & Referrals',
         protocolKey: 'UVBE Referral Registry',
         icon: Users,
         isErc20: false,
@@ -192,9 +191,9 @@ export default function ContractsPage() {
       {
         name: 'UVBERewardDistributor',
         description:
-          'Dynamic APY, 10-gen affiliate commissions & 30-day DAO leadership pool engine',
+          'Dynamic APY, 10-tier affiliate commissions & 30-day DAO leadership pool engine',
         address: DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
-        category: 'Staking & MLM',
+        category: 'Staking & Referrals',
         protocolKey: 'UVBE Reward Distributor',
         icon: Sparkles,
         isErc20: false,

@@ -9,11 +9,10 @@ export default function RedeemPage() {
       {/* Hero Header */}
       <div className="text-center space-y-1.5 px-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Share Redemption & Collateral Payout
+          Redeem Shares
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
-          Burn UVBE index shares to receive USDC payout. Multi-asset vault collateral is unwound
-          automatically via DEX router.
+          Redeem your UVBE index shares for USDC based on real-time net asset value (NAV).
         </p>
       </div>
 

@@ -49,10 +49,10 @@ export function PermanentStakePositionCard() {
           <div className="flex items-center gap-2">
             <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
               <Lock className="w-5 h-5 text-black dark:text-[#BFFF00]" />
-              Your Permanent Stake Position
+              Your Staked Position
             </h2>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-              Non-Withdrawable
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#BFFF00]/15 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40">
+              Perpetual Yield
             </span>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -87,7 +87,6 @@ export function PermanentStakePositionCard() {
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
             <span>Protocol-Owned Capital</span>
-            <span className="text-[9px] font-mono text-amber-500">Permanent</span>
           </div>
           <div className="text-2xl font-mono font-black text-slate-950 dark:text-white">
             {formattedPermStake} <span className="text-xs text-slate-500">UVBE</span>
@@ -135,9 +134,7 @@ export function PermanentStakePositionCard() {
             )}
           </div>
           <p className="text-[10px] text-slate-500 dark:text-slate-400">
-            {isUserActive
-              ? 'Qualifies uplines for Gen commissions'
-              : 'Stake min 50 UVBE to qualify'}
+            {isUserActive ? 'Active for referral tier commissions' : 'Stake min 50 UVBE to qualify'}
           </p>
         </div>
 
@@ -156,17 +153,15 @@ export function PermanentStakePositionCard() {
         </div>
       </div>
 
-      {/* Non-Withdrawable Legal and Technical Disclosure Box */}
-      <div className="p-3.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-xs flex items-start gap-2.5">
-        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+      {/* Perpetual Yield Information */}
+      <div className="p-3.5 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs flex items-start gap-2.5">
+        <Sparkles className="w-4 h-4 text-emerald-600 dark:text-[#BFFF00] shrink-0 mt-0.5" />
         <div className="text-slate-700 dark:text-slate-300">
-          <strong className="text-amber-900 dark:text-amber-200 font-bold">
-            Zero Principal Withdrawal Rights:
+          <strong className="text-slate-950 dark:text-white font-bold">
+            Perpetual Reward Mechanism:
           </strong>{' '}
-          Staking converts UVBE into permanent, protocol-owned capital backing the reward engine.
-          Users do not have the ability to withdraw, unstake, unlock, or redeem the principal
-          amount. All earnings are distributed as claimable/restakeable rewards directly from vault
-          capacity.
+          Staked UVBE establishes a perpetual reward position in the protocol vault. All earnings,
+          affiliate bonuses, and DAO rewards are claimable and restakeable anytime with 0% fees.
         </div>
       </div>
     </div>

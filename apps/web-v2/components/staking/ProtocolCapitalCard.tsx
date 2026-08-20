@@ -69,11 +69,11 @@ export function ProtocolCapitalCard() {
           <div>
             <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-500" />
-              Protocol-Owned Capital & Dynamic Capacity
+              Vault Reserves & Reward Capacity
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              95% of all user staking volume is held in the UVBEStakingVault as permanent
-              protocol-owned capital backing dynamic APY and affiliate rewards.
+              95% of staked UVBE is secured in the vault to generate dynamic APY and community
+              rewards.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export function ProtocolCapitalCard() {
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <span className="flex items-center gap-1">
                 <Lock className="w-3 h-3 text-black dark:text-[#BFFF00]" />
-                Protocol-Owned Capital
+                Vault Reserves
               </span>
             </div>
             <div className="text-xl font-mono font-black text-slate-950 dark:text-white">
@@ -137,14 +137,14 @@ export function ProtocolCapitalCard() {
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <span className="flex items-center gap-1">
                 <Activity className="w-3 h-3 text-amber-500" />
-                Reward Liabilities
+                Pending Rewards Pool
               </span>
             </div>
             <div className="text-xl font-mono font-black text-slate-950 dark:text-white">
               {formattedLiabilities} <span className="text-xs text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Committed claimable reward liability
+              Total claimable rewards allocated to users
             </p>
           </div>
 

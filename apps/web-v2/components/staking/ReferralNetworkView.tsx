@@ -148,11 +148,10 @@ export function ReferralNetworkView() {
         <div>
           <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
             <Users className="w-5 h-5 text-black dark:text-[#BFFF00]" />
-            10-Generation Referral & MLM Network
+            10-Tier Referral & Affiliate Network
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Build your partner network and qualify for up to 10 generations of multi-tier staking
-            commissions.
+            Build your community and qualify for up to 10 tiers of referral staking rewards.
           </p>
         </div>
         <div className="text-left sm:text-right shrink-0">

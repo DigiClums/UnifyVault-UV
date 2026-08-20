@@ -42,7 +42,8 @@ export function RankProgressionCard() {
               Progress to {nextRank.name} (Tier {nextRank.rank})
             </span>
             <span className="text-violet-600 dark:text-violet-400 font-mono">
-              Milestone Reward: +{formatUnits(nextRank.milestoneReward, 18)} UVBE
+              Milestone Reward: +
+              {Number(formatUnits(nextRank.milestoneReward, 18)).toLocaleString()} UVBE
             </span>
           </div>
 
@@ -53,7 +54,8 @@ export function RankProgressionCard() {
                 <Lock className="w-3 h-3" /> Personal Stake
               </span>
               <span>
-                {formatUnits(permanentStake, 18)} / {formatUnits(nextRank.personalStake, 18)} UVBE (
+                {Number(formatUnits(permanentStake, 18)).toLocaleString()} /{' '}
+                {Number(formatUnits(nextRank.personalStake, 18)).toLocaleString()} UVBE (
                 {rankDetails.stakeProgress}%)
               </span>
             </div>
@@ -91,7 +93,8 @@ export function RankProgressionCard() {
                 <TrendingUp className="w-3 h-3" /> 10-Gen Team Volume
               </span>
               <span>
-                {formatUnits(teamVolume, 18)} / {formatUnits(nextRank.teamVolume, 18)} UVBE (
+                {Number(formatUnits(teamVolume, 18)).toLocaleString()} /{' '}
+                {Number(formatUnits(nextRank.teamVolume, 18)).toLocaleString()} UVBE (
                 {rankDetails.volumeProgress}%)
               </span>
             </div>
@@ -139,11 +142,15 @@ export function RankProgressionCard() {
                     )}
                     {r.name}
                   </td>
-                  <td className="px-3.5 py-2">{formatUnits(r.personalStake, 18)} UVBE</td>
+                  <td className="px-3.5 py-2">
+                    {Number(formatUnits(r.personalStake, 18)).toLocaleString()} UVBE
+                  </td>
                   <td className="px-3.5 py-2">{r.activeDirects} Directs</td>
-                  <td className="px-3.5 py-2">{formatUnits(r.teamVolume, 18)} UVBE</td>
+                  <td className="px-3.5 py-2">
+                    {Number(formatUnits(r.teamVolume, 18)).toLocaleString()} UVBE
+                  </td>
                   <td className="px-3.5 py-2 font-black text-violet-600 dark:text-violet-400">
-                    +{formatUnits(r.milestoneReward, 18)} UVBE
+                    +{Number(formatUnits(r.milestoneReward, 18)).toLocaleString()} UVBE
                   </td>
                 </tr>
               );

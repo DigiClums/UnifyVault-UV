@@ -14,7 +14,7 @@ import { StakingTransactionHistory } from '../../components/staking/StakingTrans
 import { useStaking } from '../../hooks/useStaking';
 import { getDefaultChainId } from '../../constants';
 import { base, baseSepolia } from 'viem/chains';
-import { Lock, Sparkles, ShieldCheck, AlertTriangle, TrendingUp, Info } from 'lucide-react';
+import { Sparkles, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 export default function StakingPage() {
   const { chain, isConnected } = useAccount();
@@ -40,9 +40,8 @@ export default function StakingPage() {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
-              Staking converts UVBE into permanent protocol-owned capital. Backs continuous dynamic
-              yield, 10-generation affiliate commissions, and monthly DAO leadership pool
-              allocations.
+              Stake UVBE to earn continuous dynamic APY, 10-tier affiliate commissions, and monthly
+              DAO leadership pool rewards.
             </p>
           </div>
 
@@ -53,7 +52,7 @@ export default function StakingPage() {
             </div>
             <div className="flex items-center space-x-1.5 text-[11px] font-mono font-bold px-3 py-1.5 rounded-xl bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 shrink-0">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>10-Gen MLM Active</span>
+              <span>10-Tier Referrals Active</span>
             </div>
           </div>
         </div>
@@ -79,20 +78,6 @@ export default function StakingPage() {
             )}
           </div>
         )}
-
-        {/* Clear Disclosure Notice */}
-        <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-black/10 dark:border-white/15 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2.5 shadow-sm">
-          <Info className="w-4 h-4 text-black dark:text-[#BFFF00] shrink-0 mt-0.5" />
-          <div>
-            <strong className="text-slate-950 dark:text-white font-bold">
-              Mandatory Economic Disclosure:
-            </strong>{' '}
-            Principal is permanently locked and is not withdrawable. Users have zero principal
-            redemption rights. 95% of staked UVBE is protocol-owned capital held directly in the
-            vault backing dynamic rewards. Rewards are funded directly from actual vault capacity
-            without minting guarantees.
-          </div>
-        </div>
       </div>
 
       {/* ── Section A: Top Summary Cards ── */}

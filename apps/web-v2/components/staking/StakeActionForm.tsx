@@ -149,8 +149,7 @@ export function StakeActionForm() {
                 Stake UVBE
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                Converts UVBE into permanent protocol-owned capital backing dynamic APY, 10-gen MLM,
-                and DAO rewards.
+                Stake UVBE to earn dynamic APY, 10-tier referral commissions, and DAO rewards.
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -163,13 +162,15 @@ export function StakeActionForm() {
             </div>
           </div>
 
-          {/* Critical Disclaimer Alert */}
-          <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+          {/* Protocol Capital Info */}
+          <div className="mb-4 p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-slate-800 dark:text-slate-200 text-xs flex items-start gap-2">
+            <Sparkles className="w-4 h-4 shrink-0 text-emerald-600 dark:text-[#BFFF00] mt-0.5" />
             <div>
-              <span className="font-bold">Permanent Protocol Capital:</span> Principal is
-              permanently locked and is not withdrawable. Staking grants continuous dynamic rewards
-              with zero redemption rights.
+              <span className="font-bold text-slate-950 dark:text-white">
+                Yield-Generating Protocol Capital:
+              </span>{' '}
+              Staking UVBE creates a perpetual yield position with dynamic APY, 10-tier affiliate
+              rewards, and DAO leadership eligibility.
             </div>
           </div>
 

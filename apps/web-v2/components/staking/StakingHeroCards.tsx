@@ -53,10 +53,10 @@ export function StakingHeroCards() {
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-black dark:text-[#BFFF00]" />
-            Your Permanent Stake
+            Your Staked Position
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            Non-Withdrawable
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#BFFF00]/15 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40">
+            Perpetual Yield
           </span>
         </div>
         {isLoading ? (
@@ -67,7 +67,7 @@ export function StakingHeroCards() {
               {formattedPermStake} <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Protocol-owned capital backing dynamic rewards
+              Earning continuous dynamic staking rewards
             </p>
           </div>
         )}
@@ -108,7 +108,7 @@ export function StakingHeroCards() {
             Claimable Rewards
           </span>
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-            Yield + MLM + DAO
+            Yield + Referrals + DAO
           </span>
         </div>
         {isLoading ? (
@@ -146,7 +146,7 @@ export function StakingHeroCards() {
               <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Total permanent vault capital
+              Total staked vault capital backing rewards
             </p>
           </div>
         )}

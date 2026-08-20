@@ -114,7 +114,7 @@ export function RedeemForm() {
               <span>Redeem Shares</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Burn UVBE → receive USDC collateral payout
+              Redeem UVBE shares to receive USDC
             </p>
           </div>
           <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#BFFF00] text-black border-2 border-black text-xs font-semibold shrink-0">

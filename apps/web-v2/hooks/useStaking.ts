@@ -112,7 +112,7 @@ export const RANK_REQUIREMENTS = [
     name: 'Crown Ambassador',
     personalStake: 5_000_000_000_000_000_000_000n,
     activeDirects: 10,
-    teamVolume: 500_000_000_000_000_000_000n,
+    teamVolume: 500_000_000_000_000_000_000_000n,
     milestoneReward: 20_000_000_000_000_000_000_000n,
     daoShares: 10,
   },

@@ -129,10 +129,10 @@ export function DepositForm() {
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-foreground flex items-center space-x-2">
               <ArrowDownRight className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
-              <span>Deposit Shares</span>
+              <span>Deposit USDC</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Single-Click USDC Collateral Deposit & Share Minting
+              Deposit USDC to receive index portfolio shares
             </p>
           </div>
           <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#BFFF00] text-black border-2 border-black text-xs font-semibold shrink-0">
@@ -144,7 +144,7 @@ export function DepositForm() {
         {/* Mint Destination Selection ("Mint To") */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
-            Mint To
+            Receive Shares In
           </label>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -208,7 +208,7 @@ export function DepositForm() {
         {/* Input Card */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
-            <span className="font-semibold text-foreground">You Deposit Collateral</span>
+            <span className="font-semibold text-foreground">You Deposit</span>
             <span className="font-mono">
               Available: <span className="font-bold text-foreground">{usdcBalFormatted} USDC</span>
             </span>
@@ -308,7 +308,7 @@ export function DepositForm() {
             </div>
 
             <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex justify-between items-center font-sans">
-              <span className="font-bold text-foreground text-sm">Est. Index Shares Minted</span>
+              <span className="font-bold text-foreground text-sm">Est. Shares Received</span>
               <span className="font-mono font-bold text-[#5f8f00] dark:text-[#BFFF00] text-base">
                 {estSharesUSD} UVBE
               </span>
