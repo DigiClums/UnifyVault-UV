@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, ShieldAlert, Send, FileText, CheckCircle2, User, Lock } from 'lucide-react';
+import { useAccount, useSignMessage } from 'wagmi';
 import { DisputeMessage, DisputeRecord } from '../../lib/dispute/types';
+import { constructAuthMessage } from '../../lib/payment/walletAuth';
 
 interface DisputeChatWorkspaceProps {
   tradeId: number;
@@ -19,6 +21,9 @@ export function DisputeChatWorkspace({
   isSeller,
   isAdmin = false,
 }: DisputeChatWorkspaceProps) {
+  const { isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+
   const [messages, setMessages] = useState<DisputeMessage[]>([]);
   const [dispute, setDispute] = useState<DisputeRecord | null>(null);
   const [newMsg, setNewMsg] = useState('');
@@ -27,12 +32,67 @@ export function DisputeChatWorkspace({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchChat = async () => {
+  const [authSession, setAuthSession] = useState<{ signature: string; timestamp: number } | null>(
+    null,
+  );
+
+  const getValidAuthSession = async (): Promise<{
+    signature: string;
+    timestamp: number;
+  } | null> => {
+    const now = Date.now();
+    if (authSession && Math.abs(now - authSession.timestamp) < 4 * 60 * 1000) {
+      return authSession;
+    }
+
+    if (!isConnected || !userAddress) {
+      return null;
+    }
+
+    try {
+      const timestamp = now;
+      const authMessage = constructAuthMessage('dispute-chat-message', tradeId, timestamp);
+      const signature = await signMessageAsync({ message: authMessage });
+      const newSession = { signature, timestamp };
+      setAuthSession(newSession);
+      return newSession;
+    } catch (signErr: any) {
+      const signMsg = signErr?.message || '';
+      if (
+        signMsg.toLowerCase().includes('reject') ||
+        signMsg.toLowerCase().includes('denied') ||
+        signMsg.toLowerCase().includes('cancel')
+      ) {
+        setError('Signature request was rejected in your wallet.');
+      } else {
+        setError(signErr?.message || 'Failed to sign authentication message.');
+      }
+      return null;
+    }
+  };
+
+  const fetchChat = async (activeSession?: { signature: string; timestamp: number } | null) => {
+    if (!userAddress || !tradeId) return;
+
+    const session = activeSession !== undefined ? activeSession : authSession;
+    if (!session) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const res = await fetch(
-        `/api/p2p/dispute-chat/messages?tradeId=${tradeId}&userAddress=${userAddress}`,
-      );
+      setError(null);
+
+      const params = new URLSearchParams({
+        tradeId: tradeId.toString(),
+        userAddress,
+        signature: session.signature,
+        timestamp: session.timestamp.toString(),
+        action: 'dispute-chat-message',
+      });
+
+      const res = await fetch(`/api/p2p/dispute-chat/messages?${params.toString()}`);
       const data = await res.json();
 
       if (data.success) {
@@ -48,31 +108,74 @@ export function DisputeChatWorkspace({
     }
   };
 
-  useEffect(() => {
-    if (userAddress && tradeId) {
-      fetchChat();
+  const handleUnlockChat = async () => {
+    setError(null);
+    const session = await getValidAuthSession();
+    if (session) {
+      await fetchChat(session);
     }
-  }, [tradeId, userAddress]);
+  };
+
+  useEffect(() => {
+    if (authSession && userAddress && tradeId) {
+      fetchChat(authSession);
+      const interval = setInterval(() => {
+        if (authSession && Math.abs(Date.now() - authSession.timestamp) < 4 * 60 * 1000) {
+          fetchChat(authSession);
+        }
+      }, 10_000);
+      return () => clearInterval(interval);
+    } else {
+      setIsLoading(false);
+    }
+  }, [tradeId, userAddress, authSession]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMsg.trim()) return;
+    if (!newMsg.trim() || isSending) return;
+
+    if (!isConnected || !userAddress) {
+      setError('Please connect your wallet to participate in the dispute chat.');
+      return;
+    }
 
     try {
       setIsSending(true);
       setError(null);
 
+      const timestamp = Date.now();
+      const authMessage = constructAuthMessage('dispute-chat-message', tradeId, timestamp);
+
+      let signature: string;
+      try {
+        signature = await signMessageAsync({ message: authMessage });
+      } catch (signErr: any) {
+        const signMsg = signErr?.message || '';
+        if (
+          signMsg.toLowerCase().includes('reject') ||
+          signMsg.toLowerCase().includes('denied') ||
+          signMsg.toLowerCase().includes('cancel')
+        ) {
+          setError('Signature request was rejected in your wallet.');
+        } else {
+          setError(signErr?.message || 'Failed to sign authentication message.');
+        }
+        return;
+      }
+
       const res = await fetch('/api/p2p/dispute-chat/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-skip-auth': 'true', // Sandbox/dev header
         },
         body: JSON.stringify({
           tradeId,
           userAddress,
           content: newMsg.trim(),
           evidenceHash: evidenceHash.trim() || undefined,
+          signature,
+          timestamp,
+          action: 'dispute-chat-message',
         }),
       });
 
@@ -127,6 +230,19 @@ export function DisputeChatWorkspace({
         {isLoading ? (
           <div className="text-center py-6 text-muted-foreground animate-pulse">
             Loading dispute messages...
+          </div>
+        ) : !authSession ? (
+          <div className="text-center py-6 space-y-2">
+            <p className="text-muted-foreground font-bold">
+              🔒 Dispute transcript is encrypted for trade participants.
+            </p>
+            <button
+              type="button"
+              onClick={handleUnlockChat}
+              className="px-3 py-1.5 bg-[#BFFF00] text-black font-black text-xs rounded-xl border border-black shadow-[2px_2px_0_#000] hover:translate-y-[-1px]"
+            >
+              Sign to View Chat
+            </button>
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">

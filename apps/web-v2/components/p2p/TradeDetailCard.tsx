@@ -1148,7 +1148,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             <div>
               <span className="text-muted-foreground font-bold">Storage Location:</span>
               <p className="font-mono text-[11px] text-emerald-500 font-bold">
-                Stored on VPS Filesystem ✓
+                Encrypted Decentralized Storage ✓
               </p>
             </div>
 
