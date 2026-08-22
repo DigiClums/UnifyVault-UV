@@ -140,7 +140,143 @@ export function getContractRolesMatrix(
     });
   }
 
-  // 8. Marketplace
+  // 8. LiquidityManager
+  if (contracts.LiquidityManager) {
+    items.push({
+      contractName: 'LiquidityManager',
+      contractAddress: contracts.LiquidityManager,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Controls rebalance liquidity routing parameters.',
+    });
+  }
+
+  // 9. SwapAdapter
+  if (contracts.SwapAdapter) {
+    items.push({
+      contractName: 'SwapAdapter',
+      contractAddress: contracts.SwapAdapter,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governs approved Uniswap V3 routers.',
+    });
+  }
+
+  // 10. StrategyManager
+  if (contracts.StrategyManager) {
+    items.push({
+      contractName: 'StrategyManager',
+      contractAddress: contracts.StrategyManager,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governs portfolio asset allocation weights.',
+    });
+  }
+
+  // 11. PortfolioManager
+  if (contracts.PortfolioManager) {
+    items.push({
+      contractName: 'PortfolioManager',
+      contractAddress: contracts.PortfolioManager,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Coordinates module addresses and NAV calculation.',
+    });
+  }
+
+  // 12. CostBasisManagerV2
+  if (contracts.CostBasisManagerV2) {
+    items.push({
+      contractName: 'CostBasisManagerV2',
+      contractAddress: contracts.CostBasisManagerV2,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Administers cost-basis accounting recorders.',
+    });
+  }
+
+  // 13. P2PEscrowV2
+  if (contracts.P2PEscrowV2) {
+    items.push({
+      contractName: 'P2PEscrowV2',
+      contractAddress: contracts.P2PEscrowV2,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Controls escrow deposit safeguards and arbitrator roles.',
+    });
+  }
+
+  // 14. PerformanceManager
+  if (contracts.PerformanceManager) {
+    items.push({
+      contractName: 'PerformanceManager',
+      contractAddress: contracts.PerformanceManager,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governs high-watermark fee calculations.',
+    });
+  }
+
+  // 15. ChainlinkOracleProvider
+  if (contracts.ChainlinkOracleProvider) {
+    items.push({
+      contractName: 'ChainlinkOracleProvider',
+      contractAddress: contracts.ChainlinkOracleProvider,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governs Chainlink oracle feeds registration.',
+    });
+  }
+
+  // 16. Marketplace
   if (contracts.Marketplace) {
     items.push({
       contractName: 'Marketplace',

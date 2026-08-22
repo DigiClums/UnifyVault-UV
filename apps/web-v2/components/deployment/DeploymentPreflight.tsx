@@ -10,6 +10,7 @@ interface DeploymentPreflightProps {
   address?: `0x${string}`;
   balance: string;
   onSwitchNetwork: () => void;
+  chainId?: number;
 }
 
 export function DeploymentPreflight({
@@ -18,10 +19,12 @@ export function DeploymentPreflight({
   address,
   balance,
   onSwitchNetwork,
+  chainId = 8453,
 }: DeploymentPreflightProps) {
   const ethBalance = parseFloat(balance) || 0;
-  const isBalanceSufficient = ethBalance >= 0.01;
-  const isBalanceRecommended = ethBalance >= 0.05;
+  const isBalanceSufficient = ethBalance >= 0.001;
+  const isBalanceRecommended = ethBalance >= 0.01;
+  const isMainnet = chainId === 8453;
 
   const [isSafePalDetected, setIsSafePalDetected] = useState(false);
 
@@ -42,10 +45,10 @@ export function DeploymentPreflight({
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#BFFF00] text-black border border-black shadow-[1px_1px_0_#000]">
               Pre-Flight Security Checklist
             </span>
-            <span className="text-xs text-muted-foreground font-mono">Chain ID: 84532</span>
+            <span className="text-xs text-muted-foreground font-mono">Chain ID: {chainId}</span>
           </div>
           <h2 className="text-lg sm:text-xl font-black text-foreground">
-            Base Sepolia Browser Deployment Runner
+            {isMainnet ? 'Base Mainnet' : 'Base Sepolia'} Browser Deployment Runner
           </h2>
         </div>
 

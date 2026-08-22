@@ -12,7 +12,7 @@ import { RankProgressionCard } from '../../components/staking/RankProgressionCar
 import { DaoLeadershipPoolCard } from '../../components/staking/DaoLeadershipPoolCard';
 import { StakingTransactionHistory } from '../../components/staking/StakingTransactionHistory';
 import { useStaking } from '../../hooks/useStaking';
-import { baseSepolia } from 'viem/chains';
+import { getDefaultChainId, CHAIN_CONFIG } from '../../constants';
 import {
   Sparkles,
   ShieldCheck,
@@ -31,7 +31,7 @@ export default function StakingPage() {
     'overview',
   );
 
-  const targetChainId = baseSepolia.id;
+  const targetChainId = getDefaultChainId();
   const isWrongNetwork = isConnected && chain && chain.id !== targetChainId;
 
   return (
@@ -58,7 +58,7 @@ export default function StakingPage() {
           <div className="flex items-center space-x-2 shrink-0">
             <div className="flex items-center space-x-1.5 text-[10px] sm:text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl bg-black text-white dark:bg-white/10 dark:text-white border border-black dark:border-white/20 shrink-0 shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
-              <span>Base Sepolia</span>
+              <span>{CHAIN_CONFIG.name}</span>
             </div>
             <div className="flex items-center space-x-1.5 text-[10px] sm:text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 shrink-0">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -74,7 +74,7 @@ export default function StakingPage() {
               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
               <span>
                 <strong>Wrong Network Detected:</strong> You are connected to {chain?.name}. Please
-                switch to Base Sepolia to interact with UVBE Staking.
+                switch to {CHAIN_CONFIG.name} to interact with UVBE Staking.
               </span>
             </div>
             {switchChain && (
@@ -83,7 +83,7 @@ export default function StakingPage() {
                 onClick={() => switchChain({ chainId: targetChainId })}
                 className="px-3 py-1 rounded-lg bg-rose-600 text-white font-bold text-xs uppercase tracking-wider shrink-0 hover:bg-rose-700 transition-colors"
               >
-                Switch to Base Sepolia
+                Switch to {CHAIN_CONFIG.name}
               </button>
             )}
           </div>

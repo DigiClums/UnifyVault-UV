@@ -33,14 +33,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify on-chain if deployedAddress was provided
+    // Verify on-chain if deployedAddress was provided (with retry for L2 node propagation)
     if (deployedAddress && isAddress(deployedAddress)) {
-      const client = createPublicClient({
-        chain: chainId === 8453 ? base : baseSepolia,
-        transport: http(getRpcUrl(chainId)),
-      });
-      const bytecode = await client.getBytecode({ address: deployedAddress });
-      if (!bytecode || bytecode === '0x') {
+      const rpcUrls = [
+        getRpcUrl(chainId),
+        'https://base-rpc.publicnode.com',
+        'https://mainnet.base.org',
+      ];
+      let bytecodeFound = false;
+
+      for (const rpc of rpcUrls) {
+        try {
+          const client = createPublicClient({
+            chain: chainId === 8453 ? base : baseSepolia,
+            transport: http(rpc),
+          });
+          // Retry up to 3 times with a short delay for state propagation
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const bytecode = await client.getBytecode({ address: deployedAddress });
+            if (bytecode && bytecode !== '0x') {
+              bytecodeFound = true;
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 600));
+          }
+          if (bytecodeFound) break;
+        } catch {}
+      }
+
+      if (!bytecodeFound) {
         return NextResponse.json(
           {
             success: false,

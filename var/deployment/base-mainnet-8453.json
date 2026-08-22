@@ -1,7 +1,7 @@
 {
   "manifestVersion": 2,
-  "chainId": 84532,
-  "network": "Base Sepolia",
+  "chainId": 8453,
+  "network": "Base Mainnet",
   "deploymentVersion": "V2",
   "protocolVersion": "2.0.0",
   "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
@@ -12,5 +12,5 @@
   "contracts": {},
   "stepRecords": {},
   "verificationResults": [],
-  "lastUpdated": 1787387667547
+  "lastUpdated": 1787385783575
 }

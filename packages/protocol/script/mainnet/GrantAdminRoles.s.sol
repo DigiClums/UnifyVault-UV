@@ -16,6 +16,7 @@ import {
  */
 contract GrantAdminRolesScript is Script {
   function run() external {
+    GovernanceMigrationHelper.requireMainnetGovernanceConfirmation(address(vm));
     MigrationConfig memory config = GovernanceMigrationHelper.loadConfig(address(vm));
 
     require(config.newAdmin != address(0), 'GrantAdminRoles: Invalid newAdmin address');

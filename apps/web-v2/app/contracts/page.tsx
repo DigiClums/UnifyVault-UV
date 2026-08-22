@@ -71,9 +71,11 @@ const CATEGORIES: ContractCategory[] = [
 
 export default function ContractsPage() {
   const { chain } = useAccount();
-  const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
-  const activeChainName = chain?.name || 'Base Sepolia';
-  const tokens = React.useMemo(() => getChainTokens(chain?.id), [chain?.id]);
+  const chainId = chain?.id || 8453;
+  const isMainnet = chainId === 8453;
+  const explorerBaseUrl = getExplorerBaseUrl(chainId);
+  const activeChainName = chain?.name || (isMainnet ? 'Base Mainnet' : 'Base Sepolia');
+  const tokens = React.useMemo(() => getChainTokens(chainId), [chainId]);
   const directory = useProtocolDirectory();
 
   const [searchFilter, setSearchFilter] = useState('');
@@ -99,7 +101,11 @@ export default function ContractsPage() {
       {
         name: 'ProtocolDirectory',
         description: 'Canonical module registry & dynamic address resolver',
-        address: directory.directory || DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory,
+        address:
+          directory.directory ||
+          (isMainnet
+            ? '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
+            : DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory),
         category: 'Core Vault',
         protocolKey: 'Core Registry Entrypoint',
         icon: Layers,
@@ -108,7 +114,11 @@ export default function ContractsPage() {
       {
         name: 'UnifyVaultController',
         description: 'Primary user deposit/redeem entry point & atomic swap executor',
-        address: directory.controller || DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController,
+        address:
+          directory.controller ||
+          (isMainnet
+            ? '0x0721465b01b586b7aadf957a4a884ace46cfbec9'
+            : DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController),
         category: 'Core Vault',
         protocolKey: 'keccak256("DepositManager")',
         icon: Activity,
@@ -117,7 +127,11 @@ export default function ContractsPage() {
       {
         name: 'CustodyVault',
         description: 'Stateless multi-asset collateral vault holding cbBTC, WETH & USDC',
-        address: directory.vault || DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault,
+        address:
+          directory.vault ||
+          (isMainnet
+            ? '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca'
+            : DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault),
         category: 'Core Vault',
         protocolKey: 'keccak256("CustodyVault")',
         icon: ShieldCheck,
@@ -126,7 +140,11 @@ export default function ContractsPage() {
       {
         name: 'Treasury',
         description: 'Protocol-owned fee vault and treasury asset balance reserve',
-        address: directory.treasury || DEPLOYED_CONTRACTS_SEPOLIA.Treasury,
+        address:
+          directory.treasury ||
+          (isMainnet
+            ? '0x57561F781b2f558A7445D2E93a365C03BA2c9B53'
+            : DEPLOYED_CONTRACTS_SEPOLIA.Treasury),
         category: 'Core Vault',
         protocolKey: 'keccak256("Treasury")',
         icon: Coins,
@@ -204,7 +222,11 @@ export default function ContractsPage() {
         name: 'P2PEscrow',
         description:
           'Non-custodial crypto-fiat escrow clearinghouse with cryptographic proof verification',
-        address: directory.p2pEscrow || DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow,
+        address:
+          directory.p2pEscrow ||
+          (isMainnet
+            ? '0xa938aacea64be8f41c90960aff232da4df7fc329'
+            : DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow),
         category: 'P2P & Escrow',
         protocolKey: 'keccak256("P2PEscrow")',
         icon: Lock,
@@ -213,7 +235,9 @@ export default function ContractsPage() {
       {
         name: 'Marketplace',
         description: 'Non-custodial limit orderbook engine with linked escrow creation',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.Marketplace,
+        address: isMainnet
+          ? '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6'
+          : DEPLOYED_CONTRACTS_SEPOLIA.Marketplace,
         category: 'P2P & Escrow',
         protocolKey: 'Orderbook Matching Engine',
         icon: Store,
@@ -223,7 +247,9 @@ export default function ContractsPage() {
         name: 'P2PReputation',
         description:
           'Decentralized Bayesian-smoothed trust and reputation engine for P2P buyers and sellers',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation,
+        address: isMainnet
+          ? '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6'
+          : DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation,
         category: 'P2P & Escrow',
         protocolKey: 'P2P Trust & Reputation Engine',
         icon: Star,
@@ -234,7 +260,11 @@ export default function ContractsPage() {
       {
         name: 'FeeManager',
         description: 'Deposit/redemption fee computation and fee routing to Treasury',
-        address: directory.feeManager || DEPLOYED_CONTRACTS_SEPOLIA.FeeManager,
+        address:
+          directory.feeManager ||
+          (isMainnet
+            ? '0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881'
+            : DEPLOYED_CONTRACTS_SEPOLIA.FeeManager),
         category: 'Accounting',
         protocolKey: 'keccak256("FeeManager")',
         icon: Coins,
@@ -243,7 +273,11 @@ export default function ContractsPage() {
       {
         name: 'CostBasisManager',
         description: 'Realized/unrealized P&L, entry price, and P2P escrow transfer filter',
-        address: directory.costBasisManager || DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager,
+        address:
+          directory.costBasisManager ||
+          (isMainnet
+            ? '0x27b5c6dea90678b78856b0b10dba37a789fde97e'
+            : DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager),
         category: 'Accounting',
         protocolKey: 'keccak256("CostBasisManager")',
         icon: Activity,
@@ -252,7 +286,11 @@ export default function ContractsPage() {
       {
         name: 'PerformanceManager',
         description: 'Benchmark tracking, high-water marks, and time-weighted returns',
-        address: directory.performanceManager || DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager,
+        address:
+          directory.performanceManager ||
+          (isMainnet
+            ? '0x19ec1b685c2ced1400b4f249da6be89662e59473'
+            : DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager),
         category: 'Accounting',
         protocolKey: 'keccak256("PerformanceManager")',
         icon: TrendingUp,
@@ -263,7 +301,11 @@ export default function ContractsPage() {
       {
         name: 'OracleManager',
         description: 'Multi-source oracle coordinator with staleness checks & fallback routing',
-        address: directory.oracle || DEPLOYED_CONTRACTS_SEPOLIA.OracleManager,
+        address:
+          directory.oracle ||
+          (isMainnet
+            ? '0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7'
+            : DEPLOYED_CONTRACTS_SEPOLIA.OracleManager),
         category: 'Oracle',
         protocolKey: 'keccak256("OracleManager")',
         icon: Zap,
@@ -272,7 +314,9 @@ export default function ContractsPage() {
       {
         name: 'ChainlinkOracleProvider',
         description: 'Chainlink AggregatorV3 price feed adapter & staleness heartbeat validator',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider,
+        address: isMainnet
+          ? '0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E'
+          : DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider,
         category: 'Oracle',
         protocolKey: 'Chainlink Provider Target',
         icon: Zap,
@@ -312,18 +356,22 @@ export default function ContractsPage() {
       {
         name: 'TimelockController',
         description: '48-hour timelock controller for multisig governance execution',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.TimelockController,
+        address: isMainnet
+          ? '0x9094145Cd2AEA2f309eDf14237444a07edF98d02'
+          : DEPLOYED_CONTRACTS_SEPOLIA.TimelockController,
         category: 'Governance',
         protocolKey: 'UnifyVaultTimelock (48h)',
         icon: Clock,
         isErc20: false,
       },
       {
-        name: 'Protocol Admin / Guardian',
-        description: 'Multi-signature governance and emergency pause authority',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.Admin,
+        name: 'Protocol Admin / SafePal S1',
+        description: 'Multi-signature governance and institutional hardware authority',
+        address: isMainnet
+          ? '0xe37b77ca9E49C2586365E7394F0F037901eD8A95'
+          : DEPLOYED_CONTRACTS_SEPOLIA.Admin,
         category: 'Governance',
-        protocolKey: 'Admin / Guardian Authority',
+        protocolKey: 'Admin / SafePal S1 Authority',
         icon: UserCheck,
         isErc20: false,
       },
@@ -333,7 +381,11 @@ export default function ContractsPage() {
       {
         name: 'UVBE Token',
         description: 'Multi-asset index share token (ERC-20, 18 Decimals)',
-        address: directory.token || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+        address:
+          directory.token ||
+          (isMainnet
+            ? '0xd2715141a0f5998b707baa963990bfc2e94cf145'
+            : DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken),
         category: 'Tokens',
         protocolKey: 'keccak256("IndexToken")',
         icon: Coins,

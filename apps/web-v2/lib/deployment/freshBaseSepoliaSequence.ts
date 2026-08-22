@@ -17,9 +17,59 @@ export const BASE_SEPOLIA_FEEDS = {
   ETH_FEED: '0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1' as `0x${string}`,
 };
 
+// --- Base Mainnet collateral & strategy assets (validated on-chain) ---
+export const BASE_MAINNET_ASSETS = {
+  USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`, // 6 decimals
+  CBBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' as `0x${string}`, // 8 decimals
+  WETH: '0x4200000000000000000000000000000000000006' as `0x${string}`, // 18 decimals
+};
+
+// --- Base Mainnet Chainlink USD price feeds (validated on-chain) ---
+export const BASE_MAINNET_FEEDS = {
+  USDC_FEED: '0x7e860098F58bBFC8648a4311b374B1D669a2bc6B' as `0x${string}`, // USDC/USD
+  CBBTC_FEED: '0x8C74B2811D2F1aD65517ADB5C65773c1E520ed2f' as `0x${string}`, // cbBTC/USD
+  ETH_FEED: '0xe6eb5B9b85cFF2C84Df3De6e7855bC9E76f034d5' as `0x${string}`, // ETH/USD
+};
+
+export function getChainFeeds(chainId: number) {
+  if (chainId === 8453) {
+    return BASE_MAINNET_FEEDS;
+  }
+  return BASE_SEPOLIA_FEEDS;
+}
+
+export function getChainAssets(chainId: number) {
+  if (chainId === 8453) {
+    return BASE_MAINNET_ASSETS;
+  }
+  return BASE_SEPOLIA_ASSETS;
+}
+
+export function getAssetIds(chainId: number) {
+  if (chainId === 8453) {
+    return {
+      USDC: '0x000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913' as `0x${string}`,
+      CBBTC: '0x000000000000000000000000cbb7c0000ab88b473b1f5afd9ef808440eed33bf' as `0x${string}`,
+      WETH: '0x0000000000000000000000004200000000000000000000000000000000000006' as `0x${string}`,
+    };
+  }
+  return ASSET_IDS;
+}
+
+// --- Base Mainnet Uniswap V3 SwapRouter (Official Uniswap SwapRouter02 on Base) ---
+export const BASE_MAINNET_UNISWAP_V3_ROUTER =
+  '0x2626664c2603336E57B271c5C0b26F421741e481' as `0x${string}`;
+
 // --- Base Sepolia Uniswap V3 SwapRouter (validated on-chain) ---
 export const BASE_SEPOLIA_UNISWAP_V3_ROUTER =
   '0x63f3432b1ca616bb8fdF46058e6d855262C195f7' as `0x${string}`;
+
+export function getUniswapV3Router(chainId: number): `0x${string}` {
+  if (chainId === 8453) {
+    return BASE_MAINNET_UNISWAP_V3_ROUTER;
+  }
+  return BASE_SEPOLIA_UNISWAP_V3_ROUTER;
+}
 
 export const ORACLE_HEARTBEAT = 86400; // 24 hours stale threshold
 export const P2P_ESCROW_FEE_BPS = 100n; // 1.00%
@@ -257,7 +307,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       type: 'DEPLOY',
       abi: DEPLOYMENT_ARTIFACTS.SwapAdapter.abi,
       bytecode: DEPLOYMENT_ARTIFACTS.SwapAdapter.bytecode,
-      args: [ctx.deployerAddress, BASE_SEPOLIA_UNISWAP_V3_ROUTER],
+      args: [ctx.deployerAddress, getUniswapV3Router(ctx.chainId)],
     }),
   },
   {
@@ -278,7 +328,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       bytecode: DEPLOYMENT_ARTIFACTS.StrategyManager.bytecode,
       args: [
         ctx.deployerAddress,
-        [BASE_SEPOLIA_ASSETS.CBBTC, BASE_SEPOLIA_ASSETS.WETH],
+        [getChainAssets(ctx.chainId).CBBTC, getChainAssets(ctx.chainId).WETH],
         [CBBTC_WEIGHT_BPS, WETH_WEIGHT_BPS],
       ],
     }),
@@ -817,14 +867,14 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
     contractName: 'ChainlinkOracleProvider',
     type: 'CALL',
     functionName: 'registerFeed',
-    description: 'Registers the live Base Sepolia USDC/USD price feed on ChainlinkOracleProvider.',
+    description: 'Registers the live USDC/USD price feed on ChainlinkOracleProvider.',
     expectedGasLimit: 100_000n,
     getExecutionData: (ctx) => ({
       type: 'CALL',
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'ChainlinkOracleProvider'),
       abi: DEPLOYMENT_ARTIFACTS.ChainlinkOracleProvider.abi,
       functionName: 'registerFeed',
-      args: [ASSET_IDS.USDC, BASE_SEPOLIA_FEEDS.USDC_FEED, ORACLE_HEARTBEAT],
+      args: [getAssetIds(ctx.chainId).USDC, getChainFeeds(ctx.chainId).USDC_FEED, ORACLE_HEARTBEAT],
     }),
   },
   {
@@ -837,14 +887,18 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
     contractName: 'ChainlinkOracleProvider',
     type: 'CALL',
     functionName: 'registerFeed',
-    description: 'Registers the live Base Sepolia cbBTC/USD price feed on ChainlinkOracleProvider.',
+    description: 'Registers the live cbBTC/USD price feed on ChainlinkOracleProvider.',
     expectedGasLimit: 100_000n,
     getExecutionData: (ctx) => ({
       type: 'CALL',
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'ChainlinkOracleProvider'),
       abi: DEPLOYMENT_ARTIFACTS.ChainlinkOracleProvider.abi,
       functionName: 'registerFeed',
-      args: [ASSET_IDS.CBBTC, BASE_SEPOLIA_FEEDS.CBBTC_FEED, ORACLE_HEARTBEAT],
+      args: [
+        getAssetIds(ctx.chainId).CBBTC,
+        getChainFeeds(ctx.chainId).CBBTC_FEED,
+        ORACLE_HEARTBEAT,
+      ],
     }),
   },
   {
@@ -857,14 +911,14 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
     contractName: 'ChainlinkOracleProvider',
     type: 'CALL',
     functionName: 'registerFeed',
-    description: 'Registers the live Base Sepolia ETH/USD price feed on ChainlinkOracleProvider.',
+    description: 'Registers the live ETH/USD price feed on ChainlinkOracleProvider.',
     expectedGasLimit: 100_000n,
     getExecutionData: (ctx) => ({
       type: 'CALL',
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'ChainlinkOracleProvider'),
       abi: DEPLOYMENT_ARTIFACTS.ChainlinkOracleProvider.abi,
       functionName: 'registerFeed',
-      args: [ASSET_IDS.WETH, BASE_SEPOLIA_FEEDS.ETH_FEED, ORACLE_HEARTBEAT],
+      args: [getAssetIds(ctx.chainId).WETH, getChainFeeds(ctx.chainId).ETH_FEED, ORACLE_HEARTBEAT],
     }),
   },
   {
@@ -885,7 +939,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       abi: DEPLOYMENT_ARTIFACTS.OracleManager.abi,
       functionName: 'configureAsset',
       args: [
-        ASSET_IDS.USDC,
+        getAssetIds(ctx.chainId).USDC,
         getRequiredAddress(ctx.deployedContracts, 'ChainlinkOracleProvider'),
         '0x0000000000000000000000000000000000000000',
         ORACLE_HEARTBEAT,
@@ -911,7 +965,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       abi: DEPLOYMENT_ARTIFACTS.OracleManager.abi,
       functionName: 'configureAsset',
       args: [
-        ASSET_IDS.CBBTC,
+        getAssetIds(ctx.chainId).CBBTC,
         getRequiredAddress(ctx.deployedContracts, 'ChainlinkOracleProvider'),
         '0x0000000000000000000000000000000000000000',
         ORACLE_HEARTBEAT,
@@ -937,7 +991,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       abi: DEPLOYMENT_ARTIFACTS.OracleManager.abi,
       functionName: 'configureAsset',
       args: [
-        ASSET_IDS.WETH,
+        getAssetIds(ctx.chainId).WETH,
         getRequiredAddress(ctx.deployedContracts, 'ChainlinkOracleProvider'),
         '0x0000000000000000000000000000000000000000',
         ORACLE_HEARTBEAT,
@@ -966,7 +1020,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'CustodyVault'),
       abi: DEPLOYMENT_ARTIFACTS.CustodyVault.abi,
       functionName: 'registerAsset',
-      args: [BASE_SEPOLIA_ASSETS.USDC, 6],
+      args: [getChainAssets(ctx.chainId).USDC, 6],
     }),
   },
   {
@@ -986,7 +1040,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'CustodyVault'),
       abi: DEPLOYMENT_ARTIFACTS.CustodyVault.abi,
       functionName: 'registerAsset',
-      args: [BASE_SEPOLIA_ASSETS.CBBTC, 8],
+      args: [getChainAssets(ctx.chainId).CBBTC, 8],
     }),
   },
   {
@@ -1006,7 +1060,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'CustodyVault'),
       abi: DEPLOYMENT_ARTIFACTS.CustodyVault.abi,
       functionName: 'registerAsset',
-      args: [BASE_SEPOLIA_ASSETS.WETH, 18],
+      args: [getChainAssets(ctx.chainId).WETH, 18],
     }),
   },
   {
@@ -1026,7 +1080,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'Treasury'),
       abi: DEPLOYMENT_ARTIFACTS.Treasury.abi,
       functionName: 'registerAsset',
-      args: [BASE_SEPOLIA_ASSETS.USDC, 6],
+      args: [getChainAssets(ctx.chainId).USDC, 6],
     }),
   },
   {
@@ -1046,7 +1100,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'Treasury'),
       abi: DEPLOYMENT_ARTIFACTS.Treasury.abi,
       functionName: 'registerAsset',
-      args: [BASE_SEPOLIA_ASSETS.CBBTC, 8],
+      args: [getChainAssets(ctx.chainId).CBBTC, 8],
     }),
   },
   {
@@ -1066,7 +1120,7 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       targetAddress: getRequiredAddress(ctx.deployedContracts, 'Treasury'),
       abi: DEPLOYMENT_ARTIFACTS.Treasury.abi,
       functionName: 'registerAsset',
-      args: [BASE_SEPOLIA_ASSETS.WETH, 18],
+      args: [getChainAssets(ctx.chainId).WETH, 18],
     }),
   },
 

@@ -13,12 +13,22 @@ import {
   ExternalLink,
   ShieldAlert,
   Cpu,
+  Sliders,
 } from 'lucide-react';
 import { isAddress, encodeFunctionData, parseAbi, type Address } from 'viem';
 import { getContractRolesMatrix } from '../../lib/admin/adminRolesMatrix';
+import { getAllAdminRoleTransferCalls } from '../../lib/admin/batchRoleMigrator';
 import type { ContractRoleMigrationItem, AdminMigrationAuditRecord } from '../../lib/admin/types';
 import type { DeployedContractsMap } from '../../lib/deployment/types';
 import { getExplorerBaseUrl } from '../../constants';
+
+// Canonical MultiCall3 on Base Mainnet (8453) and Base Sepolia (84532)
+const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as const;
+const MULTICALL3_ABI = parseAbi([
+  'struct Call3 { address target; bool allowFailure; bytes callData; }',
+  'struct Result { bool success; bytes returnData; }',
+  'function aggregate3(Call3[] calldata calls) external payable returns (Result[] memory returnData)',
+]);
 
 interface AdminSecurityMigrationCardProps {
   chainId: number;
@@ -288,9 +298,12 @@ function AdminSecurityMigrationInner({
       );
       return;
     }
-    if (connectedAddress?.toLowerCase() !== currentAdmin.toLowerCase()) {
+    const isOldAdmin = connectedAddress?.toLowerCase() === currentAdmin.toLowerCase();
+    const isNewAdmin = connectedAddress?.toLowerCase() === hardwareWalletAddress?.toLowerCase();
+
+    if (!isOldAdmin && !isNewAdmin) {
       setErrorMessage(
-        `Please connect the Current Admin account (${currentAdmin.slice(0, 6)}...${currentAdmin.slice(-4)}) to execute role revoke.`,
+        `Please connect either the Deployer account (${currentAdmin.slice(0, 6)}...${currentAdmin.slice(-4)}) or New Admin (${hardwareWalletAddress.slice(0, 6)}...${hardwareWalletAddress.slice(-4)}) to execute role revoke.`,
       );
       return;
     }
@@ -351,6 +364,106 @@ function AdminSecurityMigrationInner({
     } catch (err: any) {
       console.error('[handleRevokeRole] Error:', err);
       setErrorMessage(err?.message || 'Revoke role transaction failed.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Sequential Auto-Grant All (Iterates through roles automatically)
+  const handleBatchGrantAll = async () => {
+    if (!walletClient || !publicClient || !hardwareWalletAddress) {
+      setErrorMessage('Please bind a valid target hardware wallet address first.');
+      return;
+    }
+    if (connectedAddress?.toLowerCase() !== currentAdmin.toLowerCase()) {
+      setErrorMessage(
+        `Please connect the Current Admin account (${currentAdmin.slice(0, 6)}...${currentAdmin.slice(-4)}) to execute role grants.`,
+      );
+      return;
+    }
+
+    const ungranted = roleItems.filter((r) => !r.isNewAuthorityVerified);
+    if (ungranted.length === 0) {
+      setSuccessMessage('All roles are already granted to target hardware wallet!');
+      return;
+    }
+
+    setActionInProgress('batch-grant');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      for (let i = 0; i < ungranted.length; i++) {
+        const item = ungranted[i];
+        if (!item.contractAddress) continue;
+
+        const hash = await walletClient.writeContract({
+          address: item.contractAddress,
+          abi: ACCESS_CONTROL_ABI,
+          functionName: 'grantRole',
+          args: [item.roleIdentifier, hardwareWalletAddress],
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+
+      setSuccessMessage(
+        `🎉 Successfully granted ALL administrative roles to ${hardwareWalletAddress.slice(0, 6)}...${hardwareWalletAddress.slice(-4)}!`,
+      );
+      await verifyOnChainRoles();
+    } catch (err: any) {
+      console.error('[handleBatchGrantAll] Error:', err);
+      setErrorMessage(err?.message || 'Role grant interrupted.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Sequential Auto-Revoke All (Iterates through roles automatically)
+  const handleBatchRevokeAll = async () => {
+    if (!walletClient || !publicClient || !hardwareWalletAddress) {
+      setErrorMessage('Please bind a valid target hardware wallet address first.');
+      return;
+    }
+    if (connectedAddress?.toLowerCase() !== currentAdmin.toLowerCase()) {
+      setErrorMessage(
+        `Please connect the Current Admin account (${currentAdmin.slice(0, 6)}...${currentAdmin.slice(-4)}) to execute role revokes.`,
+      );
+      return;
+    }
+
+    const unrevoked = roleItems.filter((r) => r.isCurrentAuthorityVerified);
+    if (unrevoked.length === 0) {
+      setSuccessMessage('All roles are already revoked from previous deployer!');
+      return;
+    }
+
+    setActionInProgress('batch-revoke');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      for (let i = 0; i < unrevoked.length; i++) {
+        const item = unrevoked[i];
+        if (!item.contractAddress) continue;
+
+        const hash = await walletClient.writeContract({
+          address: item.contractAddress,
+          abi: ACCESS_CONTROL_ABI,
+          functionName: 'revokeRole',
+          args: [item.roleIdentifier, currentAdmin],
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+
+      setSuccessMessage(
+        `🎉 Successfully revoked ALL roles from previous deployer! Hardware wallet is now exclusive administrator!`,
+      );
+      await verifyOnChainRoles();
+    } catch (err: any) {
+      console.error('[handleBatchRevokeAll] Error:', err);
+      setErrorMessage(err?.message || 'Role revoke interrupted.');
     } finally {
       setActionInProgress(null);
     }
@@ -468,20 +581,139 @@ function AdminSecurityMigrationInner({
 
       {/* Role Migration Matrix Table */}
       <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 overflow-hidden shadow-[4px_4px_0_#000]">
-        <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
-          <div>
-            <h4 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider font-mono flex items-center gap-2">
-              <Key className="w-4 h-4 text-purple-500" />
-              Role Authority Migration Matrix
-            </h4>
-            <p className="text-[11px] text-slate-500">
-              Each administrative role must be verified on-chain before granting or revoking.
-            </p>
+        <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-white/10 space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                <Key className="w-4 h-4 text-purple-500" />
+                Role Authority Migration & Protocol Alignment
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Transfer administrative roles and align contracts to live Base Mainnet parameters.
+              </p>
+            </div>
           </div>
-          <span className="text-xs font-mono font-bold text-slate-500">
-            {roleItems.filter((r) => r.status === 'completed').length} / {roleItems.length} Roles
-            Migrated
-          </span>
+
+          {/* Dedicated Quick Action Toolbar */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-slate-200 dark:border-white/10">
+            <button
+              type="button"
+              onClick={handleBatchGrantAll}
+              disabled={!hardwareWalletAddress || actionInProgress !== null}
+              className="px-3.5 py-2 bg-[#BFFF00] hover:bg-[#a8e600] text-black font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0_#000] hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>
+                {actionInProgress === 'batch-grant'
+                  ? 'Executing 1-Click Grant...'
+                  : '⚡ 1-Click Grant All (1 QR Scan)'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBatchRevokeAll}
+              disabled={!hardwareWalletAddress || actionInProgress !== null}
+              className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0_#000] hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>
+                {actionInProgress === 'batch-revoke'
+                  ? 'Executing 1-Click Revoke...'
+                  : '🔒 1-Click Revoke All (1 QR Scan)'}
+              </span>
+            </button>
+
+            {/* Quick Helper: Align SwapRouter to Base Uniswap V3 */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (!walletClient || !publicClient) return;
+                const swapAdapterAddr = deployedContracts?.SwapAdapter;
+                if (!swapAdapterAddr) {
+                  setErrorMessage('SwapAdapter contract not found.');
+                  return;
+                }
+                setActionInProgress('update-router');
+                setErrorMessage(null);
+                setSuccessMessage(null);
+                try {
+                  const hash = await walletClient.writeContract({
+                    address: swapAdapterAddr,
+                    abi: parseAbi(['function setRouter(address newRouter) external']),
+                    functionName: 'setRouter',
+                    args: ['0x2626664c2603336E57B271c5C0b26F421741e481'],
+                  });
+                  await publicClient.waitForTransactionReceipt({ hash });
+                  setSuccessMessage(
+                    '🎉 Successfully updated SwapAdapter to Official Base Uniswap V3 Router (0x2626...481)!',
+                  );
+                } catch (e: any) {
+                  setErrorMessage(e?.message || 'Failed to update SwapRouter.');
+                } finally {
+                  setActionInProgress(null);
+                }
+              }}
+              disabled={actionInProgress !== null}
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0_#000] hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>
+                {actionInProgress === 'update-router'
+                  ? 'Updating Router...'
+                  : '🔄 Align Base Uniswap V3'}
+              </span>
+            </button>
+
+            {/* Quick Helper: Align StrategyManager to Live Mainnet Tokens */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (!walletClient || !publicClient) return;
+                const smAddr = deployedContracts?.StrategyManager;
+                if (!smAddr) {
+                  setErrorMessage('StrategyManager contract not found.');
+                  return;
+                }
+                setActionInProgress('update-strategy');
+                setErrorMessage(null);
+                setSuccessMessage(null);
+                try {
+                  const hash = await walletClient.writeContract({
+                    address: smAddr,
+                    abi: parseAbi([
+                      'function setStrategy(address[] calldata assets, uint256[] calldata weightsBps) external',
+                    ]),
+                    functionName: 'setStrategy',
+                    args: [
+                      [
+                        '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+                        '0x4200000000000000000000000000000000000006',
+                      ],
+                      [6000n, 4000n],
+                    ],
+                  });
+                  await publicClient.waitForTransactionReceipt({ hash });
+                  setSuccessMessage(
+                    '🎉 Successfully aligned StrategyManager to Mainnet cbBTC (60%) & Mainnet WETH (40%)!',
+                  );
+                } catch (e: any) {
+                  setErrorMessage(e?.message || 'Failed to update StrategyManager.');
+                } finally {
+                  setActionInProgress(null);
+                }
+              }}
+              disabled={actionInProgress !== null}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0_#000] hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>
+                {actionInProgress === 'update-strategy'
+                  ? 'Updating Strategy...'
+                  : '⚖️ Align Mainnet Index Strategy (60/40)'}
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

@@ -16,6 +16,7 @@ import {
  */
 contract RenounceOldAdminScript is Script {
   function run() external {
+    GovernanceMigrationHelper.requireMainnetGovernanceConfirmation(address(vm));
     MigrationConfig memory config = GovernanceMigrationHelper.loadConfig(address(vm));
 
     require(

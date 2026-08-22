@@ -192,6 +192,7 @@ export default function DeployPage() {
         isConnected={isConnected}
         isCorrectNetwork={isCorrectNetwork}
         onSwitchNetwork={handleSwitchNetwork}
+        chainId={chainId}
       />
 
       {/* Tab 1: Active Deploy */}

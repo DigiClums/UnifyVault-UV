@@ -37,6 +37,7 @@ struct MigrationConfig {
 }
 
 library GovernanceMigrationHelper {
+  uint256 internal constant BASE_MAINNET_CHAIN_ID = 8453;
   bytes32 public constant DEFAULT_ADMIN_ROLE =
     0x0000000000000000000000000000000000000000000000000000000000000000;
   bytes32 public constant GOVERNANCE_ROLE = keccak256('GOVERNANCE_ROLE');
@@ -47,7 +48,23 @@ library GovernanceMigrationHelper {
   function loadConfig(address vmAddr) internal view returns (MigrationConfig memory config) {
     VmExt vm = VmExt(vmAddr);
 
-    string memory configPath = vm.envOr('CONFIG_PATH', 'script/mainnet/config/base_sepolia.json');
+    string memory configPath = vm.envOr('CONFIG_PATH', '');
+    if (bytes(configPath).length == 0) {
+      if (block.chainid == BASE_MAINNET_CHAIN_ID) {
+        configPath = 'script/mainnet/config/base_mainnet.json';
+      } else {
+        configPath = 'script/mainnet/config/base_sepolia.json';
+      }
+    }
+
+    // Explicit network safety guard: never allow base_sepolia config on Base Mainnet (8453)
+    if (block.chainid == BASE_MAINNET_CHAIN_ID) {
+      require(
+        !_containsSubstr(configPath, 'sepolia') && !_containsSubstr(configPath, '84532'),
+        'GovernanceMigrationHelper: Base Sepolia configuration cannot be used on Base Mainnet (8453)'
+      );
+    }
+
     string memory json = vm.readFile(configPath);
 
     config.newAdmin = vm.parseJsonAddress(json, '.newAdmin');
@@ -55,7 +72,7 @@ library GovernanceMigrationHelper {
     config.guardian = vm.parseJsonAddress(json, '.guardian');
     config.confirmRenounce = vm.parseJsonBool(json, '.confirmRenounce');
 
-    // Allow overriding confirmRenounce via environment variable
+    // Require explicit confirmation flag for any role modification
     try vm.envOr('CONFIRM_RENOUNCE', false) returns (bool res) {
       if (res) {
         config.confirmRenounce = true;
@@ -99,6 +116,16 @@ library GovernanceMigrationHelper {
     }
   }
 
+  /// @notice Guards any role-changing script on Base Mainnet. This is separate
+  /// from renounce confirmation so grants cannot be broadcast accidentally.
+  function requireMainnetGovernanceConfirmation(address vmAddr) internal view {
+    if (block.chainid != BASE_MAINNET_CHAIN_ID) return;
+    require(
+      VmExt(vmAddr).envOr('CONFIRM_MAINNET_GOVERNANCE_ACTION', false),
+      'GovernanceMigrationHelper: set CONFIRM_MAINNET_GOVERNANCE_ACTION=true for Base Mainnet role changes'
+    );
+  }
+
   function checkRole(
     address contractAddr,
     bytes32 role,
@@ -110,5 +137,22 @@ library GovernanceMigrationHelper {
     } catch {
       return false;
     }
+  }
+
+  function _containsSubstr(string memory what, string memory where) internal pure returns (bool) {
+    bytes memory whatBytes = bytes(what);
+    bytes memory whereBytes = bytes(where);
+    if (whereBytes.length == 0 || whereBytes.length > whatBytes.length) return false;
+    for (uint256 i = 0; i <= whatBytes.length - whereBytes.length; i++) {
+      bool matchFound = true;
+      for (uint256 j = 0; j < whereBytes.length; j++) {
+        if (whatBytes[i + j] != whereBytes[j]) {
+          matchFound = false;
+          break;
+        }
+      }
+      if (matchFound) return true;
+    }
+    return false;
   }
 }

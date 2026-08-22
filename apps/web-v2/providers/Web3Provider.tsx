@@ -50,13 +50,20 @@ const config = getDefaultConfig({
   },
   transports: {
     [base.id]: fallback([
+      http('https://base-rpc.publicnode.com', {
+        batch: false,
+        retryCount: 3,
+        retryDelay: 800,
+      }),
+      http('https://1rpc.io/base', {
+        batch: false,
+        retryCount: 3,
+        retryDelay: 800,
+      }),
       http(mainnetPrimaryRpc, {
-        batch: true,
+        batch: false,
         retryCount: 3,
         retryDelay: 1000,
-      }),
-      http('https://mainnet.base.org', {
-        batch: true,
       }),
     ]),
     [baseSepolia.id]: fallback([
@@ -120,7 +127,11 @@ function DynamicRainbowKitProvider({ children }: { children: React.ReactNode }) 
     return isDark ? darkTheme(themeOptions) : lightTheme(themeOptions);
   }, [mounted, resolvedTheme]);
 
-  return <RainbowKitProvider theme={rkTheme}>{children}</RainbowKitProvider>;
+  return (
+    <RainbowKitProvider theme={rkTheme} initialChain={base}>
+      {children}
+    </RainbowKitProvider>
+  );
 }
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {

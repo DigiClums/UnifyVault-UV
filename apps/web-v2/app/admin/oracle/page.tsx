@@ -80,8 +80,10 @@ export default function AdminOraclePage() {
           <span>Institutional Pricing Pipeline Architecture</span>
         </div>
         <p className="text-muted-foreground leading-relaxed">
-          <strong className="text-foreground">OracleManager (0xc96d...73BF)</strong> acts as the
-          central coordinator on Base Sepolia. It queries the configured{' '}
+          <strong className="text-foreground">
+            OracleManager ({oracleManagerAddress.slice(0, 6)}...{oracleManagerAddress.slice(-4)})
+          </strong>{' '}
+          acts as the central coordinator on Base Sepolia. It queries the configured{' '}
           <strong className="text-foreground">Primary Provider (ChainlinkOracleProvider)</strong>,
           validates price freshness and deviation against{' '}
           <code className="text-purple-400 font-mono">lastValidPrice</code>, automatically shifts to

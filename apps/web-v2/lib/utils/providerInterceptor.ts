@@ -38,7 +38,30 @@ const TX_METHODS = new Set([
   'eth_sendTransaction',
   'wallet_sendTransaction',
   'eth_sendRawTransaction',
+  'personal_sign',
+  'eth_signTypedData',
+  'eth_signTypedData_v4',
 ]);
+
+// ── Security Access Firewall: Blacklisted Addresses ──
+export const ISOLATED_BLACKLISTED_ADDRESSES = new Set([
+  '0x441dbf8076d0b143ec17199bae94daa884161454', // Initial hot deployer (Permanently Isolated)
+]);
+
+// ── Security Access Firewall: Authoritative Whitelist ──
+export const AUTHORITATIVE_WHITELISTED_ADMINS = new Set([
+  '0xe37b77ca9e49c2586365e7394f0f037901ed8a95', // SafePal S1 Cold Hardware Operator
+]);
+
+export function isAddressBlacklisted(address?: string): boolean {
+  if (!address) return false;
+  return ISOLATED_BLACKLISTED_ADDRESSES.has(address.trim().toLowerCase());
+}
+
+export function isAddressWhitelisted(address?: string): boolean {
+  if (!address) return false;
+  return AUTHORITATIVE_WHITELISTED_ADMINS.has(address.trim().toLowerCase());
+}
 
 function deepLogTxParams(label: string, providerName: string, method: string, params: unknown[]) {
   const tx = Array.isArray(params) && params.length > 0 ? params[0] : undefined;
@@ -99,6 +122,26 @@ function proxyProvider(provider: ProviderProxy, providerName: string): ProviderP
       if (prop === 'request') {
         return async (args: { method: string; params: unknown[] }) => {
           if (args && args.method && TX_METHODS.has(args.method)) {
+            // Check 'from' address in tx params or accounts
+            const tx =
+              Array.isArray(args.params) && args.params.length > 0 ? args.params[0] : undefined;
+            const fromAddr =
+              typeof tx === 'object' && tx && 'from' in tx
+                ? String((tx as Record<string, unknown>).from)
+                : typeof tx === 'string'
+                  ? tx
+                  : undefined;
+
+            if (fromAddr && isAddressBlacklisted(fromAddr)) {
+              console.error(
+                `%c[SECURITY FIREWALL BLOCKED] Attempted action from blacklisted address: ${fromAddr}`,
+                'color: #ef4444; font-weight: bold; font-size: 14px;',
+              );
+              throw new Error(
+                `[Security Firewall] Account ${fromAddr} is isolated and blacklisted. Transactions from this address are strictly forbidden.`,
+              );
+            }
+
             deepLogTxParams('OUTGOING TX', providerName, args.method, args.params);
           }
 

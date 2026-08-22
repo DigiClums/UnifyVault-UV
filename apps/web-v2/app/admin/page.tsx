@@ -43,11 +43,13 @@ export default function AdminOverviewPage() {
   const explorerBaseUrl = getExplorerBaseUrl(chainId);
   const tokens = getChainTokens(chainId);
   const { totalPortfolioValueUSD, sharePriceUSD } = useDashboard();
-  const { controller, vault, treasury, oracle } = useProtocolDirectory();
+  const protocolDirectory = useProtocolDirectory();
+  const { controller, vault, treasury, oracle, strategyManager, liquidityManager } =
+    protocolDirectory;
 
-  const oracleManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.OracleManager;
-  const strategyManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager;
-  const liquidityManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager;
+  const oracleManagerAddress = oracle || DEPLOYED_CONTRACTS_SEPOLIA.OracleManager;
+  const strategyManagerAddress = strategyManager || DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager;
+  const liquidityManagerAddress = liquidityManager || DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager;
   const paymasterAddress = DEPLOYED_CONTRACTS_SEPOLIA.Paymaster;
   const gasTreasuryAddress = DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury;
 

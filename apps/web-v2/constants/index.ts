@@ -16,12 +16,12 @@ export const DEFAULT_P2P_FIAT_CURRENCY = 'INR';
 
 export function getDefaultChainId(): number {
   if (
-    process.env.NEXT_PUBLIC_ACTIVE_CHAIN === 'base' ||
-    process.env.NEXT_PUBLIC_ACTIVE_CHAIN === '8453'
+    process.env.NEXT_PUBLIC_ACTIVE_CHAIN === 'base-sepolia' ||
+    process.env.NEXT_PUBLIC_ACTIVE_CHAIN === '84532'
   ) {
-    return base.id;
+    return baseSepolia.id;
   }
-  return baseSepolia.id;
+  return base.id;
 }
 
 export const RPC_URL = getRpcUrl();
@@ -43,19 +43,29 @@ export function getRpcUrl(chainId?: number): string {
   );
 }
 
-export const DIRECTORY_ADDRESS_MAINNET = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET ||
-  process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS ||
-  '0x7EF5D93f83995228efFc63dbe513367a719f0633') as `0x${string}`;
+export const DIRECTORY_ADDRESS_MAINNET = (
+  isNonZeroAddress(process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET)
+    ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET
+    : isNonZeroAddress(process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS)
+      ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS
+      : '0x0000000000000000000000000000000000000000'
+) as `0x${string}`;
 
-export const DIRECTORY_ADDRESS_SEPOLIA = (process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA ||
-  '0xd2715141a0f5998b707baa963990bfc2e94cf145') as `0x${string}`;
+export const DIRECTORY_ADDRESS_SEPOLIA = (
+  isNonZeroAddress(process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA
+    : '0xd2715141a0f5998b707baa963990bfc2e94cf145'
+) as `0x${string}`;
 
 export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
   const targetChain = chainId || getDefaultChainId();
   if (targetChain === baseSepolia.id) {
     return DIRECTORY_ADDRESS_SEPOLIA;
   }
-  return DIRECTORY_ADDRESS_MAINNET;
+  if (targetChain === base.id) {
+    return DIRECTORY_ADDRESS_MAINNET;
+  }
+  return '0x0000000000000000000000000000000000000000';
 }
 
 export const PROTOCOL_DIRECTORY_ADDRESS = getProtocolDirectoryAddress();
@@ -187,12 +197,47 @@ export const TOKENS_BY_CHAIN: Record<
   },
 };
 
+/**
+ * Canonical Chainlink Price Feed Proxies by Chain ID
+ */
+export const CHAINLINK_FEEDS_BY_CHAIN: Record<
+  number,
+  {
+    BTC_USD: `0x${string}`;
+    ETH_USD: `0x${string}`;
+    USDC_USD: `0x${string}`;
+  }
+> = {
+  [base.id]: {
+    BTC_USD: '0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F',
+    ETH_USD: '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70',
+    USDC_USD: '0x7e860098F58bBFC8648a4311b374B1D669a2bc6B',
+  },
+  [baseSepolia.id]: {
+    BTC_USD: '0x5399D3574e0E7944F5b11d266dC2F6e4cC53C01F',
+    ETH_USD: '0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1',
+    USDC_USD: '0x598D6E603Ed84b46Ac310209960b9810583133Af',
+  },
+};
+
 export function getChainTokens(chainId?: number) {
   const targetChain = chainId || getDefaultChainId();
-  if (TOKENS_BY_CHAIN[targetChain]) {
-    return TOKENS_BY_CHAIN[targetChain];
+  if (targetChain === base.id) {
+    return TOKENS_BY_CHAIN[base.id];
   }
-  return TOKENS_BY_CHAIN[baseSepolia.id];
+  if (targetChain === baseSepolia.id) {
+    return TOKENS_BY_CHAIN[baseSepolia.id];
+  }
+  return {
+    USDC: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+    cbBTC: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+    WETH: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+  };
+}
+
+export function getChainFeeds(chainId?: number) {
+  const targetChain = chainId || getDefaultChainId();
+  return CHAINLINK_FEEDS_BY_CHAIN[targetChain] || CHAINLINK_FEEDS_BY_CHAIN[base.id];
 }
 
 export function getExplorerBaseUrl(chainId?: number): string {

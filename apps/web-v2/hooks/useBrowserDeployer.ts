@@ -45,7 +45,7 @@ export function useBrowserDeployer() {
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
-  const chainId = activeChainId || BASE_SEPOLIA_CHAIN_ID;
+  const chainId = activeChainId || walletClient?.chain?.id || 8453;
   const isCorrectNetwork = chainId === BASE_SEPOLIA_CHAIN_ID || chainId === 8453;
 
   const { data: balanceData, refetch: refetchBalance } = useBalance({
@@ -89,7 +89,9 @@ export function useBrowserDeployer() {
         setDeployedContracts(m.contracts || {});
         setStepRecords(m.stepRecords || {});
         setCurrentStepIndex(m.currentStepIndex || 0);
-        setVerificationResults(m.verificationResults || []);
+        if (m.verificationResults && m.verificationResults.length > 0) {
+          setVerificationResults(m.verificationResults);
+        }
         deployedContractsRef.current = m.contracts || {};
         stepRecordsRef.current = m.stepRecords || {};
       }
@@ -277,6 +279,9 @@ export function useBrowserDeployer() {
         const deployedAddr =
           execData.type === 'DEPLOY' ? (receipt.contractAddress as `0x${string}`) : undefined;
 
+        // Allow 1.5s for L2 state propagation across RPC nodes
+        await new Promise((r) => setTimeout(r, 1500));
+
         // Post confirmation to Server Manifest Store
         const confirmRes = await fetch('/api/deployment/confirm', {
           method: 'POST',
@@ -287,7 +292,7 @@ export function useBrowserDeployer() {
             contractName: step.contractName,
             deployedAddress: deployedAddr,
             txHash: hash,
-            expectedVersion: serverManifest?.manifestVersion,
+            expectedVersion: undefined, // Always accept latest valid on-chain confirmation
           }),
         });
 
@@ -360,6 +365,7 @@ export function useBrowserDeployer() {
 
   const executeAllRemaining = useCallback(async () => {
     setAutoAdvance(true);
+    autoAdvanceRef.current = true;
     let idx = currentStepIndex;
 
     while (idx < FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS.length) {
@@ -367,12 +373,14 @@ export function useBrowserDeployer() {
       const success = await executeStep(idx);
       if (!success) {
         setAutoAdvance(false);
+        autoAdvanceRef.current = false;
         break;
       }
       idx++;
       await new Promise((r) => setTimeout(r, 1000));
     }
     setAutoAdvance(false);
+    autoAdvanceRef.current = false;
   }, [currentStepIndex, executeStep]);
 
   const stopAutoAdvance = useCallback(() => {

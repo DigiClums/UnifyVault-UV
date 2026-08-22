@@ -1,0 +1,427 @@
+{
+  "manifestVersion": 67,
+  "chainId": 8453,
+  "network": "Base Mainnet",
+  "deploymentVersion": "V2",
+  "protocolVersion": "2.0.0",
+  "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "status": "completed",
+  "isLocked": false,
+  "currentStepIndex": 55,
+  "totalSteps": 55,
+  "contracts": {
+    "ProtocolDirectory": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+    "OracleManager": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
+    "ChainlinkOracleProvider": "0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E",
+    "Treasury": "0x57561F781b2f558A7445D2E93a365C03BA2c9B53",
+    "FeeManager": "0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881",
+    "CustodyVault": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
+    "LiquidityManager": "0x9af86a9ac1563b7fdbf43b19335348240a8c16d3",
+    "UVBEV2": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+    "SwapAdapter": "0x5b6067982c6cce2dc760eb4731c1b40136776d4a",
+    "StrategyManager": "0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a",
+    "PortfolioManager": "0x66182f56bd5e523c655f6890290ab519f528e83f",
+    "UnifyVaultController": "0x0721465b01b586b7aadf957a4a884ace46cfbec9",
+    "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
+    "P2PEscrowV2": "0xa938aacea64be8f41c90960aff232da4df7fc329",
+    "PerformanceManager": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
+    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6"
+  },
+  "stepRecords": {
+    "1": {
+      "stepNumber": 1,
+      "stepId": "step_1",
+      "status": "confirmed",
+      "deployedAddress": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+      "txHash": "0xae32ac7230dc0fdb89e021a54048098e6f5f6aee021077a8b01ae9d971a3078c",
+      "timestamp": 1787388625323
+    },
+    "2": {
+      "stepNumber": 2,
+      "stepId": "deploy_oracle_manager",
+      "status": "confirmed",
+      "deployedAddress": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
+      "timestamp": 1787388820382
+    },
+    "3": {
+      "stepNumber": 3,
+      "stepId": "deploy_chainlink_oracle_provider",
+      "status": "confirmed",
+      "deployedAddress": "0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E",
+      "timestamp": 1787389015132
+    },
+    "4": {
+      "stepNumber": 4,
+      "stepId": "deploy_treasury",
+      "status": "confirmed",
+      "deployedAddress": "0x57561F781b2f558A7445D2E93a365C03BA2c9B53",
+      "timestamp": 1787389268917
+    },
+    "5": {
+      "stepNumber": 5,
+      "stepId": "step_5",
+      "status": "confirmed",
+      "deployedAddress": "0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881",
+      "txHash": "0x0efbec305f59574b43fc9682e397caf45bb555f5439c547d301ec6e0c2f8024c",
+      "timestamp": 1787389313566
+    },
+    "6": {
+      "stepNumber": 6,
+      "stepId": "step_6",
+      "status": "confirmed",
+      "deployedAddress": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
+      "txHash": "0x7fff3013061794ed077e77b0150c2a2554fde8d2e84b8bda12d36c086a49dffd",
+      "timestamp": 1787389333424
+    },
+    "7": {
+      "stepNumber": 7,
+      "stepId": "step_7",
+      "status": "confirmed",
+      "deployedAddress": "0x9af86a9ac1563b7fdbf43b19335348240a8c16d3",
+      "txHash": "0x5f504f8a79677fbd4454c0928825ac9e51ff2fe44264e660307960d7882f3981",
+      "timestamp": 1787389349410
+    },
+    "8": {
+      "stepNumber": 8,
+      "stepId": "step_8",
+      "status": "confirmed",
+      "deployedAddress": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+      "txHash": "0xaf742a13cb4578c26d08c48ac553731cf0cc03e0f69d975f3aae9da65fcbd6b5",
+      "timestamp": 1787389363322
+    },
+    "9": {
+      "stepNumber": 9,
+      "stepId": "step_9",
+      "status": "confirmed",
+      "deployedAddress": "0x5b6067982c6cce2dc760eb4731c1b40136776d4a",
+      "txHash": "0xf64d6208f0fc05f5e88861f3795f0a3aad2417081caf9a67ae43fdc201a63e27",
+      "timestamp": 1787389375992
+    },
+    "10": {
+      "stepNumber": 10,
+      "stepId": "step_10",
+      "status": "confirmed",
+      "deployedAddress": "0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a",
+      "txHash": "0xa3b2ad16d3f593aca49b87e153b3981445e3613d40d557aa50a4c26c4cd62a02",
+      "timestamp": 1787389389730
+    },
+    "11": {
+      "stepNumber": 11,
+      "stepId": "step_11",
+      "status": "confirmed",
+      "deployedAddress": "0x66182f56bd5e523c655f6890290ab519f528e83f",
+      "txHash": "0xe83d0927e4416a783d899f647b2b09773d9e73ed0829fcfa2919d7f2bc995084",
+      "timestamp": 1787389403948
+    },
+    "12": {
+      "stepNumber": 12,
+      "stepId": "step_12",
+      "status": "confirmed",
+      "deployedAddress": "0x0721465b01b586b7aadf957a4a884ace46cfbec9",
+      "txHash": "0xd31b10f399c7a9bf177099f76b9cdf4c24bc5284ccfad6689b842df58f393b01",
+      "timestamp": 1787389421340
+    },
+    "13": {
+      "stepNumber": 13,
+      "stepId": "step_13",
+      "status": "confirmed",
+      "deployedAddress": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
+      "txHash": "0x4360cea2aed62d241024db782f1c3ff35133b0f314e52625fcfec10ca12e69e8",
+      "timestamp": 1787389435605
+    },
+    "14": {
+      "stepNumber": 14,
+      "stepId": "step_14",
+      "status": "confirmed",
+      "deployedAddress": "0xa938aacea64be8f41c90960aff232da4df7fc329",
+      "txHash": "0x446cad52bb87e16e8df546a687e039d2b640f6e148a69facdc6a3797fa6787bc",
+      "timestamp": 1787389449637
+    },
+    "15": {
+      "stepNumber": 15,
+      "stepId": "step_15",
+      "status": "confirmed",
+      "deployedAddress": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
+      "txHash": "0xcf8254cb0c1ccad2f951a8e42e4636d95501473624647b50f082ec5fbb6668bd",
+      "timestamp": 1787389459884
+    },
+    "16": {
+      "stepNumber": 16,
+      "stepId": "step_16",
+      "status": "confirmed",
+      "txHash": "0x5864352eff4395290ea4a85f3b2f4dc22d17062b9e49ac2cfec783196dd4e0c4",
+      "timestamp": 1787389469399
+    },
+    "17": {
+      "stepNumber": 17,
+      "stepId": "step_17",
+      "status": "confirmed",
+      "txHash": "0xf3f9022e793db1d577e7a97a6a6248f8ca3a22add1e2b593830bc4a9be7e4824",
+      "timestamp": 1787389479689
+    },
+    "18": {
+      "stepNumber": 18,
+      "stepId": "step_18",
+      "status": "confirmed",
+      "txHash": "0x79d7bf43cc53bb605a18f9e961794d12f611711da2615f6b952192da8c1375fc",
+      "timestamp": 1787389489392
+    },
+    "19": {
+      "stepNumber": 19,
+      "stepId": "step_19",
+      "status": "confirmed",
+      "txHash": "0x5382116c9008db21738845fc34ed72b015137e872d12bfb5a65b26e309e49c5b",
+      "timestamp": 1787389499104
+    },
+    "20": {
+      "stepNumber": 20,
+      "stepId": "step_20",
+      "status": "confirmed",
+      "txHash": "0xf72eab2412d154edb04da67d4fd5e4af12a708e1ba88f60ce15546d11780253d",
+      "timestamp": 1787389508231
+    },
+    "21": {
+      "stepNumber": 21,
+      "stepId": "step_21",
+      "status": "confirmed",
+      "txHash": "0x4f9e9800ea5b0ce3442f3918d1355b529cfd328a393be594b272b9af19554888",
+      "timestamp": 1787389519906
+    },
+    "22": {
+      "stepNumber": 22,
+      "stepId": "step_22",
+      "status": "confirmed",
+      "txHash": "0xa417b0486faaa65d0591aeeb8200cf67c03430a230b6ef6c3374eb790306aa2d",
+      "timestamp": 1787389540595
+    },
+    "23": {
+      "stepNumber": 23,
+      "stepId": "step_23",
+      "status": "confirmed",
+      "txHash": "0x2299d246decc656bfbb3dc92ec9dab74e82661c6c4f9f15be0547fc41e046399",
+      "timestamp": 1787389549193
+    },
+    "24": {
+      "stepNumber": 24,
+      "stepId": "step_24",
+      "status": "confirmed",
+      "txHash": "0x64db11d74c6cbdb1a5dd691b3443fb50c528160182e8e38bad663ee4351d9578",
+      "timestamp": 1787389556059
+    },
+    "25": {
+      "stepNumber": 25,
+      "stepId": "step_25",
+      "status": "confirmed",
+      "txHash": "0x794507c53d626de9c777aa2e3d10bf2815ee342626bc8bef54c404c9acdd6746",
+      "timestamp": 1787389562007
+    },
+    "26": {
+      "stepNumber": 26,
+      "stepId": "step_26",
+      "status": "confirmed",
+      "txHash": "0x5e5550ae86cdc4ac3bc15373a2aa39e76607a557c672bb7e83ff8e16f72e3d34",
+      "timestamp": 1787389570595
+    },
+    "27": {
+      "stepNumber": 27,
+      "stepId": "step_27",
+      "status": "confirmed",
+      "txHash": "0x75e277d8ffe6c35ecfb797273ed5d8748cdfd663bedca18dbfbc41b4321454e0",
+      "timestamp": 1787389578272
+    },
+    "28": {
+      "stepNumber": 28,
+      "stepId": "step_28",
+      "status": "confirmed",
+      "txHash": "0xfe874fbf495e1a2706003ccfb6b519a46a51410d97e7fba09e205bbc90ac2e00",
+      "timestamp": 1787389589655
+    },
+    "29": {
+      "stepNumber": 29,
+      "stepId": "step_29",
+      "status": "confirmed",
+      "txHash": "0x7ad0db2c01b83890b58cd85996853a92c0990a8cacfbf7c65b78a75fa8b68672",
+      "timestamp": 1787389596682
+    },
+    "30": {
+      "stepNumber": 30,
+      "stepId": "step_30",
+      "status": "confirmed",
+      "txHash": "0x247bee9fa0b9f7c2eaf871ef52fdd2eae3b2181408ddc402a2f7cc8755877097",
+      "timestamp": 1787389606593
+    },
+    "31": {
+      "stepNumber": 31,
+      "stepId": "step_31",
+      "status": "confirmed",
+      "txHash": "0xc78da132d151b1de1b65071e58b497522911042e98a8a61363e442f7cb3068b4",
+      "timestamp": 1787389615589
+    },
+    "32": {
+      "stepNumber": 32,
+      "stepId": "step_32",
+      "status": "confirmed",
+      "txHash": "0xc90fbfda0a35c0ddf6655e96d2d4977005b0301c17f5ee0549bee05828149227",
+      "timestamp": 1787389625481
+    },
+    "33": {
+      "stepNumber": 33,
+      "stepId": "step_33",
+      "status": "confirmed",
+      "txHash": "0x88c5e9b2fb5b16fec6e796719ae87142d32e5018671a6abecd7251a27c1ab5e3",
+      "timestamp": 1787389635004
+    },
+    "34": {
+      "stepNumber": 34,
+      "stepId": "step_34",
+      "status": "confirmed",
+      "txHash": "0x8e9df5dc772f277983845b2881fc2011681eb0cbeeb6e3175853302d0a288122",
+      "timestamp": 1787389643044
+    },
+    "35": {
+      "stepNumber": 35,
+      "stepId": "register_feed_usdc",
+      "status": "confirmed",
+      "timestamp": 1787391326125
+    },
+    "36": {
+      "stepNumber": 36,
+      "stepId": "register_feed_cbbtc",
+      "status": "confirmed",
+      "timestamp": 1787391326125
+    },
+    "37": {
+      "stepNumber": 37,
+      "stepId": "register_feed_weth",
+      "status": "confirmed",
+      "timestamp": 1787391326125
+    },
+    "38": {
+      "stepNumber": 38,
+      "stepId": "step_38",
+      "status": "confirmed",
+      "txHash": "0x4836d1d0e96b6df41e01d5a8061ab4ebc218ac9c9d40b3c55223c498fa09113a",
+      "timestamp": 1787391515969
+    },
+    "39": {
+      "stepNumber": 39,
+      "stepId": "step_39",
+      "status": "confirmed",
+      "txHash": "0x814e819ec6981454325b85823bd3f74dcfe896e7fea2f433f483bfe2cddebfeb",
+      "timestamp": 1787391526616
+    },
+    "40": {
+      "stepNumber": 40,
+      "stepId": "step_40",
+      "status": "confirmed",
+      "txHash": "0x3d1a5589633af49ca77682b77a59ea338d3fded62f6b08222c758881232a75f6",
+      "timestamp": 1787391536337
+    },
+    "41": {
+      "stepNumber": 41,
+      "stepId": "vault_register_usdc",
+      "status": "confirmed",
+      "timestamp": 1787392230333
+    },
+    "42": {
+      "stepNumber": 42,
+      "stepId": "vault_register_cbbtc",
+      "status": "confirmed",
+      "timestamp": 1787392230333
+    },
+    "43": {
+      "stepNumber": 43,
+      "stepId": "step_43",
+      "status": "confirmed",
+      "txHash": "0x5980923588711d2912b3bc5f4fa56835540ca3764aa0887ce5f6dae0f371dcc6",
+      "timestamp": 1787392258167
+    },
+    "44": {
+      "stepNumber": 44,
+      "stepId": "step_44",
+      "status": "confirmed",
+      "txHash": "0x37d3acfe32892aa86433f8b2e10c88721cb33038c9dcf500b9148ef29c25e733",
+      "timestamp": 1787392270342
+    },
+    "45": {
+      "stepNumber": 45,
+      "stepId": "step_45",
+      "status": "confirmed",
+      "txHash": "0xc4d426dc792a4dba2d3343840d4a60eaab09603fd27e6b2b2b69fabdb8699505",
+      "timestamp": 1787392281129
+    },
+    "46": {
+      "stepNumber": 46,
+      "stepId": "step_46",
+      "status": "confirmed",
+      "txHash": "0xa9735af672ef80ab5c81255870263331d0d4ff67543b807ea165885c0fb14ed1",
+      "timestamp": 1787392291038
+    },
+    "47": {
+      "stepNumber": 47,
+      "stepId": "step_47",
+      "status": "confirmed",
+      "txHash": "0xb60002021df1a3224dac6814097dc346f993c41ff5bb3e0e5445746a366add7e",
+      "timestamp": 1787392303116
+    },
+    "48": {
+      "stepNumber": 48,
+      "stepId": "step_48",
+      "status": "confirmed",
+      "txHash": "0x33ca6c8495216e9bcb967f487200eb62d83c7b4e9e6ce742a837a531697297fc",
+      "timestamp": 1787392315812
+    },
+    "49": {
+      "stepNumber": 49,
+      "stepId": "step_49",
+      "status": "confirmed",
+      "txHash": "0xa22679b7d561d4d5174f6b3208c99465f77c72c5655bc517f84f3cb3d67a3d9c",
+      "timestamp": 1787392327496
+    },
+    "50": {
+      "stepNumber": 50,
+      "stepId": "step_50",
+      "status": "confirmed",
+      "txHash": "0x818ef3c08dfb7bb1016cc1f808820c45577e93f37f9a33c51c55dac1730e6a1d",
+      "timestamp": 1787392338435
+    },
+    "51": {
+      "stepNumber": 51,
+      "stepId": "step_51",
+      "status": "confirmed",
+      "txHash": "0xf9a91615bba2dab0108c31fb6d83c16ec27b83ae806cbb9d101a17acc2e8a5a4",
+      "timestamp": 1787392349609
+    },
+    "52": {
+      "stepNumber": 52,
+      "stepId": "step_52",
+      "status": "confirmed",
+      "txHash": "0xd75b079c2305516efb2024e65a00285231af009c438e4a4e6cd0f05a43b4d555",
+      "timestamp": 1787392360884
+    },
+    "53": {
+      "stepNumber": 53,
+      "stepId": "step_53",
+      "status": "confirmed",
+      "txHash": "0x3aa5507bd74e4830f6cc520ce914f467a2fb5253bd1d22f926026b7536028ffc",
+      "timestamp": 1787392371213
+    },
+    "54": {
+      "stepNumber": 54,
+      "stepId": "step_54",
+      "status": "confirmed",
+      "deployedAddress": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6",
+      "txHash": "0x0cfaa5a002bf173d995ecc27b1a27a044a406f74b7db4056f8be9439bce591cf",
+      "timestamp": 1787392383197
+    },
+    "55": {
+      "stepNumber": 55,
+      "stepId": "step_55",
+      "status": "confirmed",
+      "txHash": "0x70434a9d0c5a28fdd9d2a909525a39a60076c79cceb423183cb40afbfc7da763",
+      "timestamp": 1787392394867
+    }
+  },
+  "verificationResults": [],
+  "lastUpdated": 1787392394867
+}
