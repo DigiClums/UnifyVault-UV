@@ -63,17 +63,16 @@ export function ProtocolCapitalCard() {
 
   return (
     <>
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-5 sm:p-6 shadow-[6px_6px_0_#10B981] space-y-5">
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#10B981] space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-500" />
-              Vault Reserves & Reward Capacity
+              Vault Reserves & Capacity
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              95% of staked UVBE is secured in the vault to generate dynamic APY and community
-              rewards.
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+              95% of staked UVBE is secured in the vault to generate dynamic APY and rewards.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -81,14 +80,14 @@ export function ProtocolCapitalCard() {
               type="button"
               onClick={handleSyncRate}
               disabled={txManager.progressState.state.includes('PENDING')}
-              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs border border-slate-300 dark:border-white/10 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs border border-slate-300 dark:border-white/10 flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
               <RefreshCw className="w-3.5 h-3.5 text-emerald-500" />
               Sync Rate
             </button>
             <div className="text-right">
               <span className="text-[9px] font-mono uppercase font-bold text-slate-500 block">
-                Solvency Status
+                Solvency
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -99,57 +98,57 @@ export function ProtocolCapitalCard() {
         </div>
 
         {/* 4 Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
           {/* 1. Protocol-Owned Capital */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <span className="flex items-center gap-1">
                 <Lock className="w-3 h-3 text-black dark:text-[#BFFF00]" />
                 Vault Reserves
               </span>
             </div>
-            <div className="text-xl font-mono font-black text-slate-950 dark:text-white">
+            <div className="text-lg font-mono font-black text-slate-950 dark:text-white">
               {formattedTotalStaked} <span className="text-xs text-slate-500">UVBE</span>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Vault balance: {formattedVaultCapital} UVBE
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              Balance: {formattedVaultCapital} UVBE
             </p>
           </div>
 
           {/* 2. Available Reward Capacity */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <span className="flex items-center gap-1">
                 <Coins className="w-3 h-3 text-emerald-500" />
-                Available Reward Capacity
+                Capacity
               </span>
             </div>
-            <div className="text-xl font-mono font-black text-emerald-600 dark:text-emerald-400">
+            <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400">
               {formattedSurplus} <span className="text-xs text-slate-500">UVBE</span>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Surplus backing: {healthRatio}% health ratio
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              Health: {healthRatio}% ratio
             </p>
           </div>
 
           {/* 3. Total Outstanding Liabilities */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <span className="flex items-center gap-1">
                 <Activity className="w-3 h-3 text-amber-500" />
-                Pending Rewards Pool
+                Liabilities
               </span>
             </div>
-            <div className="text-xl font-mono font-black text-slate-950 dark:text-white">
+            <div className="text-lg font-mono font-black text-slate-950 dark:text-white">
               {formattedLiabilities} <span className="text-xs text-slate-500">UVBE</span>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Total claimable rewards allocated to users
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              Allocated rewards pool
             </p>
           </div>
 
           {/* 4. Dynamic APY */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
               <span className="flex items-center gap-1">
                 <TrendingUp className="w-3 h-3 text-blue-500" />
@@ -157,11 +156,11 @@ export function ProtocolCapitalCard() {
               </span>
               <span className="text-[9px] font-mono text-slate-400">{dynamicApyBps} BPS</span>
             </div>
-            <div className="text-xl font-mono font-black text-blue-600 dark:text-blue-400">
+            <div className="text-lg font-mono font-black text-blue-600 dark:text-blue-400">
               {dynamicApy}% <span className="text-xs text-slate-500">APY</span>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Capacity-backed (Max 100.00% cap)
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              Max 100% capacity cap
             </p>
           </div>
         </div>

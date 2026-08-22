@@ -11,7 +11,7 @@
     "test:4": "forge test --match-path \"test/{ChainlinkOracleProvider,OracleAdapter,OracleCircuitBreaker,OracleManager,OracleProvider}.t.sol\"",
     "test:5": "forge test --match-path \"test/{PortfolioManager,StrategyManager,LiquidityManager}.t.sol\"",
     "test:6": "forge test --match-path \"test/{UnifyVaultController,UnifyVaultControllerUpgradeable,DeployUnifyVaultControllerUUPS,DepositCollateral,DepositMinting,DepositValidation,DebugDepositQuote,Redemption,RedemptionDecimalScaling,UVBTCETHToken}.t.sol\"",
-    "test:7": "forge test --match-path \"test/{DepositFeeRouting,FeeManager,SwapAdapter}.t.sol\"",
+    "test:7": "forge test --match-path \"test/{DepositFeeRouting,FeeManager,SwapAdapter,SwapProtection}.t.sol\"",
     "test:8": "forge test --match-path \"test/{integration/*.t.sol,ControllerIntegration.t.sol,FeeManagerIntegration.t.sol,LiveSim.t.sol,EconomicAdversarial.t.sol}\"",
     "test:9": "forge test --match-path \"test/{fork/*.t.sol,BaseMainnetFork.t.sol}\"",
     "test:10": "forge test --match-path \"test/{invariant/*.t.sol,ChainlinkOracleProviderInvariant.t.sol,CustodyVaultInvariant.t.sol,DepositCollateralInvariant.t.sol,DepositFeeRoutingInvariant.t.sol,DepositMintingInvariant.t.sol,DepositValidationInvariant.t.sol,OracleManagerInvariant.t.sol,OracleProviderInvariant.t.sol,RedemptionInvariant.t.sol,TreasuryInvariant.t.sol,UnifyVaultControllerInvariant.t.sol,UVBTCETHTokenInvariant.t.sol,RedemptionFuzz.t.sol,V2ProtocolInvariants.t.sol}\"",

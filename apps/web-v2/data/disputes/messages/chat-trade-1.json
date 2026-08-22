@@ -1,0 +1,29 @@
+[
+  {
+    "messageId": "msg-1787336426563-27ud",
+    "tradeId": 1,
+    "disputeId": "disp-1-active",
+    "senderAddress": "0xB145AC2a59575Fbe306a58aC924718f4DD4659Da",
+    "senderRole": "SELLER",
+    "content": "send correct please",
+    "timestamp": "2026-08-21T18:20:26.563Z"
+  },
+  {
+    "messageId": "msg-1787336483760-6k2i",
+    "tradeId": 1,
+    "disputeId": "disp-1-active",
+    "senderAddress": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+    "senderRole": "BUYER",
+    "content": "alredy send correct",
+    "timestamp": "2026-08-21T18:21:23.760Z"
+  },
+  {
+    "messageId": "msg-1787336687669-9d8x",
+    "tradeId": 1,
+    "disputeId": "disp-1-active",
+    "senderAddress": "0xB145AC2a59575Fbe306a58aC924718f4DD4659Da",
+    "senderRole": "SELLER",
+    "content": "hi",
+    "timestamp": "2026-08-21T18:24:47.669Z"
+  }
+]

@@ -93,6 +93,30 @@ contract BroadcastGaslessTransferOnly is Script {
     entryPoint.handleOps(ops, beneficiary);
     vm.stopBroadcast();
 
+    _verifyPostTransfer(
+      uvbe,
+      cbm,
+      senderUVBEBefore,
+      recipientUVBEBefore,
+      totalSupplyBefore,
+      senderBasisBefore,
+      recipientBasisBefore,
+      transferAmount
+    );
+
+    console.log('=== PHASE 2B-1 ON-CHAIN VERIFICATION 100% SUCCESSFUL ===');
+  }
+
+  function _verifyPostTransfer(
+    UVBEV2 uvbe,
+    CostBasisManagerV2 cbm,
+    uint256 senderUVBEBefore,
+    uint256 recipientUVBEBefore,
+    uint256 totalSupplyBefore,
+    uint256 senderBasisBefore,
+    uint256 recipientBasisBefore,
+    uint256 transferAmount
+  ) internal view {
     console.log('=== VERIFYING POST-TRANSFER ON-CHAIN INVARIANTS ===');
     uint256 senderUVBEAfter = uvbe.balanceOf(SENDER_SMART_ACCOUNT);
     uint256 recipientUVBEAfter = uvbe.balanceOf(RECIPIENT_SMART_ACCOUNT);
@@ -122,7 +146,5 @@ contract BroadcastGaslessTransferOnly is Script {
     );
     require(cbm.realizedPnL(SENDER_SMART_ACCOUNT) == 0, 'No P&L on sender');
     require(cbm.realizedPnL(RECIPIENT_SMART_ACCOUNT) == 0, 'No P&L on recipient');
-
-    console.log('=== PHASE 2B-1 ON-CHAIN VERIFICATION 100% SUCCESSFUL ===');
   }
 }

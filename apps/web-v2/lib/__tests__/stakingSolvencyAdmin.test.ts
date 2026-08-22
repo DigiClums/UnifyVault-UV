@@ -30,19 +30,19 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
   describe('1. Canonical Deployed Staking Contract Addresses', () => {
     it('verifies exact Base Sepolia UVBEStakingVault address', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault.toLowerCase()).toBe(
-        '0x59f60d3d9ee0e253fedaca2a2435a0f6acbebe4e',
+        '0x91205d342d36d9b6f5a1ab38f2a2a3d03bfd74a1',
       );
     });
 
     it('verifies exact Base Sepolia UVBERewardDistributor address', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor.toLowerCase()).toBe(
-        '0xf902dc96d6ab062f2ce529dfd6501ae79cfdbf56',
+        '0xae202a0627a194fa2d02cd861e19302d01f8ca81',
       );
     });
 
     it('verifies exact Base Sepolia UVBEReferralRegistry address', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry.toLowerCase()).toBe(
-        '0x183dbee157fd7f275e95634a3b3781b50d95cdf7',
+        '0xb409064857792a2aef676f9cb69713685775f0d0',
       );
     });
   });

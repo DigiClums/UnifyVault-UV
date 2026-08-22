@@ -76,22 +76,38 @@ export function isNonZeroAddress(addr?: string): boolean {
  * Base Sepolia Deployed Contracts (Canonical V2 Protocol Deployment)
  */
 export const DEPLOYED_CONTRACTS_SEPOLIA = {
-  ProtocolDirectory: '0xD2715141a0F5998B707BaA963990bFC2E94cF145' as `0x${string}`,
-  Treasury: '0x66182F56BD5E523c655f6890290aB519f528e83f' as `0x${string}`,
-  CustodyVault: '0x27B5C6DEA90678B78856b0B10DBA37A789fDe97e' as `0x${string}`,
-  OracleManager: '0x5B6067982C6ccE2DC760EB4731c1b40136776D4A' as `0x${string}`,
-  ChainlinkOracleProvider: '0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a' as `0x${string}`,
-  LiquidityManager: '0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329' as `0x${string}`,
-  UVBEToken: '0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE' as `0x${string}`,
-  UVBTCETHToken: '0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE' as `0x${string}`,
-  UnifyVaultController: '0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea' as `0x${string}`,
-  UnifyVaultControllerImplementation: '0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea' as `0x${string}`,
-  StrategyManager: '0x14058459198a2CfFc8cE89C364334a80Da82D6a3' as `0x${string}`,
-  PortfolioManager: '0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4' as `0x${string}`,
-  SwapAdapter: '0xCb1a434c5ebe2F2F8672Ca507Ee819C6888ae634' as `0x${string}`,
-  FeeManager: '0x0721465B01b586B7AAdF957A4a884acE46CfbEc9' as `0x${string}`,
-  CostBasisManager: '0xF71706A2Fd8692e3C739855B2A33C0E679b4c382' as `0x${string}`,
-  PerformanceManager: '0x133fD024EA635694A223e66B936c2afAB4F2DB78' as `0x${string}`,
+  ProtocolDirectory: '0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f' as `0x${string}`,
+  Treasury: '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316' as `0x${string}`,
+  CustodyVault: '0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64' as `0x${string}`,
+  OracleManager: '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6' as `0x${string}`,
+  ChainlinkOracleProvider: '0x80a1ea978e069b5af96398f97b125e502cf854ac' as `0x${string}`,
+  LiquidityManager: (isNonZeroAddress(process.env.NEXT_PUBLIC_LIQUIDITY_MANAGER_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_LIQUIDITY_MANAGER_ADDRESS_SEPOLIA
+    : '0xd225bffe0e4d905df0767c6271686497fea968a6') as `0x${string}`,
+  UVBEToken: (isNonZeroAddress(process.env.NEXT_PUBLIC_UVBE_TOKEN_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_UVBE_TOKEN_ADDRESS_SEPOLIA
+    : '0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde') as `0x${string}`,
+  UVBTCETHToken: (isNonZeroAddress(process.env.NEXT_PUBLIC_UVBE_TOKEN_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_UVBE_TOKEN_ADDRESS_SEPOLIA
+    : '0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde') as `0x${string}`,
+  UnifyVaultController: (isNonZeroAddress(process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_SEPOLIA
+    : '0x07f3d3432b64dbf67c5b061af2bc8aef70221cea') as `0x${string}`,
+  UnifyVaultControllerImplementation: (isNonZeroAddress(
+    process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_SEPOLIA,
+  )
+    ? process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_SEPOLIA
+    : '0x07f3d3432b64dbf67c5b061af2bc8aef70221cea') as `0x${string}`,
+  StrategyManager: (isNonZeroAddress(process.env.NEXT_PUBLIC_STRATEGY_MANAGER_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_STRATEGY_MANAGER_ADDRESS_SEPOLIA
+    : '0x14058459198a2cffc8ce89c364334a80da82d6a3') as `0x${string}`,
+  PortfolioManager: (isNonZeroAddress(process.env.NEXT_PUBLIC_PORTFOLIO_MANAGER_ADDRESS_SEPOLIA)
+    ? process.env.NEXT_PUBLIC_PORTFOLIO_MANAGER_ADDRESS_SEPOLIA
+    : '0x1c65b1667c8cc03138b8e57cdd40b0bf28a4cdc4') as `0x${string}`,
+  SwapAdapter: '0x8deca9efb0bdc300aae96111bdf0dcd32651db90' as `0x${string}`,
+  FeeManager: '0x48e2647d4f884c22def4cfd60b6bf95205cf2997' as `0x${string}`,
+  CostBasisManager: '0xcc405c38ed50efc715afcebadc37c01da6838ddd' as `0x${string}`,
+  PerformanceManager: '0x6f5fc63a6e404009beb02f722f5786739ea34535' as `0x${string}`,
   TimelockController: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   UnifyVaultTimelock: '0x9094145Cd2AEA2f309eDf14237444a07edF98d02' as `0x${string}`,
   GnosisSafeProposer: '0x1111111111111111111111111111111111111111' as `0x${string}`,
@@ -99,7 +115,7 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
     ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
       ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
-      : '0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b') as `0x${string}`,
+      : '0xcba65af8a993061cf1acc47d9b02d7ebacbcf655') as `0x${string}`,
   P2PReputation: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS_SEPOLIA)
     ? process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS_SEPOLIA
     : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_REPUTATION_ADDRESS)
@@ -120,9 +136,9 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
   Admin: (isNonZeroAddress(process.env.NEXT_PUBLIC_ADMIN_ADDRESS)
     ? process.env.NEXT_PUBLIC_ADMIN_ADDRESS
     : '0x441dbf8076d0b143EC17199baE94Daa884161454') as `0x${string}`,
-  StakingVault: '0x59F60d3D9EE0e253fEDACa2A2435A0F6aCBEBE4E' as `0x${string}`,
-  ReferralRegistry: '0x183dBEe157fD7f275e95634A3B3781B50d95cdf7' as `0x${string}`,
-  RewardDistributor: '0xF902dC96D6aB062f2cE529dFD6501ae79CFDBF56' as `0x${string}`,
+  StakingVault: '0x91205D342D36d9b6F5A1AB38f2a2a3D03BFd74A1' as `0x${string}`,
+  ReferralRegistry: '0xb409064857792a2AEF676f9cB69713685775f0D0' as `0x${string}`,
+  RewardDistributor: '0xAe202A0627a194fa2D02cD861e19302d01F8ca81' as `0x${string}`,
   /** @deprecated Removed in dynamic staking architecture; retained for interface backward-compatibility */
   RewardReserve: '0x0000000000000000000000000000000000000000' as `0x${string}`,
   GenesisReferrer: '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`,

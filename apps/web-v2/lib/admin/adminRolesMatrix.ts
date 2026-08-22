@@ -1,0 +1,161 @@
+import type { ContractRoleMigrationItem } from './types';
+import type { DeployedContractsMap } from '../deployment/types';
+
+export function getContractRolesMatrix(
+  contracts: DeployedContractsMap,
+  currentAdmin: `0x${string}`,
+  newAdmin?: `0x${string}`,
+): ContractRoleMigrationItem[] {
+  const items: ContractRoleMigrationItem[] = [];
+
+  // 1. ProtocolDirectory
+  if (contracts.ProtocolDirectory) {
+    items.push({
+      contractName: 'ProtocolDirectory',
+      contractAddress: contracts.ProtocolDirectory,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Controls address registry and role granting for ProtocolDirectory.',
+    });
+    items.push({
+      contractName: 'ProtocolDirectory',
+      contractAddress: contracts.ProtocolDirectory,
+      roleIdentifier: '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1', // keccak256("GOVERNANCE_ROLE")
+      roleName: 'GOVERNANCE_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Authorizes registerAddress and freeze operations.',
+    });
+  }
+
+  // 2. OracleManager
+  if (contracts.OracleManager) {
+    items.push({
+      contractName: 'OracleManager',
+      contractAddress: contracts.OracleManager,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governs oracle primary and fallback feed registration.',
+    });
+  }
+
+  // 3. CustodyVault
+  if (contracts.CustodyVault) {
+    items.push({
+      contractName: 'CustodyVault',
+      contractAddress: contracts.CustodyVault,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Controls asset configurations and emergency guardian operations.',
+    });
+  }
+
+  // 4. Treasury
+  if (contracts.Treasury) {
+    items.push({
+      contractName: 'Treasury',
+      contractAddress: contracts.Treasury,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Safeguards protocol-owned capital and fee revenue withdrawals.',
+    });
+  }
+
+  // 5. FeeManager
+  if (contracts.FeeManager) {
+    items.push({
+      contractName: 'FeeManager',
+      contractAddress: contracts.FeeManager,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Configures deposit and redemption basis point parameters.',
+    });
+  }
+
+  // 6. UVBEV2
+  if (contracts.UVBEV2) {
+    items.push({
+      contractName: 'UVBEV2',
+      contractAddress: contracts.UVBEV2,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Administers share token mint/burn authorities and pause controls.',
+    });
+  }
+
+  // 7. UnifyVaultController (Proxy)
+  if (contracts.UnifyVaultController) {
+    items.push({
+      contractName: 'UnifyVaultController',
+      contractAddress: contracts.UnifyVaultController,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Controls execution engine, rate limits, and UUPS upgrades.',
+    });
+  }
+
+  // 8. Marketplace
+  if (contracts.Marketplace) {
+    items.push({
+      contractName: 'Marketplace',
+      contractAddress: contracts.Marketplace,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Oversees P2P limit orderbook and arbitration parameters.',
+    });
+  }
+
+  return items;
+}

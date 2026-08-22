@@ -23,7 +23,7 @@ import '../interfaces/IFeeManager.sol';
 import '../interfaces/ICostBasisManagerV2.sol';
 import '../constants/ModuleIds.sol';
 import '../vault/CustodyVault.sol';
-import '../token/UVBTCETHToken.sol';
+import '../token/UVBEV2.sol';
 
 /**
  * @title UnifyVaultControllerUpgradeable
@@ -1146,7 +1146,7 @@ contract UnifyVaultControllerUpgradeable is
       if (shares <= DEAD_SHARES) {
         revert ProtocolErrors.SlippageLimitExceeded(minSharesOut, shares);
       }
-      UVBTCETHToken(_token).mint(address(0x000000000000000000000000000000000000dEaD), DEAD_SHARES);
+      UVBEV2(_token).mint(address(0x000000000000000000000000000000000000dEaD), DEAD_SHARES);
       shares -= DEAD_SHARES;
     }
 
@@ -1159,7 +1159,7 @@ contract UnifyVaultControllerUpgradeable is
       (, navAfter) = IPortfolioManager(pm).calculateUVPrice();
     }
 
-    UVBTCETHToken(_token).mint(receiver, shares);
+    UVBEV2(_token).mint(receiver, shares);
   }
 
   function _finalizeRedemption(
@@ -1180,7 +1180,7 @@ contract UnifyVaultControllerUpgradeable is
     uint256 userSharesBefore = IERC20(_token).balanceOf(msg.sender);
 
     // 1. Burn shares from msg.sender
-    UVBTCETHToken(_token).burn(msg.sender, p.shares);
+    UVBEV2(_token).burn(msg.sender, p.shares);
 
     // 2. Route protocol redemption fee to Treasury
     if (protocolFee > 0) {

@@ -2,7 +2,7 @@ import { isAddress, getAddress } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
 
-export const CANONICAL_UVBE_ADDRESS = '0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE' as const;
+export const CANONICAL_UVBE_ADDRESS = '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c' as const;
 export const NATIVE_ETH_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export interface P2PAssetInfo {

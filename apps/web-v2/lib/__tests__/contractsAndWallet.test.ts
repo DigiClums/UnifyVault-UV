@@ -5,15 +5,15 @@ import { createSafeWagmiStorage, getSafeStorage } from '../utils/storageFallback
 
 describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   it('should expose all 8 required canonical protocol contract addresses for Base Sepolia', () => {
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE');
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toBe(
-      '0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE',
+      '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toBe(
-      '0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea',
+      '0x81c58629be6fc2f3c0d848419f88ef1cfab74cdf',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toBe(
-      '0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4',
+      '0x8fa4aaafa52eac9a85daf57eeaa67b59c8da7d32',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.OracleManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
@@ -21,10 +21,10 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager).toBe(
-      '0xF71706A2Fd8692e3C739855B2A33C0E679b4c382',
+      '0xcc405c38ed50efc715afcebadc37c01da6838ddd',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager).toBe(
-      '0x133fD024EA635694A223e66B936c2afAB4F2DB78',
+      '0x6f5fc63a6e404009beb02f722f5786739ea34535',
     );
   });
 
@@ -33,7 +33,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     expect(tokens.USDC).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(tokens.cbBTC).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(tokens.WETH).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(tokens.UVBE).toBe('0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE');
+    expect(tokens.UVBE).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
   });
 
   it('should generate accurate BaseScan explorer URLs based on chain ID 84532', () => {
@@ -61,7 +61,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     };
 
     expect(watchAssetParams.type).toBe('ERC20');
-    expect(watchAssetParams.options.address).toBe('0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE');
+    expect(watchAssetParams.options.address).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
     expect(watchAssetParams.options.symbol).toBe('UVBE');
     expect(watchAssetParams.options.decimals).toBe(18);
   });

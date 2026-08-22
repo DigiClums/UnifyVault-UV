@@ -46,17 +46,17 @@ export function StakingHeroCards() {
   });
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
       {/* 1. Protocol-Owned Capital (User Position) */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-3.5 sm:p-4 shadow-[3px_3px_0_#000] dark:shadow-[3px_3px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#BFFF00]" />
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-black dark:text-[#BFFF00]" />
-            Your Staked Position
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <Lock className="w-3 h-3 text-black dark:text-[#BFFF00]" />
+            Your Stake
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#BFFF00]/15 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40">
-            Perpetual Yield
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold bg-[#BFFF00]/15 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40">
+            Perpetual
           </span>
         </div>
         {isLoading ? (
@@ -74,14 +74,14 @@ export function StakingHeroCards() {
       </div>
 
       {/* 2. Live Dynamic APY & Health */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-3.5 sm:p-4 shadow-[3px_3px_0_#000] dark:shadow-[3px_3px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#10B981]" />
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 text-emerald-500" />
             Dynamic APY
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
             Capacity-Backed
           </span>
         </div>
@@ -93,22 +93,22 @@ export function StakingHeroCards() {
               {dynamicApy}% <span className="text-xs font-bold text-slate-500">APY</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Surplus: {formattedSurplus} UVBE · Max 100% Cap
+              Surplus: {formattedSurplus} UVBE
             </p>
           </div>
         )}
       </div>
 
       {/* 3. Total Claimable Rewards */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-3.5 sm:p-4 shadow-[3px_3px_0_#000] dark:shadow-[3px_3px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#3B82F6]" />
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-            Claimable Rewards
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-blue-500" />
+            Claimable
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-            Yield + Referrals + DAO
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+            Yield + MLM
           </span>
         </div>
         {isLoading ? (
@@ -119,22 +119,22 @@ export function StakingHeroCards() {
               {formattedClaimable} <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Claim directly to wallet or restake at 0% fee
+              Claim or restake at 0% fee
             </p>
           </div>
         )}
       </div>
 
       {/* 4. Total Protocol Capital Staked */}
-      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-3.5 sm:p-4 shadow-[3px_3px_0_#000] dark:shadow-[3px_3px_0_rgba(0,0,0,0.85)]">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#8B5CF6]" />
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Coins className="w-3.5 h-3.5 text-violet-500" />
-            Protocol-Owned Capital
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <Coins className="w-3 h-3 text-violet-500" />
+            Vault Staked
           </span>
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
-            Tier {rankDetails.current.rank} ({rankDetails.rankName})
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono font-bold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+            Tier {rankDetails.current.rank}
           </span>
         </div>
         {isLoading ? (
@@ -146,7 +146,7 @@ export function StakingHeroCards() {
               <span className="text-xs font-bold text-slate-500">UVBE</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Total staked vault capital backing rewards
+              Total active protocol stake
             </p>
           </div>
         )}

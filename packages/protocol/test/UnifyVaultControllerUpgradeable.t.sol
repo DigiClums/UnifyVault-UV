@@ -9,7 +9,7 @@ import '../src/ProtocolDirectory.sol';
 import '../src/oracle/OracleManager.sol';
 import '../src/oracle/MockOracleProvider.sol';
 import '../src/vault/CustodyVault.sol';
-import '../src/token/UVBTCETHToken.sol';
+import '../src/token/UVBEV2.sol';
 import '../src/strategy/StrategyManager.sol';
 import '../src/strategy/PortfolioManager.sol';
 import '../src/swap/SwapAdapter.sol';
@@ -47,7 +47,7 @@ contract UnifyVaultControllerUpgradeableTest is Test {
   MockOracleProvider public oracleProvider;
   CustodyVault public vault;
   ITestTreasury public treasury;
-  UVBTCETHToken public token;
+  UVBEV2 public token;
   StrategyManager public strategyManager;
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
@@ -71,7 +71,7 @@ contract UnifyVaultControllerUpgradeableTest is Test {
     address treasuryAddr = deployCode('Treasury');
     treasury = ITestTreasury(treasuryAddr);
 
-    token = new UVBTCETHToken();
+    token = new UVBEV2(admin);
     usdc = new MockUSDCUpgradeableTest();
     costBasisManager = new CostBasisManagerV2(admin, address(directory));
 
@@ -127,7 +127,9 @@ contract UnifyVaultControllerUpgradeableTest is Test {
     vm.stopPrank();
 
     // 9. Grant PROXY address (NOT implementation address) necessary protocol roles
+    vm.startPrank(admin);
     token.grantRole(token.CONTROLLER_ROLE(), address(controller));
+    vm.stopPrank();
     vault.grantRole(vault.CONTROLLER_ROLE(), address(controller));
     treasury.grantRole(treasury.CONTROLLER_ROLE(), address(controller));
     bytes32 cbmControllerRole = costBasisManager.CONTROLLER_ROLE();
@@ -145,6 +147,12 @@ contract UnifyVaultControllerUpgradeableTest is Test {
     directory.registerAddress(ModuleIds.COST_BASIS_MANAGER, address(costBasisManager));
     directory.registerAddress(ModuleIds.ORACLE, address(oracleManager));
     directory.registerAddress(ModuleIds.VAULT, address(vault));
+
+    // Wire UVBEV2 -> CostBasisManagerV2 hook and sync CBM module references
+    vm.startPrank(admin);
+    token.setCostBasisManager(address(costBasisManager));
+    costBasisManager.syncModules();
+    vm.stopPrank();
 
     // Mint user USDC for tests
     usdc.mint(user, 1_000_000 * 1e6);
@@ -435,5 +443,101 @@ contract UnifyVaultControllerUpgradeableTest is Test {
     assertFalse(
       costBasisManager.hasRole(costBasisManager.CONTROLLER_ROLE(), address(implementation))
     );
+  }
+
+  // --- UVBEV2 Canonical Token Tests ---
+
+  function testControllerMintsAndBurnsUVBEV2Shares() public {
+    // The token wired to the controller must be the canonical UVBEV2
+    assertEq(token.symbol(), 'UVBE');
+    assertEq(token.name(), 'UnifyVault BTC-ETH V2');
+
+    // Mint path: deposit creates shares through UVBEV2
+    uint256 depositAmount = 10_000 * 1e6;
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmount);
+    controller.deposit(address(usdc), depositAmount, 0, user);
+    vm.stopPrank();
+
+    uint256 sharesAfterDeposit = token.balanceOf(user);
+    assertTrue(sharesAfterDeposit > 0, 'UVBEV2 shares should be minted on deposit');
+
+    // Burn path: redeem destroys shares through UVBEV2
+    vm.startPrank(user);
+    controller.redeem(address(usdc), sharesAfterDeposit, 0, user, block.timestamp + 300);
+    vm.stopPrank();
+
+    assertEq(token.balanceOf(user), 0, 'UVBEV2 shares should be burned on full redeem');
+  }
+
+  function testTokenMintBurnRequireControllerRole() public {
+    // Non-controller must not mint UVBEV2
+    vm.prank(attacker);
+    vm.expectRevert();
+    token.mint(attacker, 1e18);
+
+    // Non-controller must not burn UVBEV2
+    vm.prank(attacker);
+    vm.expectRevert();
+    token.burn(user, 1e18);
+  }
+
+  function testUVBEV2CostBasisHookIsActive() public {
+    // Hook must be wired to the CostBasisManagerV2 module
+    assertEq(address(token.costBasisManager()), address(costBasisManager));
+
+    // A plain transfer must trigger onTokenTransfer and move cost basis
+    uint256 depositAmount = 20_000 * 1e6;
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmount);
+    controller.deposit(address(usdc), depositAmount, 0, user);
+    vm.stopPrank();
+
+    uint256 basisBefore = costBasisManager.costBasis(user);
+    assertTrue(basisBefore > 0, 'deposit should record cost basis');
+
+    address receiver = address(0x6666);
+    uint256 allShares = token.balanceOf(user);
+    vm.prank(user);
+    token.transfer(receiver, allShares);
+
+    // onTokenTransfer moved the full basis on a full transfer
+    assertEq(costBasisManager.costBasis(user), 0, 'sender basis should be zeroed');
+    assertEq(
+      costBasisManager.costBasis(receiver),
+      basisBefore,
+      'receiver should inherit full basis'
+    );
+  }
+
+  function testP2PTransferPreservesCostBasisAccounting() public {
+    // 1. Seller deposits and accrues cost basis
+    uint256 depositAmount = 50_000 * 1e6;
+    vm.startPrank(user);
+    usdc.approve(address(controller), depositAmount);
+    controller.deposit(address(usdc), depositAmount, 0, user);
+    vm.stopPrank();
+
+    uint256 sellerBasis = costBasisManager.costBasis(user);
+    assertTrue(sellerBasis > 0, 'seller should accrue cost basis');
+
+    address buyer = address(0x7778);
+    uint256 sharesSold = token.balanceOf(user);
+
+    // 2. P2P sale: seller transfers all shares to buyer
+    vm.prank(user);
+    token.transfer(buyer, sharesSold);
+
+    // 3. Cost basis is conserved and follows the shares
+    assertEq(costBasisManager.costBasis(user), 0, 'seller cost basis should be cleared');
+    assertEq(
+      costBasisManager.costBasis(buyer),
+      sellerBasis,
+      'buyer cost basis must equal sold basis'
+    );
+
+    // 4. Buyer average entry price reflects the carried-over basis
+    uint256 buyerEntry = costBasisManager.averageEntryPrice(buyer);
+    assertTrue(buyerEntry > 0, 'buyer average entry price should be non-zero');
   }
 }

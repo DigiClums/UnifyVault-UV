@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, Download, ExternalLink, FileCode, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, Download, ExternalLink, FileCode, CheckCircle2, Zap } from 'lucide-react';
 import type { DeployedContractsMap } from '../../lib/deployment/types';
 
 interface DeployedManifestViewProps {
   deployedContracts: DeployedContractsMap;
   onExportJson: () => string;
   onExportEnv: () => string;
+  onBindContracts?: () => Promise<void>;
+  isBinding?: boolean;
 }
 
 const CONTRACT_DEFINITIONS: { key: keyof DeployedContractsMap; name: string; role: string }[] = [
@@ -62,12 +64,19 @@ const CONTRACT_DEFINITIONS: { key: keyof DeployedContractsMap; name: string; rol
     name: 'PerformanceManager',
     role: 'Performance analytics and benchmark module',
   },
+  {
+    key: 'Marketplace',
+    name: 'Marketplace',
+    role: 'Non-custodial P2P order book & matching engine',
+  },
 ];
 
 export function DeployedManifestView({
   deployedContracts,
   onExportJson,
   onExportEnv,
+  onBindContracts,
+  isBinding = false,
 }: DeployedManifestViewProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copiedBulk, setCopiedBulk] = useState<string | null>(null);
@@ -137,6 +146,17 @@ export function DeployedManifestView({
             )}
             <span>{copiedBulk === 'json' ? 'Copied JSON' : 'Copy JSON'}</span>
           </button>
+
+          {onBindContracts && deployedCount > 0 && (
+            <button
+              onClick={onBindContracts}
+              disabled={isBinding}
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold border-2 border-black shadow-[2px_2px_0_#000] flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Zap className={`w-3.5 h-3.5 text-[#BFFF00] ${isBinding ? 'animate-spin' : ''}`} />
+              <span>{isBinding ? 'Binding...' : '⚡ Bind to Frontend'}</span>
+            </button>
+          )}
 
           <button
             onClick={handleDownload}

@@ -7,7 +7,8 @@ export type DeploymentPhase =
   | 'oracle_config'
   | 'asset_registration'
   | 'controller_config'
-  | 'access_control';
+  | 'access_control'
+  | 'marketplace';
 
 export interface DeployedContractsMap {
   ProtocolDirectory?: `0x${string}`;
@@ -25,6 +26,7 @@ export interface DeployedContractsMap {
   CostBasisManagerV2?: `0x${string}`;
   P2PEscrowV2?: `0x${string}`;
   PerformanceManager?: `0x${string}`;
+  Marketplace?: `0x${string}`;
 }
 
 export interface DeploymentContext {

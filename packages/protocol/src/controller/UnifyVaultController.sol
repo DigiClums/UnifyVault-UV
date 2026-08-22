@@ -106,10 +106,14 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   uint256 private _swapSlippageBps = 100; // 1% default
 
+  uint256 private _swapDeviationBps = 300; // 3% default max upward deviation from oracle
+  uint256 public constant MAX_SWAP_DEVIATION_BPS = 1000; // 10% hard cap (governance cannot exceed)
+
   uint256 public constant BPS_DENOMINATOR = 10000;
   uint256 public constant DEAD_SHARES = 1000;
 
   event SwapSlippageUpdated(uint256 oldBps, uint256 newBps, address indexed caller);
+  event SwapDeviationUpdated(uint256 oldBps, uint256 newBps, address indexed caller);
   event MaxDepositUpdated(uint256 oldMax, uint256 newMax, address indexed caller);
   event DepositLimitsUpdated(uint256 maxPerTx, uint256 dailyCap, address indexed caller);
   event RedeemLimitsUpdated(uint256 maxPerTx, uint256 dailyCap, address indexed caller);
@@ -309,6 +313,21 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
 
   function swapSlippageBps() external view returns (uint256) {
     return _swapSlippageBps;
+  }
+
+  function setSwapDeviationBps(
+    uint256 deviationBps_
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    if (deviationBps_ > MAX_SWAP_DEVIATION_BPS) {
+      revert ProtocolErrors.MathCalculationOverflow();
+    }
+    uint256 old = _swapDeviationBps;
+    _swapDeviationBps = deviationBps_;
+    emit SwapDeviationUpdated(old, deviationBps_, msg.sender);
+  }
+
+  function swapDeviationBps() external view returns (uint256) {
+    return _swapDeviationBps;
   }
 
   // --- Module Directory View Functions ---
@@ -615,10 +634,17 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
       IERC20(inputAsset).forceApprove(v, 0);
       bought = allocAmount;
     } else {
+      (uint256 minOut, uint256 maxOut, uint256 expectedOut) = _computeSwapBounds(
+        inputAsset,
+        targetToken,
+        allocAmount
+      );
       IERC20(inputAsset).forceApprove(sa, allocAmount);
-      uint256 minOut = _computeMinAmountOut(inputAsset, targetToken, allocAmount);
       bought = ISwapAdapter(sa).swap(inputAsset, targetToken, allocAmount, minOut, address(this));
       IERC20(inputAsset).forceApprove(sa, 0);
+
+      // Validate swap output against oracle-derived bounds (min AND max)
+      _validateSwapOutput(inputAsset, targetToken, bought, minOut, maxOut, expectedOut);
 
       IERC20(targetToken).forceApprove(v, bought);
       CustodyVault(v).deposit(targetToken, address(this), bought);
@@ -848,14 +874,24 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
   // --- Internal Validation Helpers ---
 
   /**
-   * @dev Computes the minimum acceptable output amount for a swap leg based on
-   * oracle prices and configured slippage tolerance.
+   * @dev Computes oracle-derived swap output bounds for a swap leg.
+   * Returns both minimum (slippage protection) and maximum (windfall protection)
+   * acceptable output amounts based on trusted oracle prices.
+   *
+   * Formula:
+   *   expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
+   *   minAmountOut = expectedOut * (10000 - slippageBps) / 10000
+   *   maxAmountOut = expectedOut * (10000 + deviationBps) / 10000
    */
-  function _computeMinAmountOut(
+  function _computeSwapBounds(
     address tokenIn,
     address tokenOut,
     uint256 amountIn
-  ) internal view returns (uint256 minAmountOut) {
+  ) internal view returns (uint256 minAmountOut, uint256 maxAmountOut, uint256 expectedOut) {
+    if (tokenIn == address(0) || tokenOut == address(0) || amountIn == 0) {
+      revert ProtocolErrors.InvalidSwapParameters(tokenIn, tokenOut, amountIn);
+    }
+
     uint256 priceIn = IOracle(_oracle).getAssetPrice(tokenIn);
     uint256 priceOut = IOracle(_oracle).getAssetPrice(tokenOut);
     if (priceIn == 0 || priceOut == 0) {
@@ -867,13 +903,71 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     uint8 decimalsIn = cfgIn.decimals;
     uint8 decimalsOut = cfgOut.decimals;
 
-    uint256 expectedOut =
-      (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
+    // Safe decimal normalization: compute in 1e18 intermediate precision to avoid
+    // overflow with large values while preserving precision for small values.
+    // expectedOut = (amountIn * priceIn * 10^decimalsOut) / (priceOut * 10^decimalsIn)
+    expectedOut = (amountIn * priceIn * (10 ** decimalsOut)) / (priceOut * (10 ** decimalsIn));
 
     uint256 slippage = _swapSlippageBps;
-    if (slippage == 0) return 0;
+    uint256 deviation = _swapDeviationBps;
 
-    minAmountOut = (expectedOut * (BPS_DENOMINATOR - slippage)) / BPS_DENOMINATOR;
+    minAmountOut =
+      slippage > 0 ? (expectedOut * (BPS_DENOMINATOR - slippage)) / BPS_DENOMINATOR : 0;
+
+    maxAmountOut = (expectedOut * (BPS_DENOMINATOR + deviation)) / BPS_DENOMINATOR;
+  }
+
+  /**
+   * @dev Validates that a swap's actual output falls within oracle-derived bounds.
+   * Reverts with specific errors for below-minimum and above-maximum cases.
+   */
+  function _validateSwapOutput(
+    address tokenIn,
+    address tokenOut,
+    uint256 actualOut,
+    uint256 minAmountOut,
+    uint256 maxAmountOut,
+    uint256 expectedOut
+  ) internal pure {
+    if (actualOut == 0) {
+      revert ProtocolErrors.InsufficientSwapOutput(expectedOut, 0, minAmountOut);
+    }
+
+    if (actualOut < minAmountOut) {
+      revert ProtocolErrors.InsufficientSwapOutput(expectedOut, actualOut, minAmountOut);
+    }
+
+    if (actualOut > maxAmountOut) {
+      revert ProtocolErrors.SwapOutputExceedsMaximum(maxAmountOut, actualOut);
+    }
+
+    // Compute realized deviation from expected for logging/revert clarity
+    if (expectedOut > 0) {
+      uint256 diff = actualOut > expectedOut ? actualOut - expectedOut : expectedOut - actualOut;
+      uint256 deviationBps = (diff * BPS_DENOMINATOR) / expectedOut;
+      // This is a secondary safety net: if the deviation exceeds 50% something is very wrong
+      if (deviationBps > 5000) {
+        revert ProtocolErrors.OracleDeviationExceeded(
+          tokenIn,
+          tokenOut,
+          expectedOut,
+          actualOut,
+          deviationBps
+        );
+      }
+    }
+  }
+
+  /**
+   * @dev Legacy-compatible wrapper that returns only minAmountOut for callsites
+   * that don't need the full bounds (e.g., passing to DEX router).
+   */
+  function _computeMinAmountOut(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+  ) internal view returns (uint256 minAmountOut) {
+    (minAmountOut, , ) = _computeSwapBounds(tokenIn, tokenOut, amountIn);
   }
 
   function _validateDeposit(
@@ -1232,9 +1326,16 @@ contract UnifyVaultController is AccessControl, ReentrancyGuard, Pausable {
     address asset,
     uint256 propAmount
   ) private returns (uint256 usdcBought) {
+    (uint256 minOut, uint256 maxOut, uint256 expectedOut) = _computeSwapBounds(
+      strategyToken,
+      asset,
+      propAmount
+    );
     IERC20(strategyToken).forceApprove(sa, propAmount);
-    uint256 minOut = _computeMinAmountOut(strategyToken, asset, propAmount);
     usdcBought = ISwapAdapter(sa).swap(strategyToken, asset, propAmount, minOut, address(this));
     IERC20(strategyToken).forceApprove(sa, 0);
+
+    // Validate swap output against oracle-derived bounds (min AND max)
+    _validateSwapOutput(strategyToken, asset, usdcBought, minOut, maxOut, expectedOut);
   }
 }

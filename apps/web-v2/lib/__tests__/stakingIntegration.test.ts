@@ -18,15 +18,15 @@ import {
 describe('Staking Contracts & Frontend Integration', () => {
   it('has valid deployed Base Sepolia staking addresses', () => {
     expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault).toBe(
-      '0x59F60d3D9EE0e253fEDACa2A2435A0F6aCBEBE4E',
+      '0x91205D342D36d9b6F5A1AB38f2a2a3D03BFd74A1',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry).toBe(
-      '0x183dBEe157fD7f275e95634A3B3781B50d95cdf7',
+      '0xb409064857792a2AEF676f9cB69713685775f0D0',
     );
     expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor).toBe(
-      '0xF902dC96D6aB062f2cE529dFD6501ae79CFDBF56',
+      '0xAe202A0627a194fa2D02cD861e19302d01F8ca81',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE');
+    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
     expect(DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer).toBe(
       '0x441dbf8076d0b143EC17199baE94Daa884161454',
     );

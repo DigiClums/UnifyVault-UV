@@ -15,6 +15,7 @@ import {
   ArrowRight,
   ChevronRight,
   FastForward,
+  Lock,
 } from 'lucide-react';
 import type {
   DeploymentStepDefinition,
@@ -28,6 +29,7 @@ interface ActiveStepCardProps {
   currentStepIndex: number;
   totalSteps: number;
   isDeploying: boolean;
+  isLocked?: boolean;
   stepRecord?: StepExecutionRecord;
   deployedContracts: DeployedContractsMap;
   deployerAddress?: `0x${string}`;
@@ -41,7 +43,7 @@ interface ActiveStepCardProps {
   onExecuteCurrent: () => void;
   onExecuteAll: () => void;
   onStopAutoAdvance: () => void;
-  onReset: () => void;
+  onReset?: () => void;
   onGoToStep?: (stepNumber: number) => void;
 }
 
@@ -50,6 +52,7 @@ export function ActiveStepCard({
   currentStepIndex,
   totalSteps,
   isDeploying,
+  isLocked,
   stepRecord,
   deployedContracts,
   deployerAddress,
@@ -73,10 +76,10 @@ export function ActiveStepCard({
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <h3 className="text-xl font-black text-emerald-300">
-          All 53 Deployment Transactions Completed!
+          All {totalSteps} Deployment Transactions Completed!
         </h3>
         <p className="text-xs text-muted-foreground max-w-md mx-auto">
-          The UnifyVault fresh protocol has been deployed and configured on Base Sepolia. Review the
+          The UnifyVault protocol has been deployed and verified on Base Sepolia. Review the
           manifest and run on-chain genesis verification below.
         </p>
       </div>
@@ -107,7 +110,9 @@ export function ActiveStepCard({
     ];
   }
 
-  const isReady = isConnected && isCorrectNetwork && !isDeploying;
+  const isStepConfirmed = stepRecord?.status === 'confirmed';
+  const isActionDisabled =
+    isLocked || isStepConfirmed || !isConnected || !isCorrectNetwork || isDeploying;
 
   return (
     <div className="rounded-2xl border-2 border-black dark:border-white/10 bg-card p-5 sm:p-6 shadow-[4px_4px_0_#000] dark:shadow-none space-y-5">
@@ -128,14 +133,11 @@ export function ActiveStepCard({
           </select>
         </div>
 
-        {currentStep.stepNumber !== 8 && onGoToStep && (
-          <button
-            onClick={() => onGoToStep(8)}
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#BFFF00]/20 border border-[#BFFF00]/40 text-black dark:text-[#BFFF00] text-xs font-bold hover:bg-[#BFFF00]/30 transition-all cursor-pointer"
-          >
-            <FastForward className="w-3.5 h-3.5" />
-            <span>Resume Step #8 (UVBEV2)</span>
-          </button>
+        {isLocked && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-mono font-bold">
+            <Lock className="w-3.5 h-3.5" />
+            <span>MANIFEST LOCKED ON SERVER</span>
+          </div>
         )}
       </div>
 
@@ -239,7 +241,7 @@ export function ActiveStepCard({
         <div className="p-3.5 rounded-xl bg-blue-950/20 border border-blue-500/30 flex items-center justify-between">
           <div className="flex items-center space-x-2 text-blue-300 text-xs">
             <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-            <span>Confirming on Base Sepolia block...</span>
+            <span>Confirming on block...</span>
           </div>
           <a
             href={`https://sepolia.basescan.org/tx/${activeTxHash}`}
@@ -266,57 +268,58 @@ export function ActiveStepCard({
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-        <button
-          onClick={onExecuteCurrent}
-          disabled={!isReady}
-          className={`w-full sm:flex-1 py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black tracking-wide uppercase transition-all flex items-center justify-center space-x-2 border-2 ${
-            isReady
-              ? 'bg-[#BFFF00] text-black border-black shadow-[3px_3px_0_#000] hover:bg-[#d0ff66] cursor-pointer'
-              : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
-          }`}
-        >
-          {isDeploying ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Prompting MetaMask...</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-current" />
-              <span>Sign Transaction #{currentStep.stepNumber} in MetaMask</span>
-            </>
-          )}
-        </button>
-
-        {!autoAdvance ? (
-          <button
-            onClick={onExecuteAll}
-            disabled={!isReady}
-            className={`w-full sm:w-auto py-3.5 px-5 rounded-xl text-xs sm:text-sm font-bold border-2 transition-all flex items-center justify-center space-x-2 ${
-              isReady
-                ? 'bg-purple-600 text-white border-black shadow-[3px_3px_0_#000] hover:bg-purple-500 cursor-pointer'
-                : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
-            }`}
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            <span>Auto-Advance All</span>
-          </button>
+        {isStepConfirmed || isLocked ? (
+          <div className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black tracking-wide uppercase flex items-center justify-center space-x-2 border-2 border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-mono">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>ALREADY DEPLOYED & LOCKED</span>
+          </div>
         ) : (
-          <button
-            onClick={onStopAutoAdvance}
-            className="w-full sm:w-auto py-3.5 px-5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 text-black border-2 border-black shadow-[3px_3px_0_#000] hover:bg-amber-400 cursor-pointer flex items-center justify-center space-x-2"
-          >
-            <span>Stop Auto-Advance</span>
-          </button>
-        )}
+          <>
+            <button
+              onClick={onExecuteCurrent}
+              disabled={isActionDisabled}
+              className={`w-full sm:flex-1 py-3.5 px-4 rounded-xl text-xs sm:text-sm font-black tracking-wide uppercase transition-all flex items-center justify-center space-x-2 border-2 ${
+                !isActionDisabled
+                  ? 'bg-[#BFFF00] text-black border-black shadow-[3px_3px_0_#000] hover:bg-[#d0ff66] cursor-pointer'
+                  : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
+              }`}
+            >
+              {isDeploying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Prompting MetaMask...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Sign Transaction #{currentStep.stepNumber} in MetaMask</span>
+                </>
+              )}
+            </button>
 
-        <button
-          onClick={onReset}
-          disabled={isDeploying}
-          className="w-full sm:w-auto py-3.5 px-4 rounded-xl text-xs font-semibold text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer"
-        >
-          Reset
-        </button>
+            {!autoAdvance ? (
+              <button
+                onClick={onExecuteAll}
+                disabled={isActionDisabled}
+                className={`w-full sm:w-auto py-3.5 px-5 rounded-xl text-xs sm:text-sm font-bold border-2 transition-all flex items-center justify-center space-x-2 ${
+                  !isActionDisabled
+                    ? 'bg-purple-600 text-white border-black shadow-[3px_3px_0_#000] hover:bg-purple-500 cursor-pointer'
+                    : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
+                }`}
+              >
+                <Zap className="w-4 h-4 fill-current" />
+                <span>Auto-Advance All</span>
+              </button>
+            ) : (
+              <button
+                onClick={onStopAutoAdvance}
+                className="w-full sm:w-auto py-3.5 px-5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 text-black border-2 border-black shadow-[3px_3px_0_#000] hover:bg-amber-400 cursor-pointer flex items-center justify-center space-x-2"
+              >
+                <span>Stop Auto-Advance</span>
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

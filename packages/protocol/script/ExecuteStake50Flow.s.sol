@@ -26,7 +26,7 @@ contract ExecuteStake50FlowScript is Script {
 
   // Economic Parameters
   // Minimum required USDC collateral to mint >= 50 UVBE (with safety margin for 0.25% fee + NAV + swap slippage)
-  uint256 public constant DEPOSIT_USDC_AMOUNT = 55_000_000; // 55.0 USDC (At current NAV ~$1.044, 55 USDC yields ~52.5 UVBE >= 50 UVBE)
+  uint256 public constant DEPOSIT_USDC_AMOUNT = 60_000_000; // 60.0 USDC (At current NAV ~$1.10, 60 USDC yields ~54.4 UVBE >= 50 UVBE)
   uint256 public constant MIN_UVBE_SHARES = 50_000_000_000_000_000_000; // 50.0 UVBE
   uint256 public constant STAKE_AMOUNT = 50_000_000_000_000_000_000; // 50.0 UVBE (MIN_STAKE)
 
@@ -56,7 +56,7 @@ contract ExecuteStake50FlowScript is Script {
 
     require(
       initialUSDC >= DEPOSIT_USDC_AMOUNT,
-      'Insufficient USDC balance in caller wallet. Need >= 51.0 USDC'
+      'Insufficient USDC balance in caller wallet. Need >= 60.0 USDC'
     );
 
     vm.startBroadcast();
@@ -65,7 +65,7 @@ contract ExecuteStake50FlowScript is Script {
     // STEP 1: Approve Collateral (USDC -> Controller Proxy)
     // -----------------------------------------------------------------
     usdcToken.approve(CONTROLLER_PROXY, DEPOSIT_USDC_AMOUNT);
-    console2.log('[1/5] Collateral Approved: 51.0 USDC to Controller');
+    console2.log('[1/5] Collateral Approved: 60.0 USDC to Controller');
 
     // -----------------------------------------------------------------
     // STEP 2: Controller.deposit(...)

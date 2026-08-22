@@ -39,6 +39,15 @@ library Errors {
   error UnsafePricing(address asset);
   error InsufficientSwapOutput(uint256 expectedUSD, uint256 actualUSD, uint256 minUSD);
   error RouterLiquidityUnavailable(address token, uint256 requested, uint256 available);
+  error SwapOutputExceedsMaximum(uint256 maxAmountOut, uint256 actualAmountOut);
+  error OracleDeviationExceeded(
+    address tokenIn,
+    address tokenOut,
+    uint256 expectedOut,
+    uint256 actualOut,
+    uint256 deviationBps
+  );
+  error InvalidSwapParameters(address tokenIn, address tokenOut, uint256 amountIn);
 
   // Escrow Errors
   error InvalidTradeParty();

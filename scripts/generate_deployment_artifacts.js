@@ -17,6 +17,7 @@ const CONTRACT_NAMES = [
   'CostBasisManagerV2',
   'P2PEscrowV2',
   'PerformanceManager',
+  'Marketplace',
 ];
 
 const PROTOCOL_OUT_DIR = path.resolve(__dirname, '../packages/protocol/out');

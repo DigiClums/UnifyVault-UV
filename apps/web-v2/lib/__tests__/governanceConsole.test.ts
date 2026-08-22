@@ -45,7 +45,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
         DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase(),
       );
       expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase()).toBe(
-        '0xd2715141a0f5998b707baa963990bfc2e94cf145',
+        '0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f',
       );
     });
 
@@ -60,7 +60,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
 
     it('verifies UnifyVaultController canonical Sepolia address matches deployment', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController.toLowerCase()).toBe(
-        '0x07f3d3432b64dbf67c5b061af2bc8aef70221cea',
+        '0x81c58629be6fc2f3c0d848419f88ef1cfab74cdf',
       );
     });
   });

@@ -135,7 +135,8 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
    * @notice 3-arg overload for backwards compatibility
    */
   function setModules(
-    address /* reserveAddress */,
+    address,
+    /* reserveAddress */
     address vaultAddress,
     address registryAddress
   ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {

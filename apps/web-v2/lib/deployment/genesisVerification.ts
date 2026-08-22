@@ -348,5 +348,276 @@ export async function runGenesisVerification(
     }
   }
 
+  // 10. Marketplace Verification Checks
+  const mpAddr = deployedContracts.Marketplace;
+  const escrowAddr = deployedContracts.P2PEscrowV2;
+
+  if (mpAddr) {
+    // Check 1: Marketplace Bytecode Exists
+    try {
+      const bytecode = await publicClient.getBytecode({ address: mpAddr });
+      const exists = !!bytecode && bytecode !== '0x';
+      results.push({
+        id: 'marketplace_bytecode_exists',
+        name: 'Marketplace Bytecode Deployed',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: exists,
+        expected: 'Valid bytecode (length > 2)',
+        actual: exists ? `Bytecode present (${bytecode.length} hex chars)` : '0x (No bytecode)',
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_bytecode_exists',
+        name: 'Marketplace Bytecode Deployed',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: 'Valid bytecode',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+
+    // Check 2: p2pEscrow() == fresh P2PEscrowV2
+    if (escrowAddr) {
+      try {
+        const p2pEscrow = (await publicClient.readContract({
+          address: mpAddr,
+          abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+          functionName: 'p2pEscrow',
+        })) as string;
+        results.push({
+          id: 'marketplace_escrow_wiring',
+          name: 'Marketplace P2PEscrow Connection',
+          contractName: 'Marketplace',
+          targetAddress: mpAddr,
+          passed: p2pEscrow.toLowerCase() === escrowAddr.toLowerCase(),
+          expected: escrowAddr,
+          actual: p2pEscrow,
+        });
+      } catch (e: any) {
+        results.push({
+          id: 'marketplace_escrow_wiring',
+          name: 'Marketplace P2PEscrow Connection',
+          contractName: 'Marketplace',
+          targetAddress: mpAddr,
+          passed: false,
+          expected: escrowAddr,
+          actual: 'ERROR',
+          error: e?.message || String(e),
+        });
+      }
+    }
+
+    // Check 3: uvbeToken() == fresh UVBEV2
+    if (tokenAddr) {
+      try {
+        const uvbeToken = (await publicClient.readContract({
+          address: mpAddr,
+          abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+          functionName: 'uvbeToken',
+        })) as string;
+        results.push({
+          id: 'marketplace_uvbe_token_wiring',
+          name: 'Marketplace UVBE Token Connection',
+          contractName: 'Marketplace',
+          targetAddress: mpAddr,
+          passed: uvbeToken.toLowerCase() === tokenAddr.toLowerCase(),
+          expected: tokenAddr,
+          actual: uvbeToken,
+        });
+      } catch (e: any) {
+        results.push({
+          id: 'marketplace_uvbe_token_wiring',
+          name: 'Marketplace UVBE Token Connection',
+          contractName: 'Marketplace',
+          targetAddress: mpAddr,
+          passed: false,
+          expected: tokenAddr,
+          actual: 'ERROR',
+          error: e?.message || String(e),
+        });
+      }
+    }
+
+    // Check 4: DEFAULT_ADMIN_ROLE == connected deployer
+    try {
+      const hasAdmin = (await publicClient.readContract({
+        address: mpAddr,
+        abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+        functionName: 'hasRole',
+        args: [ACCESS_ROLES.DEFAULT_ADMIN_ROLE, deployerAddress],
+      })) as boolean;
+      results.push({
+        id: 'marketplace_admin_role',
+        name: 'Marketplace DEFAULT_ADMIN_ROLE on Deployer',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: hasAdmin === true,
+        expected: 'true',
+        actual: String(hasAdmin),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_admin_role',
+        name: 'Marketplace DEFAULT_ADMIN_ROLE on Deployer',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: 'true',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+
+    // Check 5: GOVERNANCE_ROLE == connected deployer
+    try {
+      const hasGov = (await publicClient.readContract({
+        address: mpAddr,
+        abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+        functionName: 'hasRole',
+        args: [ACCESS_ROLES.GOVERNANCE_ROLE, deployerAddress],
+      })) as boolean;
+      results.push({
+        id: 'marketplace_governance_role',
+        name: 'Marketplace GOVERNANCE_ROLE on Deployer',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: hasGov === true,
+        expected: 'true',
+        actual: String(hasGov),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_governance_role',
+        name: 'Marketplace GOVERNANCE_ROLE on Deployer',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: 'true',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+
+    // Check 6: GUARDIAN_ROLE == connected deployer
+    try {
+      const hasGuardian = (await publicClient.readContract({
+        address: mpAddr,
+        abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+        functionName: 'hasRole',
+        args: [ACCESS_ROLES.GUARDIAN_ROLE, deployerAddress],
+      })) as boolean;
+      results.push({
+        id: 'marketplace_guardian_role',
+        name: 'Marketplace GUARDIAN_ROLE on Deployer',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: hasGuardian === true,
+        expected: 'true',
+        actual: String(hasGuardian),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_guardian_role',
+        name: 'Marketplace GUARDIAN_ROLE on Deployer',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: 'true',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+
+    // Check 7: defaultPaymentWindow() == 900
+    try {
+      const window = (await publicClient.readContract({
+        address: mpAddr,
+        abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+        functionName: 'defaultPaymentWindow',
+      })) as bigint;
+      results.push({
+        id: 'marketplace_payment_window',
+        name: 'Marketplace Default Payment Window (900s / 15m)',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: Number(window) === 900,
+        expected: '900',
+        actual: String(window),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_payment_window',
+        name: 'Marketplace Default Payment Window (900s / 15m)',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: '900',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+
+    // Check 8: getOrderCount() == 0
+    try {
+      const orderCount = (await publicClient.readContract({
+        address: mpAddr,
+        abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+        functionName: 'getOrderCount',
+      })) as bigint;
+      results.push({
+        id: 'marketplace_order_count',
+        name: 'Marketplace Initial Order Count (0)',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: Number(orderCount) === 0,
+        expected: '0',
+        actual: String(orderCount),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_order_count',
+        name: 'Marketplace Initial Order Count (0)',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: '0',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+
+    // Check 9: paused() == false
+    try {
+      const paused = (await publicClient.readContract({
+        address: mpAddr,
+        abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+        functionName: 'paused',
+      })) as boolean;
+      results.push({
+        id: 'marketplace_paused_state',
+        name: 'Marketplace Paused State (false)',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: paused === false,
+        expected: 'false',
+        actual: String(paused),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'marketplace_paused_state',
+        name: 'Marketplace Paused State (false)',
+        contractName: 'Marketplace',
+        targetAddress: mpAddr,
+        passed: false,
+        expected: 'false',
+        actual: 'ERROR',
+        error: e?.message || String(e),
+      });
+    }
+  }
+
   return results;
 }

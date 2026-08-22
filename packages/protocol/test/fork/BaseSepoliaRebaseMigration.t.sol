@@ -12,6 +12,10 @@ import '../../src/constants/ModuleIds.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 interface VmExt {
+  function createSelectFork(
+    string calldata urlOrAlias,
+    uint256 blockNumber
+  ) external returns (uint256);
   function createSelectFork(string calldata urlOrAlias) external returns (uint256);
   function envString(string calldata key) external returns (string memory);
 }
@@ -19,6 +23,7 @@ interface VmExt {
 contract BaseSepoliaRebaseMigrationTest is Test {
   VmExt internal constant vmExt = VmExt(address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D));
 
+  uint256 public constant CANONICAL_GENESIS_BLOCK = 45_735_000;
   address public constant DIRECTORY = 0xD2715141a0F5998B707BaA963990bFC2E94cF145;
   address public constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
   address public constant ADMIN = 0x441dbf8076d0b143EC17199baE94Daa884161454;
@@ -40,7 +45,7 @@ contract BaseSepoliaRebaseMigrationTest is Test {
 
   function setUp() public {
     string memory rpcUrl = vmExt.envString('BASE_SEPOLIA_RPC_URL');
-    vmExt.createSelectFork(rpcUrl);
+    vmExt.createSelectFork(rpcUrl, CANONICAL_GENESIS_BLOCK);
 
     dir = ProtocolDirectory(DIRECTORY);
 

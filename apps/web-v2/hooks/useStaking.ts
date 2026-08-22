@@ -448,7 +448,7 @@ export function useStaking() {
         return hash;
       };
 
-      return txManager.executeWithApprovalIfNeeded(approveFn, mainActionFn, {
+      return txManager.executeWithApprovalIfNeeded(mainActionFn, approveFn, {
         stepName: 'Stake UVBE',
         stepDescription: `Permanently staking ${formatUnits(amount, 18)} UVBE as protocol-owned capital`,
         assetAddress: tokenAddress,

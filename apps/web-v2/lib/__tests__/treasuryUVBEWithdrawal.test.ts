@@ -13,14 +13,14 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
   describe('1. Canonical Contract Addresses and Constants', () => {
     it('verifies canonical UVBE token address', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase()).toBe(
-        '0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde',
+        '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c',
       );
-      expect(sepoliaTokens.UVBE?.toLowerCase()).toBe('0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde');
+      expect(sepoliaTokens.UVBE?.toLowerCase()).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
     });
 
     it('verifies canonical Treasury contract address', () => {
       expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury.toLowerCase()).toBe(
-        '0x66182f56bd5e523c655f6890290ab519f528e83f',
+        '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316',
       );
     });
 
@@ -185,10 +185,10 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
         DEPLOYED_CONTRACTS_SEPOLIA.StakingVault.toLowerCase(),
       );
       expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury.toLowerCase()).toBe(
-        '0x66182f56bd5e523c655f6890290ab519f528e83f',
+        '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316',
       );
       expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault.toLowerCase()).toBe(
-        '0x59f60d3d9ee0e253fedaca2a2435a0f6acbebe4e',
+        '0x91205d342d36d9b6f5a1ab38f2a2a3d03bfd74a1',
       );
     });
   });

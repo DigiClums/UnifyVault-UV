@@ -18,7 +18,7 @@ contract DeployUVBEStakingMLMScript is Script {
   uint256 public constant BASE_SEPOLIA_CHAIN_ID = 84532;
 
   // Canonical Base Sepolia Addresses (Verified On-Chain)
-  address public constant BASE_SEPOLIA_UVBE = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
+  address public constant BASE_SEPOLIA_UVBE = 0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE;
   address public constant BASE_SEPOLIA_TIMELOCK = 0x9094145Cd2AEA2f309eDf14237444a07edF98d02;
 
   UVBEStakingVault public vault;

@@ -73,42 +73,68 @@ export function DeploymentPreflight({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Wallet Connection */}
-        <div
-          className={`p-3.5 rounded-xl border-2 transition-all ${
-            isConnected
-              ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
-              : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Signer Wallet
-            </span>
-            {isConnected ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <XCircle className="w-4 h-4 text-rose-400" />
-            )}
-          </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="font-mono text-xs truncate max-w-[150px]">
-              {isConnected && address ? address : 'Not Connected'}
-            </span>
-            {!isConnected && (
-              <ConnectButton.Custom>
-                {({ openConnectModal }) => (
-                  <button
-                    onClick={openConnectModal}
-                    className="px-2 py-1 bg-[#BFFF00] text-black rounded-lg text-[11px] font-bold hover:bg-[#d0ff66] cursor-pointer"
-                  >
-                    Connect
-                  </button>
+        {/* Wallet Connection & Whitelist Verification */}
+        {(() => {
+          const CANONICAL_DEPLOYER = '0x441dbf8076d0b143EC17199baE94Daa884161454';
+          const isWhitelistedDeployer =
+            isConnected && address && address.toLowerCase() === CANONICAL_DEPLOYER.toLowerCase();
+          return (
+            <div
+              className={`p-3.5 rounded-xl border-2 transition-all ${
+                !isConnected
+                  ? 'bg-rose-950/20 border-rose-500/30 text-rose-300'
+                  : isWhitelistedDeployer
+                    ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                    : 'bg-amber-950/20 border-amber-500/30 text-amber-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Signer Wallet
+                </span>
+                {!isConnected ? (
+                  <XCircle className="w-4 h-4 text-rose-400" />
+                ) : isWhitelistedDeployer ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
                 )}
-              </ConnectButton.Custom>
-            )}
-          </div>
-        </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="font-mono text-xs truncate max-w-[150px]">
+                  {isConnected && address ? address : 'Not Connected'}
+                </span>
+                {!isConnected ? (
+                  <ConnectButton.Custom>
+                    {({ openConnectModal }) => (
+                      <button
+                        onClick={openConnectModal}
+                        className="px-2 py-1 bg-[#BFFF00] text-black rounded-lg text-[11px] font-bold hover:bg-[#d0ff66] cursor-pointer"
+                      >
+                        Connect Wallet
+                      </button>
+                    )}
+                  </ConnectButton.Custom>
+                ) : (
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                      isWhitelistedDeployer
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    }`}
+                  >
+                    {isWhitelistedDeployer ? 'Wallet Verified' : 'Wrong Wallet'}
+                  </span>
+                )}
+              </div>
+              {isConnected && !isWhitelistedDeployer && (
+                <p className="text-[10px] text-amber-400 font-mono mt-1">
+                  Required: {CANONICAL_DEPLOYER.slice(0, 6)}...{CANONICAL_DEPLOYER.slice(-4)}
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Network Verification */}
         <div

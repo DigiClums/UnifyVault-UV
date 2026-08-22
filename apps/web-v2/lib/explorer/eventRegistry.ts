@@ -81,7 +81,7 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> 
   '0x036cbd53842c5426634e7929541ec2318f3dcf7e': { symbol: 'USDC', decimals: 6 },
   '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29': { symbol: 'cbBTC', decimals: 8 },
   '0xd116ab1c943cf15904ec4c8dd701086f175fa323': { symbol: 'WETH', decimals: 18 },
-  '0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde': { symbol: 'UVBE', decimals: 18 },
+  '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c': { symbol: 'UVBE', decimals: 18 },
 };
 
 export function getTokenSymbol(addrOrSymbol?: string): string {

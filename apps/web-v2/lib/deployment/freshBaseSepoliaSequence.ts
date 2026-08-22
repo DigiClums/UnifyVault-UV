@@ -65,6 +65,10 @@ export const ACCESS_ROLES = {
     '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
   CONTROLLER_ROLE:
     '0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357' as `0x${string}`,
+  GOVERNANCE_ROLE:
+    '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1' as `0x${string}`,
+  GUARDIAN_ROLE:
+    '0x55435dd261a4b9b3364963f7738a7a662ad9c84396d64be3365284bb7f0a5041' as `0x${string}`,
 };
 
 function getRequiredAddress(
@@ -1229,6 +1233,50 @@ export const FRESH_BASE_SEPOLIA_DEPLOYMENT_STEPS: DeploymentStepDefinition[] = [
       abi: DEPLOYMENT_ARTIFACTS.UVBEV2.abi,
       functionName: 'revokeRole',
       args: [ACCESS_ROLES.CONTROLLER_ROLE, ctx.deployerAddress],
+    }),
+  },
+  // =========================================================================
+  // PHASE 8: Marketplace Deployment & Configuration (Steps 54 - 55)
+  // =========================================================================
+  {
+    stepNumber: 54,
+    id: 'deploy_marketplace',
+    title: 'Deploy Marketplace',
+    phaseNumber: 8,
+    phaseName: 'Marketplace Deployment',
+    category: 'marketplace',
+    contractName: 'Marketplace',
+    type: 'DEPLOY',
+    functionName: 'constructor',
+    description:
+      'Deploys the non-custodial P2P Marketplace order book connected to fresh P2PEscrowV2 with caller as admin & governance.',
+    expectedGasLimit: 3_000_000n,
+    getExecutionData: (ctx) => ({
+      type: 'DEPLOY',
+      abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+      bytecode: DEPLOYMENT_ARTIFACTS.Marketplace.bytecode,
+      args: [getRequiredAddress(ctx.deployedContracts, 'P2PEscrowV2')],
+    }),
+  },
+  {
+    stepNumber: 55,
+    id: 'set_marketplace_uvbe_token',
+    title: 'Configure UVBE Token on Marketplace',
+    phaseNumber: 8,
+    phaseName: 'Marketplace Deployment',
+    category: 'marketplace',
+    contractName: 'Marketplace',
+    type: 'CALL',
+    functionName: 'setUvbeToken',
+    description:
+      'Wires canonical fresh UVBEV2 token to Marketplace for strict non-custodial asset validation.',
+    expectedGasLimit: 100_000n,
+    getExecutionData: (ctx) => ({
+      type: 'CALL',
+      targetAddress: getRequiredAddress(ctx.deployedContracts, 'Marketplace'),
+      abi: DEPLOYMENT_ARTIFACTS.Marketplace.abi,
+      functionName: 'setUvbeToken',
+      args: [getRequiredAddress(ctx.deployedContracts, 'UVBEV2')],
     }),
   },
 ];

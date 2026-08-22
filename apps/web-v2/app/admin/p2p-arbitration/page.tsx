@@ -31,6 +31,10 @@ import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
+  EvidenceInvestigationConsole,
+  type VerificationConclusion,
+} from '../../../components/p2p/EvidenceInvestigationConsole';
+import {
   Gavel,
   ShieldCheck,
   ShieldAlert,
@@ -102,6 +106,34 @@ export default function AdminP2PArbitrationPage() {
 
   // Resolution confirmation modal state
   const [resolutionModalOutcome, setResolutionModalOutcome] = useState<DisputeOutcome | null>(null);
+  const [verificationConclusion, setVerificationConclusion] =
+    useState<VerificationConclusion>('INSUFFICIENT_EVIDENCE');
+  const [investigationNotes, setInvestigationNotes] = useState<string>('');
+  const [isSavingAudit, setIsSavingAudit] = useState<boolean>(false);
+
+  const handleSaveAuditNote = async () => {
+    if (!selectedTradeId || !connectedAddress || !investigationNotes.trim()) return;
+    try {
+      setIsSavingAudit(true);
+      await fetch('/api/p2p/dispute-chat/admin-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: Number(selectedTradeId),
+          userAddress: connectedAddress,
+          timestamp: Date.now(),
+          action: 'REVIEW_EVIDENCE',
+          reason: `Investigation Conclusion: ${verificationConclusion}`,
+          resolutionNotes: investigationNotes,
+        }),
+      });
+      alert('Investigation note saved to server audit log.');
+    } catch (err) {
+      console.error('Error saving audit note:', err);
+    } finally {
+      setIsSavingAudit(false);
+    }
+  };
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -354,16 +386,69 @@ export default function AdminP2PArbitrationPage() {
     }
   }, [isTxSuccess, refetchEscrowMeta, refetchRoles, refetchSelectedTrade, fetchTrades]);
 
-  // Execute Dispute Resolution
-  const handleResolveDispute = (outcome: DisputeOutcome) => {
-    if (!selectedTradeId || !escrowAddress || !connectedAddress || !isAuthorizedArbitrator) return;
+  // Execute Dispute Resolution with Safety Gate & Pre-Check
+  const handleResolveDispute = async (outcome: DisputeOutcome) => {
+    if (
+      !selectedTradeId ||
+      !escrowAddress ||
+      !connectedAddress ||
+      !isAuthorizedArbitrator ||
+      !publicClient
+    )
+      return;
 
-    writeContract({
-      address: escrowAddress,
-      abi: P2P_ESCROW_ABI,
-      functionName: 'resolveDispute',
-      args: [selectedTradeId, outcome],
-    });
+    if (verificationConclusion === 'INSUFFICIENT_EVIDENCE') {
+      alert(
+        'Safety Gate Blocked: Cannot execute ruling while verification conclusion is INSUFFICIENT EVIDENCE.',
+      );
+      return;
+    }
+
+    if (
+      outcome === DisputeOutcome.RELEASE_TO_BUYER &&
+      verificationConclusion !== 'PAYMENT_VERIFIED'
+    ) {
+      alert('Safety Gate Blocked: Release to Buyer requires PAYMENT VERIFIED conclusion.');
+      return;
+    }
+
+    if (
+      outcome === DisputeOutcome.REFUND_TO_SELLER &&
+      verificationConclusion !== 'PAYMENT_NOT_VERIFIED'
+    ) {
+      alert('Safety Gate Blocked: Refund to Seller requires PAYMENT NOT VERIFIED conclusion.');
+      return;
+    }
+
+    try {
+      // Re-read trade state on-chain immediately before transaction to prevent race conditions
+      const latestTrade = (await publicClient.readContract({
+        address: escrowAddress,
+        abi: P2P_ESCROW_ABI,
+        functionName: 'getTrade',
+        args: [selectedTradeId],
+      })) as EscrowTrade;
+
+      if (latestTrade.state !== TradeState.DISPUTED) {
+        alert(
+          `This dispute has already been resolved or changed state (Current: ${STATE_LABELS[latestTrade.state]}). Refreshing queue...`,
+        );
+        refetchSelectedTrade();
+        fetchTrades();
+        setResolutionModalOutcome(null);
+        return;
+      }
+
+      writeContract({
+        address: escrowAddress,
+        abi: P2P_ESCROW_ABI,
+        functionName: 'resolveDispute',
+        args: [selectedTradeId, outcome],
+      });
+    } catch (err: any) {
+      console.error('[handleResolveDispute Precheck Error]:', err);
+      alert(`Pre-flight check failed: ${err?.message || 'Error reading latest trade state'}`);
+    }
   };
 
   // Execute Escrow Configuration
@@ -821,141 +906,127 @@ export default function AdminP2PArbitrationPage() {
                   </div>
                 </div>
 
-                {/* 14 Solidity Fields Visualized */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* Compact Trade Overview Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
                   {/* Buyer */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>Buyer Address</span>
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
+                    <div className="flex justify-between items-center text-slate-400 text-[10px]">
+                      <span>Buyer</span>
                       <button
                         onClick={() => copyToClipboard(selectedTrade.buyer, 'buyer')}
-                        className="text-[10px] text-purple-400 hover:text-purple-300 flex items-center space-x-0.5 font-mono"
+                        className="text-purple-400 hover:text-purple-300 flex items-center gap-0.5"
                       >
                         {copiedKey === 'buyer' ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
+                          <Check className="w-2.5 h-2.5 text-emerald-400" />
                         ) : (
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-2.5 h-2.5" />
                         )}
-                        <span>Copy</span>
                       </button>
                     </div>
                     <div
-                      className="font-mono text-slate-200 font-semibold truncate"
+                      className="text-slate-200 font-bold truncate text-[11px] mt-0.5"
                       title={selectedTrade.buyer}
                     >
-                      {selectedTrade.buyer}
+                      {selectedTrade.buyer.slice(0, 6)}...{selectedTrade.buyer.slice(-4)}
                     </div>
-                    {buyerProfile && (
-                      <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex justify-between">
-                        <span>Total Trades: {buyerProfile.totalTradesAsBuyer}</span>
-                        <span>Ratings: {buyerProfile.buyerStats.ratingsCount}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Seller */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>Seller Address</span>
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
+                    <div className="flex justify-between items-center text-slate-400 text-[10px]">
+                      <span>Seller</span>
                       <button
                         onClick={() => copyToClipboard(selectedTrade.seller, 'seller')}
-                        className="text-[10px] text-purple-400 hover:text-purple-300 flex items-center space-x-0.5 font-mono"
+                        className="text-purple-400 hover:text-purple-300 flex items-center gap-0.5"
                       >
                         {copiedKey === 'seller' ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
+                          <Check className="w-2.5 h-2.5 text-emerald-400" />
                         ) : (
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-2.5 h-2.5" />
                         )}
-                        <span>Copy</span>
                       </button>
                     </div>
                     <div
-                      className="font-mono text-slate-200 font-semibold truncate"
+                      className="text-slate-200 font-bold truncate text-[11px] mt-0.5"
                       title={selectedTrade.seller}
                     >
-                      {selectedTrade.seller}
+                      {selectedTrade.seller.slice(0, 6)}...{selectedTrade.seller.slice(-4)}
                     </div>
-                    {sellerProfile && (
-                      <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex justify-between">
-                        <span>Total Trades: {sellerProfile.totalTradesAsSeller}</span>
-                        <span>Ratings: {sellerProfile.sellerStats.ratingsCount}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Fiat Settlement */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
-                    <span className="text-slate-400 block">Off-Chain Fiat Settlement</span>
-                    <span className="font-mono text-sm font-bold text-emerald-400">
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
+                    <span className="text-slate-400 block text-[10px]">Fiat Settlement</span>
+                    <span className="text-emerald-400 font-bold text-[11px] block mt-0.5">
                       {selectedTrade.fiatAmount > 0n
                         ? `${selectedTrade.fiatAmount.toString()} ${decodeCurrency(selectedTrade.fiatCurrency)}`
-                        : 'Not Specified'}
+                        : 'Off-Chain'}
                     </span>
                   </div>
 
                   {/* Dispute Initiator */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
-                    <span className="text-slate-400 block">Dispute Initiator</span>
-                    <span className="font-mono text-slate-200 font-semibold truncate block">
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
+                    <span className="text-slate-400 block text-[10px]">Dispute Raised By</span>
+                    <span className="text-amber-300 font-bold text-[11px] truncate block mt-0.5">
                       {selectedTrade.disputeInitiator ===
                       '0x0000000000000000000000000000000000000000'
                         ? 'None'
                         : selectedTrade.disputeInitiator.toLowerCase() ===
                             selectedTrade.buyer.toLowerCase()
-                          ? `Buyer (${selectedTrade.buyer.slice(0, 6)}...${selectedTrade.buyer.slice(-4)})`
-                          : `Seller (${selectedTrade.seller.slice(0, 6)}...${selectedTrade.seller.slice(-4)})`}
+                          ? 'Buyer'
+                          : 'Seller'}
                     </span>
                   </div>
+                </div>
 
-                  {/* Payment Reference (UTR / Tx ID) */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1 sm:col-span-2">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>Payment Reference Hash (UTR / Transaction Reference)</span>
+                {/* Hashes Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400">Payment Reference (UTR)</span>
                       <span
-                        className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${isReferenceUsed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}
+                        className={`font-bold px-1 rounded ${isReferenceUsed ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'}`}
                       >
-                        {isReferenceUsed ? 'REPLAY PROTECTED (USED)' : 'UNRECORDED'}
+                        {isReferenceUsed ? 'REPLAY PROTECTED' : 'UNRECORDED'}
                       </span>
                     </div>
-                    <div className="font-mono text-xs text-purple-300 break-all bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <div
+                      className="text-purple-300 text-[11px] truncate"
+                      title={selectedTrade.paymentReference}
+                    >
                       {selectedTrade.paymentReference}
                     </div>
                   </div>
 
-                  {/* Evidence Hash */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1 sm:col-span-2">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>Evidence Hash (Receipt / IPFS Hash)</span>
+                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400">Evidence Commitment (Hash)</span>
                       <span
-                        className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${isEvidenceUsed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}
+                        className={`font-bold px-1 rounded ${isEvidenceUsed ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'}`}
                       >
-                        {isEvidenceUsed ? 'VERIFIED ON-CHAIN' : 'UNRECORDED'}
+                        {isEvidenceUsed ? '✓ COMMITTED ON-CHAIN' : 'UNRECORDED'}
                       </span>
                     </div>
-                    <div className="font-mono text-xs text-purple-300 break-all bg-slate-950 p-2 rounded-lg border border-slate-800">
+                    <div
+                      className="text-purple-300 text-[11px] truncate"
+                      title={selectedTrade.evidenceHash}
+                    >
                       {selectedTrade.evidenceHash}
                     </div>
                   </div>
-
-                  {/* Timestamps */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
-                    <span className="text-slate-400 block">Funding Timestamp</span>
-                    <span className="font-mono text-slate-200">
-                      {selectedTrade.fundingTimestamp > 0n
-                        ? new Date(Number(selectedTrade.fundingTimestamp) * 1000).toLocaleString()
-                        : 'Unfunded'}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-border-subtle space-y-1">
-                    <span className="text-slate-400 block">Payment Claim Timestamp</span>
-                    <span className="font-mono text-slate-200">
-                      {selectedTrade.paymentTimestamp > 0n
-                        ? new Date(Number(selectedTrade.paymentTimestamp) * 1000).toLocaleString()
-                        : 'Pending'}
-                    </span>
-                  </div>
                 </div>
+
+                {/* Evidence Investigation Console */}
+                <EvidenceInvestigationConsole
+                  selectedTrade={selectedTrade}
+                  isEvidenceHashUsed={isEvidenceUsed}
+                  isReferenceUsed={isReferenceUsed}
+                  onConclusionChange={setVerificationConclusion}
+                  investigationNotes={investigationNotes}
+                  onNotesChange={setInvestigationNotes}
+                  onSaveAuditNote={handleSaveAuditNote}
+                  isSavingAudit={isSavingAudit}
+                />
 
                 {/* --- Section C: Arbitration Ruling Actions --- */}
                 <div className="pt-4 border-t border-border-subtle/50 space-y-4">
@@ -990,35 +1061,65 @@ export default function AdminP2PArbitrationPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-xs text-slate-400">
-                        Select a resolution outcome below. Rulings execute atomically on-chain via{' '}
-                        <code className="text-purple-300 font-mono">
-                          P2PEscrowV2.resolveDispute(tradeId, outcome)
-                        </code>
-                        .
-                      </p>
+                      {verificationConclusion === 'INSUFFICIENT_EVIDENCE' ? (
+                        <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-300 text-xs flex items-start space-x-3">
+                          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <span className="font-bold block">
+                              INSUFFICIENT EVIDENCE — RULING LOCKED
+                            </span>
+                            <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                              Financial settlements are locked. You must complete the investigation
+                              above and select an explicit conclusion (
+                              <strong>PAYMENT VERIFIED</strong> or{' '}
+                              <strong>PAYMENT NOT VERIFIED</strong>) before executing a binding
+                              financial ruling.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* 1. Release to Buyer */}
                         <button
                           type="button"
                           onClick={() => setResolutionModalOutcome(DisputeOutcome.RELEASE_TO_BUYER)}
-                          disabled={isWritePending || isTxWaiting}
-                          className="p-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold text-white text-xs shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all active:scale-[0.99]"
+                          disabled={
+                            isWritePending ||
+                            isTxWaiting ||
+                            verificationConclusion !== 'PAYMENT_VERIFIED'
+                          }
+                          className={`p-4 rounded-xl font-bold text-white text-xs shadow-glow flex items-center justify-center space-x-2 transition-all ${
+                            verificationConclusion === 'PAYMENT_VERIFIED' &&
+                            !isWritePending &&
+                            !isTxWaiting
+                              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 cursor-pointer active:scale-[0.99]'
+                              : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50'
+                          }`}
                         >
                           <UserCheck className="w-4 h-4 shrink-0" />
-                          <span>RELEASE TO BUYER</span>
+                          <span>RELEASE TO BUYER (PAYMENT VERIFIED)</span>
                         </button>
 
                         {/* 2. Refund to Seller */}
                         <button
                           type="button"
                           onClick={() => setResolutionModalOutcome(DisputeOutcome.REFUND_TO_SELLER)}
-                          disabled={isWritePending || isTxWaiting}
-                          className="p-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 font-bold text-white text-xs shadow-glow disabled:opacity-50 flex items-center justify-center space-x-2 transition-all active:scale-[0.99]"
+                          disabled={
+                            isWritePending ||
+                            isTxWaiting ||
+                            verificationConclusion !== 'PAYMENT_NOT_VERIFIED'
+                          }
+                          className={`p-4 rounded-xl font-bold text-white text-xs shadow-glow flex items-center justify-center space-x-2 transition-all ${
+                            verificationConclusion === 'PAYMENT_NOT_VERIFIED' &&
+                            !isWritePending &&
+                            !isTxWaiting
+                              ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 cursor-pointer active:scale-[0.99]'
+                              : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50'
+                          }`}
                         >
                           <Ban className="w-4 h-4 shrink-0" />
-                          <span>REFUND TO SELLER</span>
+                          <span>REFUND TO SELLER (PAYMENT NOT VERIFIED)</span>
                         </button>
                       </div>
                     </div>
@@ -1213,6 +1314,12 @@ export default function AdminP2PArbitrationPage() {
             </div>
 
             <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle text-xs space-y-2 font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Investigation Conclusion:</span>
+                <span className="font-bold text-purple-300 font-mono">
+                  {verificationConclusion}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Ruling Decision:</span>
                 <span

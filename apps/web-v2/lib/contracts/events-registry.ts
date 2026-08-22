@@ -232,7 +232,7 @@ export function buildAddressToABIMap(
     ['0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29', 'cbBTC'],
     ['0x4200000000000000000000000000000000000006', 'WETH'],
     ['0xd116ab1c943cf15904ec4c8dd701086f175fa323', 'WETH'],
-    ['0x006c5DF13C716E5224b33956651C4356BB90DEc0', 'UVBE'],
+    ['0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c', 'UVBE'],
   ];
   for (const [addr, name] of tokens) {
     add(addr, name, ERC20_EVENT_ABIS as Abi);
