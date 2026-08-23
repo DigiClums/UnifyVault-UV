@@ -9,10 +9,11 @@ import {
 } from 'wagmi';
 import { isAddress } from 'viem';
 import {
-  DEPLOYED_ACCESS_CONTROL_CONTRACTS,
+  getDeployedAccessControlContracts,
   FULL_PROTOCOL_DIRECTORY_ABI,
   ContractRoleCatalogEntry,
 } from '../../lib/contracts/governance';
+import { getDefaultChainId } from '../../constants';
 import { decodeTransactionError } from '../../lib/utils/errorDecoder';
 import { GovernanceConfirmationModal } from './GovernanceConfirmationModal';
 import {
@@ -34,7 +35,9 @@ export interface RBACManagerConsoleProps {
 }
 
 export function RBACManagerConsole({ explorerBaseUrl, onRefresh }: RBACManagerConsoleProps) {
-  const { address: connectedAddress } = useAccount();
+  const { address: connectedAddress, chain } = useAccount();
+  const chainId = chain?.id || getDefaultChainId();
+  const deployedContracts = getDeployedAccessControlContracts(chainId);
 
   // Selected Contract & Inspected Account State
   const [selectedContractIndex, setSelectedContractIndex] = useState<number>(0);
@@ -46,8 +49,7 @@ export function RBACManagerConsole({ explorerBaseUrl, onRefresh }: RBACManagerCo
   const [modalAction, setModalAction] = useState<'grant' | 'revoke' | null>(null);
 
   const selectedContract: ContractRoleCatalogEntry =
-    DEPLOYED_ACCESS_CONTROL_CONTRACTS[selectedContractIndex] ||
-    DEPLOYED_ACCESS_CONTROL_CONTRACTS[0];
+    deployedContracts[selectedContractIndex] || deployedContracts[0];
 
   const targetInspectAddress =
     inspectedAccount && isAddress(inspectedAccount)
@@ -195,7 +197,7 @@ export function RBACManagerConsole({ explorerBaseUrl, onRefresh }: RBACManagerCo
               onChange={(e) => setSelectedContractIndex(Number(e.target.value))}
               className="w-full px-3.5 py-2.5 rounded-xl bg-card border border-border-subtle text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[44px]"
             >
-              {DEPLOYED_ACCESS_CONTROL_CONTRACTS.map((contract, idx) => (
+              {deployedContracts.map((contract, idx) => (
                 <option key={contract.address} value={idx}>
                   {contract.name} ({contract.category}) — {contract.address.slice(0, 8)}...
                 </option>

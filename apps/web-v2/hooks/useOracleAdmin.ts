@@ -6,10 +6,13 @@ import { pad, parseAbiItem, formatEther } from 'viem';
 import { ORACLE_MANAGER_ABI, CHAINLINK_ORACLE_PROVIDER_ABI } from '../lib/contracts/oracle';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
   getChainTokens,
   getDefaultChainId,
   getExplorerBaseUrl,
 } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
+import { base } from 'viem/chains';
 
 import { GOVERNANCE_ROLE_HASH, DEFAULT_ADMIN_ROLE_HASH } from '../lib/contracts/governance';
 
@@ -56,8 +59,12 @@ export function useOracleAdmin() {
   const tokens = getChainTokens(chainId);
   const explorerBaseUrl = getExplorerBaseUrl(chainId);
 
-  const oracleManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.OracleManager;
-  const chainlinkProviderAddress = DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider;
+  const directory = useProtocolDirectory();
+  const fallbackContracts =
+    chainId === base.id ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
+  const oracleManagerAddress = directory.oracle || fallbackContracts.OracleManager;
+  const chainlinkProviderAddress = fallbackContracts.ChainlinkOracleProvider;
 
   const assets = useMemo(
     () => [

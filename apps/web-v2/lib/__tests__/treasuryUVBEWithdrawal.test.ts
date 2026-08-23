@@ -8,7 +8,7 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
   const sepoliaTokens = getChainTokens(84532);
   const GOVERNANCE_ROLE_HASH = '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1';
   const AUTHORIZED_PROTOCOL_ADMIN = '0x441dbf8076d0b143EC17199baE94Daa884161454';
-  const UNAUTHORIZED_USER = '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1';
+  const UNAUTHORIZED_USER = '0x000000000000000000000000000000000000bEEF';
 
   describe('1. Canonical Contract Addresses and Constants', () => {
     it('verifies canonical UVBE token address', () => {

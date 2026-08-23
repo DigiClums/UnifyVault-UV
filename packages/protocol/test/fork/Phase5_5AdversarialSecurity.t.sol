@@ -38,7 +38,7 @@ contract Phase5_5AdversarialSecurityTest is Test {
 
   // Canonical Admin Authority
   address public constant ADMIN_441D = 0x441dbf8076d0b143EC17199baE94Daa884161454;
-  address public constant OLD_DEPLOYER = 0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1;
+  address public constant OLD_DEPLOYER = address(0x3333333333333333333333333333333333333333);
   address public constant ATTACKER = address(0xBAAD1);
   address public constant ATTACKER_2 = address(0xBAAD2);
   address public constant HONEST_USER = address(0x1111);

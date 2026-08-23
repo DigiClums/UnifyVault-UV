@@ -1,0 +1,54 @@
+{
+  "manifestVersion": 4,
+  "chainId": 8453,
+  "network": "Base Mainnet",
+  "deploymentVersion": "V2",
+  "protocolVersion": "2.0.0",
+  "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "governance": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "status": "live",
+  "lastAuditedAt": "2026-08-23",
+  "contracts": {
+    "ProtocolDirectory": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+    "UnifyVaultController": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
+    "CustodyVault": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
+    "Treasury": "0x57561F781b2f558A7445D2E93a365C03BA2c9B53",
+    "OracleManager": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
+    "StrategyManager": "0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a",
+    "PortfolioManager": "0x66182f56bd5e523c655f6890290ab519f528e83f",
+    "UVBEToken": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+    "SwapAdapter": "0xaae7104a120e7c6e518a936fcbc102bcd0454b67",
+    "LiquidityManager": "0x9af86a9ac1563b7fdbf43b19335348240a8c16d3",
+    "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
+    "PerformanceManager": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
+    "FeeManager": "0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881",
+    "ChainlinkOracleProvider": "0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E",
+    "P2PEscrowV2": "0xa938aacea64be8f41c90960aff232da4df7fc329",
+    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6"
+  },
+  "tokens": {
+    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "cbBTC": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "WETH": "0x4200000000000000000000000000000000000006"
+  },
+  "externalContracts": {
+    "UniswapRouter02": "0x2626664c2603336E57B271c5C0b26F421741e481"
+  },
+  "chainlinkFeeds": {
+    "USDC_USD": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
+    "cbBTC_USD": "0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F",
+    "ETH_USD": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+  },
+  "pendingUpgrades": {
+    "SwapAdapter": {
+      "reason": "Current SwapAdapter uses immutable DEFAULT_FEE_TIER=3000. Base Mainnet USDC/WETH and USDC/cbBTC liquidity requires fee=500.",
+      "status": "PENDING_DEPLOY",
+      "forkTestPassed": true,
+      "notes": "New SwapAdapter with configurable fee tiers (default 500) tested on Base Mainnet fork. See packages/protocol/src/swap/SwapAdapter.sol"
+    }
+  },
+  "_notes": {
+    "strategyWeights": "cbBTC=6000 BPS (60%), WETH=4000 BPS (40%). getTotalAllocationBps()=10000 verified live.",
+    "securityStatus": "Admin roles confirmed on-chain for governance 0x441dbf8076d0b143EC17199baE94Daa884161454"
+  }
+}

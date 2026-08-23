@@ -88,7 +88,7 @@ contract BroadcastGaslessTransferOnly is Script {
     PackedUserOperation[] memory ops = new PackedUserOperation[](1);
     ops[0] = userOp;
 
-    address payable beneficiary = payable(0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1);
+    address payable beneficiary = payable(msg.sender);
     vm.startBroadcast();
     entryPoint.handleOps(ops, beneficiary);
     vm.stopBroadcast();

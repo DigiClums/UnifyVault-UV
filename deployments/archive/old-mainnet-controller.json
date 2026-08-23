@@ -1,0 +1,10 @@
+{
+  "_archiveNote": "This file is a historical record. DO NOT use these addresses in production.",
+  "archivedAt": "2026-08-23",
+  "reason": "Old Controller failed due to immutable SwapAdapter with DEFAULT_FEE_TIER=3000. Replaced by 0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366.",
+  "staleAddresses": {
+    "OldController": "0x0721465b01b586b7aadf957a4a884ace46cfbec9",
+    "OldDirectory_dotenv_example": "0x7EF5D93f83995228efFc63dbe513367a719f0633",
+    "OldSepoliaStrategyManager": "0x73c894DEFBBd69F09134D53a73A0F6bfaeF5A7Bb"
+  }
+}

@@ -20,8 +20,8 @@ contract ExecuteStake50FlowTest is Test {
   address public constant UVBE = 0x006c5DF13C716E5224b33956651C4356BB90DEc0;
   address public constant STAKING_VAULT = 0xcbb989E0Cf69A1919ED06DD2Be88b7310E325b1D;
 
-  address public user = address(0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1);
-  address public referrer = address(0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1);
+  address public user = address(0x1111111111111111111111111111111111111111);
+  address public referrer = address(0x2222222222222222222222222222222222222222);
 
   uint256 public constant DEPOSIT_USDC_AMOUNT = 60_000_000; // 60 USDC (sufficient to mint >= 50 UVBE at current NAV)
   uint256 public constant MIN_UVBE_SHARES = 50_000_000_000_000_000_000; // 50 UVBE

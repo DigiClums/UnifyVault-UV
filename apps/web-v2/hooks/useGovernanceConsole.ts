@@ -3,10 +3,13 @@
 import { useAccount, useReadContracts, usePublicClient } from 'wagmi';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
   getDefaultChainId,
   getExplorerBaseUrl,
   getProtocolDirectoryAddress,
 } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
+import { base } from 'viem/chains';
 import {
   DEFAULT_ADMIN_ROLE_HASH,
   GOVERNANCE_ROLE_HASH,
@@ -19,7 +22,7 @@ import {
   UNIFY_VAULT_TIMELOCK_ABI,
   EMERGENCY_PAUSABLE_ABI,
   DIRECTORY_MODULE_DEFINITIONS,
-  DEPLOYED_ACCESS_CONTROL_CONTRACTS,
+  getDeployedAccessControlContracts,
 } from '../lib/contracts/governance';
 
 export interface ModuleEntryState {
@@ -49,9 +52,13 @@ export function useGovernanceConsole() {
   const explorerBaseUrl = getExplorerBaseUrl(chainId);
   const publicClient = usePublicClient({ chainId });
 
+  const directory = useProtocolDirectory();
+  const fallbackContracts =
+    chainId === base.id ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
   const directoryAddress = getProtocolDirectoryAddress(chainId);
   const timelockAddress = DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultTimelock;
-  const controllerAddress = DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController;
+  const controllerAddress = directory.controller || fallbackContracts.UnifyVaultController;
 
   // 1. Directory Reads: isFrozen + getAddress for all defined modules
   const directoryCalls = [
@@ -166,7 +173,7 @@ export function useGovernanceConsole() {
     : [];
 
   // 4. Pausable modules status
-  const pausableContracts = DEPLOYED_ACCESS_CONTROL_CONTRACTS.filter((c) => c.pausable);
+  const pausableContracts = getDeployedAccessControlContracts(chainId).filter((c) => c.pausable);
   const pauseStateCalls = pausableContracts.map((c) => ({
     address: c.address,
     abi: EMERGENCY_PAUSABLE_ABI,

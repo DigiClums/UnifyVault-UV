@@ -3,8 +3,10 @@ import { baseSepolia } from 'viem/chains';
 
 const RPC_URL =
   process.env.BASE_SEPOLIA_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
-const TARGET_96DA: Address = '0xd905920c91853039060246Ed5724AA72B91a96DA';
-const DEPLOYER_OLD_ADMIN: Address = '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1';
+const TARGET_96DA: Address = (process.env.ADMIN_ADDRESS ||
+  '0x0000000000000000000000000000000000000000') as Address;
+const DEPLOYER_OLD_ADMIN: Address = (process.env.OLD_DEPLOYER_ADDRESS ||
+  '0x0000000000000000000000000000000000000000') as Address;
 const TIMELOCK_ADDRESS: Address = '0x9094145Cd2AEA2f309eDf14237444a07edF98d02';
 
 const client = createPublicClient({
@@ -118,7 +120,7 @@ async function main() {
 
   // Inspect all contracts for any role held by oldAdmin
   console.log(
-    '\n--- 2. Full Scan: Checking if Old Admin (0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1) holds ANY roles ---',
+    `\n--- 2. Full Scan: Checking if Old Admin (${DEPLOYER_OLD_ADMIN}) holds ANY roles ---`,
   );
   const { ALL_CONTRACTS } = require('./comprehensive_audit');
   for (const c of ALL_CONTRACTS) {

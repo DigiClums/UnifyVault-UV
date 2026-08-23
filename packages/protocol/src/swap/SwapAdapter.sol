@@ -7,13 +7,16 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '../interfaces/ISwapAdapter.sol';
 import '../libraries/AccessRoles.sol';
 
-interface IUniswapV3Router {
+interface IUniswapV3Factory {
+  function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
+}
+
+interface IUniswapV3Router02 {
   struct ExactInputSingleParams {
     address tokenIn;
     address tokenOut;
     uint24 fee;
     address recipient;
-    uint256 deadline;
     uint256 amountIn;
     uint256 amountOutMinimum;
     uint160 sqrtPriceLimitX96;
@@ -22,7 +25,6 @@ interface IUniswapV3Router {
   struct ExactInputParams {
     bytes path;
     address recipient;
-    uint256 deadline;
     uint256 amountIn;
     uint256 amountOutMinimum;
   }
@@ -32,7 +34,6 @@ interface IUniswapV3Router {
     address tokenOut;
     uint24 fee;
     address recipient;
-    uint256 deadline;
     uint256 amountOut;
     uint256 amountInMaximum;
     uint160 sqrtPriceLimitX96;
@@ -41,7 +42,6 @@ interface IUniswapV3Router {
   struct ExactOutputParams {
     bytes path;
     address recipient;
-    uint256 deadline;
     uint256 amountOut;
     uint256 amountInMaximum;
   }
@@ -61,25 +61,39 @@ interface IUniswapV3Router {
   function exactOutput(
     ExactOutputParams calldata params
   ) external payable returns (uint256 amountIn);
+
+  function factory() external view returns (address);
 }
+
+interface IUniswapV3Router is IUniswapV3Router02 {}
 
 /**
  * @title SwapAdapter
- * @notice DEX router execution layer for UnifyVault V2
- * @dev Stateless swap executor interfacing with approved DEX routers (e.g. Uniswap V3).
+ * @notice DEX router execution layer for UnifyVault V2 supporting Uniswap V3 SwapRouter02
+ * @dev Stateless swap executor interfacing with approved DEX routers (e.g. Uniswap V3 SwapRouter02).
+ * Supports configurable token-pair fee tiers (e.g. 500 for USDC/WETH & USDC/cbBTC on Base Mainnet).
  * Contains NO portfolio logic, NO NAV calculation, and NO token custody.
  */
 contract SwapAdapter is AccessControl, ISwapAdapter {
   using SafeERC20 for IERC20;
 
-  uint24 public constant DEFAULT_FEE_TIER = 3000; // 0.3% default pool fee
+  uint24 public constant FEE_LOWEST = 100; // 0.01%
+  uint24 public constant FEE_LOW = 500; // 0.05%
+  uint24 public constant FEE_MEDIUM = 3000; // 0.3%
+  uint24 public constant FEE_HIGH = 10000; // 1%
 
-  address public override router;
+  address public immutable override router;
+  address public immutable factory;
+
+  uint24 public defaultFeeTier;
+
+  // Pair specific pool fee tier mapping: tokenA => tokenB => feeTier (symmetric)
+  mapping(address => mapping(address => uint24)) private _poolFees;
 
   /**
-   * @notice SwapAdapter constructor initializing access control and router address
+   * @notice SwapAdapter constructor initializing access control, immutable router address and default fee tier (500 by default)
    * @param admin Address granted DEFAULT_ADMIN_ROLE and GOVERNANCE_ROLE
-   * @param initialRouter Address of target DEX Router (e.g. Uniswap V3 SwapRouter)
+   * @param initialRouter Address of target DEX Router (Uniswap V3 SwapRouter02)
    */
   constructor(address admin, address initialRouter) {
     if (admin == address(0)) revert ZeroAddressDetected();
@@ -89,28 +103,67 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     _grantRole(AccessRoles.GOVERNANCE_ROLE, admin);
 
     router = initialRouter;
+    defaultFeeTier = FEE_LOW; // 500 (0.05%) default
+
+    address f = address(0);
+    try IUniswapV3Router02(initialRouter).factory() returns (address routerFactory) {
+      f = routerFactory;
+    } catch {}
+    factory = f;
   }
 
   // --- External Governance Functions ---
 
   /**
-   * @notice Updates the target DEX router address
-   * @param newRouter Address of the new approved DEX router
+   * @notice Configures the specific fee tier for a pair of tokens
+   * @param tokenA First token address
+   * @param tokenB Second token address
+   * @param fee Uniswap V3 pool fee tier (100, 500, 3000, or 10000)
    */
-  function setRouter(address newRouter) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
-    if (newRouter == address(0)) revert InvalidRouter();
-    address oldRouter = router;
-    router = newRouter;
-    emit RouterUpdated(oldRouter, newRouter, msg.sender);
+  function setPoolFee(
+    address tokenA,
+    address tokenB,
+    uint24 fee
+  ) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    if (tokenA == address(0) || tokenB == address(0)) revert ZeroAddressDetected();
+    if (tokenA == tokenB) revert ZeroAddressDetected();
+    if (!_isValidFeeTier(fee)) revert InvalidFeeTier();
+
+    if (factory != address(0)) {
+      address pool = IUniswapV3Factory(factory).getPool(tokenA, tokenB, fee);
+      if (pool == address(0)) revert PoolDoesNotExist(tokenA, tokenB, fee);
+    }
+
+    uint24 oldFee = _poolFees[tokenA][tokenB];
+    _poolFees[tokenA][tokenB] = fee;
+    _poolFees[tokenB][tokenA] = fee;
+
+    emit PoolFeeUpdated(tokenA, tokenB, oldFee, fee, msg.sender);
+  }
+
+  /**
+   * @notice Updates the default fee tier for pairs without specific configuration
+   * @param newDefaultFee Default fee tier (100, 500, 3000, 10000)
+   */
+  function setDefaultFeeTier(uint24 newDefaultFee) external onlyRole(AccessRoles.GOVERNANCE_ROLE) {
+    if (!_isValidFeeTier(newDefaultFee)) revert InvalidFeeTier();
+    uint24 oldFee = defaultFeeTier;
+    defaultFeeTier = newDefaultFee;
+    emit DefaultFeeTierUpdated(oldFee, newDefaultFee, msg.sender);
+  }
+
+  /**
+   * @notice Returns the configured fee tier for a token pair (or defaultFeeTier if unconfigured)
+   */
+  function getPoolFee(address tokenA, address tokenB) public view override returns (uint24 fee) {
+    uint24 configured = _poolFees[tokenA][tokenB];
+    return configured > 0 ? configured : defaultFeeTier;
   }
 
   // --- External Execution Functions ---
 
   /**
    * @notice Executes an exact input token swap through the configured DEX router
-   * @param params ExactInputParams struct defining tokenIn, tokenOut, fee, recipient, deadline,
-   * amountIn, minAmountOut, and path
-   * @return amountOut Actual output amount received from DEX router
    */
   function swapExactInput(
     ExactInputParams calldata params
@@ -120,9 +173,6 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
 
   /**
    * @notice Executes an exact output token swap through the configured DEX router
-   * @param params ExactOutputParams struct defining tokenIn, tokenOut, fee, recipient, deadline,
-   * amountOut, maxAmountIn, and path
-   * @return amountIn Actual input amount spent from caller
    */
   function swapExactOutput(
     ExactOutputParams calldata params
@@ -131,7 +181,7 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
   }
 
   /**
-   * @notice Simplified single-hop swap convenience function
+   * @notice Simplified single-hop swap convenience function used by UnifyVaultController
    */
   function swap(
     address tokenIn,
@@ -140,10 +190,11 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     uint256 minAmountOut,
     address recipient
   ) external override returns (uint256 amountOut) {
+    uint24 fee = getPoolFee(tokenIn, tokenOut);
     ExactInputParams memory params = ExactInputParams({
       tokenIn: tokenIn,
       tokenOut: tokenOut,
-      fee: DEFAULT_FEE_TIER,
+      fee: fee,
       recipient: recipient,
       deadline: block.timestamp + 1800,
       amountIn: amountIn,
@@ -162,10 +213,11 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     address recipient,
     uint256 deadline
   ) external override returns (uint256 amountOut) {
+    uint24 fee = getPoolFee(tokenIn, tokenOut);
     ExactInputParams memory params = ExactInputParams({
       tokenIn: tokenIn,
       tokenOut: tokenOut,
-      fee: DEFAULT_FEE_TIER,
+      fee: fee,
       recipient: recipient,
       deadline: deadline == 0 ? block.timestamp + 1800 : deadline,
       amountIn: amountIn,
@@ -176,22 +228,15 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     return _executeSwapExactInput(params, msg.sender);
   }
 
-  /**
-   * @notice Returns estimated output amount for single-hop swap
-   */
   function getExpectedOutput(
     address tokenIn,
     address tokenOut,
     uint256 amountIn
   ) public pure override returns (uint256 amountOut) {
     if (tokenIn == address(0) || tokenOut == address(0) || amountIn == 0) return 0;
-    // Basic fallback simulation estimate
     return amountIn;
   }
 
-  /**
-   * @notice Alias for getExpectedOutput to support unified ISwapAdapter quote interface
-   */
   function quote(
     address tokenIn,
     address tokenOut,
@@ -200,9 +245,6 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     return getExpectedOutput(tokenIn, tokenOut, amountIn);
   }
 
-  /**
-   * @notice Returns the optimal route and expected output for a swap
-   */
   function bestRoute(
     address tokenIn,
     address tokenOut,
@@ -216,9 +258,6 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     return (router, getExpectedOutput(tokenIn, tokenOut, amountIn), '');
   }
 
-  /**
-   * @notice Returns array of currently supported DEX router addresses
-   */
   function supportedRouters() external view override returns (address[] memory routers) {
     routers = new address[](1);
     routers[0] = router;
@@ -251,24 +290,22 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     uint256 recipientBalBefore = IERC20(params.tokenOut).balanceOf(recipient);
 
     if (params.path.length > 0) {
-      amountOut = IUniswapV3Router(router).exactInput(
-        IUniswapV3Router.ExactInputParams({
+      amountOut = IUniswapV3Router02(router).exactInput(
+        IUniswapV3Router02.ExactInputParams({
           path: params.path,
           recipient: recipient,
-          deadline: params.deadline,
           amountIn: params.amountIn,
           amountOutMinimum: params.minAmountOut
         })
       );
     } else {
-      uint24 fee = params.fee == 0 ? DEFAULT_FEE_TIER : params.fee;
-      amountOut = IUniswapV3Router(router).exactInputSingle(
-        IUniswapV3Router.ExactInputSingleParams({
+      uint24 fee = params.fee == 0 ? getPoolFee(params.tokenIn, params.tokenOut) : params.fee;
+      amountOut = IUniswapV3Router02(router).exactInputSingle(
+        IUniswapV3Router02.ExactInputSingleParams({
           tokenIn: params.tokenIn,
           tokenOut: params.tokenOut,
           fee: fee,
           recipient: recipient,
-          deadline: params.deadline,
           amountIn: params.amountIn,
           amountOutMinimum: params.minAmountOut,
           sqrtPriceLimitX96: 0
@@ -318,24 +355,22 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
 
     // 3. Execute swap on router
     if (params.path.length > 0) {
-      amountIn = IUniswapV3Router(router).exactOutput(
-        IUniswapV3Router.ExactOutputParams({
+      amountIn = IUniswapV3Router02(router).exactOutput(
+        IUniswapV3Router02.ExactOutputParams({
           path: params.path,
           recipient: recipient,
-          deadline: params.deadline,
           amountOut: params.amountOut,
           amountInMaximum: params.maxAmountIn
         })
       );
     } else {
-      uint24 fee = params.fee == 0 ? DEFAULT_FEE_TIER : params.fee;
-      amountIn = IUniswapV3Router(router).exactOutputSingle(
-        IUniswapV3Router.ExactOutputSingleParams({
+      uint24 fee = params.fee == 0 ? getPoolFee(params.tokenIn, params.tokenOut) : params.fee;
+      amountIn = IUniswapV3Router02(router).exactOutputSingle(
+        IUniswapV3Router02.ExactOutputSingleParams({
           tokenIn: params.tokenIn,
           tokenOut: params.tokenOut,
           fee: fee,
           recipient: recipient,
-          deadline: params.deadline,
           amountOut: params.amountOut,
           amountInMaximum: params.maxAmountIn,
           sqrtPriceLimitX96: 0
@@ -366,5 +401,9 @@ contract SwapAdapter is AccessControl, ISwapAdapter {
     if (balance > 0 && destination != address(0)) {
       IERC20(tokenAddress).safeTransfer(destination, balance);
     }
+  }
+
+  function _isValidFeeTier(uint24 fee) internal pure returns (bool) {
+    return fee == FEE_LOWEST || fee == FEE_LOW || fee == FEE_MEDIUM || fee == FEE_HIGH;
   }
 }

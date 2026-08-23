@@ -40,7 +40,7 @@ describe('Portfolio Cost Basis Lifecycle & P2P Isolation Regression Suite', () =
     },
     {
       tradeId: 7,
-      buyer: '0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1',
+      buyer: '0x000000000000000000000000000000000000dEaD',
       seller: CANONICAL_USER,
       amount: 1000000000000000000n, // 1.0 UVBE
       fiatAmount: 10000000000n,

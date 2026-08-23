@@ -7,7 +7,11 @@ import { ActiveStepCard } from '../../components/deployment/ActiveStepCard';
 import { TransactionPipelineTable } from '../../components/deployment/TransactionPipelineTable';
 import { DeployedManifestView } from '../../components/deployment/DeployedManifestView';
 import { GenesisVerificationCard } from '../../components/deployment/GenesisVerificationCard';
-import { AdminSecurityMigrationCard } from '../../components/deployment/AdminSecurityMigrationCard';
+import {
+  AdminSecurityMigrationCard,
+  Step12StandaloneCard,
+} from '../../components/deployment/AdminSecurityMigrationCard';
+import { SwapAdapterUpgradeCard } from '../../components/deployment/SwapAdapterUpgradeCard';
 import {
   Layers,
   FileCheck2,
@@ -20,12 +24,14 @@ import {
   RefreshCw,
   RotateCcw,
   Key,
+  Rocket,
+  Sparkles,
 } from 'lucide-react';
 
 export default function DeployPage() {
   const [activeTab, setActiveTab] = useState<
-    'deploy' | 'pipeline' | 'manifest' | 'verification' | 'admin'
-  >('deploy');
+    'swapAdapter' | 'step12' | 'deploy' | 'pipeline' | 'manifest' | 'verification' | 'admin'
+  >('swapAdapter');
 
   const {
     address,
@@ -123,6 +129,30 @@ export default function DeployPage() {
           {/* Navigation Tabs */}
           <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-black dark:bg-[#151515] border-2 border-black dark:border-white/10 shrink-0 overflow-x-auto">
             <button
+              onClick={() => setActiveTab('swapAdapter')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'swapAdapter'
+                  ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>SwapAdapter Upgrade</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('step12')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'step12'
+                  ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <Rocket className="w-3.5 h-3.5 text-[#BFFF00] dark:text-black" />
+              <span>Step 12 (Controller)</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('deploy')}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'deploy'
@@ -131,7 +161,7 @@ export default function DeployPage() {
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>Active Deploy</span>
+              <span>Full Pipeline</span>
             </button>
 
             <button
@@ -195,7 +225,21 @@ export default function DeployPage() {
         chainId={chainId}
       />
 
-      {/* Tab 1: Active Deploy */}
+      {/* Tab 0: SwapAdapter Upgrade (Phase D) */}
+      {activeTab === 'swapAdapter' && (
+        <div className="space-y-6">
+          <SwapAdapterUpgradeCard chainId={chainId} />
+        </div>
+      )}
+
+      {/* Tab 0.5: Step 12 Standalone Single Deploy Setup */}
+      {activeTab === 'step12' && (
+        <div className="space-y-6">
+          <Step12StandaloneCard chainId={chainId} deployedContracts={deployedContracts} />
+        </div>
+      )}
+
+      {/* Tab 1: Full Pipeline Deploy */}
       {activeTab === 'deploy' && (
         <div className="space-y-6">
           <ActiveStepCard

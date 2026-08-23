@@ -9,7 +9,14 @@ import {
   UVBE_TOKEN_ABI,
   ERC20_ABI,
 } from '../lib/contracts';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getDefaultChainId, getExplorerBaseUrl } from '../constants';
+import {
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
+  getDefaultChainId,
+  getExplorerBaseUrl,
+} from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
+import { base } from 'viem/chains';
 
 export interface AccountingPerformanceStruct {
   currentValueUSD: bigint;
@@ -91,6 +98,10 @@ export function useUserAccounting(initialAddress?: string): UserAccountingState 
   const explorerBaseUrl = getExplorerBaseUrl(activeChainId);
   const publicClient = usePublicClient({ chainId: activeChainId });
 
+  const directory = useProtocolDirectory();
+  const fallbackContracts =
+    activeChainId === base.id ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
   // Target address parsing and normalization
   const formattedAddress = useMemo<`0x${string}` | null>(() => {
     const raw = (initialAddress || connectedAddress || '').trim();
@@ -102,9 +113,11 @@ export function useUserAccounting(initialAddress?: string): UserAccountingState 
 
   const isValidAddress = Boolean(formattedAddress);
 
-  const costBasisManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager;
-  const performanceManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager;
-  const tokenAddress = DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken;
+  const costBasisManagerAddress = directory.costBasisManager || fallbackContracts.CostBasisManager;
+  const performanceManagerAddress =
+    directory.performanceManager || fallbackContracts.PerformanceManager;
+  const tokenAddress =
+    directory.token || fallbackContracts.UVBEToken || fallbackContracts.UVBTCETHToken;
 
   // Batch read contracts
   const {

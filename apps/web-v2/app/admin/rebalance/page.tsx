@@ -85,8 +85,14 @@ export default function AdminRebalancePage() {
           collateral into CustodyVault, the{' '}
           <strong className="text-foreground">PortfolioManager</strong> calculates the target
           breakdown based on the authoritative weights in{' '}
-          <strong className="text-foreground">StrategyManager (0x73c8...A7Bb)</strong>. Constituent
-          weights must sum to exactly{' '}
+          <strong className="text-foreground">
+            StrategyManager (
+            {strategyManagerAddress
+              ? `${strategyManagerAddress.slice(0, 6)}...${strategyManagerAddress.slice(-4)}`
+              : 'Dynamic'}
+            )
+          </strong>
+          . Constituent weights must sum to exactly{' '}
           <code className="text-purple-400 font-mono">10,000 BPS (100.00%)</code>.
         </p>
       </div>

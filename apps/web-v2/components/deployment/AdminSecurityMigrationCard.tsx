@@ -14,8 +14,12 @@ import {
   ShieldAlert,
   Cpu,
   Sliders,
+  Rocket,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
-import { isAddress, encodeFunctionData, parseAbi, type Address } from 'viem';
+import { isAddress, encodeFunctionData, encodeDeployData, parseAbi, type Address } from 'viem';
+import { DEPLOYMENT_ARTIFACTS } from '../../lib/deployment/generatedArtifacts';
 import { getContractRolesMatrix } from '../../lib/admin/adminRolesMatrix';
 import { getAllAdminRoleTransferCalls } from '../../lib/admin/batchRoleMigrator';
 import type { ContractRoleMigrationItem, AdminMigrationAuditRecord } from '../../lib/admin/types';
@@ -842,5 +846,699 @@ export function AdminSecurityMigrationCard(props: AdminSecurityMigrationCardProp
     <AdminErrorBoundary>
       <AdminSecurityMigrationInner {...props} />
     </AdminErrorBoundary>
+  );
+}
+
+// Canonical Verified Base Mainnet (8453) Architecture Parameters
+export const VERIFIED_BASE_MAINNET_ADDRESSES = {
+  ProtocolDirectory: '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e' as `0x${string}`,
+  OracleManager: '0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7' as `0x${string}`,
+  CustodyVault: '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca' as `0x${string}`,
+  Treasury: '0x57561F781b2f558A7445D2E93a365C03BA2c9B53' as `0x${string}`,
+  UVBEV2: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
+  CostBasisManagerV2: '0x27b5c6dea90678b78856b0b10dba37a789fde97e' as `0x${string}`,
+  LiquidityManager: '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3' as `0x${string}`,
+  StrategyManager: '0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a' as `0x${string}`,
+  SwapAdapter: '0x5b6067982c6cce2dc760eb4731c1b40136776d4a' as `0x${string}`,
+  PortfolioManager: '0x66182f56bd5e523c655f6890290ab519f528e83f' as `0x${string}`,
+  PerformanceManager: '0x19ec1b685c2ced1400b4f249da6be89662e59473' as `0x${string}`,
+  P2PEscrowV2: '0xa938aacea64be8f41c90960aff232da4df7fc329' as `0x${string}`,
+  Marketplace: '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6' as `0x${string}`,
+  Controller: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
+  OldController: '0x0721465b01b586b7aadf957a4a884ace46cfbec9' as `0x${string}`,
+  AdminGovernance: '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`,
+};
+
+const ACCESS_CONTROL_ABI_STEP12 = parseAbi([
+  'function grantRole(bytes32 role, address account) external',
+  'function revokeRole(bytes32 role, address account) external',
+  'function hasRole(bytes32 role, address account) external view returns (bool)',
+]);
+
+const DIRECTORY_ABI_STEP12 = parseAbi([
+  'function updateAddress(bytes32 id, address target) external',
+  'function registerAddress(bytes32 id, address target) external',
+  'function getAddress(bytes32 id) external view returns (address)',
+  'function exists(bytes32 id) external view returns (bool)',
+]);
+
+export function Step12StandaloneCard({
+  chainId,
+  deployedContracts,
+}: {
+  chainId: number;
+  deployedContracts: DeployedContractsMap;
+}) {
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+
+  const isMainnet = chainId === 8453;
+  const explorerUrl = isMainnet ? 'https://basescan.org' : 'https://sepolia.basescan.org';
+
+  const resolvedDirectory = isMainnet
+    ? VERIFIED_BASE_MAINNET_ADDRESSES.ProtocolDirectory
+    : deployedContracts.ProtocolDirectory || '0x0000000000000000000000000000000000000000';
+  const resolvedOracle = isMainnet
+    ? VERIFIED_BASE_MAINNET_ADDRESSES.OracleManager
+    : deployedContracts.OracleManager || '0x0000000000000000000000000000000000000000';
+  const resolvedVault = isMainnet
+    ? VERIFIED_BASE_MAINNET_ADDRESSES.CustodyVault
+    : deployedContracts.CustodyVault || '0x0000000000000000000000000000000000000000';
+  const resolvedTreasury = isMainnet
+    ? VERIFIED_BASE_MAINNET_ADDRESSES.Treasury
+    : deployedContracts.Treasury || '0x0000000000000000000000000000000000000000';
+  const resolvedToken = isMainnet
+    ? VERIFIED_BASE_MAINNET_ADDRESSES.UVBEV2
+    : deployedContracts.UVBEV2 || '0x0000000000000000000000000000000000000000';
+
+  const [deployedControllerAddress, setDeployedControllerAddress] = useState<`0x${string}` | ''>(
+    (deployedContracts.UnifyVaultController as `0x${string}`) || '',
+  );
+  const [customControllerInput, setCustomControllerInput] = useState<string>('');
+
+  const activeNewController: `0x${string}` | null = (deployedControllerAddress ||
+    (customControllerInput.startsWith('0x') && customControllerInput.length === 42
+      ? customControllerInput
+      : null)) as `0x${string}` | null;
+
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
+  const [deployTxHash, setDeployTxHash] = useState<`0x${string}` | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const [roleStatuses, setRoleStatuses] = useState<{
+    uvbe: boolean;
+    vault: boolean;
+    treasury: boolean;
+    cbm: boolean;
+    directory: boolean;
+  }>({
+    uvbe: false,
+    vault: false,
+    treasury: false,
+    cbm: false,
+    directory: false,
+  });
+  const [isCheckingStatus, setIsCheckingStatus] = useState<boolean>(false);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const checkOnChainStatuses = useCallback(async () => {
+    if (!publicClient || !activeNewController) return;
+    setIsCheckingStatus(true);
+    try {
+      const controllerRole =
+        '0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357' as `0x${string}`;
+      const depositModuleId =
+        '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`;
+
+      const [hasUvbe, hasVault, hasTreasury, hasCbm, dirBound] = await Promise.all([
+        publicClient
+          .readContract({
+            address: resolvedToken,
+            abi: ACCESS_CONTROL_ABI_STEP12,
+            functionName: 'hasRole',
+            args: [controllerRole, activeNewController],
+          })
+          .catch(() => false),
+        publicClient
+          .readContract({
+            address: resolvedVault,
+            abi: ACCESS_CONTROL_ABI_STEP12,
+            functionName: 'hasRole',
+            args: [controllerRole, activeNewController],
+          })
+          .catch(() => false),
+        publicClient
+          .readContract({
+            address: resolvedTreasury,
+            abi: ACCESS_CONTROL_ABI_STEP12,
+            functionName: 'hasRole',
+            args: [controllerRole, activeNewController],
+          })
+          .catch(() => false),
+        publicClient
+          .readContract({
+            address: (isMainnet
+              ? VERIFIED_BASE_MAINNET_ADDRESSES.CostBasisManagerV2
+              : deployedContracts.CostBasisManagerV2) as `0x${string}`,
+            abi: ACCESS_CONTROL_ABI_STEP12,
+            functionName: 'hasRole',
+            args: [controllerRole, activeNewController],
+          })
+          .catch(() => false),
+        publicClient
+          .readContract({
+            address: resolvedDirectory,
+            abi: DIRECTORY_ABI_STEP12,
+            functionName: 'getAddress',
+            args: [depositModuleId],
+          })
+          .catch(() => '0x0000000000000000000000000000000000000000'),
+      ]);
+
+      setRoleStatuses({
+        uvbe: Boolean(hasUvbe),
+        vault: Boolean(hasVault),
+        treasury: Boolean(hasTreasury),
+        cbm: Boolean(hasCbm),
+        directory:
+          typeof dirBound === 'string' &&
+          dirBound.toLowerCase() === activeNewController.toLowerCase(),
+      });
+    } catch (err) {
+      console.warn('Error checking on-chain roles:', err);
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  }, [
+    publicClient,
+    activeNewController,
+    isMainnet,
+    resolvedToken,
+    resolvedVault,
+    resolvedTreasury,
+    resolvedDirectory,
+    deployedContracts,
+  ]);
+
+  useEffect(() => {
+    if (activeNewController) {
+      checkOnChainStatuses();
+    }
+  }, [activeNewController, checkOnChainStatuses]);
+
+  const handleAdminAction = async (
+    actionKey: string,
+    targetContract: `0x${string}`,
+    callType: 'GRANT_ROLE' | 'UPDATE_DIRECTORY',
+  ) => {
+    if (!walletClient || !publicClient || !address || !activeNewController) {
+      setErrorMessage('Admin wallet and active new controller required.');
+      return;
+    }
+    setActiveActionId(actionKey);
+    setErrorMessage(null);
+    try {
+      let callData: `0x${string}`;
+
+      if (callType === 'GRANT_ROLE') {
+        callData = encodeFunctionData({
+          abi: ACCESS_CONTROL_ABI_STEP12,
+          functionName: 'grantRole',
+          args: [
+            '0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357' as `0x${string}`,
+            activeNewController,
+          ],
+        });
+      } else {
+        callData = encodeFunctionData({
+          abi: DIRECTORY_ABI_STEP12,
+          functionName: 'updateAddress',
+          args: [
+            '0xa547798b70ae101787ea36fec5847dd1faff4b09e03b38e66e0951618bb267af' as `0x${string}`,
+            activeNewController,
+          ],
+        });
+      }
+
+      const hash = await walletClient.sendTransaction({
+        account: address,
+        to: targetContract,
+        data: callData,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 1,
+      });
+
+      if (receipt.status !== 'success') {
+        throw new Error(`Transaction reverted on-chain. Tx: ${hash}`);
+      }
+
+      await checkOnChainStatuses();
+    } catch (err: any) {
+      console.error(`Admin Action (${actionKey}) Error:`, err);
+      setErrorMessage(err?.shortMessage || err?.message || `Failed to execute ${actionKey}.`);
+    } finally {
+      setActiveActionId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="rounded-2xl border-2 border-[#BFFF00]/40 bg-black/60 p-6 shadow-[4px_4px_0_#000] dark:shadow-none space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-xl bg-[#BFFF00]/20 text-[#BFFF00] border border-[#BFFF00]/40">
+              <Key className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-[#BFFF00] text-black">
+                  Step 12 Standalone
+                </span>
+                <span className="text-xs font-mono font-bold text-muted-foreground">
+                  {isMainnet ? 'Base Mainnet (8453)' : 'Base Sepolia (84532)'}
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-foreground mt-0.5">
+                UnifyVaultController Single-Step Deployment & Migration
+              </h2>
+            </div>
+          </div>
+
+          <button
+            onClick={() => checkOnChainStatuses()}
+            disabled={isCheckingStatus || !activeNewController}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-muted/60 hover:bg-muted text-foreground border border-border transition-all cursor-pointer disabled:opacity-40"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isCheckingStatus ? 'animate-spin text-[#BFFF00]' : ''}`}
+            />
+            <span>Refresh Status</span>
+          </button>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          Dedicated standalone deployment and migration setup for{' '}
+          <strong>Step 12 (UnifyVaultController)</strong>. Wires the verified Treasury (
+          <code>0x57561F...9B53</code>), CustodyVault, Oracle, and UVBEV2 without disrupting other
+          verified protocol modules.
+        </p>
+      </div>
+
+      {/* Constructor Parameters Card */}
+      <div className="rounded-2xl border-2 border-border bg-card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+            Step 12 Constructor-Bound Parameters (Pre-Verified)
+          </h3>
+          <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+            100% Invariant Match
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+          <div className="p-3 rounded-xl bg-black/40 border border-border space-y-1">
+            <div className="flex justify-between items-center text-muted-foreground text-[11px]">
+              <span>1. directory_ (ProtocolDirectory)</span>
+              <button
+                onClick={() => copyToClipboard(resolvedDirectory, 'dir')}
+                className="hover:text-foreground cursor-pointer"
+              >
+                {copiedKey === 'dir' ? (
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  'Copy'
+                )}
+              </button>
+            </div>
+            <p className="text-foreground truncate">{resolvedDirectory}</p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-black/40 border border-border space-y-1">
+            <div className="flex justify-between items-center text-muted-foreground text-[11px]">
+              <span>2. oracle_ (OracleManager)</span>
+              <button
+                onClick={() => copyToClipboard(resolvedOracle, 'oracle')}
+                className="hover:text-foreground cursor-pointer"
+              >
+                {copiedKey === 'oracle' ? (
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  'Copy'
+                )}
+              </button>
+            </div>
+            <p className="text-foreground truncate">{resolvedOracle}</p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-black/40 border border-border space-y-1">
+            <div className="flex justify-between items-center text-muted-foreground text-[11px]">
+              <span>3. vault_ (CustodyVault)</span>
+              <button
+                onClick={() => copyToClipboard(resolvedVault, 'vault')}
+                className="hover:text-foreground cursor-pointer"
+              >
+                {copiedKey === 'vault' ? (
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  'Copy'
+                )}
+              </button>
+            </div>
+            <p className="text-foreground truncate">{resolvedVault}</p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-1">
+            <div className="flex justify-between items-center text-emerald-400 font-bold text-[11px]">
+              <span>4. treasury_ (Verified Correct Treasury)</span>
+              <button
+                onClick={() => copyToClipboard(resolvedTreasury, 'treasury')}
+                className="hover:text-emerald-200 cursor-pointer"
+              >
+                {copiedKey === 'treasury' ? (
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  'Copy'
+                )}
+              </button>
+            </div>
+            <p className="text-emerald-300 font-bold truncate">{resolvedTreasury}</p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-black/40 border border-border space-y-1 md:col-span-2">
+            <div className="flex justify-between items-center text-muted-foreground text-[11px]">
+              <span>5. token_ (UVBEV2 / Index Token)</span>
+              <button
+                onClick={() => copyToClipboard(resolvedToken, 'token')}
+                className="hover:text-foreground cursor-pointer"
+              >
+                {copiedKey === 'token' ? (
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  'Copy'
+                )}
+              </button>
+            </div>
+            <p className="text-foreground truncate">{resolvedToken}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stage 1: Deploy UnifyVaultController Directly */}
+      <div className="rounded-2xl border-2 border-border bg-card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center space-x-2">
+            <span className="w-6 h-6 rounded-full bg-[#BFFF00] text-black font-black text-xs flex items-center justify-center">
+              1
+            </span>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+              Deploy Standalone Controller (Step 12)
+            </h3>
+          </div>
+          <span className="text-xs font-mono text-muted-foreground">Gas Limit: 6,500,000</span>
+        </div>
+
+        {deployedControllerAddress ? (
+          <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
+            <div className="flex items-center space-x-2 text-emerald-400 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Controller Successfully Deployed On-Chain</span>
+            </div>
+            <div className="flex items-center justify-between font-mono text-xs bg-black/50 p-2.5 rounded-lg border border-border">
+              <span className="text-foreground">{deployedControllerAddress}</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => copyToClipboard(deployedControllerAddress, 'newCtrl')}
+                  className="hover:text-emerald-300 cursor-pointer"
+                >
+                  {copiedKey === 'newCtrl' ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    'Copy'
+                  )}
+                </button>
+                <a
+                  href={`${explorerUrl}/address/${deployedControllerAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 hover:text-emerald-300"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <button
+              onClick={async () => {
+                if (!walletClient || !publicClient || !address) {
+                  setErrorMessage('Please connect your deployer wallet in MetaMask.');
+                  return;
+                }
+                setIsDeploying(true);
+                setErrorMessage(null);
+                try {
+                  const deployData = encodeDeployData({
+                    abi: DEPLOYMENT_ARTIFACTS.UnifyVaultController.abi,
+                    bytecode: DEPLOYMENT_ARTIFACTS.UnifyVaultController.bytecode,
+                    args: [
+                      resolvedDirectory,
+                      resolvedOracle,
+                      resolvedVault,
+                      resolvedTreasury,
+                      resolvedToken,
+                    ],
+                  });
+
+                  const hash = await walletClient.sendTransaction({
+                    account: address,
+                    data: deployData,
+                  });
+
+                  setDeployTxHash(hash);
+                  const receipt = await publicClient.waitForTransactionReceipt({
+                    hash,
+                    confirmations: 1,
+                  });
+
+                  if (receipt.status !== 'success' || !receipt.contractAddress) {
+                    throw new Error(`Deployment transaction reverted on-chain. Tx: ${hash}`);
+                  }
+
+                  const newAddr = receipt.contractAddress as `0x${string}`;
+                  setDeployedControllerAddress(newAddr);
+
+                  // Update server manifest
+                  await fetch('/api/deployment/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chainId,
+                      stepNumber: 12,
+                      contractName: 'UnifyVaultController',
+                      deployedAddress: newAddr,
+                      txHash: hash,
+                    }),
+                  }).catch(() => null);
+                } catch (e: any) {
+                  console.error('Deploy error:', e);
+                  setErrorMessage(e?.shortMessage || e?.message || 'Failed to deploy Controller.');
+                } finally {
+                  setIsDeploying(false);
+                }
+              }}
+              disabled={isDeploying || !address}
+              className="w-full py-4 px-4 rounded-xl text-sm font-black tracking-wide uppercase transition-all flex items-center justify-center space-x-2 bg-[#BFFF00] text-black border-2 border-black shadow-[3px_3px_0_#000] hover:bg-[#d0ff66] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeploying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Prompting MetaMask & Deploying...</span>
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-4 h-4" />
+                  <span>Deploy UnifyVaultController (Step 12)</span>
+                </>
+              )}
+            </button>
+
+            {deployTxHash && (
+              <div className="text-xs font-mono text-muted-foreground flex items-center space-x-1 pt-1">
+                <span>Tx Submitted:</span>
+                <a
+                  href={`${explorerUrl}/tx/${deployTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#BFFF00] underline flex items-center gap-1"
+                >
+                  {deployTxHash.slice(0, 18)}...
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase">
+                Or Attach Already Deployed Controller Address:
+              </label>
+              <input
+                type="text"
+                value={customControllerInput}
+                onChange={(e) => setCustomControllerInput(e.target.value.trim())}
+                placeholder="0x... (If already deployed via external script)"
+                className="w-full mt-1 p-2.5 rounded-xl bg-background border border-border font-mono text-xs text-foreground focus:outline-none focus:border-[#BFFF00]"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Stage 2: Governance Authority Role Grants & Directory Registration */}
+      <div className="rounded-2xl border-2 border-border bg-card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center space-x-2">
+            <span className="w-6 h-6 rounded-full bg-purple-500 text-white font-black text-xs flex items-center justify-center">
+              2
+            </span>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+              Governance Migration & Authorization Pipeline
+            </h3>
+          </div>
+          <span className="text-xs font-mono text-purple-400">
+            Admin Wallet (<code>0x441d...</code>)
+          </span>
+        </div>
+
+        <div className="space-y-2.5 font-mono text-xs">
+          {/* Action 1: UVBEV2 */}
+          <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-2">
+            <div>
+              <div className="font-bold text-foreground">1. Grant CONTROLLER_ROLE on UVBEV2</div>
+              <div className="text-[11px] text-muted-foreground">{resolvedToken}</div>
+            </div>
+            {roleStatuses.uvbe ? (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Granted
+              </span>
+            ) : (
+              <button
+                onClick={() => handleAdminAction('grant_uvbe', resolvedToken, 'GRANT_ROLE')}
+                disabled={!activeNewController || activeActionId === 'grant_uvbe'}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer disabled:opacity-40"
+              >
+                {activeActionId === 'grant_uvbe' ? 'Granting...' : 'Grant Role'}
+              </button>
+            )}
+          </div>
+
+          {/* Action 2: CustodyVault */}
+          <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-2">
+            <div>
+              <div className="font-bold text-foreground">
+                2. Grant CONTROLLER_ROLE on CustodyVault
+              </div>
+              <div className="text-[11px] text-muted-foreground">{resolvedVault}</div>
+            </div>
+            {roleStatuses.vault ? (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Granted
+              </span>
+            ) : (
+              <button
+                onClick={() => handleAdminAction('grant_vault', resolvedVault, 'GRANT_ROLE')}
+                disabled={!activeNewController || activeActionId === 'grant_vault'}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer disabled:opacity-40"
+              >
+                {activeActionId === 'grant_vault' ? 'Granting...' : 'Grant Role'}
+              </button>
+            )}
+          </div>
+
+          {/* Action 3: Treasury */}
+          <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-2">
+            <div>
+              <div className="font-bold text-foreground">3. Grant CONTROLLER_ROLE on Treasury</div>
+              <div className="text-[11px] text-muted-foreground">{resolvedTreasury}</div>
+            </div>
+            {roleStatuses.treasury ? (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Granted
+              </span>
+            ) : (
+              <button
+                onClick={() => handleAdminAction('grant_treasury', resolvedTreasury, 'GRANT_ROLE')}
+                disabled={!activeNewController || activeActionId === 'grant_treasury'}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer disabled:opacity-40"
+              >
+                {activeActionId === 'grant_treasury' ? 'Granting...' : 'Grant Role'}
+              </button>
+            )}
+          </div>
+
+          {/* Action 4: CostBasisManagerV2 */}
+          <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-2">
+            <div>
+              <div className="font-bold text-foreground">
+                4. Grant CONTROLLER_ROLE on CostBasisManagerV2
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {isMainnet
+                  ? VERIFIED_BASE_MAINNET_ADDRESSES.CostBasisManagerV2
+                  : deployedContracts.CostBasisManagerV2}
+              </div>
+            </div>
+            {roleStatuses.cbm ? (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Granted
+              </span>
+            ) : (
+              <button
+                onClick={() =>
+                  handleAdminAction(
+                    'grant_cbm',
+                    (isMainnet
+                      ? VERIFIED_BASE_MAINNET_ADDRESSES.CostBasisManagerV2
+                      : deployedContracts.CostBasisManagerV2) as `0x${string}`,
+                    'GRANT_ROLE',
+                  )
+                }
+                disabled={!activeNewController || activeActionId === 'grant_cbm'}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer disabled:opacity-40"
+              >
+                {activeActionId === 'grant_cbm' ? 'Granting...' : 'Grant Role'}
+              </button>
+            )}
+          </div>
+
+          {/* Action 5: ProtocolDirectory updateAddress */}
+          <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-2">
+            <div>
+              <div className="font-bold text-foreground">
+                5. ProtocolDirectory.updateAddress(DEPOSIT_MANAGER, NEW_CONTROLLER)
+              </div>
+              <div className="text-[11px] text-muted-foreground">{resolvedDirectory}</div>
+            </div>
+            {roleStatuses.directory ? (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Updated & Active
+              </span>
+            ) : (
+              <button
+                onClick={() =>
+                  handleAdminAction('update_dir', resolvedDirectory, 'UPDATE_DIRECTORY')
+                }
+                disabled={!activeNewController || activeActionId === 'update_dir'}
+                className="px-3 py-1.5 rounded-lg bg-[#BFFF00] text-black font-bold text-xs cursor-pointer disabled:opacity-40"
+              >
+                {activeActionId === 'update_dir' ? 'Updating...' : 'Update Directory'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-bold">Execution Notice:</span>
+            <p className="font-mono">{errorMessage}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

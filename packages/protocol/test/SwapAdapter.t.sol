@@ -283,32 +283,52 @@ contract SwapAdapterTest is Test {
 
   // --- Governance & Unauthorized Access Tests ---
 
-  function test_SetRouterSuccess() public {
-    address newRouterAddr = address(0x999);
-
+  function test_SetPoolFeeSuccess() public {
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit ISwapAdapter.RouterUpdated(address(mockRouter), newRouterAddr, admin);
+    emit ISwapAdapter.PoolFeeUpdated(address(tokenA), address(tokenB), 0, 100, admin);
 
-    swapAdapter.setRouter(newRouterAddr);
-    assertEq(swapAdapter.router(), newRouterAddr);
+    swapAdapter.setPoolFee(address(tokenA), address(tokenB), 100);
+    assertEq(swapAdapter.getPoolFee(address(tokenA), address(tokenB)), 100);
+    assertEq(swapAdapter.getPoolFee(address(tokenB), address(tokenA)), 100);
   }
 
-  function test_SetRouterInvalidAddressRevert() public {
+  function test_SetPoolFeeInvalidFeeTierRevert() public {
     vm.prank(admin);
-    vm.expectRevert(ISwapAdapter.InvalidRouter.selector);
-    swapAdapter.setRouter(address(0));
+    vm.expectRevert(ISwapAdapter.InvalidFeeTier.selector);
+    swapAdapter.setPoolFee(address(tokenA), address(tokenB), 999);
   }
 
-  function test_UnauthorizedSetRouterRevert() public {
+  function test_UnauthorizedSetPoolFeeRevert() public {
     vm.prank(user);
     vm.expectRevert(
       abi.encodeWithSelector(
-        bytes4(keccak256('AccessControlUnauthorizedAccount(address,bytes32)')),
+        IAccessControl.AccessControlUnauthorizedAccount.selector,
         user,
         AccessRoles.GOVERNANCE_ROLE
       )
     );
-    swapAdapter.setRouter(address(0x999));
+    swapAdapter.setPoolFee(address(tokenA), address(tokenB), 100);
+  }
+
+  function test_SetDefaultFeeTierSuccess() public {
+    vm.prank(admin);
+    vm.expectEmit(true, true, true, true);
+    emit ISwapAdapter.DefaultFeeTierUpdated(500, 3000, admin);
+
+    swapAdapter.setDefaultFeeTier(3000);
+    assertEq(swapAdapter.defaultFeeTier(), 3000);
+  }
+
+  function test_UnauthorizedSetDefaultFeeTierRevert() public {
+    vm.prank(user);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        IAccessControl.AccessControlUnauthorizedAccount.selector,
+        user,
+        AccessRoles.GOVERNANCE_ROLE
+      )
+    );
+    swapAdapter.setDefaultFeeTier(3000);
   }
 }

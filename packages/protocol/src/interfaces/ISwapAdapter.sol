@@ -37,6 +37,14 @@ interface ISwapAdapter {
     address indexed recipient
   );
   event RouterUpdated(address indexed oldRouter, address indexed newRouter, address indexed caller);
+  event PoolFeeUpdated(
+    address indexed tokenA,
+    address indexed tokenB,
+    uint24 oldFee,
+    uint24 newFee,
+    address indexed caller
+  );
+  event DefaultFeeTierUpdated(uint24 oldFee, uint24 newFee, address indexed caller);
 
   // Custom Errors
   error ZeroAddressDetected();
@@ -44,6 +52,8 @@ interface ISwapAdapter {
   error SlippageLimitExceeded(uint256 expected, uint256 actual);
   error DeadlineExpired(uint256 deadline, uint256 currentTimestamp);
   error InvalidRouter();
+  error InvalidFeeTier();
+  error PoolDoesNotExist(address tokenA, address tokenB, uint24 fee);
   error SwapExecutionFailed();
 
   // Core Execution Methods
@@ -89,4 +99,6 @@ interface ISwapAdapter {
   function supportedRouters() external view returns (address[] memory routers);
 
   function router() external view returns (address);
+
+  function getPoolFee(address tokenA, address tokenB) external view returns (uint24 fee);
 }

@@ -48,7 +48,7 @@ export const DIRECTORY_ADDRESS_MAINNET = (
     ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET
     : isNonZeroAddress(process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS)
       ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS
-      : '0x0000000000000000000000000000000000000000'
+      : '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
 ) as `0x${string}`;
 
 export const DIRECTORY_ADDRESS_SEPOLIA = (
@@ -155,20 +155,50 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
 };
 
 /**
- * Base Mainnet Deployed Contracts
+ * Base Mainnet Deployed Contracts (Canonical Verified Architecture)
  */
 export const DEPLOYED_CONTRACTS_MAINNET = {
+  ProtocolDirectory: '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e' as `0x${string}`,
+  Treasury: '0x57561F781b2f558A7445D2E93a365C03BA2c9B53' as `0x${string}`,
+  CustodyVault: '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca' as `0x${string}`,
+  OracleManager: '0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7' as `0x${string}`,
+  UVBEToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
+  UVBTCETHToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
+  UnifyVaultController: (isNonZeroAddress(process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET)
+    ? process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET
+    : '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366') as `0x${string}`,
+  UnifyVaultControllerImplementation: (isNonZeroAddress(
+    process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET,
+  )
+    ? process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET
+    : '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366') as `0x${string}`,
+  CostBasisManager: '0x27b5c6dea90678b78856b0b10dba37a789fde97e' as `0x${string}`,
+  LiquidityManager: '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3' as `0x${string}`,
+  StrategyManager: '0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a' as `0x${string}`,
+  SwapAdapter: '0xaae7104a120e7c6e518a936fcbc102bcd0454b67' as `0x${string}`,
+  PortfolioManager: '0x66182f56bd5e523c655f6890290ab519f528e83f' as `0x${string}`,
+  PerformanceManager: '0x19ec1b685c2ced1400b4f249da6be89662e59473' as `0x${string}`,
+  FeeManager: '0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881' as `0x${string}`,
+  ChainlinkOracleProvider: '0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E' as `0x${string}`,
   P2PEscrow: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET
-    : isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS)
-      ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS
-      : '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    : '0xa938aacea64be8f41c90960aff232da4df7fc329') as `0x${string}`,
   Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET
-    : isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS)
-      ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS
-      : '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    : '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6') as `0x${string}`,
 };
+
+// Safety Invariant Check: Base Mainnet Controller must strictly resolve to 0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366
+export const CANONICAL_MAINNET_CONTROLLER = '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as const;
+if (
+  typeof window !== 'undefined' &&
+  DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase() !==
+    CANONICAL_MAINNET_CONTROLLER.toLowerCase()
+) {
+  console.warn(
+    `[SAFETY INVARIANT] Base Mainnet Controller address mismatch: expected ${CANONICAL_MAINNET_CONTROLLER}, received ${DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController}`,
+  );
+}
 
 /**
  * Core ERC20 Tokens by Chain ID

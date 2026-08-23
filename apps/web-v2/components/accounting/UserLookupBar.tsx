@@ -43,10 +43,12 @@ export function UserLookupBar({ currentAddress, onSelectAddress }: UserLookupBar
   };
 
   const handleInspectAdmin = () => {
-    const adminAddr = '0xd905920c91853039060246Ed5724AA72B91a96DA';
-    setInputValue(adminAddr);
-    setValidationError(null);
-    onSelectAddress(adminAddr);
+    const adminAddr = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || '';
+    if (adminAddr) {
+      setInputValue(adminAddr);
+      setValidationError(null);
+      onSelectAddress(adminAddr);
+    }
   };
 
   const handleClear = () => {

@@ -29,7 +29,7 @@ function isAuthorizedAdmin(address: string): boolean {
   const envAdmin = (
     process.env.P2P_ADMIN_ADDRESS ||
     process.env.NEXT_PUBLIC_ADMIN_ADDRESS ||
-    '0xd905920c91853039060246Ed5724AA72B91a96DA'
+    ''
   ).toLowerCase();
   return envAdmin.length > 0 && address.toLowerCase() === envAdmin;
 }

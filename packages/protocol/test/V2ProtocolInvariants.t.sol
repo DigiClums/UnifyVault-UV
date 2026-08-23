@@ -298,10 +298,6 @@ contract V2ProtocolHandler is Test {
       accessControlBypassed = true;
     } catch {}
 
-    try swapAdapter.setRouter(address(0x999)) {
-      accessControlBypassed = true;
-    } catch {}
-
     try liquidityManager.setThresholds(address(usdc), 1000, 500, 1500) {
       accessControlBypassed = true;
     } catch {}

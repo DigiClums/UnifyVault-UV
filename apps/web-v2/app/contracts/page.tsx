@@ -117,7 +117,7 @@ export default function ContractsPage() {
         address:
           directory.controller ||
           (isMainnet
-            ? '0x0721465b01b586b7aadf957a4a884ace46cfbec9'
+            ? '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366'
             : DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController),
         category: 'Core Vault',
         protocolKey: 'keccak256("DepositManager")',

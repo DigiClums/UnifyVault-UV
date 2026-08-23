@@ -7,10 +7,13 @@ import { STRATEGY_MANAGER_ABI } from '../lib/contracts/strategy';
 import { PORTFOLIO_MANAGER_ABI } from '../lib/contracts/portfolioManager';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
   getChainTokens,
   getDefaultChainId,
   getExplorerBaseUrl,
 } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
+import { base } from 'viem/chains';
 
 import { GOVERNANCE_ROLE_HASH, DEFAULT_ADMIN_ROLE_HASH } from '../lib/contracts/governance';
 
@@ -37,8 +40,12 @@ export function useStrategyAdmin() {
   const tokens = getChainTokens(chainId);
   const explorerBaseUrl = getExplorerBaseUrl(chainId);
 
-  const strategyManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager;
-  const portfolioManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager;
+  const directory = useProtocolDirectory();
+  const fallbackContracts =
+    chainId === base.id ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
+  const strategyManagerAddress = directory.strategyManager || fallbackContracts.StrategyManager;
+  const portfolioManagerAddress = directory.portfolioManager || fallbackContracts.PortfolioManager;
 
   const {
     data: readData,

@@ -1,16 +1,44 @@
 {
-  "manifestVersion": 2,
+  "manifestVersion": 4,
   "chainId": 8453,
   "network": "Base Mainnet",
   "deploymentVersion": "V2",
   "protocolVersion": "2.0.0",
   "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
-  "status": "in_progress",
-  "isLocked": false,
-  "currentStepIndex": 0,
+  "status": "live",
+  "isLocked": true,
+  "currentStepIndex": 55,
   "totalSteps": 55,
-  "contracts": {},
-  "stepRecords": {},
+  "contracts": {
+    "ProtocolDirectory": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+    "UnifyVaultController": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
+    "CustodyVault": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
+    "Treasury": "0x57561F781b2f558A7445D2E93a365C03BA2c9B53",
+    "OracleManager": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
+    "StrategyManager": "0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a",
+    "PortfolioManager": "0x66182f56bd5e523c655f6890290ab519f528e83f",
+    "UVBEV2": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+    "UVBEToken": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+    "SwapAdapter": "0x5b6067982c6cce2dc760eb4731c1b40136776d4a",
+    "LiquidityManager": "0x9af86a9ac1563b7fdbf43b19335348240a8c16d3",
+    "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
+    "PerformanceManager": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
+    "P2PEscrowV2": "0xa938aacea64be8f41c90960aff232da4df7fc329",
+    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6"
+  },
+  "stepRecords": {
+    "12": {
+      "stepNumber": 12,
+      "stepId": "step_12",
+      "status": "confirmed",
+      "deployedAddress": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
+      "txHash": "0xafc4c65a0a27f10d1a9a9c14f7a1cc7e98263d19215eacbb1b947d9f054110c3",
+      "timestamp": 1787455989791
+    }
+  },
   "verificationResults": [],
-  "lastUpdated": 1787385783575
+  "lastUpdated": 1787455989791,
+  "_pendingUpgrades": {
+    "SwapAdapter": "CURRENT=0x5b6067982c6cce2dc760eb4731c1b40136776d4a (fee=3000, immutable). UPGRADE REQUIRED to new fee=500 adapter before production deposits will succeed."
+  }
 }

@@ -313,7 +313,7 @@ export default function AdminTreasuryPage() {
 
   const GOVERNANCE_ROLE_HASH =
     '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1' as const;
-  const AUTHORIZED_PROTOCOL_ADMIN = '0xd905920c91853039060246Ed5724AA72B91a96DA';
+  const AUTHORIZED_PROTOCOL_ADMIN = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || '';
 
   const { data: isAssetSupported, refetch: refetchIsSupported } = useReadContract({
     address: treasury,
@@ -378,9 +378,7 @@ export default function AdminTreasuryPage() {
     if (!assetAddress || !treasury || !connectedAddress) return;
 
     if (!isAuthorizedGovAdmin) {
-      setRegError(
-        'Connected wallet is not authorized as Governance Admin (0xd905920c91853039060246Ed5724AA72B91a96DA).',
-      );
+      setRegError('Connected wallet is not authorized with Governance Role on Treasury.');
       return;
     }
 
@@ -668,8 +666,8 @@ export default function AdminTreasuryPage() {
                     </span>
                   ) : (
                     <span className="block mt-0.5 text-rose-200">
-                      Only the authorized Governance Admin (0xd905...96DA) can register this asset.
-                      Please connect with the Governance Admin wallet to proceed.
+                      Only the authorized Governance Admin can register this asset. Please connect
+                      with the Governance Admin wallet to proceed.
                     </span>
                   )}
                 </div>
@@ -722,7 +720,7 @@ export default function AdminTreasuryPage() {
                   <span>
                     {isAuthorizedGovAdmin
                       ? `Register ${selectedAssetSymbol} in Treasury (${selectedAssetDecimals} Decimals)`
-                      : `Requires Governance Admin (0xd905...96DA)`}
+                      : `Requires Governance Admin`}
                   </span>
                 </>
               ) : (

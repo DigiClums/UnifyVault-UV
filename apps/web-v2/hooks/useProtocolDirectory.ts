@@ -8,6 +8,7 @@ import {
   getDefaultChainId,
   MODULE_IDS,
   DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
 } from '../constants';
 
 export interface ProtocolAddresses {
@@ -37,67 +38,69 @@ export function useProtocolDirectory(): ProtocolAddresses {
   const isZeroAddress =
     !directoryAddress || directoryAddress === '0x0000000000000000000000000000000000000000';
 
+  const fallback = chainId === 8453 ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
   const moduleKeys = [
     {
       key: 'controller',
       moduleId: MODULE_IDS.CONTROLLER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController,
+      fallback: fallback.UnifyVaultController,
     },
-    { key: 'vault', moduleId: MODULE_IDS.VAULT, fallback: DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault },
+    { key: 'vault', moduleId: MODULE_IDS.VAULT, fallback: fallback.CustodyVault },
     {
       key: 'treasury',
       moduleId: MODULE_IDS.TREASURY,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.Treasury,
+      fallback: fallback.Treasury,
     },
     {
       key: 'oracle',
       moduleId: MODULE_IDS.ORACLE,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.OracleManager,
+      fallback: fallback.OracleManager,
     },
     {
       key: 'token',
       moduleId: MODULE_IDS.TOKEN,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken || DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+      fallback: fallback.UVBEToken || fallback.UVBTCETHToken,
     },
     {
       key: 'strategyManager',
       moduleId: MODULE_IDS.STRATEGY_MANAGER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager,
+      fallback: fallback.StrategyManager,
     },
     {
       key: 'portfolioManager',
       moduleId: MODULE_IDS.PORTFOLIO_MANAGER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager,
+      fallback: fallback.PortfolioManager,
     },
     {
       key: 'swapAdapter',
       moduleId: MODULE_IDS.SWAP_ADAPTER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter,
+      fallback: fallback.SwapAdapter,
     },
     {
       key: 'liquidityManager',
       moduleId: MODULE_IDS.LIQUIDITY_MANAGER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager,
+      fallback: fallback.LiquidityManager,
     },
     {
       key: 'feeManager',
       moduleId: MODULE_IDS.FEE_MANAGER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.FeeManager,
+      fallback: fallback.FeeManager,
     },
     {
       key: 'costBasisManager',
       moduleId: MODULE_IDS.COST_BASIS_MANAGER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager,
+      fallback: fallback.CostBasisManager,
     },
     {
       key: 'performanceManager',
       moduleId: MODULE_IDS.PERFORMANCE_MANAGER,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager,
+      fallback: fallback.PerformanceManager,
     },
     {
       key: 'p2pEscrow',
       moduleId: MODULE_IDS.P2P_ESCROW,
-      fallback: DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow,
+      fallback: fallback.P2PEscrow,
     },
   ];
 
@@ -130,9 +133,28 @@ export function useProtocolDirectory(): ProtocolAddresses {
         return res.result as `0x${string}`;
       }
     }
-    // Fallback for Sepolia deployment if on-chain registry entry is missing or zero address
-    if (chainId === baseSepolia.id || !chain?.id) {
+    if (chainId === baseSepolia.id) {
       return moduleKeys[index]?.fallback;
+    }
+    // Mainnet fallbacks (canonical verified addresses)
+    const mainnetFallbackMap: Record<string, `0x${string}` | undefined> = {
+      controller: DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController,
+      vault: DEPLOYED_CONTRACTS_MAINNET.CustodyVault,
+      treasury: DEPLOYED_CONTRACTS_MAINNET.Treasury,
+      oracle: DEPLOYED_CONTRACTS_MAINNET.OracleManager,
+      token: DEPLOYED_CONTRACTS_MAINNET.UVBEToken,
+      strategyManager: DEPLOYED_CONTRACTS_MAINNET.StrategyManager,
+      portfolioManager: DEPLOYED_CONTRACTS_MAINNET.PortfolioManager,
+      swapAdapter: DEPLOYED_CONTRACTS_MAINNET.SwapAdapter,
+      liquidityManager: DEPLOYED_CONTRACTS_MAINNET.LiquidityManager,
+      feeManager: DEPLOYED_CONTRACTS_MAINNET.FeeManager,
+      costBasisManager: DEPLOYED_CONTRACTS_MAINNET.CostBasisManager,
+      performanceManager: DEPLOYED_CONTRACTS_MAINNET.PerformanceManager,
+      p2pEscrow: DEPLOYED_CONTRACTS_MAINNET.P2PEscrow,
+    };
+    const key = moduleKeys[index]?.key;
+    if (key && mainnetFallbackMap[key]) {
+      return mainnetFallbackMap[key];
     }
     return undefined;
   };

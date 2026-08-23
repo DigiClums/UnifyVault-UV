@@ -1,5 +1,10 @@
 import { keccak256, encodeAbiParameters, parseAbiParameters } from 'viem';
-import { DEPLOYED_CONTRACTS_SEPOLIA, MODULE_IDS } from '../../constants';
+import {
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
+  MODULE_IDS,
+  getDefaultChainId,
+} from '../../constants';
 
 /**
  * Generates a collision-resistant deterministic salt with unique entropy
@@ -127,212 +132,221 @@ export interface ContractRoleCatalogEntry {
   unpauseFunction?: 'unpause' | 'resume';
 }
 
-export const DEPLOYED_ACCESS_CONTROL_CONTRACTS: ContractRoleCatalogEntry[] = [
-  {
-    name: 'ProtocolDirectory',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory,
-    category: 'Core',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-    ],
-    pausable: false,
-  },
-  {
-    name: 'UnifyVaultController',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController,
-    category: 'Core',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-      { roleHash: BOT_ROLE_HASH, name: 'BOT_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'emergencyPause',
-    unpauseFunction: 'resume',
-  },
-  {
-    name: 'CustodyVault',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault,
-    category: 'Core',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-      { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'Treasury',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.Treasury,
-    category: 'Treasury',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-      { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'UVBEToken',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken,
-    category: 'Core',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-      { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'UnifyVaultTimelock',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultTimelock,
-    category: 'Governance',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: PROPOSER_ROLE_HASH, name: 'PROPOSER_ROLE' },
-      { roleHash: EXECUTOR_ROLE_HASH, name: 'EXECUTOR_ROLE' },
-      { roleHash: CANCELLER_ROLE_HASH, name: 'CANCELLER_ROLE' },
-    ],
-    pausable: false,
-  },
-  {
-    name: 'P2PEscrow',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow,
-    category: 'Escrow',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-      { roleHash: ARBITRATOR_ROLE_HASH, name: 'ARBITRATOR_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'Marketplace',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.Marketplace,
-    category: 'Escrow',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'StakingVault',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
-    category: 'Staking',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'RewardDistributor',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
-    category: 'Staking',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
-      { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
-    ],
-    pausable: true,
-    pauseFunction: 'pause',
-    unpauseFunction: 'unpause',
-  },
-  {
-    name: 'ReferralRegistry',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
-    category: 'Staking',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'OracleManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.OracleManager,
-    category: 'Oracle',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'ChainlinkOracleProvider',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider,
-    category: 'Oracle',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'LiquidityManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager,
-    category: 'Core',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'StrategyManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager,
-    category: 'Core',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'PortfolioManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager,
-    category: 'Core',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'SwapAdapter',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter,
-    category: 'Core',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'FeeManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.FeeManager,
-    category: 'Treasury',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-  {
-    name: 'CostBasisManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager,
-    category: 'Treasury',
-    supportedRoles: [
-      { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
-      { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
-    ],
-    pausable: false,
-  },
-  {
-    name: 'PerformanceManager',
-    address: DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager,
-    category: 'Treasury',
-    supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
-    pausable: false,
-  },
-];
+export function getDeployedAccessControlContracts(chainId?: number): ContractRoleCatalogEntry[] {
+  const targetChain = chainId || getDefaultChainId();
+  const contracts = targetChain === 8453 ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
+  return [
+    {
+      name: 'ProtocolDirectory',
+      address: contracts.ProtocolDirectory,
+      category: 'Core',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+      ],
+      pausable: false,
+    },
+    {
+      name: 'UnifyVaultController',
+      address: contracts.UnifyVaultController,
+      category: 'Core',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+        { roleHash: BOT_ROLE_HASH, name: 'BOT_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'emergencyPause',
+      unpauseFunction: 'resume',
+    },
+    {
+      name: 'CustodyVault',
+      address: contracts.CustodyVault,
+      category: 'Core',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+        { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'Treasury',
+      address: contracts.Treasury,
+      category: 'Treasury',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+        { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'UVBEToken',
+      address: contracts.UVBEToken || (contracts as any).UVBTCETHToken,
+      category: 'Core',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+        { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'UnifyVaultTimelock',
+      address:
+        (contracts as any).UnifyVaultTimelock || DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultTimelock,
+      category: 'Governance',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: PROPOSER_ROLE_HASH, name: 'PROPOSER_ROLE' },
+        { roleHash: EXECUTOR_ROLE_HASH, name: 'EXECUTOR_ROLE' },
+        { roleHash: CANCELLER_ROLE_HASH, name: 'CANCELLER_ROLE' },
+      ],
+      pausable: false,
+    },
+    {
+      name: 'P2PEscrow',
+      address: contracts.P2PEscrow,
+      category: 'Escrow',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+        { roleHash: ARBITRATOR_ROLE_HASH, name: 'ARBITRATOR_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'Marketplace',
+      address: contracts.Marketplace,
+      category: 'Escrow',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'StakingVault',
+      address: (contracts as any).StakingVault || DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
+      category: 'Staking',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'RewardDistributor',
+      address: (contracts as any).RewardDistributor || DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
+      category: 'Staking',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: GOVERNANCE_ROLE_HASH, name: 'GOVERNANCE_ROLE' },
+        { roleHash: GUARDIAN_ROLE_HASH, name: 'GUARDIAN_ROLE' },
+      ],
+      pausable: true,
+      pauseFunction: 'pause',
+      unpauseFunction: 'unpause',
+    },
+    {
+      name: 'ReferralRegistry',
+      address: (contracts as any).ReferralRegistry || DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
+      category: 'Staking',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'OracleManager',
+      address: contracts.OracleManager,
+      category: 'Oracle',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'ChainlinkOracleProvider',
+      address: contracts.ChainlinkOracleProvider,
+      category: 'Oracle',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'LiquidityManager',
+      address: contracts.LiquidityManager,
+      category: 'Core',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'StrategyManager',
+      address: contracts.StrategyManager,
+      category: 'Core',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'PortfolioManager',
+      address: contracts.PortfolioManager,
+      category: 'Core',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'SwapAdapter',
+      address: contracts.SwapAdapter,
+      category: 'Core',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'FeeManager',
+      address: contracts.FeeManager,
+      category: 'Treasury',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+    {
+      name: 'CostBasisManager',
+      address: contracts.CostBasisManager,
+      category: 'Treasury',
+      supportedRoles: [
+        { roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' },
+        { roleHash: CONTROLLER_ROLE_HASH, name: 'CONTROLLER_ROLE' },
+      ],
+      pausable: false,
+    },
+    {
+      name: 'PerformanceManager',
+      address: contracts.PerformanceManager,
+      category: 'Treasury',
+      supportedRoles: [{ roleHash: DEFAULT_ADMIN_ROLE_HASH, name: 'DEFAULT_ADMIN_ROLE' }],
+      pausable: false,
+    },
+  ];
+}
+
+export const DEPLOYED_ACCESS_CONTROL_CONTRACTS: ContractRoleCatalogEntry[] =
+  getDeployedAccessControlContracts();
 
 export const DIRECTORY_MODULE_DEFINITIONS: {
   id: `0x${string}`;

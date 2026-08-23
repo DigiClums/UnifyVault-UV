@@ -601,7 +601,7 @@ export function AccountingMigrationSection({ state, onRefresh }: AccountingMigra
               </div>
               <textarea
                 rows={6}
-                placeholder={`0x1563915e194D8CfBA1943570603F7606A3115508, 100.50, 0, 1720000000\n0xd905920c91853039060246Ed5724AA72B91a96DA, 250.00, 15.25, 1720050000`}
+                placeholder={`0x1111111111111111111111111111111111111111, 100.50, 0, 1720000000\n0x2222222222222222222222222222222222222222, 250.00, 15.25, 1720050000`}
                 value={batchRawCsv}
                 onChange={(e) => handleParseCsv(e.target.value)}
                 disabled={!state.isGovernanceAdmin}

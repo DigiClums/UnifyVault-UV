@@ -6,10 +6,13 @@ import { parseAbiItem, formatEther, formatUnits } from 'viem';
 import { LIQUIDITY_MANAGER_ABI } from '../lib/contracts/liquidity';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
   getChainTokens,
   getDefaultChainId,
   getExplorerBaseUrl,
 } from '../constants';
+import { useProtocolDirectory } from './useProtocolDirectory';
+import { base } from 'viem/chains';
 
 import {
   GOVERNANCE_ROLE_HASH,
@@ -57,7 +60,11 @@ export function useLiquidityAdmin() {
   const tokens = getChainTokens(chainId);
   const explorerBaseUrl = getExplorerBaseUrl(chainId);
 
-  const liquidityManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager;
+  const directory = useProtocolDirectory();
+  const fallbackContracts =
+    chainId === base.id ? DEPLOYED_CONTRACTS_MAINNET : DEPLOYED_CONTRACTS_SEPOLIA;
+
+  const liquidityManagerAddress = directory.liquidityManager || fallbackContracts.LiquidityManager;
 
   const assets = useMemo(
     () => [
