@@ -153,7 +153,11 @@ export default function ContractsPage() {
       {
         name: 'PortfolioManager',
         description: 'On-chain portfolio valuation, total asset accounting & UV price engine',
-        address: directory.portfolioManager || DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager,
+        address:
+          directory.portfolioManager ||
+          (isMainnet
+            ? '0x66182f56bd5e523c655f6890290ab519f528e83f'
+            : DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager),
         category: 'Core Vault',
         protocolKey: 'keccak256("PortfolioManager")',
         icon: TrendingUp,
@@ -162,7 +166,11 @@ export default function ContractsPage() {
       {
         name: 'StrategyManager',
         description: 'Target index ratio manager (60% cbBTC / 40% WETH target weights)',
-        address: directory.strategyManager || DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager,
+        address:
+          directory.strategyManager ||
+          (isMainnet
+            ? '0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a'
+            : DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager),
         category: 'Core Vault',
         protocolKey: 'keccak256("StrategyManager")',
         icon: Sliders,
@@ -171,7 +179,11 @@ export default function ContractsPage() {
       {
         name: 'LiquidityManager',
         description: 'Liquidity reserve monitoring and vault refill/sweep execution',
-        address: directory.liquidityManager || DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager,
+        address:
+          directory.liquidityManager ||
+          (isMainnet
+            ? '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3'
+            : DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager),
         category: 'Core Vault',
         protocolKey: 'keccak256("LiquidityManager")',
         icon: RefreshCw,
@@ -180,7 +192,11 @@ export default function ContractsPage() {
       {
         name: 'SwapAdapter',
         description: 'DEX router adapter enforcing slippage protection and atomic swaps',
-        address: directory.swapAdapter || DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter,
+        address:
+          directory.swapAdapter ||
+          (isMainnet
+            ? '0xaae7104a120e7c6e518a936fcbc102bcd0454b67'
+            : DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter),
         category: 'Core Vault',
         protocolKey: 'keccak256("SwapAdapter")',
         icon: Repeat,
@@ -191,7 +207,9 @@ export default function ContractsPage() {
       {
         name: 'UVBEStakingVault',
         description: 'Staking vault backing dynamic APY, referral tiers, and reward engine',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
+        address: isMainnet
+          ? '0x0000000000000000000000000000000000000000'
+          : DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Staking Vault',
         icon: Lock,
@@ -200,7 +218,9 @@ export default function ContractsPage() {
       {
         name: 'UVBEReferralRegistry',
         description: '10-tier immutable referral tree & deterministic rank progression system',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
+        address: isMainnet
+          ? '0x0000000000000000000000000000000000000000'
+          : DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Referral Registry',
         icon: Users,
@@ -210,7 +230,9 @@ export default function ContractsPage() {
         name: 'UVBERewardDistributor',
         description:
           'Dynamic APY, 10-tier affiliate commissions & 30-day DAO leadership pool engine',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
+        address: isMainnet
+          ? '0x0000000000000000000000000000000000000000'
+          : DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Reward Distributor',
         icon: Sparkles,
@@ -256,7 +278,7 @@ export default function ContractsPage() {
         isErc20: false,
       },
 
-      // 3. Accounting & Analytics
+      // 4. Accounting & Analytics
       {
         name: 'FeeManager',
         description: 'Deposit/redemption fee computation and fee routing to Treasury',
@@ -297,7 +319,7 @@ export default function ContractsPage() {
         isErc20: false,
       },
 
-      // 4. Oracles
+      // 5. Oracles
       {
         name: 'OracleManager',
         description: 'Multi-source oracle coordinator with staleness checks & fallback routing',
@@ -323,11 +345,13 @@ export default function ContractsPage() {
         isErc20: false,
       },
 
-      // 5. Account Abstraction
+      // 6. Account Abstraction
       {
         name: 'UnifyVaultPaymaster',
         description: 'ERC-4337 verifying paymaster for gasless smart account operations',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.Paymaster,
+        address: isMainnet
+          ? '0x0000000000000000000000000000000000000000'
+          : DEPLOYED_CONTRACTS_SEPOLIA.Paymaster,
         category: 'Account Abstraction',
         protocolKey: 'ERC-4337 Verifying Paymaster',
         icon: Flame,
@@ -336,7 +360,9 @@ export default function ContractsPage() {
       {
         name: 'GasTreasury',
         description: 'Automated paymaster refill vault with rate-limited sponsorship protection',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury,
+        address: isMainnet
+          ? '0x0000000000000000000000000000000000000000'
+          : DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury,
         category: 'Account Abstraction',
         protocolKey: 'Paymaster Gas Reserve',
         icon: Coins,
@@ -345,14 +371,16 @@ export default function ContractsPage() {
       {
         name: 'Canonical EntryPoint v0.7',
         description: 'ERC-4337 Canonical EntryPoint v0.7 permissionless user operation settlement',
-        address: DEPLOYED_CONTRACTS_SEPOLIA.EntryPoint,
+        address: isMainnet
+          ? '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
+          : DEPLOYED_CONTRACTS_SEPOLIA.EntryPoint,
         category: 'Account Abstraction',
         protocolKey: 'Canonical ERC-4337 v0.7',
         icon: Key,
         isErc20: false,
       },
 
-      // 6. Governance & Authorities
+      // 7. Governance & Authorities
       {
         name: 'TimelockController',
         description: '48-hour timelock controller for multisig governance execution',
@@ -506,7 +534,12 @@ export default function ContractsPage() {
             {directory.directory ? 'Active' : 'Connected'}
           </div>
           <span className="text-[10px] text-muted-foreground font-mono truncate block">
-            {shortAddr(directory.directory || DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory)}
+            {shortAddr(
+              directory.directory ||
+                (isMainnet
+                  ? '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
+                  : DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory),
+            )}
           </span>
         </div>
 
@@ -517,18 +550,28 @@ export default function ContractsPage() {
           </div>
           <div className="text-lg font-bold font-mono text-foreground">100 bps Fee</div>
           <span className="text-[10px] text-muted-foreground font-mono truncate block">
-            {shortAddr(directory.p2pEscrow || DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow)}
+            {shortAddr(
+              directory.p2pEscrow ||
+                (isMainnet
+                  ? '0xa938aacea64be8f41c90960aff232da4df7fc329'
+                  : DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow),
+            )}
           </span>
         </div>
 
         <div className="p-3.5 rounded-xl bg-card border border-border-subtle">
           <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-[11px] font-sans font-semibold">ERC-4337 Paymaster</span>
-            <Flame className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <span className="text-[11px] font-sans font-semibold">SwapAdapter</span>
+            <Repeat className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
           </div>
-          <div className="text-lg font-bold font-mono text-foreground">Gasless AA</div>
+          <div className="text-lg font-bold font-mono text-foreground">Fee 500</div>
           <span className="text-[10px] text-muted-foreground font-mono truncate block">
-            {shortAddr(DEPLOYED_CONTRACTS_SEPOLIA.Paymaster)}
+            {shortAddr(
+              directory.swapAdapter ||
+                (isMainnet
+                  ? '0xaae7104a120e7c6e518a936fcbc102bcd0454b67'
+                  : DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter),
+            )}
           </span>
         </div>
       </div>
