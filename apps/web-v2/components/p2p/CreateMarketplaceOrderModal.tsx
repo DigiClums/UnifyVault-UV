@@ -37,7 +37,7 @@ export function CreateMarketplaceOrderModal({
   const activeChainId = chain?.id || targetChainId;
 
   // Canonical UVBE Address is strictly enforced
-  const canonicalAsset = getCanonicalUVBEAddress();
+  const canonicalAsset = getCanonicalUVBEAddress(activeChainId);
 
   const { createBuyOrder, createSellOrder, isSubmitting, txManager } = useMarketplaceActions();
 

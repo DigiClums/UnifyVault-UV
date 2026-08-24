@@ -14,3 +14,4 @@ export * from './governance';
 export * from './paymaster';
 export * from './strategy';
 export * from './liquidity';
+export * from './stabilizer';

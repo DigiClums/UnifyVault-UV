@@ -16,6 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
   DollarSign,
+  ExternalLink,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 import { prefetchBlockTimestamps } from '../../lib/utils/blockTimestamp';
@@ -478,17 +481,30 @@ export default function PublicTreasuryPage() {
         </button>
 
         {showOnChainDetails && (
-          <div className="mt-3 pt-3 border-t border-border-subtle/60 space-y-2">
-            <div className="flex justify-between text-[11px]">
+          <div className="mt-3 pt-3 border-t border-border-subtle/60 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-[11px]">
               <span className="text-muted-foreground">Treasury Contract</span>
-              <span className="font-mono text-[#5f8f00] dark:text-[#BFFF00] font-bold text-[11px]">
-                {treasuryShort}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="font-mono text-[#5f8f00] dark:text-[#BFFF00] font-bold text-[11px]">
+                  {treasury || '0x57561F781b2f558A7445D2E93a365C03BA2c9B53'}
+                </span>
+                {treasury && (
+                  <a
+                    href={`${explorerBaseUrl}/address/${treasury}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-[#5f8f00] dark:hover:text-[#BFFF00] transition-colors p-0.5"
+                    title="View on Basescan"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-muted-foreground">Network</span>
               <span className="font-mono text-foreground font-semibold">
-                {chain?.name || (chainId === 8453 ? 'Base' : 'Base Sepolia')}
+                {chain?.name || (chainId === 8453 ? 'Base Mainnet' : 'Base Sepolia')}
               </span>
             </div>
           </div>

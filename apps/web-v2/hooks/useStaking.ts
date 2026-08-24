@@ -16,9 +16,9 @@ import {
   REWARD_DISTRIBUTOR_ABI,
   ERC20_ABI,
 } from '../lib/contracts';
-import { DEPLOYED_CONTRACTS_SEPOLIA, TOKENS_BY_CHAIN } from '../constants';
+import { getDeployedContracts, TOKENS_BY_CHAIN, getDefaultChainId } from '../constants';
 import { useTransactionManager } from './useTransactionManager';
-import { baseSepolia } from 'viem/chains';
+import { baseSepolia, base } from 'viem/chains';
 
 export const MIN_STAKE_AMOUNT = 50_000_000_000_000_000_000n; // 50 UVBE
 export const MAX_STAKE_AMOUNT = 100_000_000_000_000_000_000_000n; // 100,000 UVBE
@@ -125,12 +125,15 @@ export function useStaking() {
   const { writeContractAsync } = useWriteContract();
   const txManager = useTransactionManager();
 
-  const tokenAddress = (TOKENS_BY_CHAIN[chain?.id || baseSepolia.id]?.UVBE ||
-    DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken) as Address;
-  const stakingVaultAddress = DEPLOYED_CONTRACTS_SEPOLIA.StakingVault as Address;
-  const registryAddress = DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry as Address;
-  const distributorAddress = DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor as Address;
-  const fallbackGenesisReferrer = DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer as Address;
+  const currentChainId = chain?.id || getDefaultChainId();
+  const deployed = getDeployedContracts(currentChainId);
+
+  const tokenAddress = (TOKENS_BY_CHAIN[currentChainId]?.UVBE || deployed.UVBEToken) as Address;
+  const stakingVaultAddress = (deployed.UVBEStakingVault || deployed.StakingVault) as Address;
+  const registryAddress = (deployed.UVBEReferralRegistry || deployed.ReferralRegistry) as Address;
+  const distributorAddress = (deployed.UVBERewardDistributor ||
+    deployed.RewardDistributor) as Address;
+  const fallbackGenesisReferrer = deployed.GenesisReferrer as Address;
 
   // 1. Batch Read On-Chain State from Deployed Architecture
   const { data, isLoading, isError, refetch } = useReadContracts({

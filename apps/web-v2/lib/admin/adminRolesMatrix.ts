@@ -293,5 +293,120 @@ export function getContractRolesMatrix(
     });
   }
 
+  // 17. UVBEStakingVault
+  if (contracts.UVBEStakingVault) {
+    items.push({
+      contractName: 'UVBEStakingVault',
+      contractAddress: contracts.UVBEStakingVault,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Administers staking vault guardian pause and access roles.',
+    });
+    items.push({
+      contractName: 'UVBEStakingVault',
+      contractAddress: contracts.UVBEStakingVault,
+      roleIdentifier: '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1',
+      roleName: 'GOVERNANCE_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governance role for module configuration.',
+    });
+  }
+
+  // 18. UVBEReferralRegistry
+  if (contracts.UVBEReferralRegistry) {
+    items.push({
+      contractName: 'UVBEReferralRegistry',
+      contractAddress: contracts.UVBEReferralRegistry,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Administers 10-tier referral tree and DAO leader settings.',
+    });
+  }
+
+  // 19. UVBERewardDistributor
+  if (contracts.UVBERewardDistributor) {
+    items.push({
+      contractName: 'UVBERewardDistributor',
+      contractAddress: contracts.UVBERewardDistributor,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Controls dynamic APY and DAO leadership distribution settings.',
+    });
+  }
+
+  // 20. UnifyVaultPaymaster
+  if (contracts.UnifyVaultPaymaster) {
+    items.push({
+      contractName: 'UnifyVaultPaymaster',
+      contractAddress: contracts.UnifyVaultPaymaster,
+      roleIdentifier: 'OWNER',
+      roleName: 'Ownable (2-Step)',
+      accessModel: 'OWNABLE_2STEP',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'ERC-4337 gas sponsorship whitelist and oracle pricing owner.',
+    });
+  }
+
+  // 21. GasTreasury
+  if (contracts.GasTreasury) {
+    items.push({
+      contractName: 'GasTreasury',
+      contractAddress: contracts.GasTreasury,
+      roleIdentifier: 'OWNER',
+      roleName: 'Ownable (2-Step)',
+      accessModel: 'OWNABLE_2STEP',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: 'Governs automated gas refill rate limits and reserve funds.',
+    });
+  }
+
+  // 22. UnifyVaultTimelock
+  if (contracts.UnifyVaultTimelock) {
+    items.push({
+      contractName: 'UnifyVaultTimelock',
+      contractAddress: contracts.UnifyVaultTimelock,
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      roleName: 'DEFAULT_ADMIN_ROLE',
+      accessModel: 'ACCESS_CONTROL',
+      currentAuthority: currentAdmin,
+      newAuthority: newAdmin,
+      isCurrentAuthorityVerified: false,
+      isNewAuthorityVerified: false,
+      status: 'pending',
+      notes: '48-hour timelock administration and proposer authority.',
+    });
+  }
+
   return items;
 }

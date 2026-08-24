@@ -208,7 +208,7 @@ export default function ContractsPage() {
         name: 'UVBEStakingVault',
         description: 'Staking vault backing dynamic APY, referral tiers, and reward engine',
         address: isMainnet
-          ? '0x0000000000000000000000000000000000000000'
+          ? '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571'
           : DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Staking Vault',
@@ -219,7 +219,7 @@ export default function ContractsPage() {
         name: 'UVBEReferralRegistry',
         description: '10-tier immutable referral tree & deterministic rank progression system',
         address: isMainnet
-          ? '0x0000000000000000000000000000000000000000'
+          ? '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e'
           : DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Referral Registry',
@@ -231,7 +231,7 @@ export default function ContractsPage() {
         description:
           'Dynamic APY, 10-tier affiliate commissions & 30-day DAO leadership pool engine',
         address: isMainnet
-          ? '0x0000000000000000000000000000000000000000'
+          ? '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa'
           : DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Reward Distributor',
@@ -270,7 +270,7 @@ export default function ContractsPage() {
         description:
           'Decentralized Bayesian-smoothed trust and reputation engine for P2P buyers and sellers',
         address: isMainnet
-          ? '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6'
+          ? '0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8'
           : DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation,
         category: 'P2P & Escrow',
         protocolKey: 'P2P Trust & Reputation Engine',
@@ -350,7 +350,7 @@ export default function ContractsPage() {
         name: 'UnifyVaultPaymaster',
         description: 'ERC-4337 verifying paymaster for gasless smart account operations',
         address: isMainnet
-          ? '0x0000000000000000000000000000000000000000'
+          ? '0xdf96b619934d17ae85142dcef1655a8d3b19040a'
           : DEPLOYED_CONTRACTS_SEPOLIA.Paymaster,
         category: 'Account Abstraction',
         protocolKey: 'ERC-4337 Verifying Paymaster',
@@ -361,7 +361,7 @@ export default function ContractsPage() {
         name: 'GasTreasury',
         description: 'Automated paymaster refill vault with rate-limited sponsorship protection',
         address: isMainnet
-          ? '0x0000000000000000000000000000000000000000'
+          ? '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424'
           : DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury,
         category: 'Account Abstraction',
         protocolKey: 'Paymaster Gas Reserve',
@@ -385,7 +385,7 @@ export default function ContractsPage() {
         name: 'TimelockController',
         description: '48-hour timelock controller for multisig governance execution',
         address: isMainnet
-          ? '0x9094145Cd2AEA2f309eDf14237444a07edF98d02'
+          ? '0x610c5f66d99993d444561d270fba172db1f7cff1'
           : DEPLOYED_CONTRACTS_SEPOLIA.TimelockController,
         category: 'Governance',
         protocolKey: 'UnifyVaultTimelock (48h)',
@@ -393,13 +393,24 @@ export default function ContractsPage() {
         isErc20: false,
       },
       {
+        name: 'StabilizerVault',
+        description: 'Dynamic liquidity-aware autonomous price stabilization engine (Uniswap V4)',
+        address: isMainnet
+          ? '0xc268709ebb4d3f0f473c6c5767f60e540d330c11'
+          : '0x0000000000000000000000000000000000000000',
+        category: 'Core Vault',
+        protocolKey: 'Uniswap V4 Stabilizer',
+        icon: ShieldCheck,
+        isErc20: false,
+      },
+      {
         name: 'Protocol Admin / SafePal S1',
         description: 'Multi-signature governance and institutional hardware authority',
         address: isMainnet
-          ? '0xe37b77ca9E49C2586365E7394F0F037901eD8A95'
+          ? '0x441dbf8076d0b143EC17199baE94Daa884161454'
           : DEPLOYED_CONTRACTS_SEPOLIA.Admin,
         category: 'Governance',
-        protocolKey: 'Admin / SafePal S1 Authority',
+        protocolKey: 'Admin Authority (0x441d...)',
         icon: UserCheck,
         isErc20: false,
       },

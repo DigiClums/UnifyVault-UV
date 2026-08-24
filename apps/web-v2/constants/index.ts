@@ -186,7 +186,31 @@ export const DEPLOYED_CONTRACTS_MAINNET = {
   Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET
     : '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6') as `0x${string}`,
+  UnifyVaultTimelock: '0x610c5f66d99993d444561d270fba172db1f7cff1' as `0x${string}`,
+  TimelockController: '0x610c5f66d99993d444561d270fba172db1f7cff1' as `0x${string}`,
+  StakingVault: '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571' as `0x${string}`,
+  UVBEStakingVault: '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571' as `0x${string}`,
+  ReferralRegistry: '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e' as `0x${string}`,
+  UVBEReferralRegistry: '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e' as `0x${string}`,
+  RewardDistributor: '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa' as `0x${string}`,
+  UVBERewardDistributor: '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa' as `0x${string}`,
+  P2PReputation: '0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8' as `0x${string}`,
+  Paymaster: '0xdf96b619934d17ae85142dcef1655a8d3b19040a' as `0x${string}`,
+  UnifyVaultPaymaster: '0xdf96b619934d17ae85142dcef1655a8d3b19040a' as `0x${string}`,
+  GasTreasury: '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424' as `0x${string}`,
+  EntryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032' as `0x${string}`,
+  Admin: '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`,
+  GenesisReferrer: '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`,
+  StabilizerVault: '0xc268709ebb4d3f0f473c6c5767f60e540d330c11' as `0x${string}`,
 };
+
+export function getDeployedContracts(chainId?: number) {
+  const targetChain = chainId || getDefaultChainId();
+  if (targetChain === base.id) {
+    return DEPLOYED_CONTRACTS_MAINNET;
+  }
+  return DEPLOYED_CONTRACTS_SEPOLIA;
+}
 
 // Safety Invariant Check: Base Mainnet Controller must strictly resolve to 0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366
 export const CANONICAL_MAINNET_CONTROLLER = '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as const;
@@ -217,6 +241,8 @@ export const TOKENS_BY_CHAIN: Record<
     USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
     WETH: '0x4200000000000000000000000000000000000006',
+    UVBE: DEPLOYED_CONTRACTS_MAINNET.UVBEToken,
+    UVBTCETH: DEPLOYED_CONTRACTS_MAINNET.UVBEToken,
   },
   [baseSepolia.id]: {
     USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',

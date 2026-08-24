@@ -10,8 +10,9 @@ import {
   LIQUIDITY_MANAGER_ABI,
   UNIFY_VAULT_PAYMASTER_ABI,
   GAS_TREASURY_ABI,
+  STABILIZER_VAULT_ABI,
 } from '../../../lib/contracts';
-import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../../constants';
+import { getChainTokens, getDefaultChainId, getDeployedContracts } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { TableCard } from '../../../components/ui/TableCard';
@@ -31,6 +32,8 @@ import {
   Sliders,
   Droplets,
   PieChart,
+  Gauge,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AdminMonitoringPage() {
@@ -38,20 +41,28 @@ export default function AdminMonitoringPage() {
   const activeChainId = chain?.id || getDefaultChainId();
   const chainName = chain?.name || (activeChainId === 8453 ? 'Base Mainnet' : 'Base Sepolia');
   const tokens = getChainTokens(activeChainId);
+  const deployedContracts = getDeployedContracts(activeChainId);
   const publicClient = usePublicClient({ chainId: activeChainId });
 
   const { data: blockNumber, isError: isBlockError } = useBlockNumber();
   const { data: gasPrice } = useGasPrice();
   const { oracle, controller, vault, treasury } = useProtocolDirectory();
 
-  const oracleManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.OracleManager;
-  const chainlinkProviderAddress = DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider;
-  const strategyManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager;
-  const liquidityManagerAddress = DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager;
-  const paymasterAddress = DEPLOYED_CONTRACTS_SEPOLIA.Paymaster;
-  const gasTreasuryAddress = DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury;
+  const oracleManagerAddress = (deployedContracts.OracleManager || oracle) as `0x${string}`;
+  const strategyManagerAddress = (deployedContracts.StrategyManager ||
+    '0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a') as `0x${string}`;
+  const liquidityManagerAddress = (deployedContracts.LiquidityManager ||
+    '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3') as `0x${string}`;
+  const paymasterAddress = (deployedContracts.Paymaster ||
+    '0xdf96b619934d17ae85142dcef1655a8d3b19040a') as `0x${string}`;
+  const gasTreasuryAddress = (deployedContracts.GasTreasury ||
+    '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424') as `0x${string}`;
+  const stabilizerVaultAddress = (deployedContracts.StabilizerVault ||
+    '0xc268709ebb4d3f0f473c6c5767f60e540d330c11') as `0x${string}`;
 
   const [gasTreasuryEthBal, setGasTreasuryEthBal] = useState<bigint>(0n);
+  const [stabilizerUsdcBal, setStabilizerUsdcBal] = useState<bigint>(0n);
+  const [stabilizerUvbeBal, setStabilizerUvbeBal] = useState<bigint>(0n);
 
   const {
     data: contractReads,
@@ -128,6 +139,26 @@ export default function AdminMonitoringPage() {
       { address: paymasterAddress, abi: UNIFY_VAULT_PAYMASTER_ABI, functionName: 'getDeposit' },
       // 12: Gas Treasury isPaused
       { address: gasTreasuryAddress, abi: GAS_TREASURY_ABI, functionName: 'isPaused' },
+      // 13: Stabilizer isPaused
+      { address: stabilizerVaultAddress, abi: STABILIZER_VAULT_ABI, functionName: 'paused' },
+      // 14: Stabilizer daily exposure accumulator
+      {
+        address: stabilizerVaultAddress,
+        abi: STABILIZER_VAULT_ABI,
+        functionName: 'dailyExposureAccumulator',
+      },
+      // 15: Stabilizer last timestamp
+      {
+        address: stabilizerVaultAddress,
+        abi: STABILIZER_VAULT_ABI,
+        functionName: 'lastStabilizeTimestamp',
+      },
+      // 16: Stabilizer max daily limit
+      {
+        address: stabilizerVaultAddress,
+        abi: STABILIZER_VAULT_ABI,
+        functionName: 'maxDailyExposureUsdc',
+      },
     ],
     query: {
       staleTime: 15_000,
@@ -135,19 +166,55 @@ export default function AdminMonitoringPage() {
     },
   });
 
-  const fetchTreasuryBalance = useCallback(async () => {
-    if (!publicClient || !gasTreasuryAddress) return;
+  const fetchBalances = useCallback(async () => {
+    if (!publicClient) return;
     try {
-      const bal = await publicClient.getBalance({ address: gasTreasuryAddress });
-      setGasTreasuryEthBal(bal);
+      if (gasTreasuryAddress) {
+        const bal = await publicClient.getBalance({ address: gasTreasuryAddress });
+        setGasTreasuryEthBal(bal);
+      }
+      if (stabilizerVaultAddress && tokens.USDC) {
+        const usdcBal = await publicClient.readContract({
+          address: tokens.USDC,
+          abi: [
+            {
+              name: 'balanceOf',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }],
+            },
+          ],
+          functionName: 'balanceOf',
+          args: [stabilizerVaultAddress],
+        });
+        setStabilizerUsdcBal(usdcBal as bigint);
+      }
+      if (stabilizerVaultAddress && tokens.UVBE) {
+        const uvbeBal = await publicClient.readContract({
+          address: tokens.UVBE,
+          abi: [
+            {
+              name: 'balanceOf',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }],
+            },
+          ],
+          functionName: 'balanceOf',
+          args: [stabilizerVaultAddress],
+        });
+        setStabilizerUvbeBal(uvbeBal as bigint);
+      }
     } catch {
       // Ignore balance fetch failure
     }
-  }, [publicClient, gasTreasuryAddress]);
+  }, [publicClient, gasTreasuryAddress, stabilizerVaultAddress, tokens.USDC, tokens.UVBE]);
 
   useEffect(() => {
-    fetchTreasuryBalance();
-  }, [fetchTreasuryBalance]);
+    fetchBalances();
+  }, [fetchBalances]);
 
   const btcPriceRaw = (contractReads?.[0]?.result as bigint) || 0n;
   const ethPriceRaw = (contractReads?.[1]?.result as bigint) || 0n;
@@ -176,6 +243,10 @@ export default function AdminMonitoringPage() {
   const isPaymasterPaused = Boolean(contractReads?.[10]?.result);
   const paymasterDeposit = (contractReads?.[11]?.result as bigint) || 0n;
   const isTreasuryPaused = Boolean(contractReads?.[12]?.result);
+  const isStabilizerPaused = Boolean(contractReads?.[13]?.result);
+  const stabilizerDailyExposure = (contractReads?.[14]?.result as bigint) || 0n;
+  const stabilizerLastTimestamp = (contractReads?.[15]?.result as bigint) || 0n;
+  const stabilizerMaxDaily = (contractReads?.[16]?.result as bigint) || 500000000n; // 500 USDC
 
   const isOracleHealthy =
     btcFresh && ethFresh && usdcFresh && btcPriceRaw > 0n && ethPriceRaw > 0n && usdcPriceRaw > 0n;
@@ -196,10 +267,11 @@ export default function AdminMonitoringPage() {
     rpcHealthy &&
     !isReadError &&
     !isPaymasterPaused &&
-    !isTreasuryPaused;
+    !isTreasuryPaused &&
+    !isStabilizerPaused;
 
   const handleRefresh = async () => {
-    await Promise.all([refetch(), fetchTreasuryBalance()]);
+    await Promise.all([refetch(), fetchBalances()]);
   };
 
   return (
@@ -376,9 +448,121 @@ export default function AdminMonitoringPage() {
                 Reserve: {Number(formatEther(gasTreasuryEthBal)).toFixed(4)} ETH
               </td>
             </tr>
+
+            {/* StabilizerVault */}
+            <tr className="hover:bg-card/40 transition-colors">
+              <td className="py-3.5 px-4 font-sans font-bold text-foreground flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-[#BFFF00]" />
+                <span>StabilizerVault (Uniswap V4 Peg Engine)</span>
+              </td>
+              <td className="py-3.5 px-4 text-muted-foreground">
+                {shortAddr(stabilizerVaultAddress)}
+              </td>
+              <td className="py-3.5 px-4 font-sans">
+                <StatusBadge
+                  status={isStabilizerPaused ? 'Paused' : 'Healthy'}
+                  label={isStabilizerPaused ? 'PAUSED' : 'HEALTHY & ARMED'}
+                />
+              </td>
+              <td className="py-3.5 px-4 text-right font-sans text-muted-foreground">
+                Inventory: {(Number(stabilizerUsdcBal) / 1e6).toFixed(2)} USDC |{' '}
+                {(Number(stabilizerUvbeBal) / 1e18).toFixed(2)} UVBE
+              </td>
+            </tr>
           </tbody>
         </table>
       </TableCard>
+
+      {/* Dedicated Stabilizer Telemetry & Health Console */}
+      <div className="p-6 rounded-2xl bg-black border-2 border-white/10 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/20 text-[#BFFF00]">
+              <Gauge className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm text-white">
+                Autonomous Price Stabilizer Telemetry (Uniswap V4)
+              </h2>
+              <p className="text-xs text-white/60">
+                Live liquidity-aware dynamic price peg controller bounded by hard limits.
+              </p>
+            </div>
+          </div>
+          <a
+            href={`https://basescan.org/address/${stabilizerVaultAddress}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs font-mono text-[#BFFF00] hover:underline flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>{shortAddr(stabilizerVaultAddress)}</span>
+            <ExternalLink className="w-3 h-3 ml-0.5" />
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Status */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
+            <span className="text-[11px] text-white/50 font-semibold uppercase tracking-wider">
+              Operational State
+            </span>
+            <div className="flex items-center space-x-2 pt-1">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${isStabilizerPaused ? 'bg-rose-500' : 'bg-emerald-400 animate-pulse'}`}
+              />
+              <span className="font-bold text-sm text-white">
+                {isStabilizerPaused ? 'Paused / Halted' : 'Active & Guarded'}
+              </span>
+            </div>
+            <p className="text-[11px] text-white/40">50 BPS Min Threshold | 200 BPS Halt</p>
+          </div>
+
+          {/* Card 2: USDC Inventory */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
+            <span className="text-[11px] text-white/50 font-semibold uppercase tracking-wider">
+              Vault USDC Inventory
+            </span>
+            <div className="font-bold text-base text-white pt-1 font-mono">
+              {(Number(stabilizerUsdcBal) / 1e6).toFixed(2)}{' '}
+              <span className="text-xs text-white/50">USDC</span>
+            </div>
+            <p className="text-[11px] text-white/40">Used for Buybacks on Discount</p>
+          </div>
+
+          {/* Card 3: UVBE Inventory */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
+            <span className="text-[11px] text-white/50 font-semibold uppercase tracking-wider">
+              Vault UVBE Inventory
+            </span>
+            <div className="font-bold text-base text-white pt-1 font-mono">
+              {(Number(stabilizerUvbeBal) / 1e18).toFixed(2)}{' '}
+              <span className="text-xs text-white/50">UVBE</span>
+            </div>
+            <p className="text-[11px] text-white/40">Used for Sales on Premium</p>
+          </div>
+
+          {/* Card 4: Daily Exposure */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1">
+            <span className="text-[11px] text-white/50 font-semibold uppercase tracking-wider">
+              24h Daily Exposure
+            </span>
+            <div className="font-bold text-base text-white pt-1 font-mono">
+              ${(Number(stabilizerDailyExposure) / 1e6).toFixed(2)}{' '}
+              <span className="text-xs text-white/50">
+                / ${(Number(stabilizerMaxDaily) / 1e6).toFixed(0)}
+              </span>
+            </div>
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1">
+              <div
+                className="bg-[#BFFF00] h-full transition-all"
+                style={{
+                  width: `${Math.min(100, Number(stabilizerMaxDaily) > 0 ? (Number(stabilizerDailyExposure) / Number(stabilizerMaxDaily)) * 100 : 0)}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

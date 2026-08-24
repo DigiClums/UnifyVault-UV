@@ -65,4 +65,5 @@ library Errors {
   error TradeDoesNotExist(uint256 tradeId);
   error UnauthorizedDisputeResolver(address caller);
   error PaymentReferenceAlreadyUsed(bytes32 paymentReference);
+  error AssetHasCustodyBalance(address asset, uint256 actualBalance, uint256 accountedBalance);
 }

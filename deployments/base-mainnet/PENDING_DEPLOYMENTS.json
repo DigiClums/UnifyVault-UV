@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "manifestVersion": 6,
+  "chainId": 8453,
+  "network": "Base Mainnet",
+  "protocolVersion": "2.0.0",
+  "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "governance": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "timestamp": "2026-08-24T13:46:00Z",
+  "liveContracts": {
+    "ProtocolDirectory": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+    "UnifyVaultController": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
+    "CustodyVault": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
+    "Treasury": "0x57561F781b2f558A7445D2E93a365C03BA2c9B53",
+    "OracleManager": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
+    "StrategyManager": "0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a",
+    "PortfolioManager": "0x66182f56bd5e523c655f6890290ab519f528e83f",
+    "UVBEToken": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+    "SwapAdapter": "0xaae7104a120e7c6e518a936fcbc102bcd0454b67",
+    "LiquidityManager": "0x9af86a9ac1563b7fdbf43b19335348240a8c16d3",
+    "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
+    "PerformanceManager": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
+    "FeeManager": "0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881",
+    "ChainlinkOracleProvider": "0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E",
+    "P2PEscrowV2": "0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329",
+    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6"
+  },
+  "pendingDeploymentCategories": {
+    "CATEGORY_1_GOVERNANCE_TIMELOCK": {
+      "name": "Governance 48-Hour Timelock",
+      "priority": "HIGH",
+      "contracts": [
+        {
+          "contract": "UnifyVaultTimelock",
+          "source": "packages/protocol/src/governance/UnifyVaultTimelock.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "minDelay": 172800,
+            "proposers": ["0x441dbf8076d0b143EC17199baE94Daa884161454"],
+            "executors": ["0x0000000000000000000000000000000000000000"],
+            "admin": "0x441dbf8076d0b143EC17199baE94Daa884161454"
+          },
+          "simulationVerified": true
+        }
+      ]
+    },
+    "CATEGORY_2_STAKING_AND_REFERRALS": {
+      "name": "UVBE Staking, Referral & Reward Engine",
+      "priority": "HIGH",
+      "contracts": [
+        {
+          "contract": "UVBEStakingVault",
+          "source": "packages/protocol/src/staking/UVBEStakingVault.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "admin": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+            "tokenAddress": "0xd2715141a0f5998b707baa963990bfc2e94cf145"
+          }
+        },
+        {
+          "contract": "UVBEReferralRegistry",
+          "source": "packages/protocol/src/staking/UVBEReferralRegistry.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "admin": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+            "genesisRoot": "0x441dbf8076d0b143EC17199baE94Daa884161454"
+          }
+        },
+        {
+          "contract": "UVBERewardDistributor",
+          "source": "packages/protocol/src/staking/UVBERewardDistributor.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "admin": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+            "tokenAddress": "0xd2715141a0f5998b707baa963990bfc2e94cf145"
+          }
+        }
+      ],
+      "postDeploymentSetup": [
+        "UVBEStakingVault.setModules(UVBEReferralRegistry, UVBERewardDistributor)",
+        "UVBEReferralRegistry.setModules(UVBEStakingVault, UVBERewardDistributor)",
+        "UVBERewardDistributor.setModules(UVBEStakingVault, UVBEReferralRegistry)"
+      ],
+      "simulationVerified": true
+    },
+    "CATEGORY_3_P2P_REPUTATION": {
+      "name": "On-Chain P2P Trust & Reputation Engine",
+      "priority": "HIGH",
+      "contracts": [
+        {
+          "contract": "P2PReputation",
+          "source": "packages/protocol/src/reputation/P2PReputation.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "p2pEscrow": "0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329"
+          },
+          "simulationVerified": true
+        }
+      ]
+    },
+    "CATEGORY_4_ACCOUNT_ABSTRACTION_GASLESS": {
+      "name": "ERC-4337 v0.7 Gasless Sponsorship Infrastructure",
+      "priority": "HIGH",
+      "contracts": [
+        {
+          "contract": "UnifyVaultPaymaster",
+          "source": "packages/protocol/src/aa/UnifyVaultPaymaster.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "_entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+            "_owner": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+            "_verifyingSigner": "0x0000000000000000000000000000000000000000",
+            "_maxCostPerUserOp": "50000000000000000"
+          },
+          "postDeploymentSetup": [
+            "paymaster.setApprovedTarget(USDC, true)",
+            "paymaster.setApprovedTarget(CONTROLLER, true)",
+            "paymaster.setApprovedTarget(UVBE_TOKEN, true)",
+            "paymaster.setApprovedTarget(P2P_ESCROW_V2, true)"
+          ],
+          "simulationVerified": true
+        },
+        {
+          "contract": "GasTreasury",
+          "source": "packages/protocol/src/aa/GasTreasury.sol",
+          "status": "PENDING_DEPLOYMENT",
+          "constructorArgs": {
+            "_owner": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+            "_refillOperator": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+            "_paymaster": "UnifyVaultPaymaster",
+            "_maxRefillPerTx": "500000000000000000",
+            "_dailyRefillLimit": "2000000000000000000"
+          },
+          "simulationVerified": true
+        }
+      ]
+    }
+  }
+}

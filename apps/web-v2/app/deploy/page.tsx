@@ -12,6 +12,7 @@ import {
   Step12StandaloneCard,
 } from '../../components/deployment/AdminSecurityMigrationCard';
 import { SwapAdapterUpgradeCard } from '../../components/deployment/SwapAdapterUpgradeCard';
+import { PendingContractsDeployCard } from '../../components/deployment/PendingContractsDeployCard';
 import {
   Layers,
   FileCheck2,
@@ -30,8 +31,15 @@ import {
 
 export default function DeployPage() {
   const [activeTab, setActiveTab] = useState<
-    'swapAdapter' | 'step12' | 'deploy' | 'pipeline' | 'manifest' | 'verification' | 'admin'
-  >('swapAdapter');
+    | 'pending'
+    | 'swapAdapter'
+    | 'step12'
+    | 'deploy'
+    | 'pipeline'
+    | 'manifest'
+    | 'verification'
+    | 'admin'
+  >('pending');
 
   const {
     address,
@@ -129,6 +137,18 @@ export default function DeployPage() {
           {/* Navigation Tabs */}
           <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-black dark:bg-[#151515] border-2 border-black dark:border-white/10 shrink-0 overflow-x-auto">
             <button
+              onClick={() => setActiveTab('pending')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'pending'
+                  ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Pending Contracts</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('swapAdapter')}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'swapAdapter'
@@ -136,7 +156,7 @@ export default function DeployPage() {
                   : 'text-white/70 hover:text-white'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Rocket className="w-3.5 h-3.5" />
               <span>SwapAdapter Upgrade</span>
             </button>
 
@@ -224,6 +244,13 @@ export default function DeployPage() {
         onSwitchNetwork={handleSwitchNetwork}
         chainId={chainId}
       />
+
+      {/* Tab -1: Pending Contracts Deployment Suite */}
+      {activeTab === 'pending' && (
+        <div className="space-y-6">
+          <PendingContractsDeployCard chainId={chainId} />
+        </div>
+      )}
 
       {/* Tab 0: SwapAdapter Upgrade (Phase D) */}
       {activeTab === 'swapAdapter' && (

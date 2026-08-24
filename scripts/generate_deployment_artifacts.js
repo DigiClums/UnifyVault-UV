@@ -18,6 +18,14 @@ const CONTRACT_NAMES = [
   'P2PEscrowV2',
   'PerformanceManager',
   'Marketplace',
+  'UnifyVaultTimelock',
+  'UVBEStakingVault',
+  'UVBEReferralRegistry',
+  'UVBERewardDistributor',
+  'P2PReputation',
+  'UnifyVaultPaymaster',
+  'GasTreasury',
+  'StabilizerVault',
 ];
 
 const PROTOCOL_OUT_DIR = path.resolve(__dirname, '../packages/protocol/out');

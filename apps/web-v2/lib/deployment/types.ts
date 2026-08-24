@@ -27,6 +27,13 @@ export interface DeployedContractsMap {
   P2PEscrowV2?: `0x${string}`;
   PerformanceManager?: `0x${string}`;
   Marketplace?: `0x${string}`;
+  UnifyVaultTimelock?: `0x${string}`;
+  UVBEStakingVault?: `0x${string}`;
+  UVBEReferralRegistry?: `0x${string}`;
+  UVBERewardDistributor?: `0x${string}`;
+  P2PReputation?: `0x${string}`;
+  UnifyVaultPaymaster?: `0x${string}`;
+  GasTreasury?: `0x${string}`;
 }
 
 export interface DeploymentContext {

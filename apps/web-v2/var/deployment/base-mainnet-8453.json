@@ -24,7 +24,14 @@
     "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
     "PerformanceManager": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
     "P2PEscrowV2": "0xa938aacea64be8f41c90960aff232da4df7fc329",
-    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6"
+    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6",
+    "UnifyVaultTimelock": "0x610c5f66d99993d444561d270fba172db1f7cff1",
+    "UVBEStakingVault": "0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571",
+    "UVBEReferralRegistry": "0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e",
+    "UVBERewardDistributor": "0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa",
+    "P2PReputation": "0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8",
+    "UnifyVaultPaymaster": "0xdf96b619934d17ae85142dcef1655a8d3b19040a",
+    "GasTreasury": "0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424"
   },
   "stepRecords": {
     "12": {
