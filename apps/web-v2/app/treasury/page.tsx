@@ -8,6 +8,7 @@ import { getChainTokens, getExplorerBaseUrl, getDefaultChainId } from '../../con
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
 import { formatUSD } from '../../lib/math';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { TokenIcon } from '../../components/ui/TokenIcon';
 import {
   ArrowUpRight,
   ShieldCheck,
@@ -431,14 +432,7 @@ export default function PublicTreasuryPage() {
               className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
             >
               <div className="flex items-center space-x-2.5 min-w-0">
-                <div
-                  className={cn(
-                    'w-7 h-7 rounded-full border flex items-center justify-center font-extrabold text-[10px] shrink-0',
-                    asset.iconBg,
-                  )}
-                >
-                  {asset.iconLabel}
-                </div>
+                <TokenIcon symbol={asset.symbol} size={28} />
                 <div className="min-w-0">
                   <span className="text-sm font-semibold text-foreground">{asset.symbol}</span>
                 </div>

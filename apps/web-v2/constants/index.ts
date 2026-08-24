@@ -1,11 +1,11 @@
 import { base, baseSepolia } from 'viem/chains';
 
 /**
- * Base Chain Configuration for Mainnet and Testnet
+ * Base Chain Configuration for Mainnet
  */
-export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base-sepolia';
+export const ACTIVE_CHAIN_NAME = process.env.NEXT_PUBLIC_ACTIVE_CHAIN || 'base';
 
-export const CHAIN_CONFIG = getDefaultChainId() === base.id ? base : baseSepolia;
+export const CHAIN_CONFIG = base;
 
 export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'https://app.unifyvault.xyz';
 
@@ -15,12 +15,6 @@ export const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'https://app.uni
 export const DEFAULT_P2P_FIAT_CURRENCY = 'INR';
 
 export function getDefaultChainId(): number {
-  if (
-    process.env.NEXT_PUBLIC_ACTIVE_CHAIN === 'base-sepolia' ||
-    process.env.NEXT_PUBLIC_ACTIVE_CHAIN === '84532'
-  ) {
-    return baseSepolia.id;
-  }
   return base.id;
 }
 

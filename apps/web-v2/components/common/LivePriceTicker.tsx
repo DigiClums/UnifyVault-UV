@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
+import { TokenIcon } from '../ui/TokenIcon';
+
 export function LivePriceTicker() {
   const livePrices = useLivePrices();
   const [secondsAgo, setSecondsAgo] = useState(0);
@@ -114,6 +116,7 @@ export function LivePriceTicker() {
                 'border-rose-500/60 bg-rose-500/10 text-rose-700 dark:text-rose-400 scale-[1.02]',
             )}
           >
+            <TokenIcon symbol="BTC" size={14} />
             <span className="font-bold text-[#5f8f00] dark:text-[#BFFF00]">BTC</span>
             <span className="font-semibold text-slate-900 dark:text-white">
               {formatUSD(livePrices.btcPriceUSD)}
@@ -136,6 +139,7 @@ export function LivePriceTicker() {
                 'border-rose-500/60 bg-rose-500/10 text-rose-700 dark:text-rose-400 scale-[1.02]',
             )}
           >
+            <TokenIcon symbol="ETH" size={14} />
             <span className="font-bold text-slate-700 dark:text-slate-300">ETH</span>
             <span className="font-semibold text-slate-900 dark:text-white">
               {formatUSD(livePrices.ethPriceUSD)}
@@ -149,7 +153,8 @@ export function LivePriceTicker() {
           </div>
 
           {/* USDC Peg Badge */}
-          <div className="flex items-center space-x-1 px-2 py-0.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hidden md:flex">
+          <div className="flex items-center space-x-1.5 px-2 py-0.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hidden md:flex">
+            <TokenIcon symbol="USDC" size={14} />
             <span className="font-bold text-muted-foreground">USDC</span>
             <span className="font-semibold">$1.00</span>
           </div>

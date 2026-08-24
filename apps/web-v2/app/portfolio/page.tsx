@@ -1,14 +1,21 @@
 'use client';
 
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useAccount } from 'wagmi';
 import { useDashboard } from '../../hooks/useDashboard';
 import { PortfolioAnalyticsCard } from '../../components/dashboard/PortfolioAnalyticsCard';
 import { HoldingsTable } from '../../components/portfolio/HoldingsTable';
-import { NavDebugLogger } from '../../components/dashboard/NavDebugLogger';
 import { getDefaultChainId } from '../../constants';
 import { base } from 'viem/chains';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  LayoutDashboard,
+  LineChart,
+  PieChart,
+  ShieldCheck,
+} from 'lucide-react';
 
 const HistoricalNavChart = dynamic(
   () =>
@@ -35,192 +42,227 @@ const AllocationChart = dynamic(
   },
 );
 
+type PortfolioTab = 'overview' | 'chart' | 'reserves' | 'analytics';
+
 export default function PortfolioPage() {
   const metrics = useDashboard();
   const { chain } = useAccount();
   const currentChainId = chain?.id || getDefaultChainId();
   const networkName = currentChainId === base.id ? 'Base Mainnet' : 'Base Sepolia';
+  const [activeTab, setActiveTab] = useState<PortfolioTab>('overview');
 
   return (
-    <div className="space-y-3 sm:space-y-6 pt-1 pb-6 sm:py-2">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-base sm:text-xl font-bold text-foreground tracking-tight">
-            Personal Portfolio
-          </h1>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-            {networkName} · Holdings, cost basis & performance
-          </p>
-        </div>
-        <div className="flex items-center space-x-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
-          <span className="hidden sm:inline">{networkName} Live</span>
-          <span className="sm:hidden">Live</span>
-        </div>
+    <div className="space-y-4 max-w-6xl mx-auto pb-8">
+      {/* ── Mobile Compact Segment Selector (Zero Scroll Experience) ── */}
+      <div className="md:hidden flex items-center p-1 bg-slate-200 dark:bg-black/80 rounded-2xl border-2 border-black dark:border-white/15 overflow-x-auto no-scrollbar shadow-[2px_2px_0_#000] gap-1">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`flex-1 min-w-[75px] py-2 px-2 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
+            activeTab === 'overview'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          <span>Overview</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('chart')}
+          className={`flex-1 min-w-[75px] py-2 px-2 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
+            activeTab === 'chart'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <LineChart className="w-3.5 h-3.5" />
+          <span>Chart</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('reserves')}
+          className={`flex-1 min-w-[75px] py-2 px-2 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
+            activeTab === 'reserves'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <PieChart className="w-3.5 h-3.5" />
+          <span>Reserves</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`flex-1 min-w-[75px] py-2 px-2 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
+            activeTab === 'analytics'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Audit</span>
+        </button>
       </div>
 
-      {/* ── Position Value Hero ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-card border-2 border-black dark:border-white/15 px-4 py-3.5 sm:px-6 sm:py-5 shadow-[4px_4px_0_#BFFF00]">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#BFFF00]/60 to-transparent" />
+      {/* ── 1. Position Value Hero Card (Always Visible on Overview / Desktop) ── */}
+      <div className={`${activeTab === 'overview' ? 'block' : 'hidden md:block'}`}>
+        <div className="relative overflow-hidden rounded-3xl bg-card border-2 border-black dark:border-white/15 p-4 sm:p-7 shadow-[5px_5px_0_#BFFF00] text-foreground">
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-[#BFFF00]" />
 
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-              Position Value
-            </span>
-            <span
-              className={`inline-flex items-center space-x-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${
-                metrics.isLiveSynced !== false
-                  ? 'bg-[#BFFF00] text-black border-black'
-                  : 'bg-muted text-muted-foreground border-border-subtle'
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  metrics.isLiveSynced !== false ? 'bg-black animate-pulse' : 'bg-white/30'
-                }`}
-              />
-              <span>{metrics.isLiveSynced !== false ? 'LIVE' : 'ON-CHAIN'}</span>
-            </span>
-          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                  Vault Net Value
+                </span>
+                <span
+                  className={`inline-flex items-center space-x-1 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    metrics.isLiveSynced !== false
+                      ? 'bg-[#BFFF00] text-black border-black'
+                      : 'bg-muted text-muted-foreground border-border-subtle'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      metrics.isLiveSynced !== false ? 'bg-black animate-pulse' : 'bg-white/30'
+                    }`}
+                  />
+                  <span>{metrics.isLiveSynced !== false ? 'LIVE SYNCED' : 'ON-CHAIN'}</span>
+                </span>
+              </div>
 
-          <div className="text-[10px] sm:text-[11px] font-mono text-muted-foreground flex items-center space-x-1">
-            <span>Vault TVL:</span>
-            <span className="font-bold text-foreground font-mono">
-              {metrics.totalPortfolioValueUSD}
-            </span>
-          </div>
-        </div>
+              {/* Position USD Value */}
+              <div className="mt-1.5 text-3xl sm:text-5xl lg:text-6xl font-black text-foreground tracking-tight font-mono">
+                {metrics.isLoading ? (
+                  <div className="h-10 w-40 bg-muted rounded-xl animate-pulse" />
+                ) : (
+                  metrics.currentValueUSD
+                )}
+              </div>
 
-        <div className="mb-1">
-          {metrics.isLoading ? (
-            <div className="h-9 w-40 bg-white/10 rounded animate-pulse" />
-          ) : (
-            <div className="text-[30px] sm:text-[38px] lg:text-[44px] font-black text-slate-950 dark:text-white tracking-tight font-mono leading-tight">
-              {metrics.currentValueUSD}
+              {/* PnL & Stats */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-mono">
+                {!metrics.isLoading && (
+                  <div
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold ${
+                      metrics.isProfitable
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30'
+                        : 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30'
+                    }`}
+                  >
+                    {metrics.isProfitable ? (
+                      <TrendingUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <TrendingDown className="w-3.5 h-3.5" />
+                    )}
+                    <span>{metrics.pnlUSD}</span>
+                    <span className="opacity-70">({metrics.pnlPercentage})</span>
+                  </div>
+                )}
+
+                {metrics.userSharesBalance && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-foreground/80 border border-black/10 dark:border-white/10 font-bold">
+                    <span>{metrics.userSharesBalance}</span>
+                    <span className="text-muted-foreground font-normal">UVBE</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-          {!metrics.isLoading && (
-            <span
-              className={`inline-flex items-center space-x-1 text-[11px] font-bold font-mono ${
-                metrics.isProfitable
-                  ? 'text-[#5f8f00] dark:text-[#BFFF00]'
-                  : 'text-rose-500 dark:text-rose-400'
-              }`}
-            >
-              {metrics.isProfitable ? (
-                <TrendingUp className="w-3 h-3" />
-              ) : (
-                <TrendingDown className="w-3 h-3" />
-              )}
-              <span>{metrics.pnlUSD}</span>
-              <span className="opacity-80">({metrics.pnlPercentage})</span>
-            </span>
-          )}
-          {metrics.userSharesBalance && (
-            <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-              {metrics.userSharesBalance}{' '}
-              <span className="text-slate-400 dark:text-white/30">Vault UVBE</span>
-            </span>
-          )}
-          {metrics.hasP2PShares && metrics.p2pTrading && (
-            <a
-              href="/p2p"
-              className="inline-flex items-center space-x-1 text-[10px] font-mono font-bold text-[#5f8f00] dark:text-[#BFFF00] bg-[#BFFF00]/10 hover:bg-[#BFFF00]/20 px-2 py-0.5 rounded border border-[#BFFF00]/30 transition-colors"
-            >
-              <span>+{metrics.p2pTrading.activeP2PSharesFormatted} P2P UVBE</span>
-              <span className="text-[8px]">→</span>
-            </a>
-          )}
-        </div>
-      </div>
+            {/* Quick Action Buttons for Portfolio */}
+            <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
+              <a
+                href="/deposit"
+                className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs hover:bg-[#a6df00] transition-all border-2 border-black shadow-[2px_2px_0_#000] active:scale-95"
+              >
+                + Deposit
+              </a>
+              <a
+                href="/redeem"
+                className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 text-foreground font-black text-xs hover:bg-slate-200 dark:hover:bg-white/10 transition-all border-2 border-black dark:border-white/15 shadow-[2px_2px_0_rgba(0,0,0,0.85)] active:scale-95"
+              >
+                Redeem
+              </a>
+            </div>
+          </div>
 
-      {/* ── Quick Stats Row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
-          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            Current UVBE Price
-          </span>
-          <div className="mt-0.5 text-xs sm:text-base font-bold text-foreground font-mono tracking-tight truncate">
-            {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
-            ) : (
-              metrics.sharePriceUSD
-            )}
-          </div>
-        </div>
-        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
-          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            Cost Basis
-          </span>
-          <div className="mt-0.5 text-xs sm:text-base font-bold text-foreground font-mono tracking-tight truncate">
-            {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
-            ) : (
-              metrics.investedAssetsUSD
-            )}
-          </div>
-        </div>
-        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
-          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            PNL
-          </span>
-          <div className="mt-0.5 text-xs sm:text-base font-bold font-mono tracking-tight truncate">
-            {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
-            ) : (
-              <span
-                className={
-                  metrics.isProfitable
-                    ? 'text-[#5f8f00] dark:text-[#BFFF00]'
-                    : 'text-rose-600 dark:text-rose-400'
-                }
-              >
-                {metrics.pnlUSD}
+          {/* ── 4 KEY METRIC TILES ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-4 border-t border-border">
+            <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-border">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                UV Price
               </span>
-            )}
-          </div>
-        </div>
-        <div className="rounded-xl bg-card border border-border-subtle px-2.5 py-2 sm:px-4 sm:py-3">
-          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
-            Return
-          </span>
-          <div className="mt-0.5 text-xs sm:text-base font-bold font-mono tracking-tight truncate">
-            {metrics.isLoading ? (
-              <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
-            ) : (
-              <span
-                className={
-                  metrics.isProfitable
-                    ? 'text-[#5f8f00] dark:text-[#BFFF00]'
-                    : 'text-rose-600 dark:text-rose-400'
-                }
-              >
-                {metrics.pnlPercentage}
+              <div className="mt-0.5 text-xs sm:text-base font-black text-foreground font-mono truncate">
+                {metrics.isLoading ? (
+                  <div className="h-4 w-14 bg-muted rounded animate-pulse" />
+                ) : (
+                  metrics.sharePriceUSD
+                )}
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-border">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Cost Basis
               </span>
-            )}
+              <div className="mt-0.5 text-xs sm:text-base font-black text-foreground font-mono truncate">
+                {metrics.isLoading ? (
+                  <div className="h-4 w-14 bg-muted rounded animate-pulse" />
+                ) : (
+                  metrics.investedAssetsUSD
+                )}
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-border">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Vault TVL
+              </span>
+              <div className="mt-0.5 text-xs sm:text-base font-black text-foreground font-mono truncate">
+                {metrics.isLoading ? (
+                  <div className="h-4 w-14 bg-muted rounded animate-pulse" />
+                ) : (
+                  metrics.totalPortfolioValueUSD
+                )}
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-border">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
+                Pool Share
+              </span>
+              <div className="mt-0.5 text-xs sm:text-base font-black text-[#5f8f00] dark:text-[#BFFF00] font-mono truncate">
+                {metrics.isLoading ? (
+                  <div className="h-4 w-14 bg-muted rounded animate-pulse" />
+                ) : (
+                  metrics.ownershipPercentage || '0.00%'
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Portfolio Analytics ── */}
-      <PortfolioAnalyticsCard metrics={metrics} />
-
-      {/* ── Historical NAV ── */}
-      <HistoricalNavChart />
-
-      {/* ── Allocation + Holdings ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="lg:col-span-1">
-          <AllocationChart metrics={metrics} />
+      {/* ── 2. ALLOCATION & HOLDINGS SECTION (Active on 'reserves' or desktop) ── */}
+      <div className={`${activeTab === 'reserves' ? 'block' : 'hidden md:block'}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1">
+            <AllocationChart metrics={metrics} />
+          </div>
+          <div className="lg:col-span-2">
+            <HoldingsTable />
+          </div>
         </div>
-        <div className="lg:col-span-2">
-          <HoldingsTable />
-        </div>
+      </div>
+
+      {/* ── 3. HISTORICAL NAV & PRICE PROGRESSION (Active on 'chart' or desktop) ── */}
+      <div className={`${activeTab === 'chart' ? 'block' : 'hidden md:block'}`}>
+        <HistoricalNavChart />
+      </div>
+
+      {/* ── 4. DEEP AUDIT & ACCOUNTING ANALYTICS (Active on 'analytics' or desktop) ── */}
+      <div className={`${activeTab === 'analytics' ? 'block' : 'hidden md:block'}`}>
+        <PortfolioAnalyticsCard metrics={metrics} />
       </div>
     </div>
   );

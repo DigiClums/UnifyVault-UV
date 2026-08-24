@@ -5,6 +5,8 @@ import { PieChart as PieIcon } from 'lucide-react';
 import { DashboardMetrics } from '../../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+import { TokenIcon } from '../ui/TokenIcon';
+
 interface AllocationChartProps {
   metrics: DashboardMetrics;
 }
@@ -91,10 +93,10 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
               {/* BTC */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <TokenIcon symbol="BTC" size={16} />
                     <span className="text-xs font-black text-foreground">BTC</span>
-                    <span className="text-[9px] text-muted-foreground">cbBTC</span>
+                    <span className="text-[9px] text-muted-foreground font-mono">cbBTC</span>
                   </div>
 
                   <span className="text-xs font-black text-amber-600 dark:text-amber-400 font-mono">
@@ -113,10 +115,10 @@ export function AllocationChart({ metrics }: AllocationChartProps) {
               {/* ETH */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <TokenIcon symbol="ETH" size={16} />
                     <span className="text-xs font-black text-foreground">ETH</span>
-                    <span className="text-[9px] text-muted-foreground">WETH</span>
+                    <span className="text-[9px] text-muted-foreground font-mono">WETH</span>
                   </div>
 
                   <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-mono">

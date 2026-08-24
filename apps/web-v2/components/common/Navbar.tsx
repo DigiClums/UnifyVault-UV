@@ -67,7 +67,7 @@ export function Navbar() {
         {/* Desktop Navigation Links (Visible on xl+ screens >= 1280px) */}
         <nav
           aria-label="Main Navigation"
-          className="hidden xl:flex items-center space-x-0.5 2xl:space-x-1 bg-black dark:bg-[#151515] p-1 rounded-xl border-2 border-black dark:border-white/10 shrink-0"
+          className="hidden xl:flex items-center space-x-0.5 2xl:space-x-1 bg-slate-100 dark:bg-[#151515] p-1 rounded-xl border-2 border-black dark:border-white/10 shrink-0 shadow-[2px_2px_0_rgba(0,0,0,0.85)] dark:shadow-none"
         >
           {navLinks.map((link) => {
             const Icon = link.icon;
@@ -83,8 +83,8 @@ export function Navbar() {
                 className={cn(
                   'flex items-center space-x-1 px-1.5 2xl:px-2.5 py-1.5 rounded-lg text-[11px] 2xl:text-xs font-semibold transition-all duration-150 whitespace-nowrap',
                   isActive
-                    ? 'bg-[#BFFF00] text-black shadow-[3px_3px_0_#000] font-bold'
-                    : 'text-white/70 hover:text-black dark:hover:text-white hover:bg-[#BFFF00] hover:font-bold',
+                    ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000] font-bold border border-black'
+                    : 'text-foreground/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-[#BFFF00] hover:text-black hover:font-bold',
                 )}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />

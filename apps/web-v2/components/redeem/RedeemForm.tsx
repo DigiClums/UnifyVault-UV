@@ -158,7 +158,7 @@ export function RedeemForm() {
             >
               <div className="flex items-center gap-1.5 font-bold text-xs">
                 <Zap className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
-                <span>Gasless Account</span>
+                <span>Smart Wallet</span>
               </div>
               <p className="text-[11px] font-mono mt-1 text-foreground/80">
                 {saSharesBalFormatted} UVBE

@@ -109,17 +109,30 @@ export function HoldingsTable() {
 
       {/* Zero Shares Notice for User View */}
       {scope === 'user' && !hasUserShares && !isLoading && (
-        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
-          <span>
-            ℹ️ You currently hold 0 UVBE shares. Personal asset claim values will reflect $0.00
-            until you deposit.
-          </span>
-          <button
-            onClick={() => setScope('protocol')}
-            className="text-[#5f8f00] dark:text-[#BFFF00] font-bold hover:underline shrink-0 ml-2"
-          >
-            View Protocol Reserve →
-          </button>
+        <div className="p-4 rounded-2xl bg-slate-100 dark:bg-card border-2 border-black dark:border-white/15 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
+          <div className="flex items-center space-x-2">
+            <span className="p-1.5 rounded-lg bg-[#BFFF00] text-black border border-black font-black text-xs">
+              0 UVBE
+            </span>
+            <span className="text-muted-foreground">
+              You currently hold 0 shares. Deposit USDC to mint index shares and claim 60/40 BTC/ETH
+              backing.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <a
+              href="/deposit"
+              className="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-xl bg-[#BFFF00] text-black font-black text-[11px] border border-black shadow-[1px_1px_0_#000] hover:bg-[#a6df00] transition-all"
+            >
+              Deposit Now →
+            </a>
+            <button
+              onClick={() => setScope('protocol')}
+              className="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-xl bg-card border border-border text-foreground font-bold text-[11px] hover:bg-muted transition-all"
+            >
+              View Vault Reserve
+            </button>
+          </div>
         </div>
       )}
 

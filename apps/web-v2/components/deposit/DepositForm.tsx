@@ -28,6 +28,7 @@ import {
 import { AddTokenToWallet } from '../common/AddTokenToWallet';
 import { SmartAccountBadge } from '../common/SmartAccountBadge';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
+import { TokenIcon } from '../ui/TokenIcon';
 
 export function DepositForm() {
   const { isConnected, chain } = useAccount();
@@ -230,9 +231,7 @@ export function DepositForm() {
                 className="w-full bg-transparent text-2xl sm:text-3xl font-black text-foreground placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none font-mono tracking-tight"
               />
               <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#151515] px-2.5 py-1.5 rounded-lg border-2 border-black dark:border-white/15 shrink-0 shadow-2xs">
-                <div className="w-5 h-5 rounded-full bg-[#BFFF00] border-2 border-black flex items-center justify-center text-[9px] font-black text-black">
-                  $
-                </div>
+                <TokenIcon symbol="USDC" size={20} />
                 <span className="text-xs font-bold text-foreground">USDC</span>
               </div>
             </div>
@@ -276,7 +275,9 @@ export function DepositForm() {
           <div className="grid grid-cols-2 gap-1.5 font-mono">
             <div className="p-2 rounded-lg bg-card border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-amber-700 dark:text-amber-400">🟠 cbBTC</span>
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <TokenIcon symbol="cbBTC" size={16} /> cbBTC
+                </span>
                 <span className="font-bold text-foreground">{targetBtcPercent ?? '...'}</span>
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400">
@@ -286,7 +287,9 @@ export function DepositForm() {
 
             <div className="p-2.5 rounded-lg bg-card border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">🔷 WETH</span>
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <TokenIcon symbol="WETH" size={16} /> WETH
+                </span>
                 <span className="font-bold text-foreground">{targetEthPercent ?? '...'}</span>
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400">

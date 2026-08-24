@@ -43,7 +43,7 @@ const mainnetPrimaryRpc =
 const config = getDefaultConfig({
   appName: 'UnifyVault',
   projectId: walletConnectProjectId,
-  chains: [base, baseSepolia],
+  chains: [base],
   walletConnectParameters: {
     relayUrl: walletConnectRelayUrl,
     logger: 'silent',
@@ -65,17 +65,6 @@ const config = getDefaultConfig({
         retryCount: 3,
         retryDelay: 1000,
       }),
-    ]),
-    [baseSepolia.id]: fallback([
-      http(sepoliaPrimaryRpc, {
-        retryCount: 3,
-        retryDelay: 800,
-      }),
-      http('https://sepolia.base.org', {
-        retryCount: 3,
-        retryDelay: 800,
-      }),
-      http('https://base-sepolia-rpc.publicnode.com'),
     ]),
   },
   storage: createSafeWagmiStorage(),

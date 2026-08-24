@@ -510,43 +510,39 @@ export default function ProtocolExplorerPage() {
     setViewMode('global');
   }, []);
 
+  const [mobileTab, setMobileTab] = useState<'feed' | 'filters' | 'stats'>('feed');
+
   return (
-    <div className="space-y-6 py-4">
+    <div className="space-y-4 py-2 max-w-7xl mx-auto pb-8">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border-subtle/60">
         <div>
-          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight flex items-center space-x-2">
-              <Activity className="w-7 h-7 text-[#5f8f00] dark:text-[#BFFF00]" />
+          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-foreground tracking-tight flex items-center space-x-2">
+              <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-black dark:text-[#BFFF00]" />
               <span>Protocol Transactions</span>
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 text-xs font-semibold">
+            <span className="px-2 py-0.5 rounded-full bg-[#BFFF00]/15 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40 text-[11px] font-bold">
               {chainName}
             </span>
             <LiveIndicator isLive={isLive} syncStatus={syncStatus} lastSyncTime={lastSyncTime} />
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">
             Real-time on-chain transaction explorer — deposits, redemptions, fees, strategy
             rebalances, and P2P settlements.
           </p>
-          {latestBlock && currentWindow && (
-            <p className="text-[10px] text-muted-foreground mt-1 font-mono">
-              Block: {latestBlock.toString()} &nbsp;|&nbsp; Scanned Range:{' '}
-              {currentWindow.fromBlock.toString()} → {currentWindow.toBlock.toString()}
-            </p>
-          )}
         </div>
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2">
           {/* CSV Export */}
           <button
             onClick={() => exportTransactionsToCsv(filteredTransactions, pageIndex, explorerUrl)}
             disabled={filteredTransactions.length === 0}
             title="Export filtered transactions as CSV"
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-background hover:bg-muted border border-border-subtle text-xs font-semibold text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-background hover:bg-muted border border-border-subtle text-[11px] font-bold text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
           >
             <Download className="w-3.5 h-3.5 text-muted-foreground" />
-            <span>Export CSV</span>
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
 
           {/* Refresh Feed */}
@@ -556,18 +552,57 @@ export default function ProtocolExplorerPage() {
               refresh();
             }}
             disabled={isFetching || state === 'unsupported'}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-background hover:bg-muted border border-border-subtle text-xs font-semibold text-foreground transition-all disabled:opacity-50 shadow-xs"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-[#BFFF00] dark:text-black font-black text-xs transition-all disabled:opacity-50 shadow-[2px_2px_0_#000]"
           >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[#5f8f00] dark:text-[#BFFF00]' : ''}`}
-            />
-            <span>{isFetching ? 'Syncing…' : 'Refresh Feed'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <span>{isFetching ? 'Syncing…' : 'Refresh'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── Stats ──────────────────────────────────────────────────── */}
-      <StatsRow stats={stats} />
+      {/* ── Mobile Compact Segment Selector (Zero Scroll Experience) ── */}
+      <div className="md:hidden flex items-center p-1 bg-slate-200 dark:bg-black/80 rounded-2xl border-2 border-black dark:border-white/15 shadow-[2px_2px_0_#000] gap-1">
+        <button
+          onClick={() => setMobileTab('feed')}
+          className={`flex-1 py-2 px-2 rounded-xl text-center font-black text-xs transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === 'feed'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          <span>Feed ({filteredTransactions.length})</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('filters')}
+          className={`flex-1 py-2 px-2 rounded-xl text-center font-black text-xs transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === 'filters'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <span>Filters {hasActiveFilters && '●'}</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('stats')}
+          className={`flex-1 py-2 px-2 rounded-xl text-center font-black text-xs transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === 'stats'
+              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Stats</span>
+        </button>
+      </div>
+
+      {/* ── Stats Row (Visible on 'stats' on mobile or always on desktop) ── */}
+      <div className={`${mobileTab === 'stats' ? 'block' : 'hidden md:block'}`}>
+        <StatsRow stats={stats} />
+      </div>
 
       {/* ── Timeline & Filter Card ─────────────────────────────────── */}
       <TableCard
@@ -575,40 +610,40 @@ export default function ProtocolExplorerPage() {
         subtitle="Filter by activity mode, action type, token, or search by transaction hash / wallet address."
         icon={History}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {pageIndex > 0 && (
               <button
                 onClick={() => setPageIndex(0)}
                 disabled={isFetching}
-                className="px-2.5 py-1.5 rounded-lg bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] hover:bg-[#BFFF00]/20 text-xs font-semibold border border-[#BFFF00]/30 transition-all flex items-center gap-1 shadow-2xs"
+                className="px-2 py-1 rounded-lg bg-[#BFFF00]/15 text-black dark:text-[#BFFF00] font-bold text-[11px] border border-black dark:border-[#BFFF00]/30 shadow-[1px_1px_0_#000]"
               >
-                <span>Latest (Page 1)</span>
+                <span>Latest</span>
               </button>
             )}
             <button
               onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
               disabled={pageIndex === 0 || isFetching}
-              className="px-3 py-1.5 rounded-lg bg-background hover:bg-muted text-xs font-semibold text-foreground border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
+              className="px-2.5 py-1 rounded-lg bg-card text-[11px] font-bold border border-border disabled:opacity-40"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
             </button>
-            <span className="text-xs text-foreground font-mono font-bold px-2.5 py-1 rounded bg-muted border border-border-subtle">
-              Page {pageIndex + 1}
+            <span className="text-[11px] text-foreground font-mono font-black px-2 py-0.5 rounded bg-muted border border-border">
+              P.{pageIndex + 1}
             </span>
             <button
               onClick={() => setPageIndex(pageIndex + 1)}
               disabled={(currentWindow && currentWindow.fromBlock === 0n) || isFetching}
-              className="px-3 py-1.5 rounded-lg bg-background hover:bg-muted text-xs font-semibold text-foreground border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
+              className="px-2.5 py-1 rounded-lg bg-card text-[11px] font-bold border border-border disabled:opacity-40"
             >
-              <span>Next</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         }
       >
         {/* ── Interactive Toolbar: View Modes, Search, and Filters ───── */}
-        <div className="space-y-3 pb-4 mb-3 border-b border-border-subtle/70">
+        <div
+          className={`space-y-3 pb-3 mb-3 border-b border-border-subtle/70 ${mobileTab === 'filters' ? 'block' : 'hidden md:block'}`}
+        >
           {/* Row 1: View Modes & Search Bar */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* View Mode Toggle: Global vs My Activity */}
