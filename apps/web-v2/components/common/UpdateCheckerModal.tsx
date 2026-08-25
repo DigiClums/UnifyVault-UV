@@ -41,7 +41,18 @@ export function UpdateCheckerModal() {
 
     checkVersion();
     const interval = setInterval(checkVersion, 30_000);
-    return () => clearInterval(interval);
+
+    const handleManualTrigger = () => {
+      checkVersion();
+      setIsOpen(true);
+    };
+
+    window.addEventListener('open-update-modal', handleManualTrigger);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('open-update-modal', handleManualTrigger);
+    };
   }, []);
 
   const handleDirectInstall = async () => {
