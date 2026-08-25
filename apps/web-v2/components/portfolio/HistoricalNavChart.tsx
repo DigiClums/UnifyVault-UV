@@ -94,7 +94,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 
       <div className="space-y-1.5 font-mono">
         <div className="flex justify-between items-center bg-white/5 p-1.5 rounded-lg">
-          <span className="text-white/60 font-medium">UV Token Price:</span>
+          <span className="text-white/60 font-medium">UV Coin Price:</span>
           <span className="font-black text-[#BFFF00] text-sm">
             ${Number(data.nav || data.sharePrice || 1.0).toFixed(4)}
           </span>

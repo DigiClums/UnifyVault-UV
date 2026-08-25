@@ -264,7 +264,7 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
                   <TokenIcon symbol="UVBE" size={40} />
                   <div>
                     <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                      <span>UVBE Index Token</span>
+                      <span>UVBE Index Coin</span>
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         60% cbBTC / 40% ETH
                       </span>

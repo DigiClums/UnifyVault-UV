@@ -123,7 +123,7 @@ export function HeroSection() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white flex items-center gap-2">
-                    <span>UVBE Index Token</span>
+                    <span>UVBE Index Coin</span>
                     <span className="px-2 py-0.5 rounded-md bg-[#BFFF00]/15 text-[#BFFF00] text-[10px] font-mono font-black border border-[#BFFF00]/30">
                       LIVE NAV
                     </span>
