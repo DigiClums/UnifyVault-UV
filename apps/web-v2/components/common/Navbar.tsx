@@ -40,6 +40,7 @@ const navLinks: NavItem[] = [
   { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/treasury', label: 'Treasury', icon: Vault },
+  { href: '/admin', label: 'Admin', icon: ShieldCheck },
 ];
 
 export function Navbar() {
