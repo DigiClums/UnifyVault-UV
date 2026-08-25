@@ -250,6 +250,28 @@ The UnifyVault Staking subsystem is a **Perpetual Dynamic Yield & 10-Tier Affili
 
 ---
 
+### 📈 Dynamic APY: How It Is Calculated
+
+Unlike static staking pools with fake inflationary emissions, UnifyVault uses a **100% Solvency-Backed Dynamic APY Engine** calculated directly inside the **\`UVBERewardDistributor.sol\`** smart contract:
+
+\`\`\`
+Surplus Capacity = Available Protocol Capital - Total Outstanding Liabilities
+Dynamic APY (BPS) = (Surplus Capacity * 10,000) / Total Permanent Staked
+\`\`\`
+
+1. **Real Surplus-Driven Yield**:
+   - As more fees from swaps, mints, and Flash 30s settlement flow into the **\`UVBERewardReserve\`**, the **Surplus Capacity** increases, pushing the **Dynamic APY up**.
+   - If the total amount of staked UVBE expands, the APY dynamically calibrates to ensure the protocol is always mathematically 100% solvent.
+
+2. **100.00% Max Annual APY Ceiling**:
+   - The contract enforces a hard safety cap of **10,000 BPS (100.00% Annual APY)** to protect the protocol against extreme volatility spikes.
+
+3. **Continuous Per-Second Accrual**:
+   - Rewards accrue every second via global index checkpoints (\`deltaIndex = timeDelta * currentAnnualBps / (SECONDS_PER_YEAR * 10,000)\`).
+   - You can see your live pending yield grow in real-time on the **UVBE Staking Dashboard**.
+
+---
+
 ### 🌳 10-Generation Affiliate Overrides
 
 Earn continuous commissions across your entire downline based on your active direct members:
