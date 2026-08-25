@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
+import { useAdminAccess } from '../../hooks/useAdminAccess';
 
 interface NavItem {
   href: string;
@@ -28,7 +29,7 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-const navLinks: NavItem[] = [
+const publicNavLinks: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/predict', label: 'Flash 30s', icon: Zap },
   { href: '/staking', label: 'Staking', icon: Sparkles },
@@ -40,11 +41,18 @@ const navLinks: NavItem[] = [
   { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/treasury', label: 'Treasury', icon: Vault },
-  { href: '/admin', label: 'Admin', icon: ShieldCheck },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
+  const { isAdmin } = useAdminAccess();
+
+  const navLinks = React.useMemo(() => {
+    if (isAdmin) {
+      return [...publicNavLinks, { href: '/admin', label: 'Admin', icon: ShieldCheck }];
+    }
+    return publicNavLinks;
+  }, [isAdmin]);
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 border-b-2 border-black dark:border-white/10 transition-all">
@@ -106,13 +114,15 @@ export function Navbar() {
 
         {/* Right Section: Connect Button & Theme Toggle */}
         <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-          <Link
-            href="/admin"
-            className="xl:hidden flex items-center gap-1 px-2 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 text-[10px] font-black uppercase tracking-wider transition-all"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Admin</span>
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="xl:hidden flex items-center gap-1 px-2 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 text-[10px] font-black uppercase tracking-wider transition-all"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Admin</span>
+            </Link>
+          )}
 
           <ThemeToggle />
 
