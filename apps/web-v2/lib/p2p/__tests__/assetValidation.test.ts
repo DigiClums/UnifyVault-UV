@@ -3,6 +3,7 @@ import {
   getSupportedP2PAssetsForChain,
   validateP2PAsset,
   isNativeETHAsset,
+  getCanonicalUVBEAddress,
   CANONICAL_UVBE_ADDRESS,
   NATIVE_ETH_ADDRESS,
 } from '../assetValidation';
@@ -20,7 +21,9 @@ describe('Phase 1 — UVBE-Only P2P Asset & Active Chain Validation Tests', () =
     const assets = getSupportedP2PAssetsForChain(baseSepoliaId);
     expect(assets.length).toBe(1);
     expect(assets[0].symbol).toBe('UVBE');
-    expect(assets[0].address.toLowerCase()).toBe(canonicalUVBE.toLowerCase());
+    expect(assets[0].address.toLowerCase()).toBe(
+      (process.env.NEXT_PUBLIC_UVBE_TOKEN_ADDRESS_SEPOLIA || '0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde').toLowerCase(),
+    );
     expect(assets[0].isNative).toBe(false);
   });
 
@@ -37,7 +40,8 @@ describe('Phase 1 — UVBE-Only P2P Asset & Active Chain Validation Tests', () =
   });
 
   it('4. Successfully validates canonical UVBE on Base Sepolia', () => {
-    const res = validateP2PAsset(canonicalUVBE, baseSepoliaId);
+    const sepoliaUVBE = getCanonicalUVBEAddress(baseSepoliaId);
+    const res = validateP2PAsset(sepoliaUVBE, baseSepoliaId);
     expect(res.isValid).toBe(true);
     expect(res.isNative).toBe(false);
     expect(res.assetInfo?.symbol).toBe('UVBE');
