@@ -59,39 +59,25 @@ export async function verifyPaymentEvidence(
   }
 
   let fileHash: `0x${string}` = computeReceiptKeccak256(rawBytes);
-  let cid: string = `vps-${fileHash}`;
+  let cid: string = `local-${fileHash}`;
   let ocrRawText = rawTextOverride;
 
-  // If in browser and real File instance, upload bytes to VPS storage endpoint
-  if (typeof window !== 'undefined' && file instanceof File) {
+  // 3. OCR Text Extraction Step (Execute 100% Client-Side / Local Device OCR)
+  if (ocrRawText === undefined) {
     try {
-      const uploadRes = await uploadReceiptEvidence(file);
-      fileHash = uploadRes.fileHash;
-      cid = uploadRes.ipfsCid;
-      if (uploadRes.ocrRawText !== undefined && ocrRawText === undefined) {
-        ocrRawText = uploadRes.ocrRawText;
-      }
-    } catch (uploadErr: any) {
-      return {
-        status: 'OCR_FAILED',
-        ocrState: 'OCR_FAILED',
-        fileHash,
-        cid,
-        extractedData: { confidenceScore: 0.0 },
-        discrepancies: [uploadErr?.message || 'VPS evidence upload failed.'],
-        isReleaseAllowed: false,
-        isClaimAllowed: false,
-        requiresManualReview: true,
-        statusMessage:
-          uploadErr?.message || 'Evidence upload failed. Payment proof submission blocked.',
-      };
+      const ocrResult = await performRealReceiptOCR(rawBytes, file.type, file.name);
+      ocrRawText = ocrResult.text;
+    } catch (ocrErr: any) {
+      console.warn('Client-side OCR processing error:', ocrErr);
+      ocrRawText = '';
     }
   }
 
-  // 3. OCR Text Extraction Step (Use rawTextOverride / upload OCR if available, otherwise run Real OCR engine)
-  if (ocrRawText === undefined) {
-    const ocrResult = await performRealReceiptOCR(rawBytes, file.type, file.name);
-    ocrRawText = ocrResult.text;
+  // Optional: Background sync to VPS evidence cache if server endpoint is available (non-blocking)
+  if (typeof window !== 'undefined' && file instanceof File) {
+    uploadReceiptEvidence(file).catch(() => {
+      // Non-blocking: Offline/Standalone APK continues seamlessly with local bytes & local hash
+    });
   }
 
   const extractedData = extractReceiptDataFromText(ocrRawText);

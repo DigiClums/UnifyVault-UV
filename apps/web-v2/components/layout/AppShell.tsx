@@ -14,32 +14,29 @@ import { DocsLayout } from '../docs/DocsLayout';
 
 interface AppShellProps {
   children: React.ReactNode;
-  shellMode: 'landing' | 'app' | 'admin' | 'docs';
+  shellMode?: 'landing' | 'app' | 'admin' | 'docs';
 }
 
-/**
- * AppShell conditionally renders the appropriate application chrome
- * based on the host-determined shellMode passed from the root layout.
- *
- * ── docs ──────────────────────────────────────────────────────
- * docs.unifyvault.xyz protocol documentation.
- * Renders DocsLayout with left navigation sidebar and table of contents.
- *
- * ── landing ───────────────────────────────────────────────────
- * unifyvault.xyz marketing hero site.
- * Renders LandingHeader + LandingFooter.
- * No LivePriceTicker, Navbar, MobileBottomNav, or app Footer.
- *
- * ── admin ─────────────────────────────────────────────────────
- * v2.unifyvault.xyz admin application.
- * Renders the AdminHeader with admin sidebar.
- * No public Navbar, Footer, or MobileBottomNav.
- *
- * ── app ───────────────────────────────────────────────────────
- * app.unifyvault.xyz DeFi application.
- * Renders the full public chrome: Navbar, Footer, MobileBottomNav.
- */
-export function AppShell({ children, shellMode }: AppShellProps) {
+export function AppShell({ children, shellMode: initialShellMode }: AppShellProps) {
+  const [shellMode, setShellMode] = React.useState<'landing' | 'app' | 'admin' | 'docs'>(
+    initialShellMode || 'app',
+  );
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && !initialShellMode) {
+      const hostname = window.location.hostname;
+      if (hostname === 'docs.unifyvault.xyz') {
+        setShellMode('docs');
+      } else if (hostname === 'v2.unifyvault.xyz') {
+        setShellMode('admin');
+      } else if (hostname === 'unifyvault.xyz' || hostname === 'www.unifyvault.xyz') {
+        setShellMode('landing');
+      } else {
+        setShellMode('app');
+      }
+    }
+  }, [initialShellMode]);
+
   if (shellMode === 'docs') {
     return (
       <>

@@ -5,6 +5,7 @@ import { MessageSquare, ShieldAlert, Send, FileText, CheckCircle2, User, Lock } 
 import { useAccount, useSignMessage } from 'wagmi';
 import { DisputeMessage, DisputeRecord } from '../../lib/dispute/types';
 import { constructAuthMessage } from '../../lib/payment/walletAuth';
+import { localP2PChat } from '../../lib/p2p/xmtpChatAdapter';
 
 interface DisputeChatWorkspaceProps {
   tradeId: number;
@@ -93,16 +94,24 @@ export function DisputeChatWorkspace({
       });
 
       const res = await fetch(`/api/p2p/dispute-chat/messages?${params.toString()}`);
-      const data = await res.json();
-
-      if (data.success) {
-        setMessages(data.messages || []);
-        setDispute(data.dispute || null);
-      } else {
-        setError(data.error || 'Failed to load dispute chat workspace.');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setMessages(data.messages || []);
+          setDispute(data.dispute || null);
+          return;
+        }
       }
-    } catch (err: any) {
-      setError(err?.message || 'Network error fetching dispute chat.');
+      
+      // Fallback: Local / Decentralized XMTP cache
+      const localMsgs = await localP2PChat.getMessages(tradeId);
+      if (localMsgs && localMsgs.length > 0) {
+        setMessages(localMsgs);
+      }
+    } catch {
+      // Offline/Standalone APK fallback to local device cache
+      const localMsgs = await localP2PChat.getMessages(tradeId);
+      setMessages(localMsgs);
     } finally {
       setIsLoading(false);
     }
@@ -163,30 +172,47 @@ export function DisputeChatWorkspace({
         return;
       }
 
-      const res = await fetch('/api/p2p/dispute-chat/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      let posted = false;
+      try {
+        const res = await fetch('/api/p2p/dispute-chat/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tradeId,
+            userAddress,
+            content: newMsg.trim(),
+            evidenceHash: evidenceHash.trim() || undefined,
+            signature,
+            timestamp,
+            action: 'dispute-chat-message',
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            posted = true;
+          }
+        }
+      } catch {
+        // Offline / serverless mode
+      }
+
+      if (!posted) {
+        const role = isAdmin ? 'ADMIN' : isBuyer ? 'BUYER' : 'SELLER';
+        await localP2PChat.sendMessage(
           tradeId,
           userAddress,
-          content: newMsg.trim(),
-          evidenceHash: evidenceHash.trim() || undefined,
-          signature,
-          timestamp,
-          action: 'dispute-chat-message',
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setNewMsg('');
-        setEvidenceHash('');
-        await fetchChat();
-      } else {
-        setError(data.error || 'Failed to post message.');
+          role,
+          newMsg.trim(),
+          evidenceHash.trim() || undefined,
+        );
       }
+
+      setNewMsg('');
+      setEvidenceHash('');
+      await fetchChat();
     } catch (err: any) {
       setError(err?.message || 'Network error sending message.');
     } finally {
