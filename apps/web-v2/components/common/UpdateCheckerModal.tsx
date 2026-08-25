@@ -39,8 +39,9 @@ export function UpdateCheckerModal() {
       }
     }
 
-    const timer = setTimeout(checkVersion, 1500);
-    return () => clearTimeout(timer);
+    checkVersion();
+    const interval = setInterval(checkVersion, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleDirectInstall = async () => {
