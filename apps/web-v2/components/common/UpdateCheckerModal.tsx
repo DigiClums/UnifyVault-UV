@@ -45,10 +45,22 @@ export function UpdateCheckerModal() {
 
   const handleDirectInstall = async () => {
     setIsDownloading(true);
-    setDownloadProgress(10);
+    setDownloadProgress(15);
 
     try {
-      // Progress simulation for direct in-app download stream
+      // Check if running inside Android APK with Native Updater Bridge
+      if (typeof window !== 'undefined' && (window as any).AndroidNativeUpdater) {
+        (window as any).AndroidNativeUpdater.downloadAndInstallApk(downloadUrl);
+        setDownloadProgress(60);
+        setTimeout(() => {
+          setDownloadProgress(100);
+          setDownloadCompleted(true);
+          setIsDownloading(false);
+        }, 1500);
+        return;
+      }
+
+      // Web Fallback
       const interval = setInterval(() => {
         setDownloadProgress((prev) => {
           if (prev >= 90) {
@@ -59,7 +71,6 @@ export function UpdateCheckerModal() {
         });
       }, 400);
 
-      // Direct APK download trigger
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.setAttribute('download', 'unifyvault.apk');
