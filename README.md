@@ -1,286 +1,248 @@
 # UnifyVault Protocol V2
 
-UnifyVault is an institutional-grade, multi-asset yield and vault management protocol deployed on Ethereum Layer-2 networks (Base Mainnet and Base Sepolia). It provides automated portfolio rebalancing, real-time Net Asset Value (NAV) pricing via multi-provider oracle aggregators, strict slippage protection, donation-immune collateral custody, on-chain cost basis & P&L accounting, and a non-custodial P2P crypto-fiat settlement engine.
+<div align="center">
+  <img src="UVBE_logo.svg" alt="UnifyVault UVBE" width="120" height="120" />
+  <h3>Institutional-Grade Decentralized 60/40 Crypto Index Protocol on Base</h3>
+  <p><strong>cbBTC (60%) + WETH (40%) Balanced Exposure • Automated On-Chain Drift Rebalancing • Flash 30s Prediction Arena • Perpetual Staking Engine</strong></p>
+  
+  <p>
+    <a href="https://unifyvault.xyz"><strong>unifyvault.xyz</strong></a> •
+    <a href="https://app.unifyvault.xyz"><strong>app.unifyvault.xyz</strong></a> •
+    <a href="https://docs.unifyvault.xyz"><strong>docs.unifyvault.xyz</strong></a> •
+    <a href="https://v2.unifyvault.xyz"><strong>v2.unifyvault.xyz</strong></a>
+  </p>
+</div>
 
 ---
 
-## Table of Contents
+## 📑 Table of Contents
 
-- [Overview](#overview)
-- [Vision](#vision)
-- [Key Features](#key-features)
-- [Protocol Architecture](#protocol-architecture)
-- [Repository Structure](#repository-structure)
-- [Tech Stack](#tech-stack)
-- [Quick Start](#quick-start)
-- [Local Development](#local-development)
-- [Build Instructions](#build-instructions)
-- [Testing](#testing)
-- [Canonical Deployed Contracts](#canonical-deployed-contracts)
-- [Environment Variables](#environment-variables)
-- [Security Notes](#security-notes)
-- [Documentation Index](#documentation-index)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-UnifyVault V2 combines high-performance multi-asset vault accounting with decentralized governance controls. Users deposit supported collateral assets (USDC, cbBTC, and WETH) to mint `UVBE` (`UVBEV2`) share tokens representing proportional ownership of the vault's underlying net asset value.
-
-The protocol features:
-
-- **Dynamic Module Discovery** through `ProtocolDirectory`.
-- **Multi-Provider Oracle Pricing** with heartbeat monitoring and multi-state status checks (`LIVE`, `STALE`, `REVERTED`, `UNAVAILABLE`) via `OracleManager` and `ChainlinkOracleProvider`.
-- **Automated Portfolio Management** through `PortfolioManager`, `StrategyManager`, and `SwapAdapter`.
-- **On-Chain Cost Basis & P&L Accounting** through `CostBasisManagerV2` and `PerformanceManager`.
-- **Non-Custodial P2P Marketplace & Escrow** through `P2PEscrowV2` and `Marketplace` (pure crypto ↔ fiat settlement with zero collateral exposure, zero supply inflation, and zero cost basis contamination).
-- **Governance Execution** enforced by `UnifyVaultTimelock` (48-hour mandatory delay).
+- [Overview](#-overview)
+- [Multi-Domain Architecture](#-multi-domain-ecosystem)
+- [Key Features](#-key-features)
+- [Protocol Architecture](#-protocol-architecture)
+- [Products & Subsystems](#-products--subsystems)
+  - [1. UVBE Index Coin (60/40 Strategy)](#1-uvbe-index-coin-6040-strategy)
+  - [2. Flash 30s Rapid Binary Markets](#2-flash-30s-rapid-binary-markets)
+  - [3. Perpetual Dynamic Staking & 10-Tier MLM](#3-perpetual-dynamic-staking--10-tier-mlm)
+  - [4. Dynamic Cost-Basis & FIFO Accounting](#4-dynamic-cost-basis--fifo-accounting)
+  - [5. P2P Fiat-to-Crypto Escrow Marketplace](#5-p2p-fiat-to-crypto-escrow-marketplace)
+- [Repository Structure](#-repository-structure)
+- [Tech Stack](#-tech-stack)
+- [Quick Start](#-quick-start)
+- [Local Development](#-local-development)
+- [Build & Deployment](#-build--deployment)
+- [Canonical Deployed Contracts](#-canonical-deployed-contracts-base-sepolia--base-mainnet)
+- [Security & Timelocks](#-security--timelocks)
+- [Documentation Portal](#-documentation-portal)
+- [License](#-license)
 
 ---
 
-## Vision
+## 🌟 Overview
 
-UnifyVault aims to set the benchmark for transparent, non-custodial, and security-first asset management on EVM-compatible Layer-2 networks. By eliminating single points of failure, enforcing on-chain rate limits, and implementing strict role segregation, UnifyVault delivers institutional liquidity routing with zero compromise on decentralization.
+**UnifyVault Protocol V2** is an institutional-grade, non-custodial multi-asset index and yield management protocol deployed on Ethereum Layer-2 (**Base Network**).
 
----
-
-## Key Features
-
-- **Dynamic Module Directory**: `ProtocolDirectory` serves as the single source of truth for contract addresses, allowing seamless module updates without hardcoding contract dependencies.
-- **Oracle Resilience & Staleness Guard**: `OracleManager` aggregates price feeds from Chainlink (`ChainlinkOracleProvider`), enforcing heartbeat limits, staleness bounds, and multi-state error handling.
-- **Donation-Immune Custody**: `CustodyVault` separates tracked user deposits from untracked asset transfers, immunizing share pricing against balance inflation attacks.
-- **Automated Portfolio Management**: `PortfolioManager` and `StrategyManager` manage target asset allocations (BPS) and execute trades via `SwapAdapter` with strict slippage limits.
-- **On-Chain Cost Basis & P&L Tracking**: `CostBasisManagerV2` tracks user deposits, redemptions, entry prices, realized P&L, and unrealized returns via a locked pre-transfer hook in `UVBEV2`.
-- **Direct UVBE Transfer with QR Scanner**: Real-time camera QR scanner integrated directly into the sender wallet address input for seamless mobile & desktop share transfers with proportional cost basis preservation.
-- **Flash 30s Rapid Binary Prediction Market**: 30-second rapid prediction game (`/predict`) featuring real-time Pyth oracle price feeds, gasless betting vault, Parimutuel pool odds, and user-customizable reward multipliers (2x, 3x, 5x, 10x, 20x).
-- **Non-Custodial P2P OTC Marketplace**: `P2PEscrowV2` and `Marketplace` allow decentralized limit order matching and fiat settlement with cryptographic receipt hashing (`evidenceHash`), bank reference tracking (`paymentReference`), and multi-sig arbitration.
-- **Timelock Governance**: `UnifyVaultTimelock` enforces a 48-hour delay on administrative and governance actions, requiring multi-sig (Gnosis Safe) proposal approval.
-- **Role-Based Access Control (RBAC)**: Fine-grained OpenZeppelin `AccessControl` permissions (`GOVERNANCE_ROLE`, `GUARDIAN_ROLE`, `CONTROLLER_ROLE`, `BOT_ROLE`, `ARBITRATOR_ROLE`).
-- **Emergency Circuit Breakers**: Granular pause/resume controls (`Pausable`) on controller, token, and vault modules managed by designated Guardians.
+By depositing collateral (**USDC**), users receive **UVBE Index Coins** that represent 1:1 backed, proportional ownership of a dynamically managed portfolio consisting of **60% Coinbase Wrapped Bitcoin (cbBTC)** and **40% Wrapped Ether (WETH)** with zero impermanent loss and automated on-chain drift rebalancing.
 
 ---
 
-## Protocol Architecture
+## 🌐 Multi-Domain Ecosystem
+
+The platform operates across four dedicated domains:
+
+| Domain | Purpose | Shell / Features |
+| :--- | :--- | :--- |
+| [**unifyvault.xyz**](https://unifyvault.xyz) | **Institutional Landing** | Hero showcase, live UVBE NAV ticker, Pyth prices, features grid, strategy visualizer |
+| [**app.unifyvault.xyz**](https://app.unifyvault.xyz) | **Full DeFi DApp** | Portfolio, Deposit, Redeem, Flash 30s (`/predict`), Staking, P2P Escrow, QR Transfer |
+| [**docs.unifyvault.xyz**](https://docs.unifyvault.xyz) | **Documentation Portal** | Human-readable guides, contract directory, API specs, interactive sidebar |
+| [**v2.unifyvault.xyz**](https://v2.unifyvault.xyz) | **Protocol Admin Console** | Module directory controller, oracle configuration, emergency circuit breakers |
+
+---
+
+## ⚡ Key Features
+
+- **Automated 60/40 Portfolio**: Single-coin exposure to cbBTC (60%) and WETH (40%) with automated $\pm2.5\%$ drift rebalancing.
+- **Dual-Oracle Resilience**: Low-latency millisecond price feeds from **Pyth Network** paired with **Chainlink** heartbeat fallbacks.
+- **Donation-Immune Custody**: Internal accounting separates tracked user collateral from untracked transfers, immunizing against ERC-4626 inflation attacks.
+- **On-Chain FIFO Cost-Basis**: Automated tax-lot accounting tracks user acquisition prices, realized returns, and gross/net unrealized PnL.
+- **Flash 30s Rapid Arena**: 30-second binary rounds on BTC/ETH with custom reward multipliers (**2x**, **3x**, **5x**, **10x**, **20x**) backed by an 80% bankroll vault.
+- **Perpetual Staking & 10-Tier MLM**: Dynamic APY calculated from real protocol surplus capacity, 10-generation overrides, 6 leadership ranks, and a 1% DAO pool.
+- **Non-Custodial P2P Escrow**: Trustless fiat-to-crypto OTC marketplace with cryptographic receipts and automated dispute timeouts.
+- **48-Hour Timelock Governance**: Critical parameter updates and contract upgrades require an on-chain 48-hour timelock delay.
+
+---
+
+## 🏗️ Protocol Architecture
 
 ```mermaid
 flowchart TD
-    User([User / Investor]) <-->|Deposit / Redeem| Controller[UnifyVaultController]
-    Keeper([Bot / Keeper]) -->|Rebalance / Sync| Controller
-    Governance([Gnosis Safe / Timelock]) -->|RBAC / Config| Directory[ProtocolDirectory]
+    User([User / Investor]) <-->|Deposit USDC / Redeem| Controller[UnifyVaultController]
+    Keeper([Bot / Keeper]) -->|Rebalance / Sync NAV| Controller
+    Governance([Timelock / Gnosis Safe]) -->|Config / Modules| Directory[ProtocolDirectory]
 
-    Controller -->|Resolve Addresses| Directory
-    Controller -->|Mint / Burn Shares| Token[UVBEV2 Token]
-    Controller -->|Hold Collateral| Vault[CustodyVault]
-    Controller -->|Collect Protocol Fees| Treasury[Treasury]
-    Controller -->|Route Fees| FeeManager[FeeManager]
-    Controller -->|Fetch Asset Prices| Oracle[OracleManager]
+    Controller -->|Resolve Modules| Directory
+    Controller -->|Mint / Burn UVBE Coins| Token[UVBEV2 Index Coin]
+    Controller -->|Hold Collateral Assets| Vault[CustodyVault]
+    Controller -->|Fetch Live Price Feeds| Oracle[OracleManager - Pyth / Chainlink]
     Controller -->|Execute Strategy Rebalance| Portfolio[PortfolioManager]
-    Controller -->|Record Deposit / Redeem| CBM[CostBasisManagerV2]
+    Controller -->|Record Entry Price / Lots| CBM[CostBasisManagerV2]
 
     Token -->|Pre-Transfer Hook| CBM
-    Portfolio -->|Query Weights| Strategy[StrategyManager]
-    Portfolio -->|Execute Swaps| Swap[SwapAdapter]
-    Swap -->|Route Swaps| Router[DEX Router]
-    Oracle -->|Price Feeds| Chainlink[ChainlinkOracleProvider]
-    Liquidity[LiquidityManager] -->|Manage Reserves| Vault
+    Portfolio -->|Query Target Weights| Strategy[StrategyManager]
+    Portfolio -->|Execute Optimal Swaps| Swap[SwapAdapter -> DEX Router]
 
-    P2PBuyer([P2P Buyer]) <-->|Fiat Settlement| Marketplace[Marketplace / P2PEscrowV2]
-    P2PSeller([P2P Seller]) <-->|Escrow Deposit| Marketplace
+    Staker([Staker / Affiliate]) <-->|Perpetual Stake| StakingVault[UVBEStakingVault]
+    StakingVault -->|Dynamic APY Accrual| Distributor[UVBERewardDistributor]
+    Distributor -->|10-Tier Generations| Registry[UVBEReferralRegistry]
+    Distributor -->|Fund Yield| Reserve[UVBERewardReserve]
+
+    Predictor([Flash 30s Trader]) <-->|Predict 30s Rounds| FlashPulse[FlashPulseArena]
+    FlashPulse -->|Losing Bets 80% / 15% / 5%| BankrollVault[Bankroll / Buyback Reserve]
 ```
 
 ---
 
-## Repository Structure
+## 🎯 Products & Subsystems
+
+### 1. UVBE Index Coin (60/40 Strategy)
+- **Target Weights**: 60% cbBTC + 40% WETH.
+- **Drift Threshold**: Automated on-chain rebalancing triggered when asset allocation diverges beyond $\pm2.5\%$.
+- **Zero Impermanent Loss**: Unlike AMM LP pools, assets are held in pure non-custodial custody.
+
+### 2. Flash 30s Rapid Binary Markets
+- **Round Duration**: 30 seconds total (10s betting window, 20s live active tracking).
+- **Custom Multipliers**: Auto mode (~1.95x - 2.00x) or fixed risk targets (**2x**, **3x**, **5x**, **10x**, **20x**).
+- **Losing Bet Flow**:
+  - **80% Payout Bankroll Vault**: Instant liquidity buffer for high multiplier hits.
+  - **15% Protocol Buyback & Burn**: UVBE deflationary market purchase and burn.
+  - **5% Keeper Gas Subsidy**: Settlement bot automation refund.
+
+### 3. Perpetual Dynamic Staking & 10-Tier MLM
+- **Perpetual Staked Position**: 50 UVBE minimum stake (47.5 UVBE net principal after 5% treasury allocation).
+- **Dynamic APY Formula**:
+  $$\text{Dynamic APY (BPS)} = \frac{\text{Surplus Capacity} \times 10{,}000}{\text{Total Permanent Staked}}$$
+  *(Enforced 100.00% annual APY safety ceiling).*
+- **10-Generation Overrides**: Gen 1 (5.00%), Gen 2 (2.00%), Gen 3 (1.50%), Gen 4 (1.00%), Gen 5 (0.75%), Gen 6 & 7 (0.50%), Gen 8, 9 & 10 (0.25%).
+- **6 Leadership Ranks**: Bronze, Silver, Gold, Platinum (+1 DAO share), Diamond (+3 DAO shares), Crown Ambassador (+10 DAO shares).
+- **1.00% DAO Leadership Pool**: Weekly revenue distributions to qualified rank leaders.
+
+### 4. Dynamic Cost-Basis & FIFO Accounting
+- **On-Chain Tax Lots**: Tracks individual mint lot timestamps and entry prices.
+- **FIFO Realization**: Oldest lots realized first upon redemption.
+- **Weighted Average**: Real-time display of average acquisition cost and gross/net unrealized PnL.
+
+### 5. P2P Fiat-to-Crypto Escrow Marketplace
+- **Non-Custodial Escrow**: Seller collateral locked in `P2PEscrow.sol`.
+- **Fiat Settlement**: Direct bank / UPI transfer with cryptographic payment receipt proof.
+- **Arbitration Support**: Automated timeout refunds and dispute arbitration resolution.
+
+---
+
+## 📁 Repository Structure
 
 ```
 UnifyVault-UV/
 ├── apps/
-│   ├── web-v2/             # Next.js 15 production web interface (app.unifyvault.xyz)
-│   └── web-v2-testnet/     # Staging/testnet web interface build
+│   ├── web-v2/             # Next.js 15 App (unifyvault.xyz, app.unifyvault.xyz, docs.unifyvault.xyz)
+│   └── telegram-bot/       # Real-time Telegram alert & price bot
 ├── packages/
-│   ├── protocol/           # Foundry smart contracts, scripts, & test suites
-│   ├── design-system/      # Shared UI component primitives
-│   ├── sdk/                # TypeScript client SDK for protocol interaction
-│   ├── shared/             # Shared TypeScript utilities and type definitions
-│   ├── eslint-config/      # Shared ESLint configuration
-│   ├── prettier-config/    # Shared Prettier code formatting rules
-│   └── tsconfig/           # Base TypeScript configuration files
-├── scripts/                # QA audit and automation scripts
-├── docs/                   # Full protocol documentation suite
-├── pnpm-workspace.yaml     # pnpm monorepo workspace definition
-├── turbo.json              # Turborepo build orchestration configuration
-└── package.json            # Root workspace scripts & dev dependencies
+│   ├── protocol/           # Foundry smart contracts, test suites, & scripts
+│   ├── design-system/      # Shared UI primitives & themes
+│   ├── sdk/                # TypeScript client SDK
+│   ├── shared/             # Shared TypeScript types & constants
+│   ├── eslint-config/      # Monorepo ESLint config
+│   └── tsconfig/           # TypeScript base configs
+├── docs/                   # Markdown specifications & audit reports
+├── pnpm-workspace.yaml     # Monorepo workspace
+├── turbo.json              # Turborepo orchestration pipeline
+└── package.json            # Root workspace scripts
 ```
 
 ---
 
-## Tech Stack
+## 💻 Tech Stack
 
-### Smart Contracts (`packages/protocol`)
-
-- **Solidity**: `0.8.24` (EVM version: London/Paris)
-- **Framework**: Foundry (`forge`)
-- **Standards**: OpenZeppelin Contracts v5.0.2 (`AccessControl`, `Pausable`, `ReentrancyGuard`, `SafeERC20`, `TimelockController`, `ERC20`, `ERC20Permit`)
-
-### Frontend (`apps/web-v2`)
-
-- **Framework**: Next.js 15.0.3 (React 19, App Router)
-- **Styling**: TailwindCSS 3.4, Framer Motion, Lucide Icons
-- **Web3 Integration**: Wagmi v2, Viem v2, RainbowKit v2, TanStack Query v5
-- **Unit & Integration Testing**: Vitest 4.1
+- **Smart Contracts**: Solidity `0.8.24`, Foundry (`forge`), OpenZeppelin v5.0.2.
+- **Web Frontend**: Next.js 15 (React 19), TailwindCSS, Framer Motion, Lucide Icons.
+- **Web3 Layer**: Wagmi v2, Viem v2, RainbowKit v2, TanStack Query v5.
+- **Oracles**: Pyth Network low-latency price feeds + Chainlink Data Feeds.
+- **Network**: Base Mainnet (Chain ID `8453`) & Base Sepolia (Chain ID `84532`).
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js `>= 18.0.0`
 - pnpm `>= 9.4.0`
 - Foundry (`forge` `>= 0.2.0`)
 
-### Installation
-
 ```bash
-# Clone repository
+# 1. Clone repository
 git clone git@github.com:DigiClums/UnifyVault-UV.git
 cd UnifyVault-UV
 
-# Install pnpm workspace dependencies
+# 2. Install dependencies
 pnpm install
-```
 
----
-
-## Local Development
-
-To run the Next.js frontend locally:
-
-```bash
-# Run web-v2 application in dev mode (default port: 3005)
+# 3. Start local development server
 pnpm dev
-
-# Or run directly via Turbo
-pnpm turbo run dev --filter=@unifyvault/web-v2
 ```
 
 ---
 
-## Build Instructions
+## 🛠️ Build Instructions
 
 ```bash
-# Build smart contracts via Foundry
+# Build all smart contracts
 pnpm --filter @unifyvault/protocol build
 
-# Build Next.js web application
-pnpm --filter @unifyvault/web-v2 build
-
-# Build all monorepo packages
-pnpm build
-```
-
----
-
-## Testing
-
-```bash
-# Run all smart contract tests via Foundry
+# Run smart contract test suites
 pnpm --filter @unifyvault/protocol test
 
-# Run frontend Vitest test suite
-cd apps/web-v2 && npx vitest run
-
-# Run specific protocol test suite
-cd packages/protocol && forge test --match-contract "P2P"
+# Build production web application
+pnpm --filter @unifyvault/web-v2 build
 ```
 
 ---
 
-## Canonical Deployed Contracts (Base Sepolia - Chain ID 84532)
+## 📋 Canonical Deployed Contracts (Base Sepolia)
 
-| Contract Module             | Address                                      |
-| :-------------------------- | :------------------------------------------- |
-| **ProtocolDirectory**       | `0xD2715141a0F5998B707BaA963990bFC2E94cF145` |
-| **Treasury**                | `0x66182F56BD5E523c655f6890290aB519f528e83f` |
-| **FeeManager**              | `0x0721465B01b586B7AAdF957A4a884acE46CfbEc9` |
-| **CustodyVault**            | `0x27B5C6DEA90678B78856b0B10DBA37A789fDe97e` |
-| **OracleManager**           | `0x5B6067982C6ccE2DC760EB4731c1b40136776D4A` |
-| **ChainlinkOracleProvider** | `0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a` |
-| **LiquidityManager**        | `0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329` |
-| **UVBEV2 (UVBEToken)**      | `0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE` |
-| **UnifyVaultController**    | `0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea` |
-| **StrategyManager**         | `0x14058459198a2CfFc8cE89C364334a80Da82D6a3` |
-| **PortfolioManager**        | `0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4` |
-| **SwapAdapter**             | `0xCb1a434c5ebe2F2F8672Ca507Ee819C6888ae634` |
-| **CostBasisManagerV2**      | `0xF71706A2Fd8692e3C739855B2A33C0E679b4c382` |
-| **PerformanceManager**      | `0x133fD024EA635694A223e66B936c2afAB4F2DB78` |
-| **P2PEscrowV2**             | `0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b` |
-| **TimelockController**      | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
+| Contract Module | Address | Verification Status |
+| :--- | :--- | :--- |
+| **ProtocolDirectory** | `0xD2715141a0F5998B707BaA963990bFC2E94cF145` | Verified |
+| **UVBEV2 (UVBE Index Coin)** | `0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE` | Verified |
+| **UnifyVaultController** | `0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea` | Verified |
+| **PortfolioManager** | `0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4` | Verified |
+| **OracleManager** | `0x5B6067982C6ccE2DC760EB4731c1b40136776D4A` | Verified |
+| **CostBasisManagerV2** | `0xF71706A2Fd8692e3C739855B2A33C0E679b4c382` | Verified |
+| **UVBEStakingVault** | `0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4` | Verified |
+| **UVBEReferralRegistry** | `0xc1F00539B6869b2445d85056EDc036114b939Ddd` | Verified |
+| **UVBERewardDistributor** | `0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9` | Verified |
+| **UVBERewardReserve** | `0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda` | Verified |
+| **P2PEscrowV2** | `0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b` | Verified |
+| **TimelockController** | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | Verified (48h) |
 
 ---
 
-## Environment Variables
+## 🔒 Security & Timelocks
 
-Root `.env` template:
-
-```env
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-BASE_MAINNET_RPC_URL=https://mainnet.base.org
-NEXT_PUBLIC_ADMIN_ADDRESS=0x441dbf8076d0b143EC17199baE94Daa884161454
-BASESCAN_API_KEY=your_basescan_api_key
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_walletconnect_project_id
-PORT=3001
-```
-
-Frontend `apps/web-v2/.env.local`:
-
-```env
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=146781145b65a1c63ffcd7d6eaf03bd1
-NEXT_PUBLIC_APP_DOMAIN=https://app.unifyvault.xyz
-NEXT_PUBLIC_ACTIVE_CHAIN=base-sepolia
-NEXT_PUBLIC_RPC_URL=https://sepolia.base.org
-NEXT_PUBLIC_DIRECTORY_ADDRESS_SEPOLIA=0xD2715141a0F5998B707BaA963990bFC2E94cF145
-NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA=0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b
-NEXT_PUBLIC_MARKETPLACE_ADDRESS_SEPOLIA=0xe908377f96F313a6b7771570ff6Fb414D38F451A
-```
+1. **48-Hour Timelock**: All parameter adjustments, module updates, and fee changes require a 48-hour timelock execution queue.
+2. **Reentrancy Protection**: OpenZeppelin `ReentrancyGuard` on all state-changing financial entrypoints.
+3. **Dead Share Protection**: Initial deposit burns `1000` wei dead shares to prevent ERC-4626 inflation attacks.
+4. **P2P Escrow Isolation**: P2P transfers are isolated from cost-basis and share valuation mutations.
+5. **Emergency Circuit Breakers**: Guardians can immediately pause deposits/redemptions in response to oracle or market anomalies.
 
 ---
 
-## Security Notes
+## 📚 Documentation Portal
 
-- **Access Control**: All administrative functions require `GOVERNANCE_ROLE` or `DEFAULT_ADMIN_ROLE`.
-- **Reentrancy Protection**: `ReentrancyGuard` applied on all state-changing financial interactions (`deposit`, `redeem`, `rebalance`, `createTrade`, `fundTrade`, `confirmAndRelease`, `refund`).
-- **Inflation Protection**: First deposit burns `DEAD_SHARES` (`1000` wei) to prevent share ratio manipulation.
-- **P2P Escrow Isolation**: P2P transfers are filtered out in `CostBasisManagerV2` via `_isEscrow` guards, preventing fiat trades from mutating portfolio investment basis or vault valuation.
-- **Circuit Breakers**: Emergency pause capability allows Guardians to halt deposits and redemptions instantly during security incidents.
+Comprehensive human-readable guides and technical specifications are available at:
+👉 **[https://docs.unifyvault.xyz](https://docs.unifyvault.xyz)**
 
 ---
 
-## Documentation Index
+## 📄 License
 
-Detailed architectural and technical guides are available in the [`docs/`](docs/) directory:
-
-- [`Architecture.md`](docs/Architecture.md) — System design, data flow, & component interaction.
-- [`Contracts.md`](docs/Contracts.md) — Comprehensive contract specification & reference.
-- [`Deployment.md`](docs/Deployment.md) — Deployment scripts, sequence, & active contract addresses.
-- [`Governance.md`](docs/Governance.md) — Timelock, roles, & governance controls.
-- [`Security.md`](docs/Security.md) — Threat model, security invariants, & emergency controls.
-- [`Frontend.md`](docs/Frontend.md) — Web application structure, pages, P2P routes, & Web3 integration.
-- [`DeveloperGuide.md`](docs/DeveloperGuide.md) — Development setup, workflows, & coding standards.
-- [`API.md`](docs/API.md) — EVM RPC query layer & Next.js P2P payment API routes.
-- [`Testing.md`](docs/Testing.md) — Testing strategy, test suites, & mock architecture.
-- [`Repository.md`](docs/Repository.md) — Workspace layout & package descriptions.
-
----
-
-## Contributing
-
-Please review [`CONTRIBUTING.md`](CONTRIBUTING.md) for guidelines on code standards, pull request processes, and branch naming conventions.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+This repository is licensed under the [MIT License](LICENSE).
