@@ -17,16 +17,23 @@ export function AdminHeader() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-purple-500 via-indigo-600 to-violet-500 p-0.5 shadow-sm flex items-center justify-center shrink-0">
-            <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
-            </div>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-transparent flex items-center justify-center shrink-0 overflow-hidden">
+            <img
+              src="/branding/uvbe-logo.svg"
+              alt="UnifyVault"
+              width={36}
+              height={36}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/branding/uvbe-token-logo.png';
+              }}
+            />
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-sm sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white to-purple-400 tracking-tight">
+            <span className="text-sm sm:text-lg font-bold text-foreground tracking-tight">
               UnifyVault
             </span>
-            <span className="hidden sm:inline text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0 font-mono">
+            <span className="hidden sm:inline text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/20 shrink-0 font-mono">
               Protocol Ops
             </span>
           </div>

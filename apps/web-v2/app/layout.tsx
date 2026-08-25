@@ -66,6 +66,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/branding/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/branding/apple-touch-icon.png" />
+      </head>
       <body
         className={`${inter.className} min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 antialiased`}
       >
