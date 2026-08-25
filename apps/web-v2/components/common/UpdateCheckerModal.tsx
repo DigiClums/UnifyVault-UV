@@ -20,7 +20,10 @@ export function UpdateCheckerModal() {
 
     async function checkVersion() {
       try {
-        const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch('https://app.unifyvault.xyz/version.json?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
         if (!res.ok) return;
         const data = await res.json();
 
@@ -31,8 +34,8 @@ export function UpdateCheckerModal() {
           if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
           setIsOpen(true);
         }
-      } catch {
-        // Silently ignore if offline
+      } catch (err) {
+        console.error('Update check error:', err);
       }
     }
 

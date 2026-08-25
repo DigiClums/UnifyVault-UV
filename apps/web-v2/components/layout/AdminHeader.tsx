@@ -41,6 +41,12 @@ export function AdminHeader() {
 
         {/* Right section */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+          <Link
+            href="/"
+            className="px-2.5 py-1.5 rounded-xl bg-card border border-border-subtle text-xs font-bold text-foreground hover:bg-[#BFFF00] hover:text-black transition-all flex items-center gap-1"
+          >
+            <span>Exit Admin</span>
+          </Link>
           <ThemeToggle />
           <div className="scale-90 sm:scale-100 origin-right flex items-center shrink">
             <ConnectButton />

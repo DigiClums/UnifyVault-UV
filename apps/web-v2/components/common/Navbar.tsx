@@ -106,6 +106,14 @@ export function Navbar() {
 
         {/* Right Section: Connect Button & Theme Toggle */}
         <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+          <Link
+            href="/admin"
+            className="xl:hidden flex items-center gap-1 px-2 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 text-[10px] font-black uppercase tracking-wider transition-all"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Admin</span>
+          </Link>
+
           <ThemeToggle />
 
           <div className="scale-95 sm:scale-100 origin-right flex items-center shrink-0">
