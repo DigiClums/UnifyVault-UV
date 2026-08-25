@@ -141,8 +141,12 @@ export const DEPLOYED_CONTRACTS_SEPOLIA = {
     ? process.env.NEXT_PUBLIC_ADMIN_ADDRESS
     : '0x441dbf8076d0b143EC17199baE94Daa884161454') as `0x${string}`,
   StakingVault: '0x91205D342D36d9b6F5A1AB38f2a2a3D03BFd74A1' as `0x${string}`,
+  UVBEStakingVault: '0x91205D342D36d9b6F5A1AB38f2a2a3D03BFd74A1' as `0x${string}`,
   ReferralRegistry: '0xb409064857792a2AEF676f9cB69713685775f0D0' as `0x${string}`,
+  UVBEReferralRegistry: '0xb409064857792a2AEF676f9cB69713685775f0D0' as `0x${string}`,
   RewardDistributor: '0xAe202A0627a194fa2D02cD861e19302d01F8ca81' as `0x${string}`,
+  UVBERewardDistributor: '0xAe202A0627a194fa2D02cD861e19302d01F8ca81' as `0x${string}`,
+  StabilizerVault: '0x0000000000000000000000000000000000000000' as `0x${string}`,
   /** @deprecated Removed in dynamic staking architecture; retained for interface backward-compatibility */
   RewardReserve: '0x0000000000000000000000000000000000000000' as `0x${string}`,
   GenesisReferrer: '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`,

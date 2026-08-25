@@ -3,14 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Sparkles, X, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
 
-export const CURRENT_APP_VERSION = '2.0.0';
+export const CURRENT_APP_VERSION = '1.0.0';
 
 export function UpdateCheckerModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState('https://app.unifyvault.xyz/unifyvault.apk');
+  const [downloadUrl, setDownloadUrl] = useState('https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.0/app-release.apk');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadCompleted, setDownloadCompleted] = useState(false);
@@ -27,12 +27,14 @@ export function UpdateCheckerModal() {
         if (!res.ok) return;
         const data = await res.json();
 
-        if (data.latestVersion && data.latestVersion !== CURRENT_APP_VERSION) {
+        if (data.latestVersion) {
           setLatestVersion(data.latestVersion);
           setReleaseNotes(data.releaseNotes || ['Performance improvements & security updates']);
           setIsMandatory(Boolean(data.mandatory));
           if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
-          setIsOpen(true);
+          if (data.latestVersion !== CURRENT_APP_VERSION) {
+            setIsOpen(true);
+          }
         }
       } catch (err) {
         console.error('Update check error:', err);
@@ -43,8 +45,9 @@ export function UpdateCheckerModal() {
     const interval = setInterval(checkVersion, 30_000);
 
     const handleManualTrigger = () => {
-      checkVersion();
+      setLatestVersion((prev) => prev || '2.4.0');
       setIsOpen(true);
+      checkVersion();
     };
 
     window.addEventListener('open-update-modal', handleManualTrigger);

@@ -362,9 +362,9 @@ export function getContractRolesMatrix(
     items.push({
       contractName: 'UnifyVaultPaymaster',
       contractAddress: contracts.UnifyVaultPaymaster,
-      roleIdentifier: 'OWNER',
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
       roleName: 'Ownable (2-Step)',
-      accessModel: 'OWNABLE_2STEP',
+      accessModel: 'OWNABLE',
       currentAuthority: currentAdmin,
       newAuthority: newAdmin,
       isCurrentAuthorityVerified: false,
@@ -379,9 +379,9 @@ export function getContractRolesMatrix(
     items.push({
       contractName: 'GasTreasury',
       contractAddress: contracts.GasTreasury,
-      roleIdentifier: 'OWNER',
+      roleIdentifier: '0x0000000000000000000000000000000000000000000000000000000000000000',
       roleName: 'Ownable (2-Step)',
-      accessModel: 'OWNABLE_2STEP',
+      accessModel: 'OWNABLE',
       currentAuthority: currentAdmin,
       newAuthority: newAdmin,
       isCurrentAuthorityVerified: false,

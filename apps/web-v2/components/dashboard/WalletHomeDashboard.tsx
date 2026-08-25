@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { DashboardMetrics } from '../../types';
 import { useAccount } from 'wagmi';
+import { formatUnits } from 'viem';
 import { useStaking } from '../../hooks/useStaking';
 import { getExplorerBaseUrl } from '../../constants';
 
@@ -32,8 +33,7 @@ interface WalletHomeDashboardProps {
 
 export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboardProps) {
   const { address, isConnected, chain } = useAccount();
-  const { userStake, claimableRewards, formattedStakeAmount, formattedRewardsAmount } =
-    useStaking();
+  const { permanentStake, rewards } = useStaking();
   const explorerUrl = getExplorerBaseUrl(chain?.id || 8453);
 
   const shortAddr = (addr?: string) =>
@@ -46,8 +46,8 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
   const uvbeSharePrice = metrics.sharePriceNumber || 1.0;
   const userVaultShares = parseFloat(metrics.userSharesBalance?.replace(/,/g, '') || '0');
   const userUsdc = parseFloat(metrics.userUsdcBalance?.replace(/,/g, '') || '0');
-  const userStakedUvbe = parseFloat(formattedStakeAmount?.replace(/,/g, '') || '0');
-  const userClaimableUvbe = parseFloat(formattedRewardsAmount?.replace(/,/g, '') || '0');
+  const userStakedUvbe = parseFloat(formatUnits(permanentStake || 0n, 18));
+  const userClaimableUvbe = parseFloat(formatUnits(rewards?.totalClaimable || 0n, 18));
 
   // USD Calculations
   const uvbeHoldingUsd = userVaultShares * uvbeSharePrice;
@@ -62,16 +62,16 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
   const stakedPct = totalNetWorthUsd > 0 ? (stakedHoldingUsd / totalNetWorthUsd) * 100 : 0;
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto pb-10">
+    <div className="space-y-3 sm:space-y-4 max-w-6xl mx-auto pb-4">
       {/* ── 1. WALLET HERO CARD (Total Net Worth) ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-card border-2 border-black dark:border-white/15 p-5 sm:p-7 shadow-[6px_6px_0_#BFFF00] text-foreground">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-card border-2 border-black dark:border-white/15 p-4 sm:p-5 shadow-[4px_4px_0_#BFFF00] text-foreground">
         {/* Neon Top Accent */}
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#BFFF00]" />
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                 Total Wallet Net Worth
               </span>
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black bg-[#BFFF00] text-black border border-black">
@@ -145,312 +145,246 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
         </div>
 
         {/* ── 5 ONE-TAP ACTION BUTTONS ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5 mt-6 pt-5 border-t border-border">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4 pt-3.5 border-t border-border">
           {/* Action 1: Deposit */}
           <Link
             href="/deposit"
-            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#BFFF00] text-black font-black hover:bg-[#a6df00] transition-all transform active:scale-95 border-2 border-black shadow-[2px_2px_0_#000]"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-[#BFFF00] text-black font-black hover:bg-[#a6df00] transition-all transform active:scale-95 border border-black shadow-[2px_2px_0_#000]"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
-              <ArrowDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
+              <ArrowDownRight className="w-3.5 h-3.5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-xs sm:text-sm font-black truncate">Deposit</div>
-              <div className="text-[9px] sm:text-[10px] opacity-70 font-semibold hidden sm:block truncate">
-                Mint Shares
-              </div>
+            <div className="text-center sm:text-left min-w-0">
+              <div className="text-[11px] sm:text-xs font-black truncate">Deposit</div>
             </div>
           </Link>
 
           {/* Action 2: Redeem */}
           <Link
             href="/redeem"
-            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-rose-400 dark:bg-white/10 dark:text-rose-400 flex items-center justify-center shrink-0">
-              <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-rose-400 dark:bg-white/10 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-xs sm:text-sm font-black truncate">Redeem</div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground font-normal hidden sm:block truncate">
-                Cash Out
-              </div>
+            <div className="text-center sm:text-left min-w-0">
+              <div className="text-[11px] sm:text-xs font-black truncate">Redeem</div>
             </div>
           </Link>
 
           {/* Action 3: Transfer / Send */}
           <Link
             href="/transfer"
-            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-white dark:bg-white/10 dark:text-white flex items-center justify-center shrink-0">
-              <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-white dark:bg-white/10 dark:text-white flex items-center justify-center shrink-0">
+              <Send className="w-3.5 h-3.5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-xs sm:text-sm font-black truncate">Send</div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground font-normal hidden sm:block truncate">
-                Transfer
-              </div>
+            <div className="text-center sm:text-left min-w-0">
+              <div className="text-[11px] sm:text-xs font-black truncate">Send</div>
             </div>
           </Link>
 
           {/* Action 4: Flash 30s */}
           <Link
             href="/predict"
-            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#BFFF00]/15 hover:bg-[#BFFF00] text-black dark:text-white hover:text-black font-black border-2 border-black dark:border-white/15 hover:border-black transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-[#BFFF00]/15 hover:bg-[#BFFF00] text-black dark:text-white hover:text-black font-black border border-black dark:border-white/15 hover:border-black transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
+              <Zap className="w-3.5 h-3.5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-xs sm:text-sm font-black truncate">Flash 30s</div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground font-normal hidden sm:block truncate">
-                Win 10x
-              </div>
+            <div className="text-center sm:text-left min-w-0">
+              <div className="text-[11px] sm:text-xs font-black truncate">Flash 30s</div>
             </div>
           </Link>
 
           {/* Action 5: P2P Trade */}
           <Link
             href="/p2p"
-            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-[#BFFF00] dark:bg-white/10 dark:text-[#BFFF00] flex items-center justify-center shrink-0">
-              <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-[#BFFF00] dark:bg-white/10 dark:text-[#BFFF00] flex items-center justify-center shrink-0">
+              <Coins className="w-3.5 h-3.5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-xs sm:text-sm font-black truncate">P2P Trade</div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground font-normal hidden sm:block truncate">
-                Zero Gas
-              </div>
+            <div className="text-center sm:text-left min-w-0">
+              <div className="text-[11px] sm:text-xs font-black truncate">P2P Trade</div>
             </div>
           </Link>
 
           {/* Action 6: Staking APY */}
           <Link
             href="/staking"
-            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)] col-span-2 sm:col-span-1"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-emerald-400 dark:bg-white/10 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-emerald-400 dark:bg-white/10 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-xs sm:text-sm font-black truncate">Stake & Earn</div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground font-normal hidden sm:block truncate">
-                Live Yield
-              </div>
+            <div className="text-center sm:text-left min-w-0">
+              <div className="text-[11px] sm:text-xs font-black truncate">Stake APY</div>
             </div>
           </Link>
         </div>
       </div>
 
       {/* ── 2. ASSETS / TOKEN HOLDINGS LIST ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Left 2 Cols: Asset List */}
-        <div className="lg:col-span-2 space-y-3">
+        <div className="lg:col-span-2 space-y-2">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight flex items-center gap-2">
+            <h2 className="text-sm sm:text-base font-black text-foreground tracking-tight flex items-center gap-2">
               <Layers className="w-4 h-4 text-[#BFFF00]" />
               <span>Your Assets & Holdings</span>
             </h2>
-            <span className="text-xs font-mono text-muted-foreground">{networkName}</span>
+            <span className="text-[11px] font-mono text-muted-foreground">{networkName}</span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {/* Asset 1: UVBE Index Shares */}
-            <div className="p-4 rounded-2xl bg-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[3px_3px_0_rgba(0,0,0,0.85)] space-y-3">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[2px_2px_0_rgba(0,0,0,0.85)] space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <TokenIcon symbol="UVBE" size={40} />
+                <div className="flex items-center space-x-2.5">
+                  <TokenIcon symbol="UVBE" size={32} />
                   <div>
-                    <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                      <span>UVBE Index Coin</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        60% cbBTC / 40% ETH
+                    <div className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                      <span>UVBE Index</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        60/40 BTC/ETH
                       </span>
                     </div>
-                    <div className="text-xs font-mono text-muted-foreground mt-0.5">
-                      NAV: ${uvbeSharePrice.toFixed(4)} USD
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                      NAV: ${uvbeSharePrice.toFixed(4)}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
-                  <div className="font-bold text-sm text-foreground">
-                    $
-                    {uvbeHoldingUsd.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                  <div className="font-bold text-xs sm:text-sm text-foreground">
+                    ${uvbeHoldingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground">
                     {userVaultShares.toLocaleString('en-US', { maximumFractionDigits: 4 })} UVBE
                   </div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                  <span>Vault Allocation Weight</span>
-                  <span>{uvbePct.toFixed(1)}% of Portfolio</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-white/10 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-[#BFFF00] h-full transition-all"
-                    style={{ width: `${uvbePct}%` }}
-                  />
-                </div>
+              <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-[#BFFF00] h-full transition-all" style={{ width: `${uvbePct}%` }} />
               </div>
             </div>
 
             {/* Asset 2: USDC Stablecoin */}
-            <div className="p-4 rounded-2xl bg-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[3px_3px_0_rgba(0,0,0,0.85)] space-y-3">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[2px_2px_0_rgba(0,0,0,0.85)] space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <TokenIcon symbol="USDC" size={40} />
+                <div className="flex items-center space-x-2.5">
+                  <TokenIcon symbol="USDC" size={32} />
                   <div>
-                    <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                      <span>USD Coin (USDC)</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        Liquid Reserve
+                    <div className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                      <span>USDC Liquid</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Reserve
                       </span>
                     </div>
-                    <div className="text-xs font-mono text-muted-foreground mt-0.5">
-                      Price: $1.0000 USD
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                      Price: $1.00
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
-                  <div className="font-bold text-sm text-foreground">
-                    $
-                    {usdcHoldingUsd.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                  <div className="font-bold text-xs sm:text-sm text-foreground">
+                    ${usdcHoldingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground">
                     {userUsdc.toLocaleString('en-US', { maximumFractionDigits: 2 })} USDC
                   </div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                  <span>Liquid Cash Weight</span>
-                  <span>{usdcPct.toFixed(1)}% of Portfolio</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-white/10 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-blue-500 h-full transition-all"
-                    style={{ width: `${usdcPct}%` }}
-                  />
-                </div>
+              <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-blue-500 h-full transition-all" style={{ width: `${usdcPct}%` }} />
               </div>
             </div>
 
             {/* Asset 3: Staked UVBE */}
-            <div className="p-4 rounded-2xl bg-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[3px_3px_0_rgba(0,0,0,0.85)] space-y-3">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[2px_2px_0_rgba(0,0,0,0.85)] space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500 text-white font-black flex items-center justify-center border-2 border-black text-sm">
-                    <Zap className="w-5 h-5" />
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500 text-white font-black flex items-center justify-center border border-black text-xs">
+                    <Zap className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                      <span>Staked UVBE (Locked 95%)</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                        Yield Accruing
+                    <div className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                      <span>Staked UVBE</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                        Locked APY
                       </span>
                     </div>
-                    <div className="text-xs font-mono text-muted-foreground mt-0.5">
-                      Dynamic APY Engine Active
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                      Dynamic Yield
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
-                  <div className="font-bold text-sm text-foreground">
-                    $
-                    {stakedHoldingUsd.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                  <div className="font-bold text-xs sm:text-sm text-foreground">
+                    ${stakedHoldingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground">
                     {userStakedUvbe.toLocaleString('en-US', { maximumFractionDigits: 4 })} UVBE
                   </div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                  <span>Staked Capital Weight</span>
-                  <span>{stakedPct.toFixed(1)}% of Portfolio</span>
-                </div>
-                <div className="w-full bg-slate-200 dark:bg-white/10 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-purple-500 h-full transition-all"
-                    style={{ width: `${stakedPct}%` }}
-                  />
-                </div>
+              <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-purple-500 h-full transition-all" style={{ width: `${stakedPct}%` }} />
               </div>
             </div>
           </div>
         </div>
 
         {/* Right 1 Col: Quick Info & Vault Allocations */}
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-card border-2 border-black dark:border-white/15 space-y-4 shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
-            <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
+        <div className="space-y-3">
+          <div className="p-4 rounded-xl bg-card border-2 border-black dark:border-white/15 space-y-3 shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
+            <h3 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[#BFFF00]" />
-              <span>Institutional Strategy</span>
+              <span>Protocol Strategy</span>
             </h3>
 
-            <div className="space-y-3 font-mono text-xs">
-              <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 border border-border-subtle flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
-                  <span className="font-bold">cbBTC Reserve</span>
+            <div className="space-y-2 font-mono text-xs">
+              <div className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 border border-border flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                  <span className="font-bold text-[11px]">cbBTC</span>
                 </div>
-                <span className="font-black text-[#F59E0B]">60.0% (6,000 BPS)</span>
+                <span className="font-black text-[11px] text-[#F59E0B]">60.0%</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 border border-border-subtle flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" />
-                  <span className="font-bold">WETH Reserve</span>
+              <div className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 border border-border flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#3B82F6]" />
+                  <span className="font-bold text-[11px]">WETH</span>
                 </div>
-                <span className="font-black text-[#3B82F6]">40.0% (4,000 BPS)</span>
+                <span className="font-black text-[11px] text-[#3B82F6]">40.0%</span>
               </div>
-            </div>
-
-            <div className="pt-2 border-t border-border-subtle/60 text-xs text-muted-foreground leading-relaxed">
-              UnifyVault indices are backed 100% on-chain by cbBTC & WETH reserves custodianed by
-              the Custody Vault on Base Mainnet.
             </div>
 
             <Link
               href="/portfolio"
-              className="w-full py-2.5 rounded-xl bg-black text-white dark:bg-white dark:text-black font-bold text-xs flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
+              className="w-full py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black font-bold text-[11px] flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
             >
-              <span>View Deep Portfolio Analytics</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <span>View Deep Analytics</span>
+              <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
-          {/* Quick Support & Documentation */}
-          <div className="p-4 rounded-2xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs space-y-2">
-            <div className="font-bold text-[#5f8f00] dark:text-[#BFFF00] flex items-center gap-1.5">
-              <Zap className="w-4 h-4" />
-              <span>Smart Wallet (Zero Gas)</span>
+          <div className="p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs flex items-center gap-2">
+            <Zap className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
+            <div className="text-[11px] text-muted-foreground leading-tight">
+              <strong className="text-foreground">Zero Gas Smart Wallet:</strong> Sponsored on Base.
             </div>
-            <p className="text-muted-foreground text-[11px] leading-relaxed">
-              Transactions are automatically sponsored with zero gas fees on Base network.
-            </p>
           </div>
         </div>
       </div>

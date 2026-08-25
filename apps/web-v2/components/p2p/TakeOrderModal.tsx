@@ -12,6 +12,7 @@ import {
   Copy,
   Check,
   CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
 import { useMarketplaceActions, isSaneTradeId } from '../../hooks/useMarketplace';

@@ -66,4 +66,10 @@ packages/protocol/.gas-snapshot
 filebrowser.db
 env.sh
 *.traineddata
-apps/web-v2/public/unifyvault.apk
+*.apk
+apps/web-v2/public/*.apk
+
+# Android Keystore & Signing Secrets
+*.jks
+*.keystore
+local.properties

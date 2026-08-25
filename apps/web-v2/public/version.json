@@ -1,13 +1,12 @@
 {
-  "latestVersion": "2.3.0",
-  "minimumVersion": "2.0.0",
+  "latestVersion": "1.0.0",
+  "minimumVersion": "1.0.0",
   "mandatory": false,
-  "downloadUrl": "https://app.unifyvault.xyz/unifyvault.apk",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.0/app-release.apk",
   "releaseNotes": [
-    "🟢 Direct Seller Concession & Release during active dispute",
-    "🟢 Live Trader Presence Indicator (Online / Last Active)",
-    "⏳ 15-Minute Seller Deposit Timeout Protection",
-    "🔒 Gated Admin operations for verified admin wallets only",
-    "🚀 Direct Native In-App Updater & APK Auto-Installer"
+    "🚀 Initial Production Release v1.0.0",
+    "⚡ Local-First & Blockchain-First Base Layer-2 Integration",
+    "📊 Compact Single-Screen Portfolio & Strategy Dashboard",
+    "🔒 Decentralized P2P Escrow & Zero-Gas Account Abstraction"
   ]
 }

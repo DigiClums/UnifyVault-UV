@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 4,
+  "manifestVersion": 5,
   "chainId": 84532,
   "network": "Base Sepolia",
   "deploymentVersion": "V2",
@@ -12,5 +12,5 @@
   "contracts": {},
   "stepRecords": {},
   "verificationResults": [],
-  "lastUpdated": 1787656026149
+  "lastUpdated": 1787679798897
 }

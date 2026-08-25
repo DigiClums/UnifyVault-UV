@@ -151,7 +151,7 @@ export const MAINNET_SWAP_ADAPTER_UPGRADE_STEPS: DeploymentStepDefinition[] = [
     expectedGasLimit: 2_500_000n,
     getExecutionData: (ctx) => {
       assertBaseMainnet(ctx.chainId || 0);
-      const admin = (ctx.adminAddress || MAINNET_LIVE_CONTRACTS.DeployerAdmin) as `0x${string}`;
+      const admin = (ctx.deployerAddress || MAINNET_LIVE_CONTRACTS.Treasury) as `0x${string}`;
       return {
         type: 'DEPLOY',
         abi: DEPLOYMENT_ARTIFACTS.SwapAdapter.abi,
