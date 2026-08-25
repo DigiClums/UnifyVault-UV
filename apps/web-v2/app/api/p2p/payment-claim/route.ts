@@ -1,3 +1,4 @@
+export const dynamic = "force-static";
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, isAddress } from 'viem';
 import { baseSepolia } from 'viem/chains';

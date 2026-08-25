@@ -11,6 +11,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@rainbow-me/rainbowkit": "^2.2.0",
     "@tanstack/react-query": "^5.61.5",
     "@types/pdf-parse": "^1.1.5",

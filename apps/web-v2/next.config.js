@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isExport = process.env.NEXT_EXPORT === 'true';
+
 const nextConfig = {
   reactStrictMode: true,
   eslint: {
@@ -7,6 +9,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  ...(isExport ? { output: 'export', distDir: 'out', images: { unoptimized: true } } : {}),
   serverExternalPackages: ['tesseract.js', 'pdf-parse'],
   transpilePackages: ['@rainbow-me/rainbowkit'],
   webpack: (config, { webpack }) => {
@@ -25,6 +28,7 @@ const nextConfig = {
     return config;
   },
   async redirects() {
+    if (isExport) return [];
     return [
       {
         source: '/transaction',
@@ -41,3 +45,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+

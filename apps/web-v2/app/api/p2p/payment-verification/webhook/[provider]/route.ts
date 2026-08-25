@@ -1,6 +1,11 @@
+export const dynamic = "force-static";
 import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentVerificationEngine } from '../../../../../../lib/verification/verificationEngine';
 import { BankWebhookVerificationProvider } from '../../../../../../lib/verification/providers/bankWebhookProvider';
+
+export function generateStaticParams() {
+  return [{ provider: 'default' }, { provider: 'mock' }];
+}
 
 /**
  * POST /api/p2p/payment-verification/webhook/[provider]
