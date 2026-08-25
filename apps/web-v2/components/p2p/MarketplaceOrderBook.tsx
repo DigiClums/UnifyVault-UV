@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { OrderDetails, OrderSide, OrderStatus } from '../../lib/contracts/marketplace';
 import { TrustBadge } from './TrustBadge';
+import { UserPresenceBadge } from './UserPresenceBadge';
 import { ParticipantRole } from '../../lib/contracts/reputation';
 
 interface MarketplaceOrderBookProps {
@@ -218,6 +219,7 @@ export function MarketplaceOrderBook({
                       address={order.maker as `0x${string}`}
                       role={isBuy ? ParticipantRole.BUYER : ParticipantRole.SELLER}
                     />
+                    <UserPresenceBadge address={order.maker} />
                     <span>
                       {order.maker.slice(0, 6)}...{order.maker.slice(-4)}
                     </span>

@@ -997,14 +997,28 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           <p className="text-xs text-muted-foreground leading-relaxed font-sans">
             Order matched! The seller must deposit <strong className="text-foreground">{formatUnits(trade.amount, 18)} UVBE</strong> into the verified on-chain escrow contract first.
           </p>
-          <div className="p-3 rounded-xl bg-background/80 border border-amber-500/20 text-xs font-sans space-y-1.5">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold">
-              <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>Buyer Protection Guard:</span>
+          <div className="p-3 rounded-xl bg-background/80 border border-amber-500/20 text-xs font-sans space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold">
+                <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Buyer Protection & Seller Deposit Timer:</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse">
+                ⏳ 15m Deposit Window
+              </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Seller UPI ID and payment transfer instructions will <strong>only be revealed once crypto is safely locked in escrow</strong>. Do not attempt any external payment until escrow status turns <span className="text-emerald-500 font-bold font-mono">FUNDED</span>.
+              The seller has been notified to lock <strong>{formatUnits(trade.amount, 18)} UVBE</strong> into smart contract escrow. Seller UPI ID and payment instructions will <strong>only unlock once funds are securely in escrow</strong>.
             </p>
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-600 dark:text-amber-400 space-y-1">
+              <p className="font-bold flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Seller Inactive or Offline?</span>
+              </p>
+              <p>
+                If the seller does not fund within 15 minutes, you can safely cancel this order without any penalty and pick an active online seller.
+              </p>
+            </div>
           </div>
           <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-500/20">
             <span className="text-muted-foreground">Payable Upon Escrow Lock:</span>
