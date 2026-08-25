@@ -17,6 +17,7 @@ import {
   Globe,
   Send,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
@@ -29,6 +30,7 @@ interface NavItem {
 
 const navLinks: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
+  { href: '/predict', label: 'Flash 30s', icon: Zap },
   { href: '/staking', label: 'Staking', icon: Sparkles },
   { href: '/p2p', label: 'P2P', icon: ShieldCheck },
   { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
@@ -48,10 +50,17 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 h-16 flex items-center justify-between gap-1 sm:gap-3">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 group">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-[#BFFF00] border-2 border-black p-0.5 shadow-[2px_2px_0_#000] flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
-            <div className="w-full h-full bg-background rounded-[10px] flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-black dark:text-[#BFFF00]" />
-            </div>
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-transparent flex items-center justify-center transition-transform group-hover:scale-105 shrink-0 overflow-hidden">
+            <img
+              src="/branding/uvbe-logo.svg"
+              alt="UnifyVault UVBE"
+              width={36}
+              height={36}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/branding/uvbe-token-logo.png';
+              }}
+            />
           </div>
 
           <div className="min-w-0 leading-none">

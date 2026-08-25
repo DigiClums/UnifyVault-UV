@@ -87,12 +87,17 @@ export function TokenIcon({ symbol, size = 28, className = '' }: TokenIconProps)
   // ── UVBE (UnifyVault Index Share Token) ──
   if (sym.includes('UV') || sym === 'UVBE') {
     return (
-      <div
+      <img
+        src="/branding/uvbe-logo.svg"
+        alt="UVBE"
+        width={size}
+        height={size}
         style={{ width: size, height: size }}
-        className={`rounded-full bg-black border-2 border-black dark:border-white/20 flex items-center justify-center font-black text-xs text-[#BFFF00] shrink-0 shadow-[1px_1px_0_#BFFF00] ${className}`}
-      >
-        <span className="font-mono tracking-tighter text-[11px] font-black">UV</span>
-      </div>
+        className={`object-contain shrink-0 ${className}`}
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = '/branding/uvbe-token-logo.png';
+        }}
+      />
     );
   }
 

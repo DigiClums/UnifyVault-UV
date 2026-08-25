@@ -19,7 +19,9 @@ apps/web-v2/
 │   ├── app-home/page.tsx      # Main Protocol Dashboard & Vault Metrics
 │   ├── deposit/page.tsx       # Deposit Collateral Page (USDC / cbBTC / WETH)
 │   ├── redeem/page.tsx        # Redeem Shares Page (Net Collateral Withdrawal)
-│   ├── transfer/page.tsx      # Direct UVBE Share Transfer Page
+│   ├── transfer/page.tsx      # Direct UVBE Share Transfer Page (with QR Code Camera Scanner)
+│   ├── predict/page.tsx       # Flash 30s Rapid Binary Prediction Game (Custom Multipliers)
+│   ├── staking/page.tsx       # UVBE Staking Vault & Rewards Engine
 │   ├── portfolio/page.tsx     # User Holdings, Cost Basis, Realized/Unrealized P&L
 │   ├── analytics/page.tsx     # Historical NAV & Performance Charts
 │   ├── treasury/page.tsx      # Protocol Treasury & Fee Metrics
@@ -28,6 +30,7 @@ apps/web-v2/
 │   ├── p2p/page.tsx           # P2P Marketplace, Limit Orderbook, OCR & Escrow
 │   ├── api/                   # Serverless Backend Endpoints
 │   │   ├── p2p/               # UPI / Fiat Payment Intents, Claims, & Disputed Trades
+│   │   ├── flashpulse/        # Flash 30s Game Vault Balance & Settle Logic
 │   │   └── smart-account/     # Gasless Bundler & Sponsorship Relayer
 │   └── admin/                 # Admin & Keeper Management Console
 │       ├── page.tsx           # Admin Overview
@@ -36,9 +39,9 @@ apps/web-v2/
 │       ├── rebalance/page.tsx # Portfolio Rebalancing Triggers
 │       ├── treasury/page.tsx  # Protocol Fee Sweeps
 │       └── settings/page.tsx  # Rate Limits & Slippage Settings
-├── components/                # React UI Components (Vault, P2P, Common Modals)
+├── components/                # React UI Components (Vault, P2P, Common Modals, QrScannerModal)
 ├── constants/                 # Contract ABIs, Addresses, & Chain Configs
-├── hooks/                     # Custom React Web3 Hooks (useVault, useOracle, useP2PEscrow, useSmartAccount)
+├── hooks/                     # Custom React Web3 Hooks (useVault, useOracle, useP2PEscrow, useFlashPulse, useSmartAccount)
 ├── lib/                       # Formatting, Math, Payment Store, & Portfolio Transforms
 └── providers/                 # Web3 & Query Providers (Wagmi, RainbowKit, TanStack)
 ```
@@ -53,7 +56,9 @@ apps/web-v2/
 | `/app-home`     | App Dashboard   | Protocol TVL, NAV per share, active price ticker, target allocation, and quick deposit/redeem actions.                                                |
 | `/deposit`      | Deposit         | Multi-asset deposit (USDC, cbBTC, WETH), slippage tolerance, gasless 1-click batching for Smart Accounts, and share preview.                          |
 | `/redeem`       | Redeem          | Burn `UVBE` shares for net collateral with customizable slippage protection and deadline guards.                                                      |
-| `/transfer`     | Transfer        | Direct wallet-to-wallet transfer of `UVBE` share tokens with proportional cost basis preservation.                                                    |
+| `/transfer`     | Transfer        | Direct wallet-to-wallet transfer of `UVBE` share tokens with real-time camera QR scanner and proportional cost basis preservation.                    |
+| `/predict`      | Flash 30s       | 30-second rapid prediction game with Pyth Oracle live pricing, gasless game vault, Parimutuel odds, and customizable reward multipliers (2x to 20x).   |
+| `/staking`      | Staking Vault   | UVBE permanent & flexible staking pools with referral commissions and yield claim engine.                                                             |
 | `/portfolio`    | Portfolio       | Personal share holdings, on-chain cost basis (`CostBasisManagerV2`), entry prices, realized P&L, and token breakdown (Grid & Table views).            |
 | `/analytics`    | Analytics       | Interactive charts of historical NAV, daily volume, fee accumulation, and asset price performance.                                                    |
 | `/p2p`          | P2P Marketplace | Non-custodial limit orderbook, counter-order matching, trade escrow (`P2PEscrowV2`), QR code generation, OCR receipt upload, and dispute arbitration. |

@@ -86,7 +86,15 @@ flowchart TD
   - Total `UVBE.totalSupply()` is invariant $\implies$ **Vault NAV per share is 100% unaffected**.
   - Maintains separate on-chain ledgers for direct referral commissions, generation income, rank qualifications, and reward pool distributions.
 
-### 2.9 Governance & Access Layer
+### 2.10 Flash 30s Rapid Binary Prediction Market Layer (Off-Chain Pyth Oracle & Gasless Micro-Vault)
+
+- **Architecture Invariants**:
+  - Operates as a fast-paced game layer with zero rehypothecation of `CustodyVault` collateral.
+  - Interacts with live Pyth/Chainlink sub-second oracle feeds to evaluate 30-second rapid market strikes.
+  - Features dedicated **Gasless Game Vault** for 1-tap rapid betting without repeated wallet popups.
+  - Implements **Parimutuel Pool Odds** with dynamic user-customizable reward multipliers (2x to 20x).
+
+### 2.11 Governance & Access Layer
 
 - **`UnifyVaultTimelock`**: OpenZeppelin `TimelockController` derivative enforcing a mandatory 48-hour execution delay on administrative and governance transactions.
 

@@ -194,7 +194,23 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
             </div>
           </Link>
 
-          {/* Action 4: P2P Trade */}
+          {/* Action 4: Flash 30s */}
+          <Link
+            href="/predict"
+            className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#BFFF00]/15 hover:bg-[#BFFF00] text-black dark:text-white hover:text-black font-black border-2 border-black dark:border-white/15 hover:border-black transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="text-xs sm:text-sm font-black truncate">Flash 30s</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground font-normal hidden sm:block truncate">
+                Win 10x
+              </div>
+            </div>
+          </Link>
+
+          {/* Action 5: P2P Trade */}
           <Link
             href="/p2p"
             className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
@@ -210,13 +226,13 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
             </div>
           </Link>
 
-          {/* Action 5: Staking APY */}
+          {/* Action 6: Staking APY */}
           <Link
             href="/staking"
             className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)] col-span-2 sm:col-span-1"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-black text-emerald-400 dark:bg-white/10 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="text-left min-w-0">
               <div className="text-xs sm:text-sm font-black truncate">Stake & Earn</div>

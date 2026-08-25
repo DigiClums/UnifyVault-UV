@@ -16,6 +16,17 @@ function formatAxisDate(timestampStr: string): string {
   try {
     const d = new Date(timestampStr);
     if (isNaN(d.getTime())) return timestampStr;
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      return d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    }
+
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return timestampStr;

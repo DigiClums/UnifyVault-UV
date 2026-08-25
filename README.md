@@ -53,6 +53,8 @@ UnifyVault aims to set the benchmark for transparent, non-custodial, and securit
 - **Donation-Immune Custody**: `CustodyVault` separates tracked user deposits from untracked asset transfers, immunizing share pricing against balance inflation attacks.
 - **Automated Portfolio Management**: `PortfolioManager` and `StrategyManager` manage target asset allocations (BPS) and execute trades via `SwapAdapter` with strict slippage limits.
 - **On-Chain Cost Basis & P&L Tracking**: `CostBasisManagerV2` tracks user deposits, redemptions, entry prices, realized P&L, and unrealized returns via a locked pre-transfer hook in `UVBEV2`.
+- **Direct UVBE Transfer with QR Scanner**: Real-time camera QR scanner integrated directly into the sender wallet address input for seamless mobile & desktop share transfers with proportional cost basis preservation.
+- **Flash 30s Rapid Binary Prediction Market**: 30-second rapid prediction game (`/predict`) featuring real-time Pyth oracle price feeds, gasless betting vault, Parimutuel pool odds, and user-customizable reward multipliers (2x, 3x, 5x, 10x, 20x).
 - **Non-Custodial P2P OTC Marketplace**: `P2PEscrowV2` and `Marketplace` allow decentralized limit order matching and fiat settlement with cryptographic receipt hashing (`evidenceHash`), bank reference tracking (`paymentReference`), and multi-sig arbitration.
 - **Timelock Governance**: `UnifyVaultTimelock` enforces a 48-hour delay on administrative and governance actions, requiring multi-sig (Gnosis Safe) proposal approval.
 - **Role-Based Access Control (RBAC)**: Fine-grained OpenZeppelin `AccessControl` permissions (`GOVERNANCE_ROLE`, `GUARDIAN_ROLE`, `CONTROLLER_ROLE`, `BOT_ROLE`, `ARBITRATOR_ROLE`).

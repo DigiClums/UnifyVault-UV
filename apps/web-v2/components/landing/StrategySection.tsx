@@ -2,87 +2,120 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, RefreshCw, BarChart2 } from 'lucide-react';
 import { useUnifiedProtocolData } from '../../hooks/useUnifiedProtocolData';
 import { Skeleton } from '../ui/Skeleton';
+import { TokenIcon } from '../ui/TokenIcon';
 
 export function StrategySection() {
   const data = useUnifiedProtocolData();
   const hasStrategy = data.targetBtcBps !== undefined && data.targetEthBps !== undefined;
-  const btcPct = hasStrategy ? data.targetBtcPercent! : '50%';
-  const ethPct = hasStrategy ? data.targetEthPercent! : '50%';
-  const btcNum = hasStrategy ? data.targetBtcBps! / 100 : 50;
-  const ethNum = hasStrategy ? data.targetEthBps! / 100 : 50;
+  const btcPct = hasStrategy ? data.targetBtcPercent! : '60%';
+  const ethPct = hasStrategy ? data.targetEthPercent! : '40%';
+  const btcNum = hasStrategy ? data.targetBtcBps! / 100 : 60;
+  const ethNum = hasStrategy ? data.targetEthBps! / 100 : 40;
+  const uvbePrice = data.sharePriceNumber || 1.022;
 
   return (
-    <section className="px-4 sm:px-6 pb-14 sm:pb-20">
-      <div className="max-w-2xl mx-auto">
-        <div className="overflow-hidden bg-white/[0.025] border border-white/[0.08]">
-          <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-white/[0.08]">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#BFFF00]/80 mb-1 font-mono">
-              Primary Strategy
-            </p>
-            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">UVBE</h3>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
-              A multi-asset strategy designed around BTC and ETH exposure, managed through on-chain
-              portfolio accounting with transparent custody.
-            </p>
-          </div>
+    <section className="px-4 sm:px-6 py-14 sm:py-20 bg-black/40 border-t border-white/5">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center max-w-xl mx-auto mb-10">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#BFFF00] mb-2 font-mono">
+            AUTOMATED REBALANCING
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            Flagship UVBE Index Strategy
+          </h2>
+          <p className="text-xs sm:text-sm text-white/60 mt-2">
+            Target 60% cbBTC + 40% WETH ratio with automated on-chain drift mitigation.
+          </p>
+        </div>
 
-          <div className="px-5 py-4 sm:px-6 sm:py-5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
-              Target Allocation
-            </p>
-
-            {data.isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+        <div className="rounded-3xl bg-slate-900/80 border-2 border-black dark:border-white/15 p-6 sm:p-8 shadow-[6px_6px_0_#BFFF00] backdrop-blur-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {/* Left: Allocation Meters */}
+            <div className="space-y-5">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <span className="text-xs font-bold font-mono text-white/70 uppercase tracking-wider">
+                  Target Composition
+                </span>
+                <span className="text-xs font-mono font-bold text-[#BFFF00]">
+                  Rebalance Band: ±2.5%
+                </span>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-2.5 h-2.5 bg-[#BFFF00] shrink-0" />
-                      <span className="text-sm font-semibold text-white">BTC</span>
+
+              <div className="space-y-4">
+                {/* cbBTC */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TokenIcon symbol="cbBTC" size={24} />
+                      <div>
+                        <span className="text-sm font-bold text-white block">cbBTC</span>
+                        <span className="text-[10px] text-white/40 font-mono">Coinbase Wrapped Bitcoin</span>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-[#BFFF00] font-mono">{btcPct}</span>
+                    <span className="text-base font-black text-amber-400 font-mono">{btcPct}</span>
                   </div>
-                  <div className="w-full h-2 bg-white/[0.07] overflow-hidden">
-                    <div
-                      className="h-full bg-[#BFFF00] transition-all duration-700"
-                      style={{ width: `${btcNum}%` }}
-                    />
+                  <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${btcNum}%` }} />
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-2.5 h-2.5 bg-slate-300 shrink-0" />
-                      <span className="text-sm font-semibold text-white">ETH</span>
+                {/* WETH */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TokenIcon symbol="WETH" size={24} />
+                      <div>
+                        <span className="text-sm font-bold text-white block">WETH</span>
+                        <span className="text-[10px] text-white/40 font-mono">Wrapped Ether</span>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-200 font-mono">{ethPct}</span>
+                    <span className="text-base font-black text-blue-400 font-mono">{ethPct}</span>
                   </div>
-                  <div className="w-full h-2 bg-white/[0.07] overflow-hidden">
-                    <div
-                      className="h-full bg-slate-300 transition-all duration-700"
-                      style={{ width: `${ethNum}%` }}
-                    />
+                  <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${ethNum}%` }} />
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
-            <div className="mt-5 pt-4 border-t border-white/[0.08]">
-              <Link
-                href="/portfolio"
-                className="inline-flex items-center space-x-2 text-xs font-semibold text-[#BFFF00] hover:text-[#d7ff66] transition-colors"
-              >
-                <span>View Portfolio Details</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+            {/* Right: Key Pillars */}
+            <div className="space-y-4 font-mono text-xs">
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/10 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-[#BFFF00] shrink-0">
+                  <RefreshCw className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white font-sans text-sm">No Impermanent Loss</h4>
+                  <p className="text-white/60 font-sans text-xs mt-1">
+                    Direct asset holding without liquidity provider divergence loss.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/10 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-[#BFFF00] shrink-0">
+                  <BarChart2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white font-sans text-sm">Dynamic NAV Settlement</h4>
+                  <p className="text-white/60 font-sans text-xs mt-1">
+                    Every mint/burn calculates real-time net asset value using Pyth Network feeds.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  href="/portfolio"
+                  className="w-full py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs font-sans text-center flex items-center justify-center gap-2 shadow-[3px_3px_0_#000] hover:bg-[#d0ff66] transition-all"
+                >
+                  <span>Explore Index Analytics</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>

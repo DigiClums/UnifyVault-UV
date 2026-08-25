@@ -32,11 +32,22 @@ function formatAxisDate(timestampStr: string): string {
   try {
     const d = new Date(timestampStr);
     if (isNaN(d.getTime())) return timestampStr;
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    
+    // For today/intraday: show time (e.g. "14:00")
+    if (isToday) {
+      return d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    }
+    
+    // For multi-day: show "Aug 24"
     return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   } catch (e) {
     return timestampStr;

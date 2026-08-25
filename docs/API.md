@@ -91,3 +91,24 @@ For gasless UserOperation sponsorship and relaying, the application provides sec
 
 - **Purpose**: Relays signed UserOperations to the Base Sepolia ERC-4337 Bundler (`eth_sendUserOperation`, `eth_estimateUserOperationGas`, `eth_getUserOperationReceipt`).
 - **Security**: Sanitizes payloads and prevents unauthorized arbitrary RPC executions.
+
+---
+
+## 4. Flash 30s Rapid Binary Prediction API Routes
+
+Located at `apps/web-v2/app/api/flashpulse/`:
+
+### `GET /api/flashpulse?address=0x...`
+
+- **Purpose**: Retrieves user's off-chain Gasless Game Vault balance (`depositedUVBE`, `lockedUVBE`, `availableUVBE`).
+- **Security**: Returns user balance and active locks.
+
+### `POST /api/flashpulse`
+
+- **Purpose**: Processes gasless game vault actions:
+  - `DEPOSIT`: Deposits mock/real UVBE into the gasless fast-action vault.
+  - `WITHDRAW`: Withdraws available UVBE back to the main wallet.
+  - `LOCK_BET`: Locks betting collateral for an upcoming 30s round with custom multiplier parameter.
+  - `SETTLE_WIN`: Credits payout calculation based on settled Oracle strike price and chosen multiplier (2x–20x).
+  - `SETTLE_LOSS`: Settles round loss and clears locked collateral.
+- **Parameters**: `action`, `address`, `amountUVBE`, `direction`, `multiplier`, `payoutUVBE`.

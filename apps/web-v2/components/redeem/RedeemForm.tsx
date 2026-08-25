@@ -25,6 +25,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { SmartAccountBadge } from '../common/SmartAccountBadge';
+import { TokenIcon } from '../ui/TokenIcon';
 
 export function RedeemForm() {
   const { isConnected, chain } = useAccount();
@@ -213,9 +214,7 @@ export function RedeemForm() {
                 className="w-full bg-transparent text-2xl sm:text-3xl font-extrabold text-foreground placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none font-mono tracking-tight"
               />
               <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#151515] px-3 py-1.5 rounded-lg border-2 border-black dark:border-white/15 shrink-0 shadow-2xs">
-                <div className="w-5 h-5 rounded-full bg-[#BFFF00] border-2 border-black flex items-center justify-center text-[9px] font-black text-black">
-                  UV
-                </div>
+                <TokenIcon symbol="UVBE" size={20} />
                 <span className="text-xs font-bold text-foreground">UVBE</span>
               </div>
             </div>

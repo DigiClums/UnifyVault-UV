@@ -20,8 +20,11 @@ import {
   Sparkles,
   Wallet,
   Zap,
+  ScanLine,
 } from 'lucide-react';
 import { SmartAccountBadge } from '../common/SmartAccountBadge';
+import { QrScannerModal } from '../common/QrScannerModal';
+import { TokenIcon } from '../ui/TokenIcon';
 import { ERC20_ABI } from '../../lib/smartAccount/constants';
 
 export function TransferForm() {
@@ -58,6 +61,7 @@ export function TransferForm() {
   const [amountInput, setAmountInput] = useState<string>('');
   const [txError, setTxError] = useState<string | null>(null);
   const [localTxHash, setLocalTxHash] = useState<string | null>(null);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
 
   // Standard EOA fallback transfer
   const {
@@ -300,17 +304,28 @@ export function TransferForm() {
               <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
                 Recipient Address
               </label>
-              <input
-                type="text"
-                placeholder="0x..."
-                value={recipientInput}
-                onChange={(e) => {
-                  setRecipientInput(e.target.value);
-                  setTxError(null);
-                }}
-                disabled={isProcessing}
-                className="w-full px-4 py-3 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={recipientInput}
+                  onChange={(e) => {
+                    setRecipientInput(e.target.value);
+                    setTxError(null);
+                  }}
+                  disabled={isProcessing}
+                  className="w-full px-4 py-3 pr-12 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsQrScannerOpen(true)}
+                  disabled={isProcessing}
+                  title="Scan QR Code"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#BFFF00] text-black border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ScanLine className="w-4 h-4" />
+                </button>
+              </div>
               {recipientInput && !isValidRecipient && (
                 <p className="text-xs text-rose-500 dark:text-rose-400 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" />
@@ -318,6 +333,16 @@ export function TransferForm() {
                 </p>
               )}
             </div>
+
+            {/* QR Code Scanner Modal */}
+            <QrScannerModal
+              isOpen={isQrScannerOpen}
+              onClose={() => setIsQrScannerOpen(false)}
+              onScan={(address) => {
+                setRecipientInput(address);
+                setTxError(null);
+              }}
+            />
 
             {/* Amount Input */}
             <div className="space-y-2">
@@ -347,13 +372,17 @@ export function TransferForm() {
                     setTxError(null);
                   }}
                   disabled={isProcessing}
-                  className="w-full px-4 py-3 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-lg font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
+                  className="w-full px-4 py-3 pr-28 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-lg font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
                 />
+                <div className="absolute right-14 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-slate-100 dark:bg-[#151515] px-2 py-1 rounded-lg border border-black/20 dark:border-white/15">
+                  <TokenIcon symbol="UVBE" size={16} />
+                  <span className="text-[11px] font-bold text-foreground font-mono">UVBE</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => handlePercentageSelect(100)}
                   disabled={isProcessing || activeBalanceNum <= 0}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-[#BFFF00] text-black border border-black text-xs font-bold shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[32px] flex items-center justify-center"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1.5 rounded-lg bg-[#BFFF00] text-black border border-black text-xs font-bold shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[28px] flex items-center justify-center"
                 >
                   MAX
                 </button>
