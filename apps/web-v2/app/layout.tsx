@@ -45,12 +45,13 @@ export const metadata: Metadata = {
   },
 };
 
-async function getShellMode(): Promise<'landing' | 'app' | 'admin'> {
+async function getShellMode(): Promise<'landing' | 'app' | 'admin' | 'docs'> {
   try {
     const headersList = await headers();
     const host = headersList.get('host') || '';
     const hostname = host.split(':')[0] || '';
 
+    if (hostname === 'docs.unifyvault.xyz') return 'docs';
     if (hostname === 'v2.unifyvault.xyz') return 'admin';
     if (hostname === 'unifyvault.xyz' || hostname === 'www.unifyvault.xyz') return 'landing';
     // app.unifyvault.xyz and localhost both default to app mode

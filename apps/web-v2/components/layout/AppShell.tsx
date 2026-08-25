@@ -10,14 +10,20 @@ import { AdminHeader } from './AdminHeader';
 import { LandingHeader } from '../landing/LandingHeader';
 import { LandingFooter } from '../landing/LandingFooter';
 
+import { DocsLayout } from '../docs/DocsLayout';
+
 interface AppShellProps {
   children: React.ReactNode;
-  shellMode: 'landing' | 'app' | 'admin';
+  shellMode: 'landing' | 'app' | 'admin' | 'docs';
 }
 
 /**
  * AppShell conditionally renders the appropriate application chrome
  * based on the host-determined shellMode passed from the root layout.
+ *
+ * ── docs ──────────────────────────────────────────────────────
+ * docs.unifyvault.xyz protocol documentation.
+ * Renders DocsLayout with left navigation sidebar and table of contents.
  *
  * ── landing ───────────────────────────────────────────────────
  * unifyvault.xyz marketing hero site.
@@ -34,6 +40,15 @@ interface AppShellProps {
  * Renders the full public chrome: Navbar, Footer, MobileBottomNav.
  */
 export function AppShell({ children, shellMode }: AppShellProps) {
+  if (shellMode === 'docs') {
+    return (
+      <>
+        <GlobalAlertBanner />
+        <DocsLayout>{children}</DocsLayout>
+      </>
+    );
+  }
+
   if (shellMode === 'admin') {
     return (
       <>
