@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -13,6 +13,18 @@ const inter = Inter({
   display: 'swap',
   variable: '--font-inter',
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F7F6EE' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0A0A' },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://app.unifyvault.xyz'),

@@ -35,6 +35,9 @@
 @layer base {
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-[#BFFF00] selection:text-black transition-colors duration-200;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 }
 
