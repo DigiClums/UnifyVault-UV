@@ -11,6 +11,7 @@ import { LandingHeader } from '../landing/LandingHeader';
 import { LandingFooter } from '../landing/LandingFooter';
 
 import { DocsLayout } from '../docs/DocsLayout';
+import { UpdateCheckerModal } from '../common/UpdateCheckerModal';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -72,6 +73,7 @@ export function AppShell({ children, shellMode: initialShellMode }: AppShellProp
   // shellMode === 'app'
   return (
     <>
+      <UpdateCheckerModal />
       <GlobalAlertBanner />
       <LivePriceTicker />
       <Navbar />

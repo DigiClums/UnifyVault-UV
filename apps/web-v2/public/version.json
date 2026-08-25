@@ -1,0 +1,12 @@
+{
+  "latestVersion": "2.1.0",
+  "minimumVersion": "2.0.0",
+  "mandatory": false,
+  "downloadUrl": "https://app.unifyvault.xyz/unifyvault.apk",
+  "releaseNotes": [
+    "Official UVBE Coin launcher icon added",
+    "Direct Web3 Dashboard on App startup (Hero page bypassed)",
+    "In-App Admin & Arbitration controls enabled",
+    "Client-side OCR receipt verification engine upgraded"
+  ]
+}
