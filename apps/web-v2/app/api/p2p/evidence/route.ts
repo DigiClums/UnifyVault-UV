@@ -221,3 +221,77 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+/**
+ * DELETE /api/p2p/evidence?hash=0x...
+ * Permanently purges and deletes the payment receipt image/file and metadata from storage once trade is completed.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const hashParam = searchParams.get('hash') || searchParams.get('cid');
+
+    if (!hashParam) {
+      return NextResponse.json(
+        { success: false, error: 'Missing evidence hash parameter for deletion.' },
+        { status: 400 },
+      );
+    }
+
+    const cleanHash = hashParam.replace(/^vps-/, '').trim();
+    if (!/^0x[a-fA-F0-9]{64}$/.test(cleanHash)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid evidence hash format.' },
+        { status: 400 },
+      );
+    }
+
+    const storageRoot = getEvidenceStorageRoot();
+    const metadataFilePath = path.resolve(storageRoot, `${cleanHash}.json`);
+    const resolvedRoot = path.resolve(storageRoot);
+
+    if (!metadataFilePath.startsWith(resolvedRoot)) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Path traversal blocked.' },
+        { status: 403 },
+      );
+    }
+
+    let deletedFilesCount = 0;
+
+    // Delete stored media payload
+    if (fs.existsSync(metadataFilePath)) {
+      try {
+        const metadataContent = await fs.promises.readFile(metadataFilePath, 'utf-8');
+        const metadata = JSON.parse(metadataContent);
+        if (metadata.storedPath) {
+          const fileContentPath = path.resolve(storageRoot, metadata.storedPath);
+          if (fileContentPath.startsWith(resolvedRoot) && fs.existsSync(fileContentPath)) {
+            await fs.promises.unlink(fileContentPath);
+            deletedFilesCount++;
+          }
+        }
+      } catch (parseErr) {
+        console.warn('Warning parsing metadata during evidence deletion:', parseErr);
+      }
+
+      // Delete metadata json
+      await fs.promises.unlink(metadataFilePath);
+      deletedFilesCount++;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Payment receipt screenshot and metadata successfully purged from storage.',
+      evidenceHash: cleanHash,
+      deletedFilesCount,
+    });
+  } catch (err: any) {
+    console.error('Evidence purge error:', err);
+    return NextResponse.json(
+      { success: false, error: err?.message || 'Server error purging evidence.' },
+      { status: 500 },
+    );
+  }
+}
+

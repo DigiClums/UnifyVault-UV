@@ -597,6 +597,14 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       } else {
         await confirmAndRelease(trade.tradeId);
       }
+
+      // Automatically purge payment receipt screenshot from storage once trade is completed
+      if (trade.evidenceHash && trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        fetch(`/api/p2p/evidence?hash=${trade.evidenceHash}`, { method: 'DELETE' }).catch((e) =>
+          console.warn('Non-fatal: Failed purging evidence screenshot on trade completion:', e),
+        );
+      }
+
       if (onRefresh) onRefresh();
     } catch (err: unknown) {
       console.error('Confirm release failed:', err);
@@ -617,6 +625,14 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       } else {
         await refund(trade.tradeId);
       }
+
+      // Automatically purge payment receipt screenshot from storage on refund
+      if (trade.evidenceHash && trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        fetch(`/api/p2p/evidence?hash=${trade.evidenceHash}`, { method: 'DELETE' }).catch((e) =>
+          console.warn('Non-fatal: Failed purging evidence screenshot on refund:', e),
+        );
+      }
+
       if (onRefresh) onRefresh();
     } catch (err: unknown) {
       console.error('Refund failed:', err);
@@ -652,6 +668,14 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         }
       }
       await resolveDispute(trade.tradeId, outcome);
+
+      // Automatically purge payment receipt screenshot from storage once dispute is settled
+      if (trade.evidenceHash && trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        fetch(`/api/p2p/evidence?hash=${trade.evidenceHash}`, { method: 'DELETE' }).catch((e) =>
+          console.warn('Non-fatal: Failed purging evidence screenshot on dispute resolution:', e),
+        );
+      }
+
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Resolve dispute failed:', err);
