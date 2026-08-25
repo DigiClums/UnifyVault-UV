@@ -963,27 +963,37 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         </div>
       </div>
 
-      {/* 0. BUYER NOTICE: Unfunded Trade Awaiting Seller Deposit */}
+      {/* 0. BUYER NOTICE: Unfunded Trade Awaiting Seller Deposit (Escrow Protected) */}
       {isBuyer && trade.state === TradeState.CREATED && (
-        <div className="p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 space-y-2 font-mono">
-          <div className="flex items-center gap-2 font-black text-sm text-amber-600 dark:text-amber-400 font-sans">
-            <Clock className="w-5 h-5" />
-            <span>TRADE CREATED — AWAITING SELLER COLLATERAL DEPOSIT</span>
+        <div className="p-4 sm:p-5 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 space-y-3 font-mono shadow-sm">
+          <div className="flex items-center gap-2 font-black text-sm sm:text-base text-amber-600 dark:text-amber-400 font-sans">
+            <Clock className="w-5 h-5 animate-pulse shrink-0" />
+            <span>WAITING FOR SELLER TO DEPOSIT CRYPTO IN ESCROW</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed font-sans">
-            The on-chain trade has been created. The seller must deposit{' '}
-            <strong className="text-foreground">{formatUnits(trade.amount, 18)} UVBE</strong> into
-            escrow before you send payment. Payment instructions, seller UPI ID, and the receipt
-            upload form are previewed below and will unlock for submission as soon as escrow
-            collateral is deposited.
+            Order matched! The seller must deposit <strong className="text-foreground">{formatUnits(trade.amount, 18)} UVBE</strong> into the verified on-chain escrow contract first.
           </p>
+          <div className="p-3 rounded-xl bg-background/80 border border-amber-500/20 text-xs font-sans space-y-1.5">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold">
+              <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Buyer Protection Guard:</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Seller UPI ID and payment transfer instructions will <strong>only be revealed once crypto is safely locked in escrow</strong>. Do not attempt any external payment until escrow status turns <span className="text-emerald-500 font-bold font-mono">FUNDED</span>.
+            </p>
+          </div>
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-500/20">
+            <span className="text-muted-foreground">Payable Upon Escrow Lock:</span>
+            <span className="font-black text-foreground font-mono">
+              {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* DIRECT MANUAL FIAT / UPI PAYMENT DETAILS CARD */}
-      {(trade.state === TradeState.CREATED ||
-        trade.state === TradeState.FUNDED ||
-        trade.state === TradeState.PAYMENT_SUBMITTED) && (
+      {/* DIRECT MANUAL FIAT / UPI PAYMENT DETAILS CARD (Unlocked ONLY when FUNDED or PAYMENT_SUBMITTED for Buyer) */}
+      {((isBuyer && (trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED)) ||
+        (!isBuyer && (trade.state === TradeState.CREATED || trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED))) && (
         <div className="p-4 rounded-xl border-2 border-black dark:border-white/10 bg-accent/20 space-y-3 font-mono text-xs">
           <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
@@ -991,7 +1001,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
               <span>DIRECT FIAT / UPI PAYMENT INSTRUCTIONS</span>
             </div>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#BFFF00] text-black">
-              Manual Transfer
+              {trade.state === TradeState.FUNDED ? 'Escrow Funded — Ready to Pay' : 'Manual Transfer'}
             </span>
           </div>
 

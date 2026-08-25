@@ -308,77 +308,35 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
             </p>
           </div>
 
-          {/* PAYMENT TO SELLER Section (BUY mode - taking a SELL order) */}
+          {/* Order Matching Notice (BUY mode - taking a SELL order) */}
           {isBuyMode && (
             <div className="p-3.5 sm:p-4 rounded-xl bg-accent/20 border-2 border-black/10 dark:border-white/10 space-y-2.5 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2">
                 <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
                   <CreditCard className="w-3.5 h-3.5 text-[#BFFF00]" />
-                  <span>PAYMENT TO SELLER</span>
+                  <span>ESCROW SECURITY & PAYMENT FLOW</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-sans">
-                  Direct UPI Transfer
+                <span className="text-[10px] text-[#5f8f00] dark:text-[#BFFF00] font-sans font-bold">
+                  Buyer Protection Active
                 </span>
               </div>
 
-              {isLoadingSellerUpi ? (
-                <div className="flex items-center gap-2 py-2 text-muted-foreground text-xs">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#BFFF00]" />
-                  <span>Fetching seller payment details...</span>
-                </div>
-              ) : sellerUpi ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-background border border-black/10 dark:border-white/10">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        UPI ID
-                      </span>
-                      <span
-                        data-testid="seller-upi-id"
-                        className="text-sm font-black text-foreground tracking-wide select-all break-all font-mono"
-                      >
-                        {sellerUpi}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyUpi}
-                      className="px-2.5 py-1.5 rounded-lg border border-black/20 dark:border-white/20 bg-accent hover:bg-accent/80 text-foreground font-bold text-[11px] flex items-center gap-1 shrink-0 transition-all active:scale-95 min-h-[32px]"
-                      title="Copy UPI ID"
-                      aria-label="Copy UPI ID"
-                    >
-                      {copiedUpi ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="text-emerald-500 font-bold">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs space-y-1.5 font-sans">
+                <p className="font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span>Funds Protected by Escrow</span>
+                </p>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Accepting this order matches you with the seller. You will only transfer fiat to the seller’s UPI once the seller deposits <strong className="text-foreground">{tradeAmountStr || '0'} UVBE</strong> into the smart contract escrow.
+                </p>
+              </div>
 
-                  <div className="flex items-center justify-between px-1 text-xs">
-                    <span className="text-muted-foreground">Amount:</span>
-                    <span
-                      data-testid="seller-payment-amount"
-                      className="font-black text-foreground"
-                    >
-                      ₹{fiatTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2 font-sans">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span data-testid="seller-upi-unavailable">
-                    Seller payment details unavailable
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between px-1 text-xs pt-1">
+                <span className="text-muted-foreground">Total Payable Upon Deposit:</span>
+                <span data-testid="seller-payment-amount" className="font-black text-foreground text-sm">
+                  ₹{fiatTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR
+                </span>
+              </div>
             </div>
           )}
 
