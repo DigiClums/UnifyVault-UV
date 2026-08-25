@@ -1520,13 +1520,55 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
       {/* DISPUTE WORKSPACE COMPONENT (Blockscan Chat Style) */}
       {(paymentIntent?.status === 'PAYMENT_DISPUTED' || trade.state === TradeState.DISPUTED) && (
-        <DisputeChatWorkspace
-          tradeId={trade.tradeId}
-          userAddress={userAddress || ''}
-          isBuyer={isBuyer}
-          isSeller={isSeller}
-          isAdmin={isArbitrator}
-        />
+        <div className="space-y-3">
+          <DisputeChatWorkspace
+            tradeId={trade.tradeId}
+            userAddress={userAddress || ''}
+            isBuyer={isBuyer}
+            isSeller={isSeller}
+            isAdmin={isArbitrator}
+          />
+
+          {/* SELLER VOLUNTARY CONCESSION & INSTANT RELEASE (If Seller realized mistake in chat) */}
+          {isSeller && trade.state === TradeState.DISPUTED && (
+            <div className="p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 space-y-3 font-mono">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-black text-sm text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>PAYMENT RECEIVED AFTER DISPUTE?</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Seller Resolution
+                </span>
+              </div>
+
+              <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                If the buyer provided valid proof in chat or you now see the credit of{' '}
+                <strong className="text-foreground font-mono">
+                  {formatFiatAmount(trade.fiatAmount, trade.fiatCurrency)}
+                </strong>{' '}
+                in your bank, you can immediately close the dispute and release the escrowed{' '}
+                <strong className="text-foreground font-mono">
+                  {formatUnits(trade.amount, 18)} UVBE
+                </strong>{' '}
+                to the buyer without waiting for admin arbitration.
+              </p>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowReleaseConfirm(true)}
+                  disabled={isPending}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs border-2 border-black shadow-[4px_4px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                >
+                  {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>I CONFIRMED PAYMENT — RELEASE COINS TO BUYER</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* 4. SELLER / BUYER ACTION: Refund on Expired Payment Window */}
