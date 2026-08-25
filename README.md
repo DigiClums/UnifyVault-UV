@@ -207,21 +207,55 @@ pnpm --filter @unifyvault/web-v2 build
 
 ---
 
-## 📋 Canonical Deployed Contracts (Base Sepolia)
+## 📋 Canonical Deployed Contracts
+
+### 🌐 Base Mainnet (Chain ID `8453`)
 
 | Contract Module | Address | Verification Status |
 | :--- | :--- | :--- |
-| **ProtocolDirectory** | `0xD2715141a0F5998B707BaA963990bFC2E94cF145` | Verified |
-| **UVBEV2 (UVBE Index Coin)** | `0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE` | Verified |
-| **UnifyVaultController** | `0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea` | Verified |
-| **PortfolioManager** | `0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4` | Verified |
-| **OracleManager** | `0x5B6067982C6ccE2DC760EB4731c1b40136776D4A` | Verified |
-| **CostBasisManagerV2** | `0xF71706A2Fd8692e3C739855B2A33C0E679b4c382` | Verified |
+| **ProtocolDirectory** | `0xe74b400f4aea3a0b593be5acbc54f56631c0d60e` | Verified |
+| **UVBE Index Coin (`UVBEToken`)** | `0xd2715141a0f5998b707baa963990bfc2e94cf145` | Verified |
+| **UnifyVaultController (UUPS Proxy)** | `0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366` | Verified |
+| **CustodyVault** | `0xbb35a3434c689942e0b7d58909eae0d2cc0769ca` | Verified |
+| **Treasury** | `0x57561F781b2f558A7445D2E93a365C03BA2c9B53` | Verified |
+| **PortfolioManager** | `0x66182f56bd5e523c655f6890290ab519f528e83f` | Verified |
+| **StrategyManager** | `0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a` | Verified |
+| **OracleManager (Pyth + Chainlink)** | `0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7` | Verified |
+| **CostBasisManagerV2** | `0x27b5c6dea90678b78856b0b10dba37a789fde97e` | Verified |
+| **SwapAdapter** | `0xaae7104a120e7c6e518a936fcbc102bcd0454b67` | Verified |
+| **UVBEStakingVault** | `0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571` | Verified |
+| **UVBEReferralRegistry** | `0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e` | Verified |
+| **UVBERewardDistributor** | `0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa` | Verified |
+| **P2PEscrowV2** | `0xa938aacea64be8f41c90960aff232da4df7fc329` | Verified |
+| **P2PReputation** | `0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8` | Verified |
+| **Marketplace** | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified |
+| **Paymaster** | `0xdf96b619934d17ae85142dcef1655a8d3b19040a` | Verified |
+| **TimelockController** | `0x610c5f66d99993d444561d270fba172db1f7cff1` | Verified (48h) |
+
+---
+
+### 🧪 Base Sepolia Testnet (Chain ID `84532`)
+
+| Contract Module | Address | Verification Status |
+| :--- | :--- | :--- |
+| **ProtocolDirectory** | `0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f` | Verified |
+| **UVBE Index Coin (`UVBEToken`)** | `0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde` | Verified |
+| **UnifyVaultController (UUPS Proxy)** | `0x07f3d3432b64dbf67c5b061af2bc8aef70221cea` | Verified |
+| **CustodyVault** | `0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64` | Verified |
+| **Treasury** | `0xe0764477914f8eb0fe90c7f27bca0ade1ee95316` | Verified |
+| **PortfolioManager** | `0x1c65b1667c8cc03138b8e57cdd40b0bf28a4cdc4` | Verified |
+| **StrategyManager** | `0x14058459198a2cffc8ce89c364334a80da82d6a3` | Verified |
+| **OracleManager** | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified |
+| **CostBasisManagerV2** | `0xcc405c38ed50efc715afcebadc37c01da6838ddd` | Verified |
+| **SwapAdapter** | `0x8deca9efb0bdc300aae96111bdf0dcd32651db90` | Verified |
 | **UVBEStakingVault** | `0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4` | Verified |
 | **UVBEReferralRegistry** | `0xc1F00539B6869b2445d85056EDc036114b939Ddd` | Verified |
 | **UVBERewardDistributor** | `0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9` | Verified |
 | **UVBERewardReserve** | `0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda` | Verified |
-| **P2PEscrowV2** | `0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b` | Verified |
+| **P2PEscrowV2** | `0xcba65af8a993061cf1acc47d9b02d7ebacbcf655` | Verified |
+| **P2PReputation** | `0x49460e2fF8c20ba96121C18e7D36Fd4aE293C70c` | Verified |
+| **Marketplace** | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` | Verified |
+| **Paymaster** | `0x42c6342516714CFd64474bd41Ce360605b9fEA88` | Verified |
 | **TimelockController** | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | Verified (48h) |
 
 ---

@@ -363,19 +363,41 @@ UnifyVault P2P is a **100% smart-contract escrow system**:
         content: `
 # Official Smart Contract Directory 📋
 
-All UnifyVault contracts are publicly open-source, deployed on **Base Mainnet**, and verified on BaseScan.
+All UnifyVault contracts are publicly open-source, deployed on **Base**, and verified on BaseScan.
 
 ---
 
-### 🔗 Official Base Mainnet Addresses:
+### 🌐 Base Mainnet (Chain ID: 8453)
 
-- **UnifyVault Controller**: \`0x51E2b4159F9C6EB3d4342533F18204E62F16263B\`
-- **UVBE Index Coin**: \`0x7eBB72F3E769B738bC2B104F5E6c55986Fe4B237\`
-- **Portfolio Manager**: \`0x9a8B5C08985160A441bA79B37E4C470b15C42129\`
-- **Oracle Manager (Pyth + Chainlink)**: \`0x3C474D95b68DA93175402D4F04a3f4b4D77e9FaA\`
-- **FlashPulse Prediction Arena**: \`0xd9957d620B309b688fe1a221fF67b6C9D10360a0\`
-- **Staking & Reward Vault**: \`0x14C60E919c0C1e5A7c45c22880e6c6411516A654\`
-- **P2P Escrow Engine**: \`0x8979e2c60F0606B56e54F26B880b9576E4B17B08\`
+| Contract Name | Address | Explorer Link |
+| :--- | :--- | :--- |
+| **ProtocolDirectory** | \`0xe74b400f4aea3a0b593be5acbc54f56631c0d60e\` | [View on BaseScan](https://basescan.org/address/0xe74b400f4aea3a0b593be5acbc54f56631c0d60e) |
+| **UVBE Index Coin (\`UVBEToken\`)** | \`0xd2715141a0f5998b707baa963990bfc2e94cf145\` | [View on BaseScan](https://basescan.org/address/0xd2715141a0f5998b707baa963990bfc2e94cf145) |
+| **UnifyVaultController (UUPS Proxy)** | \`0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366\` | [View on BaseScan](https://basescan.org/address/0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366) |
+| **CustodyVault** | \`0xbb35a3434c689942e0b7d58909eae0d2cc0769ca\` | [View on BaseScan](https://basescan.org/address/0xbb35a3434c689942e0b7d58909eae0d2cc0769ca) |
+| **PortfolioManager** | \`0x66182f56bd5e523c655f6890290ab519f528e83f\` | [View on BaseScan](https://basescan.org/address/0x66182f56bd5e523c655f6890290ab519f528e83f) |
+| **OracleManager (Pyth + Chainlink)** | \`0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7\` | [View on BaseScan](https://basescan.org/address/0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7) |
+| **CostBasisManagerV2** | \`0x27b5c6dea90678b78856b0b10dba37a789fde97e\` | [View on BaseScan](https://basescan.org/address/0x27b5c6dea90678b78856b0b10dba37a789fde97e) |
+| **UVBEStakingVault** | \`0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571\` | [View on BaseScan](https://basescan.org/address/0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571) |
+| **UVBEReferralRegistry** | \`0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e\` | [View on BaseScan](https://basescan.org/address/0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e) |
+| **UVBERewardDistributor** | \`0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa\` | [View on BaseScan](https://basescan.org/address/0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa) |
+| **P2PEscrowV2** | \`0xa938aacea64be8f41c90960aff232da4df7fc329\` | [View on BaseScan](https://basescan.org/address/0xa938aacea64be8f41c90960aff232da4df7fc329) |
+| **TimelockController** | \`0x610c5f66d99993d444561d270fba172db1f7cff1\` | [View on BaseScan](https://basescan.org/address/0x610c5f66d99993d444561d270fba172db1f7cff1) |
+
+---
+
+### 🧪 Base Sepolia Testnet (Chain ID: 84532)
+
+| Contract Name | Address | Explorer Link |
+| :--- | :--- | :--- |
+| **ProtocolDirectory** | \`0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **UVBE Index Coin** | \`0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **UnifyVaultController** | \`0x07f3d3432b64dbf67c5b061af2bc8aef70221cea\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **UVBEStakingVault** | \`0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **UVBEReferralRegistry** | \`0xc1F00539B6869b2445d85056EDc036114b939Ddd\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **UVBERewardDistributor** | \`0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **P2PEscrowV2** | \`0xcba65af8a993061cf1acc47d9b02d7ebacbcf655\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
+| **TimelockController** | \`0x9094145Cd2AEA2f309eDf14237444a07edF98d02\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
 
 > [!TIP]
 > Always verify that you are interacting with the official domain **https://unifyvault.xyz** or **https://app.unifyvault.xyz**.
