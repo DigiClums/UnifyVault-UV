@@ -37,6 +37,12 @@ contract MockUSDCUpgradeableTest is ERC20 {
   }
 }
 
+contract MockUniswapV3RouterForControllerTest {
+  function factory() external pure returns (address) {
+    return address(0);
+  }
+}
+
 contract UnifyVaultControllerUpgradeableTest is Test {
   UnifyVaultControllerUpgradeable public implementation;
   ERC1967Proxy public proxy;
@@ -51,6 +57,7 @@ contract UnifyVaultControllerUpgradeableTest is Test {
   StrategyManager public strategyManager;
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
+  MockUniswapV3RouterForControllerTest public mockRouter;
   CostBasisManagerV2 public costBasisManager;
   MockUSDCUpgradeableTest public usdc;
 
@@ -73,6 +80,7 @@ contract UnifyVaultControllerUpgradeableTest is Test {
 
     token = new UVBEV2(admin);
     usdc = new MockUSDCUpgradeableTest();
+    mockRouter = new MockUniswapV3RouterForControllerTest();
     costBasisManager = new CostBasisManagerV2(admin, address(directory));
 
     // 2. Register Oracle feed for USDC ($1.00 USD)
@@ -100,7 +108,7 @@ contract UnifyVaultControllerUpgradeableTest is Test {
       address(vault),
       address(token)
     );
-    swapAdapter = new SwapAdapter(admin, address(0x7777));
+    swapAdapter = new SwapAdapter(admin, address(mockRouter));
 
     // 6. Deploy UUPS Implementation
     implementation = new UnifyVaultControllerUpgradeable();

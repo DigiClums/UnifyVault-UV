@@ -38,6 +38,12 @@ contract MockUSDCForPhase2 is ERC20 {
   }
 }
 
+contract MockUniswapV3RouterForPhase2Integration {
+  function factory() external pure returns (address) {
+    return address(0);
+  }
+}
+
 contract RevertingCBMV2 is ICostBasisManagerV2 {
   bool public revertDeposit;
   bool public revertRedeem;
@@ -127,6 +133,7 @@ contract Phase2IntegrationTest is Test {
     escrow = new P2PEscrowV2(treasuryAddr, 100); // 1% fee
 
     usdc = new MockUSDCForPhase2();
+    MockUniswapV3RouterForPhase2Integration mockRouter = new MockUniswapV3RouterForPhase2Integration();
 
     // Register USDC Oracle ($1.00 USD)
     bytes32 usdcId = bytes32(uint256(uint160(address(usdc))));
@@ -138,6 +145,7 @@ contract Phase2IntegrationTest is Test {
     assets[0] = address(usdc);
     uint256[] memory weights = new uint256[](1);
     weights[0] = 10000;
+
     strategyManager = new StrategyManager(admin, assets, weights);
 
     portfolioManager = new PortfolioManager(
@@ -148,7 +156,7 @@ contract Phase2IntegrationTest is Test {
       address(vault),
       address(token)
     );
-    swapAdapter = new SwapAdapter(admin, address(0x999));
+    swapAdapter = new SwapAdapter(admin, address(mockRouter));
 
     controller = new UnifyVaultController(
       address(directory),

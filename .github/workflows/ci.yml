@@ -112,7 +112,7 @@ jobs:
         run: cd packages/protocol && forge build src
 
       - name: Run Foundry Test Suite
-        run: cd packages/protocol && forge test -vvv
+        run: cd packages/protocol && pnpm test:all
 
       - name: Run Forge Gas Snapshot
         run: cd packages/protocol && forge snapshot

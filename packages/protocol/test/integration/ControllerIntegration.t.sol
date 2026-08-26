@@ -34,6 +34,12 @@ contract MockUSDCForController is ERC20 {
   }
 }
 
+contract MockUniswapV3RouterForControllerIntegration {
+  function factory() external pure returns (address) {
+    return address(0);
+  }
+}
+
 contract ControllerIntegrationTest is Test {
   ProtocolDirectory public directory;
   OracleManager public oracleManager;
@@ -44,6 +50,7 @@ contract ControllerIntegrationTest is Test {
   StrategyManager public strategyManager;
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
+  MockUniswapV3RouterForControllerIntegration public mockRouter;
   UnifyVaultController public controller;
 
   MockUSDCForController public usdc;
@@ -62,6 +69,7 @@ contract ControllerIntegrationTest is Test {
 
     token = new UVBTCETHToken();
     usdc = new MockUSDCForController();
+    mockRouter = new MockUniswapV3RouterForControllerIntegration();
 
     // Register USDC Oracle ($1.00 USD)
     bytes32 usdcId = bytes32(uint256(uint160(address(usdc))));
@@ -85,7 +93,7 @@ contract ControllerIntegrationTest is Test {
       address(vault),
       address(token)
     );
-    swapAdapter = new SwapAdapter(admin, address(0x999));
+    swapAdapter = new SwapAdapter(admin, address(mockRouter));
 
     // Setup Controller
     controller = new UnifyVaultController(

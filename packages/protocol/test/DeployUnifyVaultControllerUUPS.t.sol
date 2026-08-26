@@ -42,6 +42,12 @@ contract MockUSDCTest is ERC20 {
   }
 }
 
+contract MockUniswapV3RouterForUUPS {
+  function factory() external pure returns (address) {
+    return address(0);
+  }
+}
+
 contract DeployUnifyVaultControllerUUPSTest is Test {
   DeployUnifyVaultControllerUUPSScript public deployScript;
   VerifyUnifyVaultControllerUUPSScript public verifyScript;
@@ -58,6 +64,7 @@ contract DeployUnifyVaultControllerUUPSTest is Test {
   StrategyManager public strategyManager;
   PortfolioManager public portfolioManager;
   SwapAdapter public swapAdapter;
+  MockUniswapV3RouterForUUPS public mockRouter;
   CostBasisManagerV2 public costBasisManager;
   PerformanceManager public performanceManager;
   P2PEscrowV2 public p2pEscrow;
@@ -88,6 +95,7 @@ contract DeployUnifyVaultControllerUUPSTest is Test {
     liquidityManager = new LiquidityManager(admin, address(directory));
     token = new UVBEV2(admin);
     usdc = new MockUSDCTest();
+    mockRouter = new MockUniswapV3RouterForUUPS();
 
     // 2. Setup Oracle for USDC ($1.00 USD)
     bytes32 usdcId = bytes32(uint256(uint160(address(usdc))));
@@ -114,7 +122,7 @@ contract DeployUnifyVaultControllerUUPSTest is Test {
       address(token)
     );
 
-    swapAdapter = new SwapAdapter(admin, address(0x7777));
+    swapAdapter = new SwapAdapter(admin, address(mockRouter));
     costBasisManager = new CostBasisManagerV2(admin, address(directory));
     p2pEscrow = new P2PEscrowV2(address(treasury), 100);
     performanceManager = new PerformanceManager(admin, address(directory));
