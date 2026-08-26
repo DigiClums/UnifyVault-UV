@@ -43,9 +43,36 @@ contract GovernanceMigrationTest is Test {
   }
 
   function test_LoadConfig() public {
+    VmExt vmExt = VmExt(address(vm));
+    string memory originalConfigPath = vmExt.envOr('CONFIG_PATH', '');
+
+    string memory json = string.concat(
+      '{"newAdmin":"',
+      Strings.toHexString(newAdmin),
+      '","oldAdmin":"',
+      Strings.toHexString(oldAdmin),
+      '","guardian":"',
+      Strings.toHexString(guardian),
+      '","confirmRenounce":true,"contracts":{"CustodyVault":"',
+      Strings.toHexString(address(vault)),
+      '","Treasury":"',
+      Strings.toHexString(address(treasury)),
+      '"}}'
+    );
+
+    string memory testConfigPath = 'script/mainnet/config/test_load_config.json';
+    vmExt.writeFile(testConfigPath, json);
+    vmExt.setEnv('CONFIG_PATH', testConfigPath);
+
     MigrationConfig memory config = GovernanceMigrationHelper.loadConfig(address(vm));
     assertEq(config.newAdmin, newAdmin, 'newAdmin mismatch');
-    assertTrue(config.contracts.length > 0, 'No contracts loaded');
+    assertEq(config.oldAdmin, oldAdmin, 'oldAdmin mismatch');
+    assertEq(config.guardian, guardian, 'guardian mismatch');
+    assertTrue(config.confirmRenounce, 'confirmRenounce mismatch');
+    assertEq(config.contracts.length, 2, 'contracts length mismatch');
+
+    vmExt.removeFile(testConfigPath);
+    vmExt.setEnv('CONFIG_PATH', originalConfigPath);
   }
 
   function test_GovernanceMigrationLifecycle() public {
@@ -140,8 +167,9 @@ contract GovernanceMigrationTest is Test {
       '"}}'
     );
 
-    string memory testConfigPath = 'script/mainnet/config/test_config.json';
     VmExt vmExt = VmExt(address(vm));
+    string memory originalConfigPath = vmExt.envOr('CONFIG_PATH', '');
+    string memory testConfigPath = 'script/mainnet/config/test_config.json';
     vmExt.writeFile(testConfigPath, json);
     vmExt.setEnv('CONFIG_PATH', testConfigPath);
 
@@ -172,6 +200,6 @@ contract GovernanceMigrationTest is Test {
     assertTrue(treasury.hasRole(GovernanceMigrationHelper.DEFAULT_ADMIN_ROLE, newAdmin));
 
     vmExt.removeFile(testConfigPath);
-    vmExt.setEnv('CONFIG_PATH', 'script/mainnet/config/base_sepolia.json');
+    vmExt.setEnv('CONFIG_PATH', originalConfigPath);
   }
 }
