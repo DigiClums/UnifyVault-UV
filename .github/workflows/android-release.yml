@@ -1,0 +1,220 @@
+name: Android Release Build & Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version Name override (e.g. 1.0.1 - defaults to tag name without v)'
+        required: false
+        default: ''
+      version_code:
+        description: 'Version Code override (e.g. 10001 - calculated from semver if blank)'
+        required: false
+        default: ''
+      publish_release:
+        description: 'Publish GitHub Release asset (true/false)'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    name: Build & Publish Android Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.4.0
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK Tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK Components
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Determine Version Name & Code
+        id: versioning
+        run: |
+          if [ -n "${{ github.event.inputs.version_name }}" ]; then
+            CLEAN_VERSION="${{ github.event.inputs.version_name }}"
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
+            CLEAN_VERSION="${GITHUB_REF_NAME#v}"
+          else
+            CLEAN_VERSION="1.0.0"
+          fi
+
+          echo "Determined versionName: $CLEAN_VERSION"
+
+          if [ -n "${{ github.event.inputs.version_code }}" ]; then
+            V_CODE="${{ github.event.inputs.version_code }}"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
+            MAJOR=${MAJOR:-0}
+            MINOR=${MINOR:-0}
+            PATCH=$(echo "${PATCH:-0}" | grep -oE '^[0-9]+' || echo "0")
+            V_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          fi
+
+          if [ "$V_CODE" -le 0 ]; then
+            V_CODE=1
+          fi
+
+          echo "Determined versionCode: $V_CODE"
+          echo "version_name=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+          echo "version_code=$V_CODE" >> $GITHUB_OUTPUT
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Web App Static Export
+        run: |
+          export NEXT_EXPORT=true
+          pnpm --filter=@unifyvault/web-v2 build
+
+      - name: Sync Capacitor Android Project
+        run: |
+          cd apps/web-v2
+          npx cap sync android
+
+      - name: Setup Production Keystore Securely
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 is not set!"
+            exit 1
+          fi
+          KEYSTORE_DIR=$(mktemp -d -t keystore-XXXXXX)
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_DIR/unifyvault-release-key.jks"
+          chmod 600 "$KEYSTORE_DIR/unifyvault-release-key.jks"
+          echo "KEYSTORE_FILE=$KEYSTORE_DIR/unifyvault-release-key.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_DIR=$KEYSTORE_DIR" >> $GITHUB_ENV
+
+      - name: Build Release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ env.KEYSTORE_FILE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VERSION_NAME: ${{ steps.versioning.outputs.version_name }}
+          VERSION_CODE: ${{ steps.versioning.outputs.version_code }}
+        run: |
+          cd apps/web-v2/android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease -PVERSION_NAME="$VERSION_NAME" -PVERSION_CODE="$VERSION_CODE"
+
+      - name: Verify APK Signature & Package Details
+        run: |
+          APK_PATH="apps/web-v2/android/app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::Built APK not found at $APK_PATH"
+            exit 1
+          fi
+
+          echo "Checking APK signature..."
+          apksigner verify --verbose "$APK_PATH"
+
+          echo "Checking APK metadata using aapt2..."
+          DUMP_OUTPUT=$(aapt2 dump badging "$APK_PATH" || true)
+          echo "$DUMP_OUTPUT" | grep -E "package: name=" || true
+
+          PKG_NAME=$(echo "$DUMP_OUTPUT" | grep -o "package: name='[^']*'" | cut -d"'" -f2)
+          if [ "$PKG_NAME" != "xyz.unifyvault.app" ]; then
+            echo "::error::Package ID mismatch! Expected 'xyz.unifyvault.app', got '$PKG_NAME'"
+            exit 1
+          fi
+          echo "✓ Package verified: $PKG_NAME"
+
+      - name: Securely Remove Temporary Keystore
+        if: always()
+        run: |
+          if [ -n "$KEYSTORE_DIR" ] && [ -d "$KEYSTORE_DIR" ]; then
+            rm -rf "$KEYSTORE_DIR"
+            echo "Secure temporary keystore directory removed."
+          fi
+
+      - name: Generate SHA256 Checksum
+        run: |
+          cd apps/web-v2/android
+          sha256sum app/build/outputs/apk/release/app-release.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: unifyvault-android-release-${{ steps.versioning.outputs.version_name }}
+          path: |
+            apps/web-v2/android/app/build/outputs/apk/release/app-release.apk
+            apps/web-v2/android/SHA256SUMS.txt
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish_release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+          V_NAME: ${{ steps.versioning.outputs.version_name }}
+          V_CODE: ${{ steps.versioning.outputs.version_code }}
+        run: |
+          RELEASE_TAG="${TAG_NAME:-v$V_NAME}"
+          APK_PATH="apps/web-v2/android/app/build/outputs/apk/release/app-release.apk"
+          SHA_PATH="apps/web-v2/android/SHA256SUMS.txt"
+          CHECKSUM=$(cat "$SHA_PATH" | awk '{print $1}')
+
+          echo "Publishing release assets for tag: $RELEASE_TAG"
+
+          cat << 'NOTES' > /tmp/release_notes.md
+          ### UnifyVault Android Production Release
+
+          Official production build generated and signed via GitHub Actions CI/CD.
+
+          ### Package & Integrity
+          - **Application ID:** `xyz.unifyvault.app`
+          - **Build Artifact:** `app-release.apk`
+          NOTES
+
+          echo "- **Version Name:** \`$V_NAME\`" >> /tmp/release_notes.md
+          echo "- **Version Code:** \`$V_CODE\`" >> /tmp/release_notes.md
+          echo "- **SHA-256 Checksum:** \`$CHECKSUM\`" >> /tmp/release_notes.md
+
+          if gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists. Uploading/clobbering release assets..."
+            gh release upload "$RELEASE_TAG" "$APK_PATH" "$SHA_PATH" --repo "${{ github.repository }}" --clobber
+          else
+            echo "Creating new release $RELEASE_TAG..."
+            gh release create "$RELEASE_TAG" "$APK_PATH" "$SHA_PATH" \
+              --repo "${{ github.repository }}" \
+              --title "UnifyVault Android v${V_NAME}" \
+              --notes-file /tmp/release_notes.md
+          fi
+          echo "✓ Release published successfully."
