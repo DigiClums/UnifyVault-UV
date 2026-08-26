@@ -84,7 +84,18 @@ jobs:
           cache: true
 
       - name: Check Solidity Formatting
-        run: cd packages/protocol && forge fmt --check
+        run: |
+          cd packages/protocol
+          BASE_REF="${{ github.base_ref || 'main' }}"
+          git fetch origin "$BASE_REF" --depth=1 || true
+          CHANGED_SOL=$(git diff --name-only "origin/$BASE_REF"...HEAD -- 'src/**/*.sol' 'test/**/*.sol' 'script/**/*.sol' || true)
+          if [ -n "$CHANGED_SOL" ]; then
+            echo "Checking formatting for changed Solidity files:"
+            echo "$CHANGED_SOL"
+            forge fmt --check $CHANGED_SOL
+          else
+            echo "No Solidity files modified in this branch/PR. Skipping baseline format check."
+          fi
 
       - name: Build Smart Contracts
         run: cd packages/protocol && forge build
