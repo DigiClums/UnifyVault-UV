@@ -45,12 +45,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Slither Audit
-        uses: crytic/slither-action@v0.4.0
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          target: 'packages/protocol'
-          ignore-compile: true
-          slither-args: '--config-file packages/protocol/slither.config.json --fail-none'
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Run Slither Audit
+        run: slither packages/protocol --config-file packages/protocol/slither.config.json --ignore-compile --fail-none
 
   codeql:
     name: CodeQL Engine Scan
