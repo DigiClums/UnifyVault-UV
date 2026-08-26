@@ -44,6 +44,28 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.4.0
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Foundry Toolchain
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+          cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -54,7 +76,7 @@ jobs:
         run: pip install slither-analyzer
 
       - name: Run Slither Audit
-        run: slither packages/protocol --config-file packages/protocol/slither.config.json --ignore-compile --fail-none
+        run: cd packages/protocol && slither . --config-file slither.config.json --fail-none
 
   codeql:
     name: CodeQL Engine Scan
