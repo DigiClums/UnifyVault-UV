@@ -109,7 +109,7 @@ jobs:
           fi
 
       - name: Build Smart Contracts
-        run: cd packages/protocol && forge build --skip script
+        run: cd packages/protocol && forge build src
 
       - name: Run Foundry Test Suite
         run: cd packages/protocol && forge test -vvv
