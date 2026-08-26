@@ -58,8 +58,8 @@ export async function verifyPaymentEvidence(
     rawBytes = new TextEncoder().encode(file.name);
   }
 
-  let fileHash: `0x${string}` = computeReceiptKeccak256(rawBytes);
-  let cid: string = `local-${fileHash}`;
+  const fileHash: `0x${string}` = computeReceiptKeccak256(rawBytes);
+  const cid: string = `local-${fileHash}`;
   let ocrRawText = rawTextOverride;
 
   // 3. OCR Text Extraction Step (Execute 100% Client-Side / Local Device OCR)
