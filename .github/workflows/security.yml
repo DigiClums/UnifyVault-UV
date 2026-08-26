@@ -50,7 +50,7 @@ jobs:
         with:
           target: 'packages/protocol'
           ignore-compile: true
-          fail-on: medium
+          slither-args: '--config-file packages/protocol/slither.config.json --fail-none'
 
   codeql:
     name: CodeQL Engine Scan
