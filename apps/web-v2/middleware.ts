@@ -4,8 +4,10 @@ import type { NextRequest } from 'next/server';
 const ADMIN_HOST = 'v2.unifyvault.xyz';
 const APP_HOST = 'app.unifyvault.xyz';
 const MARKETING_HOST = 'unifyvault.xyz';
+const DOCS_HOST = 'docs.unifyvault.xyz';
 
 export function middleware(request: NextRequest) {
+
   const host = request.headers.get('host') || '';
   const { pathname, search } = request.nextUrl;
 
@@ -61,6 +63,22 @@ export function middleware(request: NextRequest) {
     const redirectUrl = new URL(pathname, `https://${APP_HOST}`);
     redirectUrl.search = search;
     return NextResponse.redirect(redirectUrl, 307);
+  }
+
+  // ── docs.unifyvault.xyz → Documentation portal ────────────────────
+  if (hostname === DOCS_HOST) {
+    if (pathname === '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/docs';
+      return NextResponse.rewrite(url);
+    }
+    if (pathname.startsWith('/docs')) {
+      return NextResponse.next();
+    }
+    // If accessing any slug directly like /introduction or /contracts, route to /docs/<slug>
+    const url = request.nextUrl.clone();
+    url.pathname = `/docs${pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   // ── Local development / other hosts ────────────────────────────────
