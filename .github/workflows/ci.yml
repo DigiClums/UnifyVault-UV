@@ -63,6 +63,20 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.4.0
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Setup Foundry Toolchain
         uses: foundry-rs/foundry-toolchain@v1
         with:
