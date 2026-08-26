@@ -81,7 +81,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
-          cache: true
+          cache: false
 
       - name: Cache Foundry Build Artifacts
         uses: actions/cache@v4
@@ -90,7 +90,7 @@ jobs:
             ~/.foundry/cache
             packages/protocol/cache
             packages/protocol/out
-          key: ${{ runner.os }}-foundry-${{ hashFiles('packages/protocol/src/**/*.sol', 'packages/protocol/foundry.toml') }}
+          key: ${{ runner.os }}-foundry-${{ hashFiles('packages/protocol/src/**/*.sol', 'packages/protocol/test/**/*.sol', 'packages/protocol/foundry.toml', 'pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-foundry-
 
@@ -109,7 +109,7 @@ jobs:
           fi
 
       - name: Build Smart Contracts
-        run: cd packages/protocol && forge build
+        run: cd packages/protocol && forge build --skip script
 
       - name: Run Foundry Test Suite
         run: cd packages/protocol && forge test -vvv
