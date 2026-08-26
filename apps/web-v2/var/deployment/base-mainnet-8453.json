@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 9,
+  "manifestVersion": 10,
   "chainId": 8453,
   "network": "Base Mainnet",
   "deploymentVersion": "V2",
@@ -44,7 +44,7 @@
     }
   },
   "verificationResults": [],
-  "lastUpdated": 1787733162091,
+  "lastUpdated": 1787733722685,
   "_pendingUpgrades": {
     "SwapAdapter": "CURRENT=0x5b6067982c6cce2dc760eb4731c1b40136776d4a (fee=3000, immutable). UPGRADE REQUIRED to new fee=500 adapter before production deposits will succeed."
   }

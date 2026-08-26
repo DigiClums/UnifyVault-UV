@@ -37,12 +37,17 @@ export const DIRECTORY_ADDRESS_MAINNET = (
       : '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
 ) as `0x${string}`;
 
+/**
+ * @deprecated Legacy testnet alias, redirected to Mainnet directory
+ */
+export const DIRECTORY_ADDRESS_SEPOLIA = DIRECTORY_ADDRESS_MAINNET;
+
 export function getProtocolDirectoryAddress(chainId?: number): `0x${string}` {
   const targetChain = chainId || getDefaultChainId();
   if (targetChain === base.id) {
     return DIRECTORY_ADDRESS_MAINNET;
   }
-  return '0x0000000000000000000000000000000000000000';
+  return DIRECTORY_ADDRESS_MAINNET;
 }
 
 export const PROTOCOL_DIRECTORY_ADDRESS = getProtocolDirectoryAddress();

@@ -72,7 +72,7 @@ export function getPimlicoApiKey(): string | undefined {
 /**
  * @deprecated Kept solely for backward compatibility with Phase 2A tests.
  */
-export function getPimlicoRpcUrl(chainId: number = baseSepolia.id): string {
+export function getPimlicoRpcUrl(chainId: number = base.id): string {
   const apiKey = getPimlicoApiKey();
   const slug = chainId === base.id ? 'base' : 'base-sepolia';
   if (!apiKey) {
