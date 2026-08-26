@@ -3,10 +3,10 @@ import { parseUnits, formatUnits } from 'viem';
 import { getTokenDecimals, getTokenSymbol } from '../../../lib/explorer/eventRegistry';
 
 describe('Phase 3.1 — Marketplace Decimals & Settlement Precision Audit Tests', () => {
-  const addressUSDC = '0x036cbd53842c5426634e7929541ec2318f3dcf7e'; // 6 decimals
-  const addresscbBTC = '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29'; // 8 decimals
-  const addressWETH = '0xd116ab1c943cf15904ec4c8dd701086f175fa323'; // 18 decimals
-  const addressUVBE = '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c'; // 18 decimals
+  const addressUSDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // 6 decimals
+  const addresscbBTC = '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'; // 8 decimals
+  const addressWETH = '0x4200000000000000000000000000000000000006'; // 18 decimals
+  const addressUVBE = '0xd2715141a0f5998b707baa963990bfc2e94cf145'; // 18 decimals
 
   // 1, 2, 4 & 5. Verify Asset Decimals Resolution
   it('1, 2, 4 & 5. Correctly resolves asset decimals for USDC (6), cbBTC (8), WETH (18), and UVBE (18)', () => {

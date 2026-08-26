@@ -1,13 +1,13 @@
-import { baseSepolia, base } from 'viem/chains';
+import { base } from 'viem/chains';
 import { Address } from 'viem';
-import { DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET } from '../../constants';
 
 /**
  * Returns the configured ERC-4337 Bundler RPC URL.
  * Defaults to UnifyVault self-hosted Bundler endpoint (or local dev node).
  * Does NOT require any third-party API key or card.
  */
-export function getBundlerRpcUrl(chainId: number = baseSepolia.id): string {
+export function getBundlerRpcUrl(chainId: number = base.id): string {
   const customRpc = process.env.BUNDLER_RPC_URL || process.env.NEXT_PUBLIC_BUNDLER_RPC_URL;
 
   if (customRpc && customRpc.trim().length > 0) {
@@ -21,7 +21,7 @@ export function getBundlerRpcUrl(chainId: number = baseSepolia.id): string {
 /**
  * Returns the Paymaster RPC endpoint or server sponsorship API route.
  */
-export function getPaymasterRpcUrl(chainId: number = baseSepolia.id): string {
+export function getPaymasterRpcUrl(chainId: number = base.id): string {
   return (
     process.env.PAYMASTER_RPC_URL ||
     process.env.NEXT_PUBLIC_PAYMASTER_RPC_URL ||
@@ -30,35 +30,28 @@ export function getPaymasterRpcUrl(chainId: number = baseSepolia.id): string {
 }
 
 /**
- * Returns the deployed UnifyVaultPaymaster address on Base Sepolia.
+ * Returns the deployed UnifyVaultPaymaster address on Base Mainnet.
  */
-export function getPaymasterAddress(chainId: number = baseSepolia.id): Address {
+export function getPaymasterAddress(chainId: number = base.id): Address {
   const customAddr = (process.env.PAYMASTER_ADDRESS ||
     process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS) as Address | undefined;
 
   if (customAddr) return customAddr;
 
-  if (chainId === baseSepolia.id) {
-    return DEPLOYED_CONTRACTS_SEPOLIA.Paymaster;
-  }
-
-  return '0x0000000000000000000000000000000000000000' as Address;
+  return DEPLOYED_CONTRACTS_MAINNET.Paymaster;
 }
 
 /**
  * Returns whether Gasless Account Abstraction Sponsorship is enabled for the chain.
- * By default enabled for Base Sepolia in dev/testing without third-party dependencies.
  */
-export function isGaslessSponsorshipEnabled(chainId: number = baseSepolia.id): boolean {
-  if (chainId !== baseSepolia.id) return false;
-
+export function isGaslessSponsorshipEnabled(chainId: number = base.id): boolean {
   const flag = process.env.NEXT_PUBLIC_AA_SPONSORSHIP_ENABLED || process.env.AA_SPONSORSHIP_ENABLED;
 
   if (flag !== undefined) {
     return flag === 'true' || flag === '1';
   }
 
-  return true; // Enabled by default on Base Sepolia
+  return true;
 }
 
 /**
@@ -66,7 +59,7 @@ export function isGaslessSponsorshipEnabled(chainId: number = baseSepolia.id): b
  * Returns true if AA sponsorship is enabled or configured.
  */
 export function isPimlicoConfigured(): boolean {
-  return isGaslessSponsorshipEnabled(baseSepolia.id);
+  return isGaslessSponsorshipEnabled(base.id);
 }
 
 /**

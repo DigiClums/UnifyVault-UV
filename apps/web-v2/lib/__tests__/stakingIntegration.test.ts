@@ -4,7 +4,7 @@ import {
   REFERRAL_REGISTRY_ABI,
   REWARD_DISTRIBUTOR_ABI,
 } from '../contracts/staking';
-import { DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET } from '../../constants';
 import { formatUnits, parseUnits } from 'viem';
 import {
   MIN_STAKE_AMOUNT,
@@ -16,18 +16,18 @@ import {
 } from '../../hooks/useStaking';
 
 describe('Staking Contracts & Frontend Integration', () => {
-  it('has valid deployed Base Sepolia staking addresses', () => {
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault).toBe(
-      '0x91205D342D36d9b6F5A1AB38f2a2a3D03BFd74A1',
+  it('has valid deployed Base Mainnet staking addresses', () => {
+    expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault).toBe(
+      '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry).toBe(
-      '0xb409064857792a2AEF676f9cB69713685775f0D0',
+    expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry).toBe(
+      '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor).toBe(
-      '0xAe202A0627a194fa2D02cD861e19302d01F8ca81',
+    expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor).toBe(
+      '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.GenesisReferrer).toBe(
+    expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
+    expect(DEPLOYED_CONTRACTS_MAINNET.GenesisReferrer).toBe(
       '0x441dbf8076d0b143EC17199baE94Daa884161454',
     );
   });

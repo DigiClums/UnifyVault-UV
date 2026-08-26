@@ -64,7 +64,7 @@ describe('P2P Full End-to-End UI, State-Machine & Payment-Proof Audit Suite (30 
 
   // Point 1: SELL order creation
   it('1. SELL order creation creates an active resting sell order with canonical UVBE asset', () => {
-    const assetValidation = validateP2PAsset(CANONICAL_UVBE_ADDRESS, 84532);
+    const assetValidation = validateP2PAsset(CANONICAL_UVBE_ADDRESS, 8453);
     expect(assetValidation.isValid).toBe(true);
 
     const sellOrder: OrderDetails = {

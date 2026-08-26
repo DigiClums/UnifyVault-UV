@@ -17,7 +17,7 @@ import {
   ENTRYPOINT_V07_ABI,
   KNOWN_SPONSORSHIP_TARGETS,
 } from '../contracts/paymaster';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getExplorerBaseUrl } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getExplorerBaseUrl } from '../../constants';
 import { decodeTransactionError } from '../utils/errorDecoder';
 import { PaymasterHealthStatus } from '../../hooks/usePaymasterAdmin';
 
@@ -412,13 +412,13 @@ describe('Phase 5: Paymaster & Gas Treasury Admin Console Test Suite', () => {
   // 12. Transaction Lifecycle States
   // ==========================================
   describe('12. Transaction Lifecycle States', () => {
-    it('generates accurate BaseScan explorer URLs on Base Sepolia (84532)', () => {
-      const baseUrl = getExplorerBaseUrl(84532);
-      expect(baseUrl).toBe('https://sepolia.basescan.org');
+    it('generates accurate BaseScan explorer URLs on Base Mainnet (8453)', () => {
+      const baseUrl = getExplorerBaseUrl(8453);
+      expect(baseUrl).toBe('https://basescan.org');
 
       const sampleTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
       expect(`${baseUrl}/tx/${sampleTxHash}`).toBe(
-        'https://sepolia.basescan.org/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        'https://basescan.org/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       );
     });
   });
@@ -525,7 +525,7 @@ describe('Phase 5: Paymaster & Gas Treasury Admin Console Test Suite', () => {
   describe('14. No Manual Nonce Handling', () => {
     it('verifies that transactions do not manually inject transaction nonces', () => {
       const sampleTxConfig = {
-        address: DEPLOYED_CONTRACTS_SEPOLIA.Paymaster,
+        address: DEPLOYED_CONTRACTS_MAINNET.Paymaster,
         abi: UNIFY_VAULT_PAYMASTER_ABI,
         functionName: 'setPaused',
         args: [false],
@@ -536,17 +536,35 @@ describe('Phase 5: Paymaster & Gas Treasury Admin Console Test Suite', () => {
   });
 
   // ==========================================
-  // 15. Base Sepolia Address Resolution
+  // 14. Target Validation Logic
   // ==========================================
-  describe('15. Base Sepolia Address Resolution', () => {
-    it('matches canonical Base Sepolia Paymaster, Gas Treasury, and EntryPoint addresses', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Paymaster.toLowerCase()).toBe(
-        '0x42c6342516714cfd64474bd41ce360605b9fea88',
+  describe('14. Target Validation Logic', () => {
+    it('matches target validation list against canonical approved targets', () => {
+      const approvedList = [
+        DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase(),
+        DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase(),
+        DEPLOYED_CONTRACTS_MAINNET.P2PEscrow.toLowerCase(),
+      ];
+
+      expect(approvedList).toContain(DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase());
+      expect(approvedList).toContain(DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase());
+      expect(approvedList).toContain(DEPLOYED_CONTRACTS_MAINNET.P2PEscrow.toLowerCase());
+      expect(approvedList).not.toContain('0x000000000000000000000000000000000000dead');
+    });
+  });
+
+  // ==========================================
+  // 15. Base Mainnet Address Resolution
+  // ==========================================
+  describe('15. Base Mainnet Address Resolution', () => {
+    it('matches canonical Base Mainnet Paymaster, Gas Treasury, and EntryPoint addresses', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.Paymaster.toLowerCase()).toBe(
+        '0xdf96b619934d17ae85142dcef1655a8d3b19040a',
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury.toLowerCase()).toBe(
-        '0xd4b19a48c270b720feeed57ccab5aa4ecfcc1fd9',
+      expect(DEPLOYED_CONTRACTS_MAINNET.GasTreasury.toLowerCase()).toBe(
+        '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424',
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.EntryPoint.toLowerCase()).toBe(
+      expect(DEPLOYED_CONTRACTS_MAINNET.EntryPoint.toLowerCase()).toBe(
         '0x0000000071727de22e5e9d8baf0edac6f37da032',
       );
     });

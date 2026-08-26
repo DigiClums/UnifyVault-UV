@@ -1,10 +1,6 @@
 import { isAddress, getAddress } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
-import {
-  getDefaultChainId,
-  DEPLOYED_CONTRACTS_MAINNET,
-  DEPLOYED_CONTRACTS_SEPOLIA,
-} from '../../constants';
+import { base } from 'viem/chains';
+import { getDefaultChainId, DEPLOYED_CONTRACTS_MAINNET } from '../../constants';
 
 export const CANONICAL_UVBE_ADDRESS = '0xd2715141a0f5998b707baa963990bfc2e94cf145' as const;
 export const NATIVE_ETH_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
@@ -25,11 +21,7 @@ export interface ValidateAssetResult {
 }
 
 export function getCanonicalUVBEAddress(chainId?: number): `0x${string}` {
-  const targetChainId = chainId ?? getDefaultChainId();
-  if (targetChainId === base.id) {
-    return (DEPLOYED_CONTRACTS_MAINNET.UVBEToken as `0x${string}`) || CANONICAL_UVBE_ADDRESS;
-  }
-  return (DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken as `0x${string}`) || CANONICAL_UVBE_ADDRESS;
+  return (DEPLOYED_CONTRACTS_MAINNET.UVBEToken as `0x${string}`) || CANONICAL_UVBE_ADDRESS;
 }
 
 /**
@@ -40,7 +32,7 @@ export function getCanonicalUVBEAddress(chainId?: number): `0x${string}` {
 export function getSupportedP2PAssetsForChain(chainId?: number): P2PAssetInfo[] {
   const targetChainId = chainId ?? getDefaultChainId();
 
-  if (targetChainId === baseSepolia.id || targetChainId === base.id) {
+  if (targetChainId === base.id) {
     return [
       {
         symbol: 'UVBE',

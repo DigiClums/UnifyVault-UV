@@ -27,10 +27,10 @@ import {
   generateTimelockSalt,
 } from '../contracts/governance';
 import {
-  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
   MODULE_IDS,
   getProtocolDirectoryAddress,
-  DIRECTORY_ADDRESS_SEPOLIA,
+  DIRECTORY_ADDRESS_MAINNET,
 } from '../../constants';
 import { decodeTransactionError } from '../utils/errorDecoder';
 
@@ -40,27 +40,27 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
   const MOCK_USER_ACCOUNT = '0x1111111111111111111111111111111111111111' as `0x${string}`;
 
   describe('1. Canonical Constants & Deployed Address Integrity', () => {
-    it('verifies ProtocolDirectory canonical Sepolia address matches deployment', () => {
-      expect(getProtocolDirectoryAddress(84532).toLowerCase()).toBe(
-        DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase(),
+    it('verifies ProtocolDirectory canonical Mainnet address matches deployment', () => {
+      expect(getProtocolDirectoryAddress(8453).toLowerCase()).toBe(
+        DEPLOYED_CONTRACTS_MAINNET.ProtocolDirectory.toLowerCase(),
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase()).toBe(
-        '0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f',
-      );
-    });
-
-    it('verifies UnifyVaultTimelock canonical Sepolia address matches deployment', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultTimelock.toLowerCase()).toBe(
-        '0x9094145cd2aea2f309edf14237444a07edf98d02',
-      );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.TimelockController.toLowerCase()).toBe(
-        '0x9094145cd2aea2f309edf14237444a07edf98d02',
+      expect(DEPLOYED_CONTRACTS_MAINNET.ProtocolDirectory.toLowerCase()).toBe(
+        '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e',
       );
     });
 
-    it('verifies UnifyVaultController canonical Sepolia address matches deployment', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController.toLowerCase()).toBe(
-        '0x81c58629be6fc2f3c0d848419f88ef1cfab74cdf',
+    it('verifies UnifyVaultTimelock canonical Mainnet address matches deployment', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.UnifyVaultTimelock.toLowerCase()).toBe(
+        '0x610c5f66d99993d444561d270fba172db1f7cff1',
+      );
+      expect(DEPLOYED_CONTRACTS_MAINNET.TimelockController.toLowerCase()).toBe(
+        '0x610c5f66d99993d444561d270fba172db1f7cff1',
+      );
+    });
+
+    it('verifies UnifyVaultController canonical Mainnet address matches deployment', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase()).toBe(
+        '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366',
       );
     });
   });
@@ -563,7 +563,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
   describe('9. Transaction Nonce Safety Verification', () => {
     it('verifies that no manual nonce parameter is present in encoded contract calls', () => {
       const sampleCall = {
-        address: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultTimelock,
+        address: DEPLOYED_CONTRACTS_MAINNET.UnifyVaultTimelock,
         abi: UNIFY_VAULT_TIMELOCK_ABI,
         functionName: 'schedule',
         args: [

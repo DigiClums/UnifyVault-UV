@@ -10,7 +10,7 @@ import {
   encodeErrorResult,
 } from 'viem';
 import { COST_BASIS_MANAGER_V2_ABI, PERFORMANCE_MANAGER_ABI } from '../contracts';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getExplorerBaseUrl } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getExplorerBaseUrl } from '../../constants';
 import { decodeTransactionError } from '../utils/errorDecoder';
 import {
   GOVERNANCE_ROLE,
@@ -344,7 +344,7 @@ describe('Phase 6: User Accounting & Performance Analytics Admin Test Suite', ()
   describe('10. No Manual Nonce Handling', () => {
     it('verifies that no manual transaction nonces are passed in write configs', () => {
       const sampleMigrationConfig = {
-        address: DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager,
+        address: DEPLOYED_CONTRACTS_MAINNET.CostBasisManager,
         abi: COST_BASIS_MANAGER_V2_ABI,
         functionName: 'migrateAccounting',
         args: [SAMPLE_USER, parseEther('100'), parseEther('0'), 1720000000n],
@@ -355,24 +355,24 @@ describe('Phase 6: User Accounting & Performance Analytics Admin Test Suite', ()
   });
 
   // ==========================================
-  // 11. Deployed Addresses on Base Sepolia
+  // 11. Deployed Addresses on Base Mainnet
   // ==========================================
-  describe('11. Deployed Addresses on Base Sepolia', () => {
+  describe('11. Deployed Addresses on Base Mainnet', () => {
     it('resolves canonical CostBasisManager and PerformanceManager addresses', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager.toLowerCase()).toBe(
-        '0xcc405c38ed50efc715afcebadc37c01da6838ddd',
+      expect(DEPLOYED_CONTRACTS_MAINNET.CostBasisManager.toLowerCase()).toBe(
+        '0x27b5c6dea90678b78856b0b10dba37a789fde97e',
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager.toLowerCase()).toBe(
-        '0x6f5fc63a6e404009beb02f722f5786739ea34535',
+      expect(DEPLOYED_CONTRACTS_MAINNET.PerformanceManager.toLowerCase()).toBe(
+        '0x19ec1b685c2ced1400b4f249da6be89662e59473',
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase()).toBe(
-        '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c',
+      expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase()).toBe(
+        '0xd2715141a0f5998b707baa963990bfc2e94cf145',
       );
     });
 
-    it('resolves BaseScan explorer URL on Base Sepolia', () => {
-      const url = getExplorerBaseUrl(84532);
-      expect(url).toBe('https://sepolia.basescan.org');
+    it('resolves BaseScan explorer URL on Base Mainnet', () => {
+      const url = getExplorerBaseUrl(8453);
+      expect(url).toBe('https://basescan.org');
     });
   });
 });

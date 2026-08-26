@@ -254,7 +254,7 @@ describe('LiveWatcher Protocol Transaction Decoder & Formatter', () => {
   it('b) converts cbBTC raw 19626 to 0.00019626 (8 decimals)', () => {
     const rawCbBTC = 19626n;
     const cbBTCDecimals = getTokenDecimals('cbBTC');
-    const cbBTCAddrDecimals = getTokenDecimals('0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29');
+    const cbBTCAddrDecimals = getTokenDecimals('0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf');
 
     expect(cbBTCDecimals).toBe(8);
     expect(cbBTCAddrDecimals).toBe(8);
@@ -264,7 +264,7 @@ describe('LiveWatcher Protocol Transaction Decoder & Formatter', () => {
   it('c) converts WETH raw 4464069467795376 to 0.004464069467795376 (18 decimals)', () => {
     const rawWETH = 4464069467795376n;
     const wethDecimals = getTokenDecimals('WETH');
-    const wethAddrDecimals = getTokenDecimals('0xd116ab1c943cf15904ec4c8dd701086f175fa323');
+    const wethAddrDecimals = getTokenDecimals('0x4200000000000000000000000000000000000006');
 
     expect(wethDecimals).toBe(18);
     expect(wethAddrDecimals).toBe(18);
@@ -273,8 +273,8 @@ describe('LiveWatcher Protocol Transaction Decoder & Formatter', () => {
 
   it('d) formats final swap summary with token-aware decimals', () => {
     const targetAssets = [
-      '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29', // cbBTC
-      '0xd116ab1c943cf15904ec4c8dd701086f175fa323', // WETH
+      '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf', // cbBTC
+      '0x4200000000000000000000000000000000000006', // WETH
     ];
     const assetsBought = [19626n, 4464069467795376n];
 
@@ -289,7 +289,7 @@ describe('LiveWatcher Protocol Transaction Decoder & Formatter', () => {
   });
 
   it('e) formats custody deposit cbBTC amount accurately using token decimals', () => {
-    const custodyDepositAsset = '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29';
+    const custodyDepositAsset = '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf';
     const custodyDepositAmount = 19626n;
 
     const formattedAmount = formatAmount(

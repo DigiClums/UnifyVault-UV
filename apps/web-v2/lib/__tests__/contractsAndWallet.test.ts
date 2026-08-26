@@ -1,56 +1,51 @@
 import { describe, it, expect } from 'vitest';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens, getExplorerBaseUrl } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getChainTokens, getExplorerBaseUrl } from '../../constants';
 import { installProviderInterceptors } from '../utils/providerInterceptor';
 import { createSafeWagmiStorage, getSafeStorage } from '../utils/storageFallback';
 
 describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
-  it('should expose all 8 required canonical protocol contract addresses for Base Sepolia', () => {
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken).toBe(
-      '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c',
+  it('should expose all 8 required canonical protocol contract addresses for Base Mainnet', () => {
+    expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
+    expect(DEPLOYED_CONTRACTS_MAINNET.UVBTCETHToken).toBe(
+      '0xd2715141a0f5998b707baa963990bfc2e94cf145',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController).toBe(
-      '0x81c58629be6fc2f3c0d848419f88ef1cfab74cdf',
+    expect(DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController).toBe(
+      '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager).toBe(
-      '0x8fa4aaafa52eac9a85daf57eeaa67b59c8da7d32',
+    expect(DEPLOYED_CONTRACTS_MAINNET.PortfolioManager).toBe(
+      '0x66182f56bd5e523c655f6890290ab519f528e83f',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.OracleManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager).toBe(
-      '0xcc405c38ed50efc715afcebadc37c01da6838ddd',
+    expect(DEPLOYED_CONTRACTS_MAINNET.CustodyVault).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_MAINNET.OracleManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_MAINNET.StrategyManager).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_MAINNET.Treasury).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_MAINNET.ProtocolDirectory).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(DEPLOYED_CONTRACTS_MAINNET.CostBasisManager).toBe(
+      '0x27b5c6dea90678b78856b0b10dba37a789fde97e',
     );
-    expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager).toBe(
-      '0x6f5fc63a6e404009beb02f722f5786739ea34535',
+    expect(DEPLOYED_CONTRACTS_MAINNET.PerformanceManager).toBe(
+      '0x19ec1b685c2ced1400b4f249da6be89662e59473',
     );
   });
 
-  it('should expose core ERC20 token addresses for Base Sepolia', () => {
-    const tokens = getChainTokens(84532);
+  it('should expose core ERC20 token addresses for Base Mainnet', () => {
+    const tokens = getChainTokens(8453);
     expect(tokens.USDC).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(tokens.cbBTC).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(tokens.WETH).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    expect(tokens.UVBE).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
+    expect(tokens.UVBE).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
   });
 
-  it('should generate accurate BaseScan explorer URLs based on chain ID 84532', () => {
-    const sepoliaExplorer = getExplorerBaseUrl(84532);
-    expect(sepoliaExplorer).toBe('https://sepolia.basescan.org');
-
+  it('should generate accurate BaseScan explorer URLs based on chain ID', () => {
     const mainnetExplorer = getExplorerBaseUrl(8453);
     expect(mainnetExplorer).toBe('https://basescan.org');
 
-    const tokenUrl = `${sepoliaExplorer}/address/${DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken}`;
-    expect(tokenUrl).toBe(
-      `https://sepolia.basescan.org/address/${DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken}`,
-    );
+    const tokenUrl = `${mainnetExplorer}/address/${DEPLOYED_CONTRACTS_MAINNET.UVBEToken}`;
+    expect(tokenUrl).toBe(`https://basescan.org/address/${DEPLOYED_CONTRACTS_MAINNET.UVBEToken}`);
   });
 
   it('should format wallet_watchAsset ERC20 parameters accurately for UVBE token', () => {
-    const tokenAddress = DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken;
+    const tokenAddress = DEPLOYED_CONTRACTS_MAINNET.UVBEToken;
     const watchAssetParams = {
       type: 'ERC20',
       options: {
@@ -61,7 +56,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
     };
 
     expect(watchAssetParams.type).toBe('ERC20');
-    expect(watchAssetParams.options.address).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
+    expect(watchAssetParams.options.address).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
     expect(watchAssetParams.options.symbol).toBe('UVBE');
     expect(watchAssetParams.options.decimals).toBe(18);
   });
@@ -86,7 +81,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
       params: {
         type: 'ERC20',
         options: {
-          address: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken,
+          address: DEPLOYED_CONTRACTS_MAINNET.UVBEToken,
           symbol: 'UVBE',
           decimals: 18,
         },
@@ -107,7 +102,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
         params: {
           type: 'ERC20',
           options: {
-            address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+            address: DEPLOYED_CONTRACTS_MAINNET.UVBTCETHToken,
             symbol: 'UVBE',
             decimals: 18,
           },
@@ -125,7 +120,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
         params: {
           type: 'ERC20',
           options: {
-            address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+            address: DEPLOYED_CONTRACTS_MAINNET.UVBTCETHToken,
             symbol: 'UVBE',
             decimals: 18,
           },
@@ -148,7 +143,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
         params: {
           type: 'ERC20',
           options: {
-            address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+            address: DEPLOYED_CONTRACTS_MAINNET.UVBTCETHToken,
             symbol: 'UVBE',
             decimals: 18,
           },
@@ -171,7 +166,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
         params: {
           type: 'ERC20',
           options: {
-            address: DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken,
+            address: DEPLOYED_CONTRACTS_MAINNET.UVBTCETHToken,
             symbol: 'UVBE',
             decimals: 18,
           },
@@ -199,7 +194,7 @@ describe('Protocol Contracts & SafePal Wallet Integration Suite', () => {
   });
 
   it('should verify no private keys or secrets exist in deployed contract configuration', () => {
-    const contractsObj = JSON.stringify(DEPLOYED_CONTRACTS_SEPOLIA);
+    const contractsObj = JSON.stringify(DEPLOYED_CONTRACTS_MAINNET);
     expect(contractsObj).not.toContain('privateKey');
     expect(contractsObj).not.toContain('secret');
     expect(contractsObj).not.toContain('MNEMONIC');

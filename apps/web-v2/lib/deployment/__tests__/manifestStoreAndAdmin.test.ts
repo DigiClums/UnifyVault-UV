@@ -11,14 +11,8 @@ import { getContractRolesMatrix } from '../../admin/adminRolesMatrix';
 import { readAdminAuditRecords, appendAdminAuditRecord } from '../../admin/adminMigrationStore';
 
 describe('Server Deployment Manifest Store & Admin Migration Engine', () => {
-  it('creates independent manifests for Base Sepolia (84532) and Base Mainnet (8453)', () => {
-    const sepolia = createDefaultManifest(84532);
+  it('creates default manifests for Base Mainnet (8453)', () => {
     const mainnet = createDefaultManifest(8453);
-
-    expect(sepolia.chainId).toBe(84532);
-    expect(sepolia.network).toBe('Base Sepolia');
-    expect(sepolia.isLocked).toBe(true);
-    expect(sepolia.contracts.ProtocolDirectory).toBeDefined();
 
     expect(mainnet.chainId).toBe(8453);
     expect(mainnet.network).toBe('Base Mainnet');
@@ -27,7 +21,7 @@ describe('Server Deployment Manifest Store & Admin Migration Engine', () => {
   });
 
   it('enforces optimistic locking when writing manifests', async () => {
-    const current = await readDeploymentManifest(84532);
+    const current = await readDeploymentManifest(8453);
     current.currentStepIndex = 10;
 
     const res1 = await writeDeploymentManifest(current, current.manifestVersion);
@@ -42,10 +36,10 @@ describe('Server Deployment Manifest Store & Admin Migration Engine', () => {
 
   it('builds role matrix mapping correctly for all core contracts', () => {
     const contracts = {
-      ProtocolDirectory: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
-      CustodyVault: '0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64' as `0x${string}`,
-      Treasury: '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316' as `0x${string}`,
-      UnifyVaultController: '0x07f3d3432b64dbf67c5b061af2bc8aef70221cea' as `0x${string}`,
+      ProtocolDirectory: '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e' as `0x${string}`,
+      CustodyVault: '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca' as `0x${string}`,
+      Treasury: '0x57561f781b2f558a7445d2e93a365c03ba2c9b53' as `0x${string}`,
+      UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
     };
     const currentAdmin = '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`;
     const hardwareWallet = '0x1111111111111111111111111111111111111111' as `0x${string}`;
@@ -64,11 +58,11 @@ describe('Server Deployment Manifest Store & Admin Migration Engine', () => {
 
   it('appends and reads admin migration audit logs safely', async () => {
     const auditLog = {
-      chainId: 84532,
+      chainId: 8453,
       oldAdmin: '0x441dbf8076d0b143EC17199baE94Daa884161454' as `0x${string}`,
       newAdmin: '0x1111111111111111111111111111111111111111' as `0x${string}`,
       contractName: 'ProtocolDirectory',
-      contractAddress: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
+      contractAddress: '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e' as `0x${string}`,
       roleName: 'DEFAULT_ADMIN_ROLE',
       roleIdentifier:
         '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
@@ -81,7 +75,7 @@ describe('Server Deployment Manifest Store & Admin Migration Engine', () => {
     };
 
     await appendAdminAuditRecord(auditLog);
-    const records = await readAdminAuditRecords(84532);
+    const records = await readAdminAuditRecords(8453);
     expect(records.length).toBeGreaterThanOrEqual(1);
     expect(records[records.length - 1].contractName).toBe('ProtocolDirectory');
     expect(records[records.length - 1].grantVerified).toBe(true);

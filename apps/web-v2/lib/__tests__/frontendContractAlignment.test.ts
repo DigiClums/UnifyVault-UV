@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import {
-  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
   MODULE_IDS,
   TOKENS_BY_CHAIN,
   getProtocolDirectoryAddress,
   getDefaultChainId,
 } from '../../constants';
 import { getMarketplaceAddress } from '../../hooks/useMarketplace';
-import { ENTRYPOINT_ADDRESS_V07, APPROVED_SEPOLIA_TARGETS } from '../smartAccount/constants';
+import { ENTRYPOINT_ADDRESS_V07, APPROVED_MAINNET_TARGETS } from '../smartAccount/constants';
 import { getPaymasterAddress } from '../smartAccount/config';
 import { KNOWN_TOKENS } from '../explorer/eventRegistry';
 import {
@@ -29,32 +29,35 @@ import {
 } from '../contracts';
 import { MARKETPLACE_ABI } from '../contracts/marketplace';
 
-// Canonical Base Sepolia V2 Contract Matrix
-export const CANONICAL_BASE_SEPOLIA_V2 = {
-  ProtocolDirectory: '0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f',
-  Treasury: '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316',
-  FeeManager: '0x48e2647d4f884c22def4cfd60b6bf95205cf2997',
-  CustodyVault: '0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64',
-  OracleManager: '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6',
-  ChainlinkOracleProvider: '0x80a1ea978e069b5af96398f97b125e502cf854ac',
-  LiquidityManager: '0xd225bffe0e4d905df0767c6271686497fea968a6',
-  UVBEV2: '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c',
-  UnifyVaultController: '0x81c58629be6fc2f3c0d848419f88ef1cfab74cdf',
-  StrategyManager: '0x8a859e5c27e5c36e488ffef12bcba47e8f687dd1',
-  PortfolioManager: '0x8fa4aaafa52eac9a85daf57eeaa67b59c8da7d32',
-  SwapAdapter: '0x8deca9efb0bdc300aae96111bdf0dcd32651db90',
-  CostBasisManagerV2: '0xcc405c38ed50efc715afcebadc37c01da6838ddd',
-  PerformanceManager: '0x6f5fc63a6e404009beb02f722f5786739ea34535',
-  P2PEscrowV2: '0xcba65af8a993061cf1acc47d9b02d7ebacbcf655',
-  Marketplace: '0xe908377f96F313a6b7771570ff6Fb414D38F451A',
-  Paymaster: '0x42c6342516714CFd64474bd41Ce360605b9fEA88',
-  GasTreasury: '0xd4b19a48c270b720feeed57ccab5aa4ecfcc1fd9',
+// Canonical Base Mainnet V2 Contract Matrix
+export const CANONICAL_BASE_MAINNET_V2 = {
+  ProtocolDirectory: '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e',
+  Treasury: '0x57561F781b2f558A7445D2E93a365C03BA2c9B53',
+  FeeManager: '0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881',
+  CustodyVault: '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca',
+  OracleManager: '0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7',
+  ChainlinkOracleProvider: '0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E',
+  LiquidityManager: '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3',
+  UVBEV2: '0xd2715141a0f5998b707baa963990bfc2e94cf145',
+  UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366',
+  StrategyManager: '0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a',
+  PortfolioManager: '0x66182f56bd5e523c655f6890290ab519f528e83f',
+  SwapAdapter: '0xaae7104a120e7c6e518a936fcbc102bcd0454b67',
+  CostBasisManagerV2: '0x27b5c6dea90678b78856b0b10dba37a789fde97e',
+  PerformanceManager: '0x19ec1b685c2ced1400b4f249da6be89662e59473',
+  P2PEscrowV2: '0xa938aacea64be8f41c90960aff232da4df7fc329',
+  Marketplace: '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6',
+  Paymaster: '0xdf96b619934d17ae85142dcef1655a8d3b19040a',
+  GasTreasury: '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424',
   EntryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
   Admin: '0x441dbf8076d0b143EC17199baE94Daa884161454',
-  USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-  cbBTC: '0xB0B47F113Bcab2b0e49fD5d3Bd2CC0e9Aa408b29',
-  WETH: '0xd116ab1c943cf15904eC4c8dd701086f175FA323',
+  USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+  WETH: '0x4200000000000000000000000000000000000006',
 };
+
+// Backward compatibility alias for tests
+export const CANONICAL_BASE_SEPOLIA_V2 = CANONICAL_BASE_MAINNET_V2;
 
 // Known Obsolete Addresses (MUST NOT be used anywhere in frontend production code)
 export const OBSOLETE_LEGACY_ADDRESSES = [
@@ -68,149 +71,149 @@ export const OBSOLETE_LEGACY_ADDRESSES = [
   '0x3477e6c6aaa1E28E5A0227adED1055ca1A3A84d6', // Old Unhardened Paymaster
 ];
 
-describe('Frontend Contract Alignment — Canonical Base Sepolia V2 Production Suite', () => {
-  describe('1. Canonical Base Sepolia Matrix Verification', () => {
+describe('Frontend Contract Alignment — Canonical Base Mainnet V2 Production Suite', () => {
+  describe('1. Canonical Base Mainnet Matrix Verification', () => {
     it('matches the canonical ProtocolDirectory address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.ProtocolDirectory.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.ProtocolDirectory.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.ProtocolDirectory.toLowerCase(),
       );
-      expect(getProtocolDirectoryAddress(baseSepolia.id).toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.ProtocolDirectory.toLowerCase(),
+      expect(getProtocolDirectoryAddress(base.id).toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.ProtocolDirectory.toLowerCase(),
       );
     });
 
     it('matches the canonical Treasury address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.Treasury.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.Treasury.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.Treasury.toLowerCase(),
       );
     });
 
     it('matches the canonical FeeManager address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.FeeManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.FeeManager.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.FeeManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.FeeManager.toLowerCase(),
       );
     });
 
     it('matches the canonical CustodyVault address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.CustodyVault.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.CustodyVault.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.CustodyVault.toLowerCase(),
       );
     });
 
     it('matches the canonical OracleManager & ChainlinkProvider addresses', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.OracleManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.OracleManager.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.OracleManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.OracleManager.toLowerCase(),
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.ChainlinkOracleProvider.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.ChainlinkOracleProvider.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.ChainlinkOracleProvider.toLowerCase(),
       );
     });
 
     it('matches the canonical LiquidityManager address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.LiquidityManager.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.LiquidityManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.LiquidityManager.toLowerCase(),
       );
     });
 
     it('matches the canonical UVBEV2 Token address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.UVBEV2.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.UVBEV2.toLowerCase(),
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.UVBEV2.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.UVBTCETHToken.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.UVBEV2.toLowerCase(),
       );
-      expect(TOKENS_BY_CHAIN[baseSepolia.id].UVBE?.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.UVBEV2.toLowerCase(),
+      expect(TOKENS_BY_CHAIN[base.id].UVBE?.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.UVBEV2.toLowerCase(),
       );
     });
 
     it('matches the canonical UnifyVaultController address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.UnifyVaultController.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.UnifyVaultController.toLowerCase(),
       );
     });
 
     it('matches the canonical StrategyManager address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.StrategyManager.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.StrategyManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.StrategyManager.toLowerCase(),
       );
     });
 
     it('matches the canonical PortfolioManager address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.PortfolioManager.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.PortfolioManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.PortfolioManager.toLowerCase(),
       );
     });
 
     it('matches the canonical SwapAdapter address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.SwapAdapter.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.SwapAdapter.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.SwapAdapter.toLowerCase(),
       );
     });
 
     it('matches the canonical CostBasisManagerV2 address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.CostBasisManagerV2.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.CostBasisManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.CostBasisManagerV2.toLowerCase(),
       );
     });
 
     it('matches the canonical PerformanceManager address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.PerformanceManager.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.PerformanceManager.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.PerformanceManager.toLowerCase(),
       );
     });
 
     it('matches the canonical P2PEscrowV2 address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.P2PEscrowV2.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.P2PEscrow.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.P2PEscrowV2.toLowerCase(),
       );
     });
 
     it('matches the canonical Marketplace address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Marketplace.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.Marketplace.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.Marketplace.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.Marketplace.toLowerCase(),
       );
-      expect(getMarketplaceAddress(baseSepolia.id).toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.Marketplace.toLowerCase(),
+      expect(getMarketplaceAddress(base.id).toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.Marketplace.toLowerCase(),
       );
     });
 
     it('matches the canonical Paymaster and GasTreasury addresses', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Paymaster.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.Paymaster.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.Paymaster.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.Paymaster.toLowerCase(),
       );
-      expect(getPaymasterAddress(baseSepolia.id).toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.Paymaster.toLowerCase(),
+      expect(getPaymasterAddress(base.id).toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.Paymaster.toLowerCase(),
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury?.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.GasTreasury.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.GasTreasury?.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.GasTreasury.toLowerCase(),
       );
     });
 
     it('matches the canonical EntryPoint v0.7 address', () => {
       expect(ENTRYPOINT_ADDRESS_V07.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.EntryPoint.toLowerCase(),
+        CANONICAL_BASE_MAINNET_V2.EntryPoint.toLowerCase(),
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.EntryPoint?.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.EntryPoint.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.EntryPoint?.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.EntryPoint.toLowerCase(),
       );
     });
 
     it('matches the canonical Admin address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Admin?.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.Admin.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.Admin?.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.Admin.toLowerCase(),
       );
     });
 
-    it('matches the canonical collateral tokens for Base Sepolia', () => {
-      expect(TOKENS_BY_CHAIN[baseSepolia.id].USDC.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.USDC.toLowerCase(),
+    it('matches the canonical collateral tokens for Base Mainnet', () => {
+      expect(TOKENS_BY_CHAIN[base.id].USDC.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.USDC.toLowerCase(),
       );
-      expect(TOKENS_BY_CHAIN[baseSepolia.id].cbBTC.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.cbBTC.toLowerCase(),
+      expect(TOKENS_BY_CHAIN[base.id].cbBTC.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.cbBTC.toLowerCase(),
       );
-      expect(TOKENS_BY_CHAIN[baseSepolia.id].WETH.toLowerCase()).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.WETH.toLowerCase(),
+      expect(TOKENS_BY_CHAIN[base.id].WETH.toLowerCase()).toBe(
+        CANONICAL_BASE_MAINNET_V2.WETH.toLowerCase(),
       );
     });
   });
@@ -265,17 +268,17 @@ describe('Frontend Contract Alignment — Canonical Base Sepolia V2 Production S
       for (const obsolete of OBSOLETE_LEGACY_ADDRESSES) {
         expect(knownKeys).not.toContain(obsolete.toLowerCase());
       }
-      expect(knownKeys).toContain(CANONICAL_BASE_SEPOLIA_V2.UVBEV2.toLowerCase());
+      expect(knownKeys).toContain(CANONICAL_BASE_MAINNET_V2.UVBEV2.toLowerCase());
     });
 
-    it('ensures APPROVED_SEPOLIA_TARGETS in smart account constants points to canonical V2 contracts', () => {
-      expect(APPROVED_SEPOLIA_TARGETS.USDC).toBe(CANONICAL_BASE_SEPOLIA_V2.USDC.toLowerCase());
-      expect(APPROVED_SEPOLIA_TARGETS.CONTROLLER).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.UnifyVaultController.toLowerCase(),
+    it('ensures APPROVED_MAINNET_TARGETS in smart account constants points to canonical V2 contracts', () => {
+      expect(APPROVED_MAINNET_TARGETS.USDC).toBe(CANONICAL_BASE_MAINNET_V2.USDC.toLowerCase());
+      expect(APPROVED_MAINNET_TARGETS.CONTROLLER).toBe(
+        CANONICAL_BASE_MAINNET_V2.UnifyVaultController.toLowerCase(),
       );
-      expect(APPROVED_SEPOLIA_TARGETS.UVBE).toBe(CANONICAL_BASE_SEPOLIA_V2.UVBEV2.toLowerCase());
-      expect(APPROVED_SEPOLIA_TARGETS.P2P_ESCROW).toBe(
-        CANONICAL_BASE_SEPOLIA_V2.P2PEscrowV2.toLowerCase(),
+      expect(APPROVED_MAINNET_TARGETS.UVBE).toBe(CANONICAL_BASE_MAINNET_V2.UVBEV2.toLowerCase());
+      expect(APPROVED_MAINNET_TARGETS.P2P_ESCROW).toBe(
+        CANONICAL_BASE_MAINNET_V2.P2PEscrowV2.toLowerCase(),
       );
     });
   });

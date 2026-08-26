@@ -1,5 +1,5 @@
-import { base, baseSepolia } from 'viem/chains';
-import { DEPLOYED_CONTRACTS_SEPOLIA, TOKENS_BY_CHAIN } from '../../constants';
+import { base } from 'viem/chains';
+import { DEPLOYED_CONTRACTS_MAINNET, TOKENS_BY_CHAIN } from '../../constants';
 
 /**
  * Canonical ERC-4337 EntryPoint v0.7 Address
@@ -10,13 +10,12 @@ export const ENTRYPOINT_ADDRESS_V07 = '0x0000000071727De22E5E9d8BAf0edAc6f37da03
 /**
  * Supported chain IDs for ERC-4337 Account Abstraction
  */
-export const SUPPORTED_AA_CHAINS = [baseSepolia.id, base.id] as const;
+export const SUPPORTED_AA_CHAINS = [base.id] as const;
 
 /**
  * Default local / self-hosted ERC-4337 Bundler endpoints
  */
 export const DEFAULT_BUNDLER_URLS: Record<number, string> = {
-  [baseSepolia.id]: 'http://127.0.0.1:4337',
   [base.id]: 'http://127.0.0.1:4337',
 };
 
@@ -39,7 +38,6 @@ export const FIRST_DEPLOYMENT_VERIFICATION_GAS_LIMIT = 500000n;
  * @deprecated Kept solely for backward compatibility with Phase 2A tests.
  */
 export const PIMLICO_CHAIN_SLUGS: Record<number, string> = {
-  [baseSepolia.id]: 'base-sepolia',
   [base.id]: 'base',
 };
 
@@ -163,11 +161,16 @@ export const P2P_ESCROW_ABI = [
 ] as const;
 
 /**
- * Approved contract addresses for Base Sepolia sponsorship
+ * Approved contract addresses for Base Mainnet sponsorship
  */
-export const APPROVED_SEPOLIA_TARGETS = {
-  USDC: TOKENS_BY_CHAIN[baseSepolia.id].USDC.toLowerCase(),
-  CONTROLLER: DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController.toLowerCase(),
-  UVBE: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase(),
-  P2P_ESCROW: DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow.toLowerCase(),
+export const APPROVED_MAINNET_TARGETS = {
+  USDC: TOKENS_BY_CHAIN[base.id].USDC.toLowerCase(),
+  CONTROLLER: DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase(),
+  UVBE: DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase(),
+  P2P_ESCROW: DEPLOYED_CONTRACTS_MAINNET.P2PEscrow.toLowerCase(),
 } as const;
+
+/**
+ * @deprecated For backward compatibility
+ */
+export const APPROVED_SEPOLIA_TARGETS = APPROVED_MAINNET_TARGETS;

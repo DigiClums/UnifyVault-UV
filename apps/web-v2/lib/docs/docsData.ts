@@ -23,7 +23,8 @@ export const DOCS_DATA: DocCategory[] = [
         title: 'What is UnifyVault?',
         category: 'Getting Started',
         badge: 'START HERE',
-        description: 'A simple, friendly introduction to how UnifyVault helps you invest in Bitcoin & Ethereum together.',
+        description:
+          'A simple, friendly introduction to how UnifyVault helps you invest in Bitcoin & Ethereum together.',
         content: `
 # Welcome to UnifyVault 🚀
 
@@ -128,7 +129,8 @@ Ready to start? Here is how to make your first deposit in under 2 minutes:
         title: 'Flash 30s Game: Rules & Multipliers',
         category: 'Games & Products',
         badge: 'POPULAR',
-        description: 'How to play 30-second rapid rounds, choose 2x-20x multipliers, and understand payout economics.',
+        description:
+          'How to play 30-second rapid rounds, choose 2x-20x multipliers, and understand payout economics.',
         content: `
 # Flash 30s Rapid Prediction Game ⚡
 
@@ -196,7 +198,8 @@ The smart contract monitors the weights 24/7. When the drift crosses ±2.5%, the
         slug: 'dynamic-cost-basis',
         title: 'Dynamic Cost Basis & Profit Tracking',
         category: 'Games & Products',
-        description: 'How your real buy price and profit/loss are automatically calculated for you.',
+        description:
+          'How your real buy price and profit/loss are automatically calculated for you.',
         content: `
 # Simple Profit & Loss (PnL) Tracking 📊
 
@@ -228,7 +231,8 @@ No spreadsheets or third-party tax software needed!
         title: 'UVBE Staking & 10-Tier Affiliate Engine',
         category: 'Games & Products',
         badge: 'ACTIVE APY',
-        description: 'Complete guide to perpetual dynamic APY, 10-generation referral overrides, leadership ranks, and DAO leadership pool.',
+        description:
+          'Complete guide to perpetual dynamic APY, 10-generation referral overrides, leadership ranks, and DAO leadership pool.',
         content: `
 # UVBE Staking & Affiliate Ecosystem 💎
 
@@ -323,7 +327,8 @@ As your team volume and active direct network grow, you unlock on-chain rank pro
         slug: 'p2p-escrow',
         title: 'P2P Escrow: Safe Peer-to-Peer Trading',
         category: 'Games & Products',
-        description: 'How to buy and sell crypto with real fiat money safely without middleman risk.',
+        description:
+          'How to buy and sell crypto with real fiat money safely without middleman risk.',
         content: `
 # P2P Escrow Marketplace 🤝
 
@@ -385,19 +390,6 @@ All UnifyVault contracts are publicly open-source, deployed on **Base**, and ver
 | **TimelockController** | \`0x610c5f66d99993d444561d270fba172db1f7cff1\` | [View on BaseScan](https://basescan.org/address/0x610c5f66d99993d444561d270fba172db1f7cff1) |
 
 ---
-
-### 🧪 Base Sepolia Testnet (Chain ID: 84532)
-
-| Contract Name | Address | Explorer Link |
-| :--- | :--- | :--- |
-| **ProtocolDirectory** | \`0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **UVBE Index Coin** | \`0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **UnifyVaultController** | \`0x07f3d3432b64dbf67c5b061af2bc8aef70221cea\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **UVBEStakingVault** | \`0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **UVBEReferralRegistry** | \`0xc1F00539B6869b2445d85056EDc036114b939Ddd\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **UVBERewardDistributor** | \`0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **P2PEscrowV2** | \`0xcba65af8a993061cf1acc47d9b02d7ebacbcf655\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
-| **TimelockController** | \`0x9094145Cd2AEA2f309eDf14237444a07edF98d02\` | [View on Sepolia BaseScan](https://sepolia.basescan.org) |
 
 > [!TIP]
 > Always verify that you are interacting with the official domain **https://unifyvault.xyz** or **https://app.unifyvault.xyz**.

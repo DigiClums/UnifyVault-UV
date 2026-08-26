@@ -18,25 +18,25 @@ import {
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
 } from '../contracts/escrow';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getChainTokens } from '../../constants';
 
 describe('P2P Arbitration Console Test Suite', () => {
   const AUTHORIZED_ADMIN = '0xd905920c91853039060246Ed5724AA72B91a96DA';
   const UNAUTHORIZED_USER = '0x1111111111111111111111111111111111111111';
   const MOCK_BUYER = '0x2222222222222222222222222222222222222222';
   const MOCK_SELLER = '0x3333333333333333333333333333333333333333';
-  const MOCK_ESCROW = DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow;
+  const MOCK_ESCROW = DEPLOYED_CONTRACTS_MAINNET.P2PEscrow;
 
   describe('1. Exact Deployed Escrow Address Verification', () => {
-    it('verifies exact Base Sepolia P2PEscrow deployment address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow.toLowerCase()).toBe(
-        '0xcba65af8a993061cf1acc47d9b02d7ebacbcf655',
+    it('verifies exact Base Mainnet P2PEscrow deployment address', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.P2PEscrow.toLowerCase()).toBe(
+        '0xa938aacea64be8f41c90960aff232da4df7fc329',
       );
     });
 
     it('verifies P2PReputation deployment address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation.toLowerCase()).toBe(
-        '0x49460e2ff8c20ba96121c18e7d36fd4ae293c70c',
+      expect(DEPLOYED_CONTRACTS_MAINNET.P2PReputation.toLowerCase()).toBe(
+        '0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8',
       );
     });
   });
@@ -108,7 +108,7 @@ describe('P2P Arbitration Console Test Suite', () => {
         tradeId: 1n,
         buyer: MOCK_BUYER as `0x${string}`,
         seller: MOCK_SELLER as `0x${string}`,
-        asset: DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken,
+        asset: DEPLOYED_CONTRACTS_MAINNET.UVBEToken,
         amount: parseUnits('100', 18),
         fiatAmount: 5000n,
         fiatCurrency:

@@ -77,11 +77,7 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> 
   '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': { symbol: 'USDC', decimals: 6 },
   '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': { symbol: 'cbBTC', decimals: 8 },
   '0x4200000000000000000000000000000000000006': { symbol: 'WETH', decimals: 18 },
-  // Base Sepolia
-  '0x036cbd53842c5426634e7929541ec2318f3dcf7e': { symbol: 'USDC', decimals: 6 },
-  '0xb0b47f113bcab2b0e49fd5d3bd2cc0e9aa408b29': { symbol: 'cbBTC', decimals: 8 },
-  '0xd116ab1c943cf15904ec4c8dd701086f175fa323': { symbol: 'WETH', decimals: 18 },
-  '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c': { symbol: 'UVBE', decimals: 18 },
+  '0xd2715141a0f5998b707baa963990bfc2e94cf145': { symbol: 'UVBE', decimals: 18 },
 };
 
 export function getTokenSymbol(addrOrSymbol?: string): string {

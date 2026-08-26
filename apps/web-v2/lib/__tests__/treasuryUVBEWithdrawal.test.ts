@@ -1,35 +1,35 @@
 import { describe, it, expect } from 'vitest';
 import { parseUnits, formatUnits, getAbiItem, encodeFunctionData, decodeFunctionData } from 'viem';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getChainTokens } from '../../constants';
 import { TREASURY_ABI } from '../contracts/treasury';
 import { STAKING_VAULT_ABI } from '../contracts/staking';
 
 describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
-  const sepoliaTokens = getChainTokens(84532);
+  const mainnetTokens = getChainTokens(8453);
   const GOVERNANCE_ROLE_HASH = '0x71840dc4906352362b0cdaf79870196c8e42acafade72d5d5a6d59291253ceb1';
   const AUTHORIZED_PROTOCOL_ADMIN = '0x441dbf8076d0b143EC17199baE94Daa884161454';
   const UNAUTHORIZED_USER = '0x000000000000000000000000000000000000bEEF';
 
   describe('1. Canonical Contract Addresses and Constants', () => {
     it('verifies canonical UVBE token address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase()).toBe(
-        '0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c',
+      expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase()).toBe(
+        '0xd2715141a0f5998b707baa963990bfc2e94cf145',
       );
-      expect(sepoliaTokens.UVBE?.toLowerCase()).toBe('0xd1716dbfadda94ab2b6f8b0a759d2cfeb26cec4c');
+      expect(mainnetTokens.UVBE?.toLowerCase()).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
     });
 
     it('verifies canonical Treasury contract address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury.toLowerCase()).toBe(
-        '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316',
+      expect(DEPLOYED_CONTRACTS_MAINNET.Treasury.toLowerCase()).toBe(
+        '0x57561f781b2f558a7445d2e93a365c03ba2c9b53',
       );
     });
 
-    it('verifies canonical USDC token address on Base Sepolia', () => {
-      expect(sepoliaTokens.USDC.toLowerCase()).toBe('0x036cbd53842c5426634e7929541ec2318f3dcf7e');
+    it('verifies canonical USDC token address on Base Mainnet', () => {
+      expect(mainnetTokens.USDC.toLowerCase()).toBe('0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
     });
 
     it('verifies canonical Admin address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Admin.toLowerCase()).toBe(
+      expect(DEPLOYED_CONTRACTS_MAINNET.Admin.toLowerCase()).toBe(
         AUTHORIZED_PROTOCOL_ADMIN.toLowerCase(),
       );
     });
@@ -132,7 +132,7 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
       const callData = encodeFunctionData({
         abi: TREASURY_ABI,
         functionName: 'registerAsset',
-        args: [DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken, 18],
+        args: [DEPLOYED_CONTRACTS_MAINNET.UVBEToken, 18],
       });
 
       const decoded = decodeFunctionData({
@@ -142,7 +142,7 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
 
       expect(decoded.functionName).toBe('registerAsset');
       expect(decoded.args?.[0]?.toLowerCase()).toBe(
-        DEPLOYED_CONTRACTS_SEPOLIA.UVBEToken.toLowerCase(),
+        DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase(),
       );
       expect(decoded.args?.[1]).toBe(18);
     });
@@ -181,14 +181,14 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
     });
 
     it('proves Treasury and UVBEStakingVault are distinct isolated contracts', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury.toLowerCase()).not.toBe(
-        DEPLOYED_CONTRACTS_SEPOLIA.StakingVault.toLowerCase(),
+      expect(DEPLOYED_CONTRACTS_MAINNET.Treasury.toLowerCase()).not.toBe(
+        DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase(),
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.Treasury.toLowerCase()).toBe(
-        '0xe0764477914f8eb0fe90c7f27bca0ade1ee95316',
+      expect(DEPLOYED_CONTRACTS_MAINNET.Treasury.toLowerCase()).toBe(
+        '0x57561f781b2f558a7445d2e93a365c03ba2c9b53',
       );
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault.toLowerCase()).toBe(
-        '0x91205d342d36d9b6f5a1ab38f2a2a3d03bfd74a1',
+      expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase()).toBe(
+        '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571',
       );
     });
   });

@@ -4,21 +4,10 @@ import { getMarketplaceAddress, performMarketplaceGasPreflight } from '../useMar
 import { DEPLOYED_CONTRACTS_SEPOLIA, DEPLOYED_CONTRACTS_MAINNET } from '../../constants';
 
 describe('Phase 7.5.4 — MarketPlace Buy Order Address + Gas Pre-Flight Hardening Suite', () => {
-  // 1. Base Sepolia Resolution
-  it('1. Resolves Base Sepolia (84532) strictly to Sepolia Marketplace contract (0xe908377f96F313a6b7771570ff6Fb414D38F451A)', () => {
-    const address = getMarketplaceAddress(baseSepolia.id);
-    expect(address.toLowerCase()).toBe('0xe908377f96f313a6b7771570ff6fb414d38f451a');
-    expect(address.toLowerCase()).toBe(DEPLOYED_CONTRACTS_SEPOLIA.Marketplace.toLowerCase());
-  });
-
-  // 2. Base Mainnet Resolution
-  it('2. Resolves Base Mainnet (8453) strictly to Mainnet Marketplace contract or fails closed if address(0)', () => {
-    if (DEPLOYED_CONTRACTS_MAINNET.Marketplace !== '0x0000000000000000000000000000000000000000') {
-      const address = getMarketplaceAddress(base.id);
-      expect(address.toLowerCase()).toBe(DEPLOYED_CONTRACTS_MAINNET.Marketplace.toLowerCase());
-    } else {
-      expect(() => getMarketplaceAddress(base.id)).toThrow('zero or unconfigured');
-    }
+  // 1. Base Mainnet Resolution
+  it('1. Resolves Base Mainnet (8453) strictly to Mainnet Marketplace contract', () => {
+    const address = getMarketplaceAddress(base.id);
+    expect(address.toLowerCase()).toBe(DEPLOYED_CONTRACTS_MAINNET.Marketplace.toLowerCase());
   });
 
   // 3. Unsupported Network Hard Block

@@ -88,7 +88,7 @@ describe('P2P Phase 3 — Complete End-to-End Testnet Verification (18 Verificat
     // 1. Seller creates SELL UVBE order
     // -----------------------------------------------------------------
     const sellAsset = CANONICAL_UVBE_ADDRESS;
-    const assetValidation = validateP2PAsset(sellAsset, 84532);
+    const assetValidation = validateP2PAsset(sellAsset, 8453);
     expect(assetValidation.isValid).toBe(true);
     expect(assetValidation.assetInfo?.symbol).toBe('UVBE');
 

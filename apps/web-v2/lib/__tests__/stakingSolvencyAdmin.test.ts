@@ -16,7 +16,7 @@ import {
   RewardCapacity,
   DaoLeaderShares,
 } from '../contracts/staking';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getChainTokens } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getChainTokens } from '../../constants';
 import {
   GOVERNANCE_ROLE_HASH,
   GUARDIAN_ROLE_HASH,
@@ -28,21 +28,21 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
   const UNAUTHORIZED_USER = '0x1111111111111111111111111111111111111111';
 
   describe('1. Canonical Deployed Staking Contract Addresses', () => {
-    it('verifies exact Base Sepolia UVBEStakingVault address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.StakingVault.toLowerCase()).toBe(
-        '0x91205d342d36d9b6f5a1ab38f2a2a3d03bfd74a1',
+    it('verifies exact Base Mainnet UVBEStakingVault address', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase()).toBe(
+        '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571',
       );
     });
 
-    it('verifies exact Base Sepolia UVBERewardDistributor address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor.toLowerCase()).toBe(
-        '0xae202a0627a194fa2d02cd861e19302d01f8ca81',
+    it('verifies exact Base Mainnet UVBERewardDistributor address', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor.toLowerCase()).toBe(
+        '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa',
       );
     });
 
-    it('verifies exact Base Sepolia UVBEReferralRegistry address', () => {
-      expect(DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry.toLowerCase()).toBe(
-        '0xb409064857792a2aef676f9cb69713685775f0d0',
+    it('verifies exact Base Mainnet UVBEReferralRegistry address', () => {
+      expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry.toLowerCase()).toBe(
+        '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e',
       );
     });
   });
@@ -264,14 +264,14 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
 
       expect(
         isModuleFrozen(
-          DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
-          DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
+          DEPLOYED_CONTRACTS_MAINNET.RewardDistributor,
+          DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry,
         ),
       ).toBe(true);
       expect(
         isModuleFrozen(
           '0x0000000000000000000000000000000000000000',
-          DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
+          DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry,
         ),
       ).toBe(false);
     });

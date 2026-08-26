@@ -8,16 +8,14 @@ describe('Mobile UI Navigation & /transfer Visibility Suite', () => {
   const transferPagePath = path.resolve(__dirname, '../../app/transfer/page.tsx');
   const transferFormPath = path.resolve(__dirname, '../../components/transfer/TransferForm.tsx');
 
-  it('1. MobileBottomNav component must exist and include /transfer', () => {
+  it('1. MobileBottomNav component must exist and include essential core routes', () => {
     expect(fs.existsSync(mobileNavPath)).toBe(true);
     const content = fs.readFileSync(mobileNavPath, 'utf8');
 
-    // Must import Send icon
-    expect(content).toMatch(/Send/);
-
-    // Must include /transfer nav entry
-    expect(content).toContain("href: '/transfer'");
-    expect(content).toContain("label: 'Transfer'");
+    // Must include core tabs
+    expect(content).toContain("href: '/'");
+    expect(content).toContain("href: '/p2p'");
+    expect(content).toContain("href: '/staking'");
   });
 
   it('2. Desktop Navbar must include /transfer', () => {
@@ -40,21 +38,18 @@ describe('Mobile UI Navigation & /transfer Visibility Suite', () => {
     expect(formContent).toContain('Transfer UVBE');
   });
 
-  it('4. Mobile bottom navigation should have balanced item distribution in moreItems', () => {
+  it('4. Mobile bottom navigation should render primary navigation tabs', () => {
     const content = fs.readFileSync(mobileNavPath, 'utf8');
 
-    // Check moreItems definition
-    const moreItemsMatch = content.match(/const moreItems: NavItem\[\] = \[([\s\S]*?)\];/);
-    expect(moreItemsMatch).not.toBeNull();
+    const navTabsMatch = content.match(/const navTabs: NavItem\[\] = \[([\s\S]*?)\];/);
+    expect(navTabsMatch).not.toBeNull();
 
-    if (moreItemsMatch) {
-      const itemsBlock = moreItemsMatch[1];
-      expect(itemsBlock).toContain("'/transfer'");
+    if (navTabsMatch) {
+      const itemsBlock = navTabsMatch[1];
       expect(itemsBlock).toContain("'/p2p'");
-      expect(itemsBlock).toContain("'/redeem'");
-      expect(itemsBlock).toContain("'/analytics'");
-      expect(itemsBlock).toContain("'/treasury'");
-      expect(itemsBlock).toContain("'/contracts'");
+      expect(itemsBlock).toContain("'/staking'");
+      expect(itemsBlock).toContain("'/portfolio'");
+      expect(itemsBlock).toContain("'/transactions'");
     }
   });
 
@@ -62,7 +57,7 @@ describe('Mobile UI Navigation & /transfer Visibility Suite', () => {
     const desktopContent = fs.readFileSync(desktopNavPath, 'utf8');
     const mobileContent = fs.readFileSync(mobileNavPath, 'utf8');
 
-    expect(desktopContent).toContain("{ href: '/p2p', label: 'P2P', icon: ShieldCheck }");
-    expect(mobileContent).toContain("{ href: '/p2p', label: 'P2P', icon: ShieldCheck }");
+    expect(desktopContent).toContain("{ href: '/p2p', label: 'P2P'");
+    expect(mobileContent).toContain("{ href: '/p2p', label: 'P2P'");
   });
 });

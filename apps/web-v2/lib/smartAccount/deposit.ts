@@ -1,7 +1,7 @@
 import { encodeFunctionData, Address } from 'viem';
 import { CONTROLLER_ABI } from '../contracts/controller';
-import { DEPLOYED_CONTRACTS_SEPOLIA, TOKENS_BY_CHAIN } from '../../constants';
-import { baseSepolia } from 'viem/chains';
+import { DEPLOYED_CONTRACTS_MAINNET, TOKENS_BY_CHAIN } from '../../constants';
+import { base } from 'viem/chains';
 import { ERC20_ABI } from './constants';
 import { GaslessDepositParams, SmartAccountCall } from './types';
 
@@ -15,8 +15,8 @@ export function buildGaslessDepositCalls(params: GaslessDepositParams): SmartAcc
     amount,
     minSharesOut,
     receiver,
-    usdcAddress = TOKENS_BY_CHAIN[baseSepolia.id].USDC,
-    controllerAddress = DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController,
+    usdcAddress = TOKENS_BY_CHAIN[base.id].USDC,
+    controllerAddress = DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController,
   } = params;
 
   if (amount <= 0n) {

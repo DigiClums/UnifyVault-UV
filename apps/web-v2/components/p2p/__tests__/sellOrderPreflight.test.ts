@@ -10,8 +10,8 @@ import { CANONICAL_UVBE_ADDRESS } from '../../../lib/p2p/assetValidation';
 describe('Phase 1 — Sell UVBE Pre-Flight & Hardening Tests', () => {
   const mockUserAddress = '0x1234567890abcdef1234567890abcdef12345678' as `0x${string}`;
   const mockUVBE = CANONICAL_UVBE_ADDRESS as `0x${string}`; // Canonical UVBE
-  const mockUSDC = '0x036cbd53842c5426634e7929541ec2318f3dcf7e' as `0x${string}`;
-  const targetChainId = 84532; // Base Sepolia
+  const mockUSDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
+  const targetChainId = 8453; // Base Mainnet
 
   // 1. Sufficient balance test
   it('1. Allows order creation when requested sell amount is less than available UVBE balance', () => {

@@ -9,7 +9,7 @@ import {
 } from '../../../lib/p2p/assetValidation';
 
 describe('Phase 1 — Complete P2P Lifecycle & Specification Tests (A through R)', () => {
-  const baseSepoliaId = 84532;
+  const baseMainnetId = 8453;
   const canonicalUVBE = CANONICAL_UVBE_ADDRESS;
 
   const buyerEOA = '0x1111111111111111111111111111111111111111' as `0x${string}`;
@@ -18,7 +18,7 @@ describe('Phase 1 — Complete P2P Lifecycle & Specification Tests (A through R)
 
   // A. UVBE-only order creation
   it('A. UVBE-only order creation: Canonical UVBE address is validated and accepted', () => {
-    const res = validateP2PAsset(canonicalUVBE, baseSepoliaId);
+    const res = validateP2PAsset(canonicalUVBE, baseMainnetId);
     expect(res.isValid).toBe(true);
     expect(res.isNative).toBe(false);
     expect(res.assetInfo?.symbol).toBe('UVBE');
@@ -26,15 +26,15 @@ describe('Phase 1 — Complete P2P Lifecycle & Specification Tests (A through R)
 
   // B. Non-UVBE order rejection
   it('B. Non-UVBE order rejection: Rejects USDC, BTC, ETH, WETH, and arbitrary tokens', () => {
-    const usdc = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+    const usdc = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
     const eth = NATIVE_ETH_ADDRESS;
-    const weth = '0xd116ab1c943cf15904ec4c8dd701086f175FA323';
+    const weth = '0x4200000000000000000000000000000000000006';
 
-    expect(validateP2PAsset(usdc, baseSepoliaId).isValid).toBe(false);
-    expect(validateP2PAsset(eth, baseSepoliaId).isValid).toBe(false);
-    expect(validateP2PAsset(weth, baseSepoliaId).isValid).toBe(false);
+    expect(validateP2PAsset(usdc, baseMainnetId).isValid).toBe(false);
+    expect(validateP2PAsset(eth, baseMainnetId).isValid).toBe(false);
+    expect(validateP2PAsset(weth, baseMainnetId).isValid).toBe(false);
     expect(
-      validateP2PAsset('0x9999999999999999999999999999999999999999', baseSepoliaId).isValid,
+      validateP2PAsset('0x9999999999999999999999999999999999999999', baseMainnetId).isValid,
     ).toBe(false);
   });
 

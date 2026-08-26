@@ -66,21 +66,20 @@ describe('Phase 2A.5 — Account Abstraction Provider Configuration Tests', () =
   });
 
   // 5. Sponsorship Enabled Checks
-  it('enables sponsorship on Base Sepolia by default in dev/test', () => {
+  it('enables sponsorship on Base Mainnet by default in dev/test', () => {
     delete process.env.AA_SPONSORSHIP_ENABLED;
     delete process.env.NEXT_PUBLIC_AA_SPONSORSHIP_ENABLED;
 
-    expect(isGaslessSponsorshipEnabled(baseSepolia.id)).toBe(true);
-    expect(isGaslessSponsorshipEnabled(base.id)).toBe(false); // Mainnet disabled in Phase 2A.5
+    expect(isGaslessSponsorshipEnabled(base.id)).toBe(true);
 
     process.env.AA_SPONSORSHIP_ENABLED = 'false';
-    expect(isGaslessSponsorshipEnabled(baseSepolia.id)).toBe(false);
+    expect(isGaslessSponsorshipEnabled(base.id)).toBe(false);
   });
 
   // 6. Backward compatibility fallback helpers
   it('provides backward compatibility helpers for legacy Phase 2A references', () => {
     process.env.PIMLICO_API_KEY = 'test_legacy_key';
     expect(getPimlicoApiKey()).toBe('test_legacy_key');
-    expect(getPimlicoRpcUrl(baseSepolia.id)).toContain('test_legacy_key');
+    expect(getPimlicoRpcUrl(base.id)).toContain('test_legacy_key');
   });
 });

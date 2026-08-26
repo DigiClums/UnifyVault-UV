@@ -8,21 +8,18 @@ import {
 } from '../../../constants';
 
 describe('Base Mainnet Preflight & Configuration Hardening', () => {
-  it('1. getProtocolDirectoryAddress fails closed (returns 0x0) for mainnet when env unconfigured', () => {
+  it('1. getProtocolDirectoryAddress returns canonical directory address for mainnet', () => {
     const mainnetDir = getProtocolDirectoryAddress(8453);
-    // When no NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET is set, should be 0x0
-    if (!process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET) {
-      expect(mainnetDir).toBe('0x0000000000000000000000000000000000000000');
-    }
+    expect(mainnetDir.toLowerCase()).toBe('0xe74b400f4aea3a0b593be5acbc54f56631c0d60e');
   });
 
-  it('2. Base Mainnet never falls back to Base Sepolia tokens in getChainTokens', () => {
+  it('2. Base Mainnet tokens match canonical verified assets in getChainTokens', () => {
     const mainnetTokens = getChainTokens(8453);
-    const sepoliaTokens = getChainTokens(84532);
 
-    expect(mainnetTokens.USDC.toLowerCase()).not.toBe(sepoliaTokens.USDC.toLowerCase());
     expect(mainnetTokens.USDC.toLowerCase()).toBe('0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
     expect(mainnetTokens.cbBTC.toLowerCase()).toBe('0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf');
+    expect(mainnetTokens.WETH.toLowerCase()).toBe('0x4200000000000000000000000000000000000006');
+    expect(mainnetTokens.UVBE?.toLowerCase()).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
   });
 
   it('3. Preflight fails closed when manifest chainId is not 8453', async () => {
