@@ -26,6 +26,7 @@ import { SmartAccountBadge } from '../common/SmartAccountBadge';
 import { QrScannerModal } from '../common/QrScannerModal';
 import { TokenIcon } from '../ui/TokenIcon';
 import { ERC20_ABI } from '../../lib/smartAccount/constants';
+import { Clipboard } from '@capacitor/clipboard';
 
 export function TransferForm() {
   const { isConnected, chain, address: eoaAddress } = useAccount();
@@ -161,12 +162,37 @@ export function TransferForm() {
     refetchSaBalance();
   };
 
-  return (
-    <div className="w-full max-w-xl mx-auto space-y-4">
-      {/* Account Abstraction Banner */}
-      {isConnected && <SmartAccountBadge />}
+  const handlePaste = async () => {
+    try {
+      // 1. Try native Capacitor Clipboard first (works inside Android APK)
+      const { value } = await Clipboard.read();
+      if (value) {
+        setRecipientInput(value.trim());
+        setTxError(null);
+        return;
+      }
+    } catch {
+      // Fall through to browser clipboard
+    }
 
-      <Card className="p-4 sm:p-6 bg-card border-2 border-black dark:border-white/15 shadow-[4px_4px_0_#000]">
+    try {
+      // 2. Fallback to standard web navigator.clipboard
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setRecipientInput(text.trim());
+          setTxError(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+    }
+  };
+
+  return (
+    <div className="max-w-xl mx-auto py-2">
+      <Card className="p-4 sm:p-6 bg-card border-2 border-black dark:border-white/15 shadow-[5px_5px_0_#BFFF00] rounded-3xl">
+        {/* Header */}
         <div className="flex items-center justify-between pb-4 sm:pb-5 border-b border-border-subtle">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-[#BFFF00] text-black border-2 border-black shadow-[2px_2px_0_#000]">
@@ -250,11 +276,16 @@ export function TransferForm() {
                       : 'bg-card border-border-subtle text-muted-foreground hover:border-border'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Wallet className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
-                    <span>Connected Wallet</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <Wallet className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+                      Connected Wallet
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted">
+                      EOA
+                    </span>
                   </div>
-                  <p className="text-[11px] font-mono mt-1 text-foreground/80">
+                  <p className="text-sm font-mono font-bold text-foreground">
                     {parseFloat(eoaBalFormatted).toFixed(4)} UVBE
                   </p>
                 </button>
@@ -266,17 +297,21 @@ export function TransferForm() {
                     setAmountInput('');
                     setTxError(null);
                   }}
+                  disabled={!smartAccountAddress}
                   className={`p-3 rounded-xl border-2 text-left transition-all ${
                     transferSource === 'smart_account'
                       ? 'bg-[#BFFF00]/15 border-black dark:border-[#BFFF00] text-foreground font-bold shadow-[2px_2px_0_#000]'
                       : 'bg-card border-border-subtle text-muted-foreground hover:border-border'
-                  }`}
+                  } ${!smartAccountAddress ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Zap className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
-                    <span>Smart Wallet</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+                      Smart Account
+                    </span>
+                    <SmartAccountBadge />
                   </div>
-                  <p className="text-[11px] font-mono mt-1 text-foreground/80">
+                  <p className="text-sm font-mono font-bold text-foreground">
                     {parseFloat(saBalFormatted).toFixed(4)} UVBE
                   </p>
                 </button>
@@ -299,33 +334,58 @@ export function TransferForm() {
               )}
             </div>
 
-            {/* Recipient Input */}
+            {/* Recipient Input with Paste & QR Scan */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
-                Recipient Address
-              </label>
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-semibold text-foreground/70 uppercase tracking-wider">
+                  Recipient Address
+                </label>
+                <button
+                  type="button"
+                  onClick={handlePaste}
+                  disabled={isProcessing}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#5f8f00] dark:text-[#BFFF00] hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  <span>📋 Paste Clipboard</span>
+                </button>
+              </div>
+
               <div className="relative">
                 <input
                   type="text"
                   placeholder="0x..."
                   value={recipientInput}
                   onChange={(e) => {
-                    setRecipientInput(e.target.value);
+                    setRecipientInput(e.target.value.trim());
                     setTxError(null);
                   }}
                   disabled={isProcessing}
-                  className="w-full px-4 py-3 pr-12 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
+                  className="w-full px-4 py-3 pr-20 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
                 />
-                <button
-                  type="button"
-                  onClick={() => setIsQrScannerOpen(true)}
-                  disabled={isProcessing}
-                  title="Scan QR Code"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#BFFF00] text-black border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ScanLine className="w-4 h-4" />
-                </button>
+
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handlePaste}
+                    disabled={isProcessing}
+                    title="Paste from Clipboard"
+                    className="px-2 py-1.5 rounded-lg bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/10 dark:hover:bg-white/15 text-foreground text-xs font-bold font-mono border border-black/20 dark:border-white/15 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    PASTE
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsQrScannerOpen(true)}
+                    disabled={isProcessing}
+                    title="Scan QR Code"
+                    className="p-1.5 rounded-lg bg-[#BFFF00] text-black border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <ScanLine className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
               {recipientInput && !isValidRecipient && (
                 <p className="text-xs text-rose-500 dark:text-rose-400 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" />
