@@ -1,15 +1,12 @@
 {
-  "latestVersion": "1.0.0",
+  "latestVersion": "1.0.2",
   "minimumVersion": "1.0.0",
   "mandatory": false,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.0/app-release.apk",
-  "sha256": "1f932d29b21ea2c0f3000d000125e07135d030983217916f8ff80ed91e8fadae",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.2/UnifyVault-v1.0.2.apk",
+  "sha256": "60216a5a5b21cee310455b8a89040458299dd0d18f3e03345d63bcfec20aa07f",
   "releaseNotes": [
-    "🚀 Initial Production Release v1.0.0",
-    "⚡ Local-First & Blockchain-First Base Layer-2 Integration",
-    "📊 Compact Single-Screen Portfolio & Strategy Dashboard",
-    "🔒 Decentralized P2P Escrow & Zero-Gas Account Abstraction",
-    "🛡️ Verified APK SHA-256: 1f932d29b21ea2c0f3000d000125e07135d030983217916f8ff80ed91e8fadae"
+    "Production Release v1.0.2",
+    "Performance improvements & security updates",
+    "Verified APK SHA-256: 60216a5a5b21cee310455b8a89040458299dd0d18f3e03345d63bcfec20aa07f"
   ]
 }
-
