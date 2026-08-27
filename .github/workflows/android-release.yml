@@ -236,16 +236,19 @@ jobs:
           echo "- **Version Code:** \`$V_CODE\`" >> /tmp/release_notes.md
           echo "- **SHA-256 Checksum:** \`$CHECKSUM\`" >> /tmp/release_notes.md
 
-          if gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists. Uploading/clobbering release assets..."
-            gh release upload "$RELEASE_TAG" "$CANONICAL_APK" "$LATEST_APK" "$SHA_PATH" --repo "${{ github.repository }}" --clobber
-          else
-            echo "Creating new canonical release $RELEASE_TAG..."
-            gh release create "$RELEASE_TAG" "$CANONICAL_APK" "$LATEST_APK" "$SHA_PATH" \
+          if ! gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Creating canonical release $RELEASE_TAG..."
+            gh release create "$RELEASE_TAG" \
               --repo "${{ github.repository }}" \
               --title "UnifyVault Android v${V_NAME}" \
               --notes-file /tmp/release_notes.md
           fi
+
+          echo "Uploading release assets to $RELEASE_TAG..."
+          gh release upload "$RELEASE_TAG" "$CANONICAL_APK" "$LATEST_APK" "$SHA_PATH" \
+            --repo "${{ github.repository }}" \
+            --clobber
+
           echo "✓ Release published successfully."
 
       - name: Update & Commit In-App Version Descriptor
