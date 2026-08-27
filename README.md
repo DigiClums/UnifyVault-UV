@@ -4,7 +4,7 @@
   <img src="UVBE_logo.svg" alt="UnifyVault UVBE" width="120" height="120" />
   <h3>Institutional-Grade Decentralized 60/40 Crypto Index Protocol on Base</h3>
   <p><strong>cbBTC (60%) + WETH (40%) Balanced Exposure • Automated On-Chain Drift Rebalancing • Flash 30s Prediction Arena • Perpetual Staking Engine</strong></p>
-  
+
   <p>
     <a href="https://unifyvault.xyz"><strong>unifyvault.xyz</strong></a> •
     <a href="https://app.unifyvault.xyz"><strong>app.unifyvault.xyz</strong></a> •
@@ -31,7 +31,8 @@
 - [Tech Stack](#-tech-stack)
 - [Quick Start](#-quick-start)
 - [Local Development](#-local-development)
-- [Build & Deployment](#-build--deployment)
+- [Build & Deployment](#-build-instructions)
+- [Android Production Release & In-App Updates](#-android-production-release--in-app-updates)
 - [Canonical Deployed Contracts](#-canonical-deployed-contracts-base-sepolia--base-mainnet)
 - [Security & Timelocks](#-security--timelocks)
 - [Documentation Portal](#-documentation-portal)
@@ -51,12 +52,12 @@ By depositing collateral (**USDC**), users receive **UVBE Index Coins** that rep
 
 The platform operates across four dedicated domains:
 
-| Domain | Purpose | Shell / Features |
-| :--- | :--- | :--- |
-| [**unifyvault.xyz**](https://unifyvault.xyz) | **Institutional Landing** | Hero showcase, live UVBE NAV ticker, Pyth prices, features grid, strategy visualizer |
-| [**app.unifyvault.xyz**](https://app.unifyvault.xyz) | **Full DeFi DApp** | Portfolio, Deposit, Redeem, Flash 30s (`/predict`), Staking, P2P Escrow, QR Transfer |
-| [**docs.unifyvault.xyz**](https://docs.unifyvault.xyz) | **Documentation Portal** | Human-readable guides, contract directory, API specs, interactive sidebar |
-| [**v2.unifyvault.xyz**](https://v2.unifyvault.xyz) | **Protocol Admin Console** | Module directory controller, oracle configuration, emergency circuit breakers |
+| Domain                                                 | Purpose                    | Shell / Features                                                                     |
+| :----------------------------------------------------- | :------------------------- | :----------------------------------------------------------------------------------- |
+| [**unifyvault.xyz**](https://unifyvault.xyz)           | **Institutional Landing**  | Hero showcase, live UVBE NAV ticker, Pyth prices, features grid, strategy visualizer |
+| [**app.unifyvault.xyz**](https://app.unifyvault.xyz)   | **Full DeFi DApp**         | Portfolio, Deposit, Redeem, Flash 30s (`/predict`), Staking, P2P Escrow, QR Transfer |
+| [**docs.unifyvault.xyz**](https://docs.unifyvault.xyz) | **Documentation Portal**   | Human-readable guides, contract directory, API specs, interactive sidebar            |
+| [**v2.unifyvault.xyz**](https://v2.unifyvault.xyz)     | **Protocol Admin Console** | Module directory controller, oracle configuration, emergency circuit breakers        |
 
 ---
 
@@ -106,11 +107,13 @@ flowchart TD
 ## 🎯 Products & Subsystems
 
 ### 1. UVBE Index Coin (60/40 Strategy)
+
 - **Target Weights**: 60% cbBTC + 40% WETH.
 - **Drift Threshold**: Automated on-chain rebalancing triggered when asset allocation diverges beyond $\pm2.5\%$.
 - **Zero Impermanent Loss**: Unlike AMM LP pools, assets are held in pure non-custodial custody.
 
 ### 2. Flash 30s Rapid Binary Markets
+
 - **Round Duration**: 30 seconds total (10s betting window, 20s live active tracking).
 - **Custom Multipliers**: Auto mode (~1.95x - 2.00x) or fixed risk targets (**2x**, **3x**, **5x**, **10x**, **20x**).
 - **Losing Bet Flow**:
@@ -119,20 +122,23 @@ flowchart TD
   - **5% Keeper Gas Subsidy**: Settlement bot automation refund.
 
 ### 3. Perpetual Dynamic Staking & 10-Tier MLM
+
 - **Perpetual Staked Position**: 50 UVBE minimum stake (47.5 UVBE net principal after 5% treasury allocation).
 - **Dynamic APY Formula**:
   $$\text{Dynamic APY (BPS)} = \frac{\text{Surplus Capacity} \times 10{,}000}{\text{Total Permanent Staked}}$$
-  *(Enforced 100.00% annual APY safety ceiling).*
+  _(Enforced 100.00% annual APY safety ceiling)._
 - **10-Generation Overrides**: Gen 1 (5.00%), Gen 2 (2.00%), Gen 3 (1.50%), Gen 4 (1.00%), Gen 5 (0.75%), Gen 6 & 7 (0.50%), Gen 8, 9 & 10 (0.25%).
 - **6 Leadership Ranks**: Bronze, Silver, Gold, Platinum (+1 DAO share), Diamond (+3 DAO shares), Crown Ambassador (+10 DAO shares).
 - **1.00% DAO Leadership Pool**: Weekly revenue distributions to qualified rank leaders.
 
 ### 4. Dynamic Cost-Basis & FIFO Accounting
+
 - **On-Chain Tax Lots**: Tracks individual mint lot timestamps and entry prices.
 - **FIFO Realization**: Oldest lots realized first upon redemption.
 - **Weighted Average**: Real-time display of average acquisition cost and gross/net unrealized PnL.
 
 ### 5. P2P Fiat-to-Crypto Escrow Marketplace
+
 - **Non-Custodial Escrow**: Seller collateral locked in `P2PEscrow.sol`.
 - **Fiat Settlement**: Direct bank / UPI transfer with cryptographic payment receipt proof.
 - **Arbitration Support**: Automated timeout refunds and dispute arbitration resolution.
@@ -174,6 +180,7 @@ UnifyVault-UV/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js `>= 18.0.0`
 - pnpm `>= 9.4.0`
 - Foundry (`forge` `>= 0.2.0`)
@@ -207,56 +214,130 @@ pnpm --filter @unifyvault/web-v2 build
 
 ---
 
+## 📱 Android Production Release & In-App Updates
+
+UnifyVault provides an automated, non-custodial Android production release pipeline and VPS-free in-app update mechanism managed entirely via GitHub Actions and GitHub Releases.
+
+### 1. Automated Android Release Pipeline
+
+- **Workflow File**: [`.github/workflows/android-release.yml`](.github/workflows/android-release.yml)
+- **Toolchain**:
+  - **Node.js**: `22` (pnpm `9.4.0`)
+  - **Java JDK**: `17` (Eclipse Temurin)
+  - **Android SDK**: Build Tools `35.0.0` & Target SDK `35`
+- **Capacitor Android Sync**: Static web export from `@unifyvault/web-v2` (`NEXT_EXPORT=true`) synchronized into native Android assets via `@capacitor/cli`.
+- **Production Keystore Signing**: Securely decoded and signed using GitHub Repository Secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`).
+- **Integrity Verification**:
+  - Validates APK v2/v3 signing scheme with `apksigner verify --verbose`.
+  - Generates reproducible `SHA256SUMS.txt` cryptographic checksums.
+- **GitHub Release Assets**: Releases publish `app-release.apk` along with `SHA256SUMS.txt`.
+
+### 2. Release Versioning Scheme
+
+- **Canonical Release Tags**: Production releases follow semantic versioning tags in the canonical format `v1.0.x` (e.g. `v1.0.1`, `v1.0.2`).
+- **Workflow Dispatch Triggers**: Manual release builds via `workflow_dispatch` support parameters:
+  - `version_name`: Semantic version override (e.g. `1.0.2`).
+  - `version_code`: Incremental Android integer version code (auto-calculated from semver if omitted).
+  - `publish_release`: Boolean flag (`true`/`false`) to publish or clobber release assets on GitHub.
+
+### 3. VPS-Free In-App Update Architecture
+
+The in-app updater operates without any VPS, server-side API, or PM2 process dependencies:
+
+- **Client Component**: [`UpdateCheckerModal.tsx`](apps/web-v2/components/common/UpdateCheckerModal.tsx)
+- **GitHub-Hosted Metadata**: Directly queries raw version metadata from:
+  ```text
+  https://raw.githubusercontent.com/DigiClums/UnifyVault-UV/main/apps/web-v2/public/version.json
+  ```
+- **Metadata Specification (`version.json`)**:
+  ```json
+  {
+    "latestVersion": "1.0.1",
+    "minimumVersion": "1.0.0",
+    "mandatory": false,
+    "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.1/app-release.apk",
+    "sha256": "19c9c7c63e0037fbc43604cbb44f87bca7ce1235c54e76a89b339585bbcff9be",
+    "releaseNotes": [
+      "🚀 Production Release v1.0.1",
+      "⚡ Automated CI/CD Android Signing & Release Pipeline",
+      "🛡️ Node 22 & Android SDK 35 Toolchain Compatibility",
+      "📊 Compact Single-Screen Portfolio & Strategy Dashboard",
+      "🔒 Decentralized P2P Escrow & Zero-Gas Account Abstraction",
+      "🛡️ Verified APK SHA-256: 19c9c7c63e0037fbc43604cbb44f87bca7ce1235c54e76a89b339585bbcff9be"
+    ]
+  }
+  ```
+- **Native Android Installation Flow**:
+  - Downloads APK directly from GitHub Releases (`/releases/download/v${V_NAME}/app-release.apk`).
+  - Native Capacitor filesystem downloads and Android `FileProvider` (`ACTION_VIEW`, `application/vnd.android.package-archive`) prompt seamless user updates.
+
+### 4. Automated Release Metadata Updates
+
+Upon successful compilation, signing, signature verification, and release publication, the GitHub Actions release workflow:
+
+1. Clones an isolated temporary workspace of the canonical `main` branch.
+2. Updates `apps/web-v2/public/version.json` with the newly published version, verified SHA-256 checksum, canonical download URL, and fresh release notes.
+3. Automatically commits and pushes changes back to `main`.
+4. Directly feeds active Android installations worldwide without server maintenance.
+
+### 5. End-to-End Developer Release Flow
+
+```text
+Code Commit → GitHub Actions CI → Build & Sign APK → SHA256 Verification → GitHub Release Assets → Automatic version.json (main) → In-App Client Check (GitHub Raw) → Native APK Download & Install
+```
+
+---
+
 ## 📋 Canonical Deployed Contracts
 
 ### 🌐 Base Mainnet (Chain ID `8453`)
 
-| Contract Module | Address | Verification Status |
-| :--- | :--- | :--- |
-| **ProtocolDirectory** | `0xe74b400f4aea3a0b593be5acbc54f56631c0d60e` | Verified |
-| **UVBE Index Coin (`UVBEToken`)** | `0xd2715141a0f5998b707baa963990bfc2e94cf145` | Verified |
-| **UnifyVaultController (UUPS Proxy)** | `0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366` | Verified |
-| **CustodyVault** | `0xbb35a3434c689942e0b7d58909eae0d2cc0769ca` | Verified |
-| **Treasury** | `0x57561F781b2f558A7445D2E93a365C03BA2c9B53` | Verified |
-| **PortfolioManager** | `0x66182f56bd5e523c655f6890290ab519f528e83f` | Verified |
-| **StrategyManager** | `0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a` | Verified |
-| **OracleManager (Pyth + Chainlink)** | `0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7` | Verified |
-| **CostBasisManagerV2** | `0x27b5c6dea90678b78856b0b10dba37a789fde97e` | Verified |
-| **SwapAdapter** | `0xaae7104a120e7c6e518a936fcbc102bcd0454b67` | Verified |
-| **UVBEStakingVault** | `0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571` | Verified |
-| **UVBEReferralRegistry** | `0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e` | Verified |
-| **UVBERewardDistributor** | `0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa` | Verified |
-| **P2PEscrowV2** | `0xa938aacea64be8f41c90960aff232da4df7fc329` | Verified |
-| **P2PReputation** | `0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8` | Verified |
-| **Marketplace** | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified |
-| **Paymaster** | `0xdf96b619934d17ae85142dcef1655a8d3b19040a` | Verified |
-| **TimelockController** | `0x610c5f66d99993d444561d270fba172db1f7cff1` | Verified (48h) |
+| Contract Module                       | Address                                      | Verification Status |
+| :------------------------------------ | :------------------------------------------- | :------------------ |
+| **ProtocolDirectory**                 | `0xe74b400f4aea3a0b593be5acbc54f56631c0d60e` | Verified            |
+| **UVBE Index Coin (`UVBEToken`)**     | `0xd2715141a0f5998b707baa963990bfc2e94cf145` | Verified            |
+| **UnifyVaultController (UUPS Proxy)** | `0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366` | Verified            |
+| **CustodyVault**                      | `0xbb35a3434c689942e0b7d58909eae0d2cc0769ca` | Verified            |
+| **Treasury**                          | `0x57561F781b2f558A7445D2E93a365C03BA2c9B53` | Verified            |
+| **PortfolioManager**                  | `0x66182f56bd5e523c655f6890290ab519f528e83f` | Verified            |
+| **StrategyManager**                   | `0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a` | Verified            |
+| **OracleManager (Pyth + Chainlink)**  | `0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7` | Verified            |
+| **CostBasisManagerV2**                | `0x27b5c6dea90678b78856b0b10dba37a789fde97e` | Verified            |
+| **SwapAdapter**                       | `0xaae7104a120e7c6e518a936fcbc102bcd0454b67` | Verified            |
+| **UVBEStakingVault**                  | `0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571` | Verified            |
+| **UVBEReferralRegistry**              | `0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e` | Verified            |
+| **UVBERewardDistributor**             | `0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa` | Verified            |
+| **P2PEscrowV2**                       | `0xa938aacea64be8f41c90960aff232da4df7fc329` | Verified            |
+| **P2PReputation**                     | `0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8` | Verified            |
+| **Marketplace**                       | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified            |
+| **Paymaster**                         | `0xdf96b619934d17ae85142dcef1655a8d3b19040a` | Verified            |
+| **TimelockController**                | `0x610c5f66d99993d444561d270fba172db1f7cff1` | Verified (48h)      |
 
 ---
 
 ### 🧪 Base Sepolia Testnet (Chain ID `84532`)
 
-| Contract Module | Address | Verification Status |
-| :--- | :--- | :--- |
-| **ProtocolDirectory** | `0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f` | Verified |
-| **UVBE Index Coin (`UVBEToken`)** | `0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde` | Verified |
-| **UnifyVaultController (UUPS Proxy)** | `0x07f3d3432b64dbf67c5b061af2bc8aef70221cea` | Verified |
-| **CustodyVault** | `0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64` | Verified |
-| **Treasury** | `0xe0764477914f8eb0fe90c7f27bca0ade1ee95316` | Verified |
-| **PortfolioManager** | `0x1c65b1667c8cc03138b8e57cdd40b0bf28a4cdc4` | Verified |
-| **StrategyManager** | `0x14058459198a2cffc8ce89c364334a80da82d6a3` | Verified |
-| **OracleManager** | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified |
-| **CostBasisManagerV2** | `0xcc405c38ed50efc715afcebadc37c01da6838ddd` | Verified |
-| **SwapAdapter** | `0x8deca9efb0bdc300aae96111bdf0dcd32651db90` | Verified |
-| **UVBEStakingVault** | `0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4` | Verified |
-| **UVBEReferralRegistry** | `0xc1F00539B6869b2445d85056EDc036114b939Ddd` | Verified |
-| **UVBERewardDistributor** | `0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9` | Verified |
-| **UVBERewardReserve** | `0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda` | Verified |
-| **P2PEscrowV2** | `0xcba65af8a993061cf1acc47d9b02d7ebacbcf655` | Verified |
-| **P2PReputation** | `0x49460e2fF8c20ba96121C18e7D36Fd4aE293C70c` | Verified |
-| **Marketplace** | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` | Verified |
-| **Paymaster** | `0x42c6342516714CFd64474bd41Ce360605b9fEA88` | Verified |
-| **TimelockController** | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | Verified (48h) |
+| Contract Module                       | Address                                      | Verification Status |
+| :------------------------------------ | :------------------------------------------- | :------------------ |
+| **ProtocolDirectory**                 | `0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f` | Verified            |
+| **UVBE Index Coin (`UVBEToken`)**     | `0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde` | Verified            |
+| **UnifyVaultController (UUPS Proxy)** | `0x07f3d3432b64dbf67c5b061af2bc8aef70221cea` | Verified            |
+| **CustodyVault**                      | `0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64` | Verified            |
+| **Treasury**                          | `0xe0764477914f8eb0fe90c7f27bca0ade1ee95316` | Verified            |
+| **PortfolioManager**                  | `0x1c65b1667c8cc03138b8e57cdd40b0bf28a4cdc4` | Verified            |
+| **StrategyManager**                   | `0x14058459198a2cffc8ce89c364334a80da82d6a3` | Verified            |
+| **OracleManager**                     | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified            |
+| **CostBasisManagerV2**                | `0xcc405c38ed50efc715afcebadc37c01da6838ddd` | Verified            |
+| **SwapAdapter**                       | `0x8deca9efb0bdc300aae96111bdf0dcd32651db90` | Verified            |
+| **UVBEStakingVault**                  | `0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4` | Verified            |
+| **UVBEReferralRegistry**              | `0xc1F00539B6869b2445d85056EDc036114b939Ddd` | Verified            |
+| **UVBERewardDistributor**             | `0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9` | Verified            |
+| **UVBERewardReserve**                 | `0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda` | Verified            |
+| **P2PEscrowV2**                       | `0xcba65af8a993061cf1acc47d9b02d7ebacbcf655` | Verified            |
+| **P2PReputation**                     | `0x49460e2fF8c20ba96121C18e7D36Fd4aE293C70c` | Verified            |
+| **Marketplace**                       | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` | Verified            |
+| **Paymaster**                         | `0x42c6342516714CFd64474bd41Ce360605b9fEA88` | Verified            |
+| **TimelockController**                | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | Verified (48h)      |
 
 ---
 
