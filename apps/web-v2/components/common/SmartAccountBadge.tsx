@@ -31,22 +31,24 @@ export function SmartAccountBadge() {
     : '#';
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 bg-muted/40 rounded-xl border border-border text-xs">
-      <div className="flex items-center gap-1.5 font-medium">
-        <div className="w-5 h-5 rounded-full bg-[#BFFF00] text-black flex items-center justify-center font-bold text-[10px]">
+    <div className="w-full max-w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-muted/40 rounded-xl border border-border text-xs box-border overflow-hidden">
+      <div className="flex items-center gap-1.5 font-medium min-w-0 max-w-full flex-wrap">
+        <div className="w-5 h-5 rounded-full bg-[#BFFF00] text-black flex items-center justify-center font-bold text-[10px] shrink-0">
           <Zap className="w-3 h-3" />
         </div>
-        <span className="font-semibold text-foreground">Smart Account:</span>
+        <span className="font-semibold text-foreground shrink-0">Smart Account:</span>
         {isAccountLoading ? (
-          <span className="text-muted-foreground animate-pulse">Calculating...</span>
+          <span className="text-muted-foreground animate-pulse shrink-0">Calculating...</span>
         ) : (
-          <span className="font-mono text-muted-foreground">{truncate(smartAccountAddress)}</span>
+          <span className="font-mono text-muted-foreground truncate max-w-[120px] sm:max-w-none">
+            {truncate(smartAccountAddress)}
+          </span>
         )}
         {smartAccountAddress && (
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 shrink-0">
             <button
               onClick={() => copyToClipboard(smartAccountAddress, 'smart')}
-              className="p-1 hover:text-foreground text-muted-foreground transition-colors"
+              className="p-1 hover:text-foreground text-muted-foreground transition-colors cursor-pointer"
               title="Copy Smart Account Address"
             >
               {copiedType === 'smart' ? (
@@ -68,9 +70,9 @@ export function SmartAccountBadge() {
         )}
       </div>
 
-      <div className="flex items-center gap-2 sm:ml-auto">
+      <div className="flex items-center gap-2 sm:ml-auto shrink-0 max-w-full">
         <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider truncate ${
             isGaslessSupported
               ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
               : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'

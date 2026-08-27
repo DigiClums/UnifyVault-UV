@@ -190,27 +190,34 @@ export function TransferForm() {
   };
 
   return (
-    <div className="max-w-xl mx-auto py-2">
-      <Card className="p-4 sm:p-6 bg-card border-2 border-black dark:border-white/15 shadow-[5px_5px_0_#BFFF00] rounded-3xl">
+    <div className="w-full max-w-xl mx-auto py-1 sm:py-2 px-0 box-border">
+      {/* Smart Account & Gasless Status */}
+      {isConnected && (
+        <div className="mb-3">
+          <SmartAccountBadge />
+        </div>
+      )}
+
+      <Card className="w-full max-w-full p-3.5 sm:p-6 bg-card border-2 border-black dark:border-white/15 shadow-[4px_4px_0_#BFFF00] sm:shadow-[5px_5px_0_#BFFF00] rounded-2xl sm:rounded-3xl box-border overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 sm:pb-5 border-b border-border-subtle">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#BFFF00] text-black border-2 border-black shadow-[2px_2px_0_#000]">
-              <Send className="w-5 h-5" />
+        <div className="flex items-center justify-between pb-3 sm:pb-5 border-b border-border-subtle gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-[#BFFF00] text-black border-2 border-black shadow-[2px_2px_0_#000] shrink-0">
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-black text-foreground tracking-tight truncate">
                 Transfer UVBE
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
                 Direct wallet-to-wallet share transfer
               </p>
             </div>
           </div>
 
           {transferSource === 'smart_account' && isGaslessSupported && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#BFFF00]/15 border border-[#BFFF00]/40 text-[#5f8f00] dark:text-[#BFFF00] text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#BFFF00]/15 border border-[#BFFF00]/40 text-[#5f8f00] dark:text-[#BFFF00] text-[10px] sm:text-xs font-semibold shrink-0">
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Gas sponsored</span>
             </div>
           )}
@@ -218,13 +225,13 @@ export function TransferForm() {
 
         {/* Success State */}
         {isSuccess ? (
-          <div className="py-8 text-center space-y-4">
+          <div className="py-6 sm:py-8 text-center space-y-4">
             <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              <CheckCircle2 className="w-10 h-10" />
+              <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-bold text-foreground">Transfer Confirmed</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-lg sm:text-xl font-bold text-foreground">Transfer Confirmed</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Successfully transferred {amountInput} UVBE shares.
               </p>
             </div>
@@ -245,7 +252,7 @@ export function TransferForm() {
               </div>
             )}
 
-            <div className="pt-4">
+            <div className="pt-3">
               <button
                 type="button"
                 onClick={handleReset}
@@ -256,13 +263,13 @@ export function TransferForm() {
             </div>
           </div>
         ) : (
-          <div className="pt-5 space-y-5">
+          <div className="pt-4 sm:pt-5 space-y-4 sm:space-y-5">
             {/* Transfer Source Selection */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
                 Transfer From
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -270,7 +277,7 @@ export function TransferForm() {
                     setAmountInput('');
                     setTxError(null);
                   }}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                  className={`p-2.5 sm:p-3 rounded-xl border-2 text-left transition-all ${
                     transferSource === 'eoa'
                       ? 'bg-[#BFFF00]/15 border-black dark:border-[#BFFF00] text-foreground font-bold shadow-[2px_2px_0_#000]'
                       : 'bg-card border-border-subtle text-muted-foreground hover:border-border'
@@ -285,7 +292,7 @@ export function TransferForm() {
                       EOA
                     </span>
                   </div>
-                  <p className="text-sm font-mono font-bold text-foreground">
+                  <p className="text-xs sm:text-sm font-mono font-bold text-foreground">
                     {parseFloat(eoaBalFormatted).toFixed(4)} UVBE
                   </p>
                 </button>
@@ -298,7 +305,7 @@ export function TransferForm() {
                     setTxError(null);
                   }}
                   disabled={!smartAccountAddress}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                  className={`p-2.5 sm:p-3 rounded-xl border-2 text-left transition-all ${
                     transferSource === 'smart_account'
                       ? 'bg-[#BFFF00]/15 border-black dark:border-[#BFFF00] text-foreground font-bold shadow-[2px_2px_0_#000]'
                       : 'bg-card border-border-subtle text-muted-foreground hover:border-border'
@@ -309,24 +316,26 @@ export function TransferForm() {
                       <Zap className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
                       Smart Account
                     </span>
-                    <SmartAccountBadge />
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                      GASLESS
+                    </span>
                   </div>
-                  <p className="text-sm font-mono font-bold text-foreground">
+                  <p className="text-xs sm:text-sm font-mono font-bold text-foreground">
                     {parseFloat(saBalFormatted).toFixed(4)} UVBE
                   </p>
                 </button>
               </div>
 
               {transferSource === 'smart_account' && saBalNum <= 0 && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 text-xs flex items-center justify-between">
-                  <span>
+                <div className="p-2.5 sm:p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs">
                     Your tokens are in your Connected Wallet (
                     {parseFloat(eoaBalFormatted).toFixed(4)} UVBE).
                   </span>
                   <button
                     type="button"
                     onClick={() => setTransferSource('eoa')}
-                    className="px-2.5 py-1 bg-[#BFFF00] text-black font-bold border border-black rounded-lg text-[11px] hover:bg-[#d0ff66] shrink-0 ml-2 shadow-[1px_1px_0_#000] cursor-pointer"
+                    className="px-2.5 py-1 bg-[#BFFF00] text-black font-bold border border-black rounded-lg text-[11px] hover:bg-[#d0ff66] shrink-0 shadow-[1px_1px_0_#000] cursor-pointer"
                   >
                     Switch to Wallet
                   </button>
@@ -350,7 +359,7 @@ export function TransferForm() {
                     setTxError(null);
                   }}
                   disabled={isProcessing}
-                  className="w-full px-3.5 py-3 pr-24 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-xs sm:text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors truncate"
+                  className="w-full px-3 py-2.5 sm:py-3 pr-24 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-xs sm:text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors truncate box-border"
                 />
 
                 <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -359,7 +368,7 @@ export function TransferForm() {
                     onClick={handlePaste}
                     disabled={isProcessing}
                     title="Paste from Clipboard"
-                    className="px-2 py-1.5 rounded-lg bg-[#BFFF00] text-black text-[11px] font-black font-mono border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-all cursor-pointer disabled:opacity-50"
+                    className="px-2 py-1 sm:py-1.5 rounded-lg bg-[#BFFF00] text-black text-[10px] sm:text-[11px] font-black font-mono border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-all cursor-pointer disabled:opacity-50"
                   >
                     PASTE
                   </button>
@@ -369,7 +378,7 @@ export function TransferForm() {
                     onClick={() => setIsQrScannerOpen(true)}
                     disabled={isProcessing}
                     title="Scan QR Code"
-                    className="p-1.5 rounded-lg bg-black/[0.06] dark:bg-white/[0.08] hover:bg-black/10 dark:hover:bg-white/15 text-foreground border border-black/20 dark:border-white/15 transition-all cursor-pointer disabled:opacity-50"
+                    className="p-1 sm:p-1.5 rounded-lg bg-black/[0.06] dark:bg-white/[0.08] hover:bg-black/10 dark:hover:bg-white/15 text-foreground border border-black/20 dark:border-white/15 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <ScanLine className="w-3.5 h-3.5" />
                   </button>
@@ -378,8 +387,8 @@ export function TransferForm() {
 
               {recipientInput && !isValidRecipient && (
                 <p className="text-xs text-rose-500 dark:text-rose-400 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  Please enter a valid Ethereum address.
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please enter a valid Ethereum address.</span>
                 </p>
               )}
             </div>
@@ -396,11 +405,11 @@ export function TransferForm() {
 
             {/* Amount Input */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-foreground/70 uppercase tracking-wider">
+              <div className="flex items-center justify-between text-xs gap-1">
+                <span className="font-semibold text-foreground/70 uppercase tracking-wider truncate">
                   Amount (UVBE)
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground truncate text-[11px] sm:text-xs">
                   Available:{' '}
                   <strong className="text-foreground font-mono">
                     {parseFloat(activeBalanceFormatted).toFixed(4)}
@@ -422,31 +431,33 @@ export function TransferForm() {
                     setTxError(null);
                   }}
                   disabled={isProcessing}
-                  className="w-full px-4 py-3 pr-28 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-lg font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
+                  className="w-full px-3 py-2.5 sm:py-3 pr-24 sm:pr-28 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-base sm:text-lg font-mono focus:outline-none focus:border-[#BFFF00] transition-colors box-border"
                 />
-                <div className="absolute right-14 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-slate-100 dark:bg-[#151515] px-2 py-1 rounded-lg border border-black/20 dark:border-white/15">
-                  <TokenIcon symbol="UVBE" size={16} />
-                  <span className="text-[11px] font-bold text-foreground font-mono">UVBE</span>
+                <div className="absolute right-12 sm:right-14 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5 bg-slate-100 dark:bg-[#151515] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg border border-black/20 dark:border-white/15">
+                  <TokenIcon symbol="UVBE" size={14} />
+                  <span className="text-[10px] sm:text-[11px] font-bold text-foreground font-mono">
+                    UVBE
+                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handlePercentageSelect(100)}
                   disabled={isProcessing || activeBalanceNum <= 0}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1.5 rounded-lg bg-[#BFFF00] text-black border border-black text-xs font-bold shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[28px] flex items-center justify-center"
+                  className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg bg-[#BFFF00] text-black border border-black text-[11px] sm:text-xs font-bold shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[26px] sm:min-h-[28px] flex items-center justify-center"
                 >
                   MAX
                 </button>
               </div>
 
               {/* Percentage Presets */}
-              <div className="grid grid-cols-4 gap-2 pt-1">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-1">
                 {[25, 50, 75, 100].map((pct) => (
                   <button
                     key={pct}
                     type="button"
                     onClick={() => handlePercentageSelect(pct)}
                     disabled={isProcessing || activeBalanceNum <= 0}
-                    className="py-2 px-2 rounded-lg bg-card hover:bg-muted text-xs font-semibold text-foreground border border-border-subtle hover:border-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px] flex items-center justify-center"
+                    className="py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg bg-card hover:bg-muted text-xs font-semibold text-foreground border border-border-subtle hover:border-border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[34px] sm:min-h-[38px] flex items-center justify-center"
                   >
                     {pct}%
                   </button>
@@ -456,9 +467,9 @@ export function TransferForm() {
 
             {/* Error Message */}
             {(txError || smartAccountError) && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs flex items-start gap-2.5">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 min-w-0">
                   <p className="font-semibold">Transfer Error</p>
                   <p className="text-rose-600 dark:text-rose-400/90 break-words">
                     {txError || smartAccountError}
@@ -475,7 +486,7 @@ export function TransferForm() {
                     <button
                       type="button"
                       onClick={openConnectModal}
-                      className="w-full py-3.5 px-4 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black font-bold text-sm border-2 border-black shadow-[3px_3px_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-3 sm:py-3.5 px-4 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black font-bold text-xs sm:text-sm border-2 border-black shadow-[3px_3px_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       Connect Wallet to Transfer
                     </button>
@@ -487,7 +498,7 @@ export function TransferForm() {
                 type="button"
                 onClick={handleTransfer}
                 disabled={!isFormValid || isProcessing}
-                className="w-full py-3.5 px-4 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] disabled:bg-muted disabled:text-muted-foreground disabled:border-border-subtle disabled:shadow-none text-black font-bold text-sm border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full py-3 sm:py-3.5 px-4 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] disabled:bg-muted disabled:text-muted-foreground disabled:border-border-subtle disabled:shadow-none text-black font-bold text-xs sm:text-sm border-2 border-black shadow-[3px_3px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
               >
                 {isProcessing ? (
                   <>
@@ -509,8 +520,8 @@ export function TransferForm() {
             )}
 
             {/* Cost Basis Notice */}
-            <div className="pt-2 flex items-center gap-2 text-xs text-muted-foreground justify-center">
-              <ShieldCheck className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <div className="pt-1 sm:pt-2 flex items-center gap-2 text-[11px] sm:text-xs text-muted-foreground justify-center text-center">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
               <span>Cost basis is proportionally preserved across transfers.</span>
             </div>
           </div>
