@@ -63,7 +63,8 @@ export function HeroSection() {
 
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
             Transparent exposure to premier crypto assets through an audited, non-custodial
-            portfolio. Features real-time Pyth Oracle pricing, 1-tap rapid predictions, and automated cost-basis accounting.
+            portfolio. Features real-time Pyth Oracle pricing, 1-tap rapid predictions, and
+            automated cost-basis accounting.
           </p>
 
           {/* CTA Buttons */}
@@ -76,11 +77,11 @@ export function HeroSection() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/predict"
+              href="/staking"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-white/20 bg-white/[0.05] px-5 py-3 text-sm font-bold text-white transition hover:border-[#BFFF00]/50 hover:bg-[#BFFF00]/10 hover:text-[#BFFF00]"
             >
-              <Zap className="h-4 w-4 text-[#BFFF00]" />
-              <span>Flash 30s Game</span>
+              <Sparkles className="h-4 w-4 text-[#BFFF00]" />
+              <span>Staking Vaults</span>
             </Link>
           </div>
 

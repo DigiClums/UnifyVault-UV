@@ -60,11 +60,6 @@ export function LandingFooter() {
                 </a>
               </li>
               <li>
-                <a href={`${appBase}/predict`} className="hover:text-[#BFFF00] transition-colors">
-                  Flash 30s Markets
-                </a>
-              </li>
-              <li>
                 <a href={`${appBase}/deposit`} className="hover:text-[#BFFF00] transition-colors">
                   Deposit Collateral
                 </a>

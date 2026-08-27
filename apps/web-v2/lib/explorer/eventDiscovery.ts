@@ -469,3 +469,89 @@ export async function discoverTransactions(
 
   return { groups, window, hasMore };
 }
+
+/**
+ * Fetch and decode ANY transaction directly by its hash on-chain,
+ * regardless of block age.
+ */
+export async function fetchSingleTransactionByHash(
+  client: PublicClient,
+  addresses: ProtocolAddresses,
+  usdc: Address,
+  cbBTC: Address,
+  weth: Address,
+  txHash: Hex,
+): Promise<TransactionGroup | null> {
+  const registry = buildEventRegistry(addresses, usdc, cbBTC, weth);
+  try {
+    const [receipt, tx] = await Promise.all([
+      client.getTransactionReceipt({ hash: txHash }),
+      client.getTransaction({ hash: txHash }),
+    ]);
+
+    if (!receipt || !tx) return null;
+
+    const decodedEvents: DecodedTimelineEvent[] = [];
+    for (const log of receipt.logs) {
+      const decoded = tryDecodeLog(log as Log, registry);
+      if (decoded) decodedEvents.push(decoded);
+    }
+
+    decodedEvents.sort((a, b) => a.logIndex - b.logIndex);
+
+    let method = 'unknown';
+    try {
+      method = decodeFunctionData({
+        abi: CONTROLLER_ABI,
+        data: tx.input,
+      }).functionName;
+    } catch {
+      // Non-controller call or custom input
+    }
+
+    let timestamp = Math.floor(Date.now() / 1000);
+    if (tx.blockNumber) {
+      try {
+        const block = await client.getBlock({ blockNumber: tx.blockNumber });
+        timestamp = Number(block.timestamp);
+      } catch {
+        // Fallback
+      }
+    }
+
+    const eventNames = decodedEvents.map((e) => e.eventName);
+    const actionType = classifyTransaction(eventNames);
+
+    const effectiveGasPrice = receipt.effectiveGasPrice ?? tx.gasPrice;
+    const gasPrice = effectiveGasPrice ? BigInt(effectiveGasPrice) : 0n;
+    const gasUsed = receipt.gasUsed ? BigInt(receipt.gasUsed) : undefined;
+    const gasFeeWei = gasUsed !== undefined ? gasUsed * gasPrice : undefined;
+
+    const group: TransactionGroup = {
+      transactionHash: txHash,
+      blockNumber: tx.blockNumber ? BigInt(tx.blockNumber) : 0n,
+      timestamp,
+      events: decodedEvents,
+      actionType: actionType as TransactionGroup['actionType'],
+      method,
+      wallet: extractWallet(decodedEvents) || (tx.from ? (tx.from as Address) : undefined),
+      from: tx.from as Address | undefined,
+      to: tx.to as Address | undefined,
+      status: receipt.status === 'success' ? 'success' : 'failed',
+      gasUsed,
+      gasPrice,
+      gasFeeWei,
+      eventCount: decodedEvents.length,
+      contractCount: new Set(decodedEvents.map((e) => e.contractName)).size,
+    };
+
+    buildSummary(group);
+    group.allAddresses = extractAllAddresses(decodedEvents, tx);
+    group.involvedTokens = extractInvolvedTokens(decodedEvents, group.summaryAsset);
+
+    return group;
+  } catch (err) {
+    console.error('Error fetching single transaction on-chain:', err);
+    return null;
+  }
+}

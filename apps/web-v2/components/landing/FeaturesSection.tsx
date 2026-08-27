@@ -16,52 +16,61 @@ import {
 
 const ecosystemFeatures = [
   {
-    icon: Zap,
-    title: 'Flash 30s Markets',
-    badge: 'NEW',
-    description: 'Ultra-fast 30-second binary prediction arena with custom 2x to 20x reward multipliers and real-time Pyth oracles.',
-    href: '/predict',
+    icon: ShieldCheck,
+    title: 'Smart Account Paymaster',
+    badge: 'ERC-4337',
+    description:
+      'Gasless zero-friction transaction sponsorship with biometric passkey and AA smart account compatibility.',
+    href: '/deposit',
   },
   {
     icon: Layers,
     title: '60/40 BTC + ETH Index',
     badge: 'CORE',
-    description: 'Fully automated non-custodial index strategy backed by Coinbase cbBTC and WETH on Base.',
+    description:
+      'Fully automated non-custodial index strategy backed by Coinbase cbBTC and WETH on Base.',
     href: '/portfolio',
   },
   {
     icon: Sparkles,
     title: 'UVBE Staking Vault',
     badge: 'EARN',
-    description: 'Multi-tier flexible & locked staking vaults earning direct protocol yield and referral commissions.',
+    description:
+      'Multi-tier flexible & locked staking vaults earning direct protocol yield and referral commissions.',
     href: '/staking',
   },
   {
     icon: ArrowLeftRight,
     title: 'P2P Escrow Marketplace',
     badge: 'OTC',
-    description: 'Trustless OTC fiat-to-crypto escrow with auto-settlement, buyer protection, and multi-currency orders.',
+    description:
+      'Trustless OTC fiat-to-crypto escrow with auto-settlement, buyer protection, and multi-currency orders.',
     href: '/p2p',
   },
   {
     icon: Calculator,
     title: 'Dynamic Cost Basis',
     badge: 'FIFO',
-    description: 'Automated on-chain portfolio accounting with FIFO & weighted tracking across all transfers and DEX swaps.',
+    description:
+      'Automated on-chain portfolio accounting with FIFO & weighted tracking across all transfers and DEX swaps.',
     href: '/portfolio',
   },
   {
     icon: Vault,
     title: 'Proof of Reserve & Treasury',
     badge: 'TRANSPARENT',
-    description: '100% on-chain verifiable collateral backing, timelock governance, and automated circuit breaker protections.',
+    description:
+      '100% on-chain verifiable collateral backing, timelock governance, and automated circuit breaker protections.',
     href: '/treasury',
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="px-4 sm:px-6 py-14 sm:py-20 bg-black/60 border-t border-white/5">
+    <section
+      id="features"
+      className="px-4 sm:px-6 py-14 sm:py-20 bg-black/60 border-t border-white/5"
+    >
       <div className="max-w-6xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#BFFF00] mb-2 font-mono">
@@ -71,7 +80,8 @@ export function FeaturesSection() {
             Complete Decentralized Asset Suite
           </h2>
           <p className="text-xs sm:text-sm text-white/60 mt-2.5">
-            Engineered on Base for microsecond settlement, gas-sponsored smart accounts, and absolute on-chain transparency.
+            Engineered on Base for microsecond settlement, gas-sponsored smart accounts, and
+            absolute on-chain transparency.
           </p>
         </div>
 
@@ -96,9 +106,7 @@ export function FeaturesSection() {
                   <h3 className="text-base font-bold text-white group-hover:text-[#BFFF00] transition-colors mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    {feature.description}
-                  </p>
+                  <p className="text-xs text-white/60 leading-relaxed">{feature.description}</p>
                 </div>
                 <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono font-semibold text-white/40 group-hover:text-[#BFFF00] transition-colors">
                   <span>Explore Feature</span>

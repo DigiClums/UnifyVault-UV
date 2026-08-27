@@ -7,7 +7,6 @@ import { useUnifiedProtocolData } from '../../hooks/useUnifiedProtocolData';
 
 const navItems = [
   { href: '/app-home', label: 'Vault Index' },
-  { href: '/predict', label: 'Flash 30s', icon: Zap },
   { href: '/staking', label: 'Staking', icon: Sparkles },
   { href: '/p2p', label: 'P2P Escrow' },
   { href: '/portfolio', label: 'Portfolio' },
@@ -49,11 +48,7 @@ export function LandingHeader() {
 
           {/* UVBE Token Live Price Pill */}
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/15 text-xs font-mono">
-            <img
-              src="/branding/uvbe-logo.svg"
-              alt="UVBE"
-              className="w-3.5 h-3.5 object-contain"
-            />
+            <img src="/branding/uvbe-logo.svg" alt="UVBE" className="w-3.5 h-3.5 object-contain" />
             <span className="text-white/60 font-semibold">UVBE:</span>
             <span className="font-black text-[#BFFF00]">${uvbePrice.toFixed(4)}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />

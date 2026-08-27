@@ -126,26 +126,36 @@ export default function AnalyticsPage() {
       </div>
 
       {/* ── Period Selector + Chart ── */}
-      <div className="rounded-xl bg-card border border-border-subtle px-3.5 py-3 sm:px-4 sm:py-3.5">
+      <div className="relative overflow-hidden rounded-3xl bg-card border-2 border-black dark:border-white/15 shadow-[5px_5px_0_#BFFF00] p-4 sm:p-5 space-y-3">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#BFFF00] to-transparent opacity-80" />
+
         {/* Header: "Portfolio Performance" + period selector */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-1.5">
-            <BarChart3 className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Portfolio Performance
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-black/10 dark:border-white/10">
+          <div className="flex items-center space-x-2">
+            <div className="p-1.5 rounded-lg bg-[#BFFF00] text-black border border-black shadow-[1px_1px_0_#000]">
+              <BarChart3 className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-foreground block font-mono">
+                UVBE NAV Progression & Trajectory
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                Historical Price Index based on 60% cbBTC + 40% WETH backing
+              </span>
+            </div>
           </div>
-          <div className="flex items-center space-x-0.5 bg-muted/60 p-0.5 rounded-lg border border-border-subtle">
+
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-black/70 rounded-xl border-2 border-black dark:border-white/15 self-start sm:self-auto font-mono gap-0.5 shadow-[1px_1px_0_#000]">
             {PERIODS.map((p) => {
               const isActive = period === p;
               return (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all ${
+                  className={`px-2.5 py-0.5 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#BFFF00] text-black shadow-sm shadow-[#BFFF00]/20'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'bg-[#BFFF00] text-black shadow-[1px_1px_0_#000]'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {p}
@@ -157,16 +167,18 @@ export default function AnalyticsPage() {
 
         {/* Chart or Empty / Skeleton */}
         {isLoadingNav ? (
-          <div className="h-48 sm:h-52 w-full flex items-center justify-center">
-            <Skeleton className="h-full w-full rounded-lg" />
+          <div className="h-56 sm:h-64 w-full flex items-center justify-center">
+            <Skeleton className="h-full w-full rounded-2xl" />
           </div>
         ) : !hasRealHistoricalData ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="p-3 rounded-xl bg-muted border border-border-subtle text-muted-foreground mb-3">
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="p-3 rounded-2xl bg-muted border border-border-subtle text-muted-foreground mb-3">
               <Activity className="w-6 h-6" />
             </div>
-            <p className="text-sm font-semibold text-foreground">No historical price data yet</p>
-            <p className="text-[11px] text-muted-foreground max-w-xs mt-1 leading-relaxed">
+            <p className="text-sm font-bold text-foreground font-mono">
+              No historical price data yet
+            </p>
+            <p className="text-xs text-muted-foreground max-w-xs mt-1 leading-relaxed font-mono">
               Your UV price history will appear after portfolio activity is recorded.
             </p>
           </div>

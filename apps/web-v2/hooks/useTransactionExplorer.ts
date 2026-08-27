@@ -303,8 +303,13 @@ export function useTransactionExplorer(pageIndex: number) {
     vault,
     treasury,
     token,
+    strategyManager,
+    costBasisManager,
+    performanceManager,
+    swapAdapter,
     chainId,
     chainName,
+    publicClient,
     refresh,
     isLive: syncStatus === 'live',
   };

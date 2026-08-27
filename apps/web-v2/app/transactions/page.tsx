@@ -2,9 +2,10 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { getExplorerBaseUrl } from '../../constants';
+import { getExplorerBaseUrl, getChainTokens, getDefaultChainId } from '../../constants';
 import { useTransactionExplorer } from '../../hooks/useTransactionExplorer';
 import type { ExplorerData, TransactionGroup } from '../../hooks/useTransactionExplorer';
+import { fetchSingleTransactionByHash } from '../../lib/explorer';
 import { TimelineCard } from '../../components/transactions/TimelineCard';
 import { StatCard } from '../../components/ui/StatCard';
 import { TableCard } from '../../components/ui/TableCard';
@@ -115,6 +116,8 @@ function EmptyBlockWindow({
   onScanOlder,
   onJumpToLatest,
   isFetching,
+  explorerUrl,
+  controllerAddress,
 }: {
   fromBlock: string;
   toBlock: string;
@@ -122,23 +125,76 @@ function EmptyBlockWindow({
   onScanOlder: () => void;
   onJumpToLatest: () => void;
   isFetching: boolean;
+  explorerUrl: string;
+  controllerAddress?: string;
 }) {
   return (
-    <div className="py-12 text-center flex flex-col items-center gap-3 text-muted-foreground">
-      <History className="w-8 h-8 text-muted-foreground" />
-      <h3 className="text-sm font-semibold text-foreground">
-        No events in block range {fromBlock} → {toBlock}
-      </h3>
-      <p className="text-xs max-w-md text-muted-foreground">
-        This 1,500-block window (Page {pageIndex + 1}) has no transaction events. New deposits and
-        transactions are on the latest blocks (Page 1).
-      </p>
-      <div className="flex items-center gap-2.5 mt-2">
+    <div className="py-8 px-4 text-center flex flex-col items-center gap-5 text-muted-foreground font-mono animate-in fade-in duration-200">
+      {/* Pulse Status Badge */}
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#BFFF00]/10 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30 text-xs font-bold shadow-[0_0_15px_rgba(191,255,0,0.15)]">
+        <span className="w-2 h-2 rounded-full bg-[#BFFF00] animate-ping" />
+        <span>Live On-Chain Network Standby</span>
+      </div>
+
+      <div className="space-y-1.5 max-w-md">
+        <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+          No Recent Activity in Window ({fromBlock} → {toBlock})
+        </h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          The smart contracts on Base Mainnet are 100% operational. No new user deposits or
+          redemptions occurred in the last ~50 minutes.
+        </p>
+      </div>
+
+      {/* ── Quick Action Cards for Active User Engagement ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-xl text-left my-1">
+        <a
+          href="/deposit"
+          className="p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border-2 border-black dark:border-white/15 hover:border-[#BFFF00] hover:bg-[#BFFF00]/10 transition-all group shadow-[2px_2px_0_#000]"
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-foreground">Deposit USDC</span>
+            <ArrowDownLeft className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00] group-hover:translate-y-0.5 transition-transform" />
+          </div>
+          <span className="text-[10px] text-muted-foreground block">
+            Mint UVBE index shares backed by BTC &amp; ETH.
+          </span>
+        </a>
+
+        <a
+          href="/staking"
+          className="p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border-2 border-black dark:border-white/15 hover:border-[#BFFF00] hover:bg-[#BFFF00]/10 transition-all group shadow-[2px_2px_0_#000]"
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-foreground">Stake APY</span>
+            <Activity className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <span className="text-[10px] text-muted-foreground block">
+            Earn perpetual staking rewards &amp; referral yield.
+          </span>
+        </a>
+
+        <a
+          href="/p2p"
+          className="p-3.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border-2 border-black dark:border-white/15 hover:border-[#BFFF00] hover:bg-[#BFFF00]/10 transition-all group shadow-[2px_2px_0_#000]"
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-foreground">P2P Escrow</span>
+            <ArrowUpRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+          <span className="text-[10px] text-muted-foreground block">
+            Instant trustless peer-to-peer fiat/crypto trading.
+          </span>
+        </a>
+      </div>
+
+      {/* ── Scan Navigation & BaseScan Fallback ── */}
+      <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
         {pageIndex > 0 && (
           <button
             onClick={onJumpToLatest}
             disabled={isFetching}
-            className="px-4 py-2 rounded-xl bg-[#BFFF00] text-black font-semibold text-xs shadow-xs hover:bg-[#a8e600] transition-all flex items-center gap-1.5 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-[#BFFF00] text-black font-black text-xs shadow-[2px_2px_0_#000] hover:bg-[#a8e600] transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Jump to Latest (Page 1)</span>
@@ -147,11 +203,23 @@ function EmptyBlockWindow({
         <button
           onClick={onScanOlder}
           disabled={isFetching}
-          className="px-4 py-2 rounded-xl bg-background hover:bg-muted text-foreground border border-border-subtle font-semibold text-xs shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+          className="px-4 py-2 rounded-xl bg-background hover:bg-muted text-foreground border-2 border-black dark:border-white/15 font-bold text-xs shadow-[2px_2px_0_#000] transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
         >
-          <span>Scan Older Blocks</span>
+          <span>Scan Older 1,500 Blocks</span>
           <ChevronRight className="w-4 h-4" />
         </button>
+
+        {controllerAddress && (
+          <a
+            href={`${explorerUrl}/address/${controllerAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 rounded-xl bg-black/[0.05] dark:bg-white/[0.05] hover:bg-black/10 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground text-xs font-bold border border-border-subtle transition-all flex items-center gap-1.5"
+          >
+            <span>View All History on BaseScan</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+          </a>
+        )}
       </div>
     </div>
   );
@@ -360,7 +428,9 @@ function exportTransactionsToCsv(
 export default function ProtocolExplorerPage() {
   const [pageIndex, setPageIndex] = useState(0);
   const { chain, address, isConnected } = useAccount();
-  const explorerUrl = getExplorerBaseUrl(chain?.id);
+  const chainId = chain?.id || getDefaultChainId();
+  const explorerUrl = getExplorerBaseUrl(chainId);
+  const tokens = getChainTokens(chainId);
 
   // ─── View & Filter States ────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState<ViewMode>('global');
@@ -378,9 +448,94 @@ export default function ProtocolExplorerPage() {
     lastSyncTime,
     isLive,
     controller,
+    vault,
+    treasury,
+    token,
+    strategyManager,
+    costBasisManager,
+    performanceManager,
+    swapAdapter,
     chainName,
+    publicClient,
     refresh,
   } = useTransactionExplorer(pageIndex);
+
+  // ─── Direct On-Chain Single Hash Lookup ──────────────────────────────────
+  const [directTxResult, setDirectTxResult] = useState<TransactionGroup | null>(null);
+  const [isSearchingDirectTx, setIsSearchingDirectTx] = useState<boolean>(false);
+
+  const cleanQuery = searchQuery.trim();
+  const isDirectHash = /^0x[a-fA-F0-9]{64}$/.test(cleanQuery);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!isDirectHash || !publicClient || !controller) {
+      setDirectTxResult(null);
+      setIsSearchingDirectTx(false);
+      return;
+    }
+
+    // Check if already present in current block window
+    const exists = (data?.transactions ?? []).some(
+      (t) => t.transactionHash.toLowerCase() === cleanQuery.toLowerCase(),
+    );
+    if (exists) {
+      setDirectTxResult(null);
+      setIsSearchingDirectTx(false);
+      return;
+    }
+
+    setIsSearchingDirectTx(true);
+    fetchSingleTransactionByHash(
+      publicClient as any,
+      {
+        controller,
+        vault,
+        treasury,
+        token,
+        strategyManager,
+        costBasisManager,
+        performanceManager,
+        swapAdapter,
+      },
+      tokens.USDC,
+      tokens.cbBTC,
+      tokens.WETH,
+      cleanQuery as `0x${string}`,
+    )
+      .then((res) => {
+        if (active) {
+          setDirectTxResult(res);
+          setIsSearchingDirectTx(false);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setDirectTxResult(null);
+          setIsSearchingDirectTx(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    cleanQuery,
+    isDirectHash,
+    publicClient,
+    controller,
+    vault,
+    treasury,
+    token,
+    strategyManager,
+    costBasisManager,
+    performanceManager,
+    swapAdapter,
+    tokens.USDC,
+    tokens.cbBTC,
+    tokens.WETH,
+    data?.transactions,
+  ]);
 
   const allTransactions = useMemo(() => data?.transactions ?? [], [data?.transactions]);
   const stats = useMemo(
@@ -418,6 +573,11 @@ export default function ProtocolExplorerPage() {
 
   // ─── Apply All Filters ────────────────────────────────────────────────────
   const filteredTransactions = useMemo(() => {
+    // If user searched for an exact 66-char tx hash and we resolved it directly from on-chain:
+    if (directTxResult) {
+      return [directTxResult];
+    }
+
     return allTransactions.filter((tx) => {
       // 1. View Mode (Global vs My Activity)
       if (viewMode === 'my') {
@@ -486,6 +646,7 @@ export default function ProtocolExplorerPage() {
     });
   }, [
     allTransactions,
+    directTxResult,
     viewMode,
     userAddressLower,
     typeFilter,
@@ -687,7 +848,11 @@ export default function ProtocolExplorerPage() {
 
             {/* Real-time Search Bar */}
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              {isSearchingDirectTx ? (
+                <RefreshCw className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#5f8f00] dark:text-[#BFFF00] animate-spin pointer-events-none" />
+              ) : (
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              )}
               <input
                 type="text"
                 value={searchQuery}
@@ -698,7 +863,7 @@ export default function ProtocolExplorerPage() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -857,6 +1022,8 @@ export default function ProtocolExplorerPage() {
               onScanOlder={() => setPageIndex(pageIndex + 1)}
               onJumpToLatest={() => setPageIndex(0)}
               isFetching={isFetching}
+              explorerUrl={explorerUrl}
+              controllerAddress={controller}
             />
           )}
 

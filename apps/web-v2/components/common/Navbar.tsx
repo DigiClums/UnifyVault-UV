@@ -18,6 +18,7 @@ import {
   Send,
   Sparkles,
   Zap,
+  TrendingUp,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
@@ -31,7 +32,6 @@ interface NavItem {
 
 const publicNavLinks: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/predict', label: 'Flash 30s', icon: Zap },
   { href: '/staking', label: 'Staking', icon: Sparkles },
   { href: '/p2p', label: 'P2P', icon: ShieldCheck },
   { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },

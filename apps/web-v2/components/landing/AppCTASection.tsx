@@ -33,7 +33,8 @@ export function AppCTASection() {
             Ready to Enter UnifyVault?
           </h2>
           <p className="text-sm sm:text-base text-white/60 mb-8 max-w-lg mx-auto">
-            Experience institutional-grade BTC + ETH index exposure, 30-second binary predictions, and automated portfolio accounting.
+            Experience institutional-grade BTC + ETH index exposure, trustless P2P escrow, and
+            automated portfolio accounting.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -45,11 +46,11 @@ export function AppCTASection() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              href="/predict"
+              href="/p2p"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white/10 hover:bg-white/15 text-white text-sm font-bold rounded-2xl border border-white/20 transition-all"
             >
-              <Zap className="w-4 h-4 text-[#BFFF00]" />
-              <span>Try Flash 30s</span>
+              <Sparkles className="w-4 h-4 text-[#BFFF00]" />
+              <span>Explore P2P Escrow</span>
             </Link>
           </div>
         </div>

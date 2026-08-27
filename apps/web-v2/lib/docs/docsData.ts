@@ -121,51 +121,13 @@ Ready to start? Here is how to make your first deposit in under 2 minutes:
     ],
   },
   {
-    title: '🎮 Games & Products',
+    title: '📦 Core Products',
     slug: 'products',
     items: [
       {
-        slug: 'flash-30s-predictions',
-        title: 'Flash 30s Game: Rules & Multipliers',
-        category: 'Games & Products',
-        badge: 'POPULAR',
-        description:
-          'How to play 30-second rapid rounds, choose 2x-20x multipliers, and understand payout economics.',
-        content: `
-# Flash 30s Rapid Prediction Game ⚡
-
-**Flash 30s** is a fast-paced, 30-second game where you test your market intuition on Bitcoin and Ethereum.
-
----
-
-### 🕹️ How to Play:
-
-1. **Pick an Asset**: Choose **BTC/USD** or **ETH/USD**.
-2. **Choose Your Multiplier**:
-   - **Auto Mode**: Default fair-odds multiplier (~1.95x - 2.00x).
-   - **Custom Multipliers**: Choose **2x**, **3x**, **5x**, **10x**, or **20x** reward targets.
-3. **Predict the Trend**:
-   - Click **ROLL UP 🟢** if you think the price will be higher after 30 seconds.
-   - Click **ROLL DOWN 🔴** if you think the price will be lower after 30 seconds.
-4. **Win Instantly**:
-   - As soon as the 30-second countdown hits zero, the oracle locks the final price.
-   - If your direction was right, your winnings (Bet Amount × Multiplier) are paid out instantly!
-
----
-
-### 💰 Where does the money go when someone loses?
-
-Transparency is key. When a player loses a round, the funds do not disappear into a black box:
-
-- **🏦 80% goes to the Payout Bankroll Vault**: This builds deep liquidity so winners (especially 10x and 20x hits) are guaranteed instant payouts.
-- **🔥 15% goes to Protocol Buyback & Burn**: Used to buy UVBE coins from the open market and burn them, creating deflationary value for long-term holders.
-- **⛽ 5% Keeper Gas Subsidy**: Reimburses automated bot keepers that trigger round settlements on-chain.
-        `,
-      },
-      {
         slug: 'index-strategy-and-rebalancing',
         title: 'The 60/40 Strategy Explained',
-        category: 'Games & Products',
+        category: 'Core Products',
         description: 'Why 60% Bitcoin + 40% Ethereum is the benchmark crypto strategy.',
         content: `
 # The 60/40 Strategy: Why It Works 📈
@@ -197,7 +159,7 @@ The smart contract monitors the weights 24/7. When the drift crosses ±2.5%, the
       {
         slug: 'dynamic-cost-basis',
         title: 'Dynamic Cost Basis & Profit Tracking',
-        category: 'Games & Products',
+        category: 'Core Products',
         description:
           'How your real buy price and profit/loss are automatically calculated for you.',
         content: `
@@ -229,7 +191,7 @@ No spreadsheets or third-party tax software needed!
       {
         slug: 'staking-vaults',
         title: 'UVBE Staking & 10-Tier Affiliate Engine',
-        category: 'Games & Products',
+        category: 'Core Products',
         badge: 'ACTIVE APY',
         description:
           'Complete guide to perpetual dynamic APY, 10-generation referral overrides, leadership ranks, and DAO leadership pool.',

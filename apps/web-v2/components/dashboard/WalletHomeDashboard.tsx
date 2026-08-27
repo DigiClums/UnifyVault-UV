@@ -185,16 +185,16 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
             </div>
           </Link>
 
-          {/* Action 4: Flash 30s */}
+          {/* Action 4: Treasury */}
           <Link
-            href="/predict"
-            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-[#BFFF00]/15 hover:bg-[#BFFF00] text-black dark:text-white hover:text-black font-black border border-black dark:border-white/15 hover:border-black transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
+            href="/treasury"
+            className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
               <Zap className="w-3.5 h-3.5" />
             </div>
             <div className="text-center sm:text-left min-w-0">
-              <div className="text-[11px] sm:text-xs font-black truncate">Flash 30s</div>
+              <div className="text-[11px] sm:text-xs font-black truncate">Treasury</div>
             </div>
           </Link>
 
@@ -259,7 +259,11 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
 
                 <div className="text-right font-mono">
                   <div className="font-bold text-xs sm:text-sm text-foreground">
-                    ${uvbeHoldingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    $
+                    {uvbeHoldingUsd.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {userVaultShares.toLocaleString('en-US', { maximumFractionDigits: 4 })} UVBE
@@ -269,7 +273,10 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
 
               {/* Progress bar */}
               <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#BFFF00] h-full transition-all" style={{ width: `${uvbePct}%` }} />
+                <div
+                  className="bg-[#BFFF00] h-full transition-all"
+                  style={{ width: `${uvbePct}%` }}
+                />
               </div>
             </div>
 
@@ -285,15 +292,17 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
                         Reserve
                       </span>
                     </div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      Price: $1.00
-                    </div>
+                    <div className="text-[11px] font-mono text-muted-foreground">Price: $1.00</div>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
                   <div className="font-bold text-xs sm:text-sm text-foreground">
-                    ${usdcHoldingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    $
+                    {usdcHoldingUsd.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {userUsdc.toLocaleString('en-US', { maximumFractionDigits: 2 })} USDC
@@ -303,7 +312,10 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
 
               {/* Progress bar */}
               <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-blue-500 h-full transition-all" style={{ width: `${usdcPct}%` }} />
+                <div
+                  className="bg-blue-500 h-full transition-all"
+                  style={{ width: `${usdcPct}%` }}
+                />
               </div>
             </div>
 
@@ -321,15 +333,17 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
                         Locked APY
                       </span>
                     </div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      Dynamic Yield
-                    </div>
+                    <div className="text-[11px] font-mono text-muted-foreground">Dynamic Yield</div>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
                   <div className="font-bold text-xs sm:text-sm text-foreground">
-                    ${stakedHoldingUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    $
+                    {stakedHoldingUsd.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {userStakedUvbe.toLocaleString('en-US', { maximumFractionDigits: 4 })} UVBE
@@ -339,7 +353,10 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
 
               {/* Progress bar */}
               <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-purple-500 h-full transition-all" style={{ width: `${stakedPct}%` }} />
+                <div
+                  className="bg-purple-500 h-full transition-all"
+                  style={{ width: `${stakedPct}%` }}
+                />
               </div>
             </div>
           </div>
