@@ -334,21 +334,11 @@ export function TransferForm() {
               )}
             </div>
 
-            {/* Recipient Input with Paste & QR Scan */}
+            {/* Recipient Input with Clean In-Field Paste & QR Scan */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <label className="font-semibold text-foreground/70 uppercase tracking-wider">
-                  Recipient Address
-                </label>
-                <button
-                  type="button"
-                  onClick={handlePaste}
-                  disabled={isProcessing}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#5f8f00] dark:text-[#BFFF00] hover:underline cursor-pointer disabled:opacity-50"
-                >
-                  <span>📋 Paste Clipboard</span>
-                </button>
-              </div>
+              <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+                Recipient Address
+              </label>
 
               <div className="relative">
                 <input
@@ -360,16 +350,16 @@ export function TransferForm() {
                     setTxError(null);
                   }}
                   disabled={isProcessing}
-                  className="w-full px-4 py-3 pr-20 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors"
+                  className="w-full px-3.5 py-3 pr-24 bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 rounded-xl text-foreground placeholder:text-muted-foreground text-xs sm:text-sm font-mono focus:outline-none focus:border-[#BFFF00] transition-colors truncate"
                 />
 
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <button
                     type="button"
                     onClick={handlePaste}
                     disabled={isProcessing}
                     title="Paste from Clipboard"
-                    className="px-2 py-1.5 rounded-lg bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/10 dark:hover:bg-white/15 text-foreground text-xs font-bold font-mono border border-black/20 dark:border-white/15 transition-all cursor-pointer disabled:opacity-50"
+                    className="px-2 py-1.5 rounded-lg bg-[#BFFF00] text-black text-[11px] font-black font-mono border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-all cursor-pointer disabled:opacity-50"
                   >
                     PASTE
                   </button>
@@ -379,9 +369,9 @@ export function TransferForm() {
                     onClick={() => setIsQrScannerOpen(true)}
                     disabled={isProcessing}
                     title="Scan QR Code"
-                    className="p-1.5 rounded-lg bg-[#BFFF00] text-black border border-black shadow-[1px_1px_0_#000] hover:bg-[#d0ff66] transition-colors cursor-pointer disabled:opacity-50"
+                    className="p-1.5 rounded-lg bg-black/[0.06] dark:bg-white/[0.08] hover:bg-black/10 dark:hover:bg-white/15 text-foreground border border-black/20 dark:border-white/15 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    <ScanLine className="w-4 h-4" />
+                    <ScanLine className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
