@@ -3,14 +3,26 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Sparkles, X, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react';
 
-export const CURRENT_APP_VERSION = '1.0.0';
+export const CURRENT_APP_VERSION: string = (() => {
+  const version = process.env.NEXT_PUBLIC_APP_VERSION;
+  if (version && version.trim() !== '') {
+    return version.trim();
+  }
+  // Safe default for development/local builds if env var not explicitly supplied
+  return '1.0.0';
+})();
+
+const VERSION_METADATA_URL =
+  'https://raw.githubusercontent.com/DigiClums/UnifyVault-UV/main/apps/web-v2/public/version.json';
 
 export function UpdateCheckerModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState('https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.0/app-release.apk');
+  const [downloadUrl, setDownloadUrl] = useState(
+    'https://github.com/DigiClums/UnifyVault-UV/releases/latest/download/app-release.apk',
+  );
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadCompleted, setDownloadCompleted] = useState(false);
@@ -20,7 +32,7 @@ export function UpdateCheckerModal() {
 
     async function checkVersion() {
       try {
-        const res = await fetch('https://app.unifyvault.xyz/version.json?t=' + Date.now(), {
+        const res = await fetch(`${VERSION_METADATA_URL}?t=${Date.now()}`, {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });

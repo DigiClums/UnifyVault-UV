@@ -98,8 +98,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Web App Static Export
+        env:
+          NEXT_EXPORT: 'true'
+          NEXT_PUBLIC_APP_VERSION: ${{ steps.versioning.outputs.version_name }}
         run: |
-          export NEXT_EXPORT=true
           pnpm --filter=@unifyvault/web-v2 build
 
       - name: Sync Capacitor Android Project
@@ -197,16 +199,20 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish_release == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ github.ref_name }}
           V_NAME: ${{ steps.versioning.outputs.version_name }}
           V_CODE: ${{ steps.versioning.outputs.version_code }}
         run: |
-          RELEASE_TAG="${TAG_NAME:-v$V_NAME}"
+          if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            RELEASE_TAG="v${V_NAME}"
+          fi
+
           APK_PATH="apps/web-v2/android/app/build/outputs/apk/release/app-release.apk"
           SHA_PATH="apps/web-v2/android/SHA256SUMS.txt"
           CHECKSUM=$(cat "$SHA_PATH" | awk '{print $1}')
 
-          echo "Publishing release assets for tag: $RELEASE_TAG"
+          echo "Publishing release assets for canonical tag: $RELEASE_TAG"
 
           cat << 'NOTES' > /tmp/release_notes.md
           ### UnifyVault Android Production Release
@@ -226,10 +232,61 @@ jobs:
             echo "Release $RELEASE_TAG already exists. Uploading/clobbering release assets..."
             gh release upload "$RELEASE_TAG" "$APK_PATH" "$SHA_PATH" --repo "${{ github.repository }}" --clobber
           else
-            echo "Creating new release $RELEASE_TAG..."
+            echo "Creating new canonical release $RELEASE_TAG..."
             gh release create "$RELEASE_TAG" "$APK_PATH" "$SHA_PATH" \
               --repo "${{ github.repository }}" \
               --title "UnifyVault Android v${V_NAME}" \
               --notes-file /tmp/release_notes.md
           fi
           echo "✓ Release published successfully."
+
+      - name: Update & Commit In-App Version Descriptor
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish_release == 'true'
+        env:
+          V_NAME: ${{ steps.versioning.outputs.version_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CANONICAL_TAG="v${V_NAME}"
+          APK_CHECKSUM=$(cat apps/web-v2/android/SHA256SUMS.txt | awk '{print $1}')
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${CANONICAL_TAG}/app-release.apk"
+
+          echo "Updating version descriptor on canonical branch 'main' for release: $CANONICAL_TAG"
+
+          WORKDIR=$(mktemp -d)
+          git clone --depth 1 --branch main "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" "$WORKDIR"
+
+          node -e "
+            const fs = require('fs');
+            const path = '$WORKDIR/apps/web-v2/public/version.json';
+            let current = {};
+            try { current = JSON.parse(fs.readFileSync(path, 'utf8')); } catch (e) {}
+            const updated = {
+              latestVersion: '$V_NAME',
+              minimumVersion: current.minimumVersion || '1.0.0',
+              mandatory: Boolean(current.mandatory),
+              downloadUrl: '$DOWNLOAD_URL',
+              sha256: '$APK_CHECKSUM',
+              releaseNotes: [
+                'Production Release v$V_NAME',
+                'Performance improvements & security updates',
+                'Verified APK SHA-256: $APK_CHECKSUM'
+              ]
+            };
+            fs.writeFileSync(path, JSON.stringify(updated, null, 2) + '\n');
+          "
+
+          echo "Descriptor updated: version=$V_NAME, tag=$CANONICAL_TAG, sha256=$APK_CHECKSUM"
+
+          cd "$WORKDIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add apps/web-v2/public/version.json
+          if git diff --staged --quiet; then
+            echo "version.json is already up to date on main. No commit needed."
+          else
+            git commit -m "chore(release): update in-app version descriptor to v${V_NAME}"
+            echo "Pushing updated version.json to canonical main branch..."
+            git push origin main
+          fi
+          rm -rf "$WORKDIR"
