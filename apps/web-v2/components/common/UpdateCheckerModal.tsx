@@ -32,6 +32,7 @@ function isNewerVersion(latest: string, current: string): boolean {
 
 export function UpdateCheckerModal() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isWebBanner, setIsWebBanner] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
@@ -39,12 +40,20 @@ export function UpdateCheckerModal() {
   const [downloadUrl, setDownloadUrl] = useState(
     'https://github.com/DigiClums/UnifyVault-UV/releases/latest/download/UnifyVault-latest.apk',
   );
+  const [iosStoreUrl, setIosStoreUrl] = useState(process.env.NEXT_PUBLIC_IOS_APP_STORE_URL || '');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadCompleted, setDownloadCompleted] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const isNative = Boolean(
+      (window as any).AndroidNativeUpdater ||
+      ((window as any).Capacitor &&
+        typeof (window as any).Capacitor.isNativePlatform === 'function' &&
+        (window as any).Capacitor.isNativePlatform()),
+    );
 
     async function checkVersion(isManual = false) {
       try {
@@ -60,13 +69,26 @@ export function UpdateCheckerModal() {
           setReleaseNotes(data.releaseNotes || ['Performance improvements & security updates']);
           setIsMandatory(Boolean(data.mandatory));
           if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
+          if (data.iosStoreUrl) setIosStoreUrl(data.iosStoreUrl);
 
           const hasNewUpdate = isNewerVersion(data.latestVersion, CURRENT_APP_VERSION);
 
+          // On Web Browser: Do NOT auto-pop on page load. Only open if user explicitly clicks "App / Update" button.
+          if (!isNative) {
+            if (isManual) {
+              setIsWebBanner(true);
+              setIsOpen(true);
+            }
+            return;
+          }
+
+          // On Native Android/iOS App:
           if (hasNewUpdate) {
+            setIsWebBanner(false);
             setIsUpToDate(false);
             setIsOpen(true);
           } else if (isManual) {
+            setIsWebBanner(false);
             setIsUpToDate(true);
             setIsOpen(true);
           }
@@ -76,6 +98,7 @@ export function UpdateCheckerModal() {
       }
     }
 
+    // Auto check on mount (only triggers popup on native app when outdated)
     checkVersion(false);
     const interval = setInterval(() => checkVersion(false), 30_000);
 
@@ -122,6 +145,21 @@ export function UpdateCheckerModal() {
   }, []);
 
   const handleDirectInstall = async () => {
+    // Check if running on native iOS
+    const isIos =
+      typeof window !== 'undefined' &&
+      ((window as any).Capacitor?.getPlatform?.() === 'ios' ||
+        /iPad|iPhone|iPod/.test(navigator.userAgent));
+
+    if (isIos) {
+      if (iosStoreUrl && iosStoreUrl.trim() !== '') {
+        window.open(iosStoreUrl, '_system');
+      } else {
+        alert(`UnifyVault v${latestVersion} is available. App Store URL is not configured yet.`);
+      }
+      return;
+    }
+
     setIsDownloading(true);
     setDownloadProgress(0);
 
@@ -132,7 +170,7 @@ export function UpdateCheckerModal() {
         return;
       }
 
-      // Browser fallback (e.g. Chrome / Web preview)
+      // Browser fallback: Download latest APK
       window.open(downloadUrl, '_blank');
       setIsDownloading(false);
     } catch {
@@ -154,16 +192,28 @@ export function UpdateCheckerModal() {
                 isUpToDate ? 'bg-emerald-500 text-black' : 'bg-[#BFFF00] text-black'
               } flex items-center justify-center font-black`}
             >
-              {isUpToDate ? <CheckCircle2 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+              {isUpToDate ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : isWebBanner ? (
+                <Download className="w-5 h-5" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
             </div>
             <div>
               <h3 className="text-base font-bold text-white font-sans">
-                {isUpToDate ? 'You Are Up to Date!' : 'New Update Available!'}
+                {isWebBanner
+                  ? 'Get UnifyVault Mobile App'
+                  : isUpToDate
+                    ? 'You Are Up to Date!'
+                    : 'New Update Available!'}
               </h3>
               <p className="text-xs text-[#BFFF00] font-mono">
-                {isUpToDate
-                  ? `Current Version: v${CURRENT_APP_VERSION}`
-                  : `v${CURRENT_APP_VERSION} → v${latestVersion}`}
+                {isWebBanner
+                  ? `Latest Version: v${latestVersion}`
+                  : isUpToDate
+                    ? `Current Version: v${CURRENT_APP_VERSION}`
+                    : `v${CURRENT_APP_VERSION} → v${latestVersion}`}
               </p>
             </div>
           </div>
@@ -178,7 +228,14 @@ export function UpdateCheckerModal() {
         </div>
 
         {/* Content Body */}
-        {isUpToDate ? (
+        {isWebBanner ? (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center space-y-2">
+            <p className="text-xs text-white/80 leading-relaxed font-sans">
+              Download the official <strong>UnifyVault Android APK (v{latestVersion})</strong> for
+              biometric security, hardware-backed vault isolation, and instant P2P notifications.
+            </p>
+          </div>
+        ) : isUpToDate ? (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center space-y-2">
             <p className="text-xs text-white/80 leading-relaxed font-sans">
               UnifyVault is running on the latest production version (
@@ -226,7 +283,18 @@ export function UpdateCheckerModal() {
 
         {/* Actions */}
         <div className="space-y-2 pt-2">
-          {isUpToDate ? (
+          {isWebBanner ? (
+            <button
+              onClick={() => {
+                window.open(downloadUrl, '_blank');
+                setIsOpen(false);
+              }}
+              className="w-full py-3.5 px-4 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(191,255,0,0.3)] transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Android APK (v{latestVersion})</span>
+            </button>
+          ) : isUpToDate ? (
             <button
               onClick={() => setIsOpen(false)}
               className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all cursor-pointer"
