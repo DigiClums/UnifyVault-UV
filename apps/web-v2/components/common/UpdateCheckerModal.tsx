@@ -21,7 +21,7 @@ export function UpdateCheckerModal() {
   const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(
-    'https://github.com/DigiClums/UnifyVault-UV/releases/latest/download/app-release.apk',
+    'https://github.com/DigiClums/UnifyVault-UV/releases/latest/download/UnifyVault-latest.apk',
   );
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -56,6 +56,27 @@ export function UpdateCheckerModal() {
     checkVersion();
     const interval = setInterval(checkVersion, 30_000);
 
+    const handleProgress = (e: any) => {
+      if (typeof e.detail?.progress === 'number') {
+        setDownloadProgress(e.detail.progress);
+      }
+    };
+
+    const handleComplete = () => {
+      setDownloadProgress(100);
+      setDownloadCompleted(true);
+      setIsDownloading(false);
+    };
+
+    const handleFailed = () => {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    };
+
+    window.addEventListener('native-updater-downloadProgress', handleProgress as EventListener);
+    window.addEventListener('native-updater-downloadComplete', handleComplete as EventListener);
+    window.addEventListener('native-updater-downloadFailed', handleFailed as EventListener);
+
     const handleManualTrigger = () => {
       setLatestVersion((prev) => prev || '2.4.0');
       setIsOpen(true);
@@ -66,53 +87,35 @@ export function UpdateCheckerModal() {
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener(
+        'native-updater-downloadProgress',
+        handleProgress as EventListener,
+      );
+      window.removeEventListener(
+        'native-updater-downloadComplete',
+        handleComplete as EventListener,
+      );
+      window.removeEventListener('native-updater-downloadFailed', handleFailed as EventListener);
       window.removeEventListener('open-update-modal', handleManualTrigger);
     };
   }, []);
 
   const handleDirectInstall = async () => {
     setIsDownloading(true);
-    setDownloadProgress(15);
+    setDownloadProgress(0);
 
     try {
-      // Check if running inside Android APK with Native Updater Bridge
       if (typeof window !== 'undefined' && (window as any).AndroidNativeUpdater) {
-        (window as any).AndroidNativeUpdater.downloadAndInstallApk(downloadUrl);
-        setDownloadProgress(60);
-        setTimeout(() => {
-          setDownloadProgress(100);
-          setDownloadCompleted(true);
-          setIsDownloading(false);
-        }, 1500);
+        const fileName = `UnifyVault-v${latestVersion}.apk`;
+        (window as any).AndroidNativeUpdater.downloadAndInstallApk(downloadUrl, fileName);
         return;
       }
 
-      // Web Fallback
-      const interval = setInterval(() => {
-        setDownloadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 95;
-          }
-          return prev + 25;
-        });
-      }, 400);
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', 'unifyvault.apk');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => {
-        clearInterval(interval);
-        setDownloadProgress(100);
-        setDownloadCompleted(true);
-        setIsDownloading(false);
-      }, 2000);
+      // Browser fallback (e.g. Chrome / Web preview)
+      window.open(downloadUrl, '_blank');
+      setIsDownloading(false);
     } catch {
-      window.location.href = downloadUrl;
+      window.open(downloadUrl, '_blank');
       setIsDownloading(false);
     }
   };

@@ -183,7 +183,12 @@ jobs:
       - name: Generate SHA256 Checksum
         run: |
           cd apps/web-v2/android
-          sha256sum app/build/outputs/apk/release/app-release.apk > SHA256SUMS.txt
+          V_NAME="${{ steps.versioning.outputs.version_name }}"
+          CANONICAL_APK="UnifyVault-v${V_NAME}.apk"
+          LATEST_APK="UnifyVault-latest.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$CANONICAL_APK"
+          cp app/build/outputs/apk/release/app-release.apk "$LATEST_APK"
+          sha256sum "$CANONICAL_APK" > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Upload Artifacts
@@ -191,7 +196,8 @@ jobs:
         with:
           name: unifyvault-android-release-${{ steps.versioning.outputs.version_name }}
           path: |
-            apps/web-v2/android/app/build/outputs/apk/release/app-release.apk
+            apps/web-v2/android/UnifyVault-v*.apk
+            apps/web-v2/android/UnifyVault-latest.apk
             apps/web-v2/android/SHA256SUMS.txt
           retention-days: 30
 
@@ -208,7 +214,8 @@ jobs:
             RELEASE_TAG="v${V_NAME}"
           fi
 
-          APK_PATH="apps/web-v2/android/app/build/outputs/apk/release/app-release.apk"
+          CANONICAL_APK="apps/web-v2/android/UnifyVault-v${V_NAME}.apk"
+          LATEST_APK="apps/web-v2/android/UnifyVault-latest.apk"
           SHA_PATH="apps/web-v2/android/SHA256SUMS.txt"
           CHECKSUM=$(cat "$SHA_PATH" | awk '{print $1}')
 
@@ -221,7 +228,8 @@ jobs:
 
           ### Package & Integrity
           - **Application ID:** `xyz.unifyvault.app`
-          - **Build Artifact:** `app-release.apk`
+          - **Canonical Build Artifact:** `UnifyVault-v${V_NAME}.apk`
+          - **Latest Build Fallback:** `UnifyVault-latest.apk`
           NOTES
 
           echo "- **Version Name:** \`$V_NAME\`" >> /tmp/release_notes.md
@@ -230,10 +238,10 @@ jobs:
 
           if gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "Release $RELEASE_TAG already exists. Uploading/clobbering release assets..."
-            gh release upload "$RELEASE_TAG" "$APK_PATH" "$SHA_PATH" --repo "${{ github.repository }}" --clobber
+            gh release upload "$RELEASE_TAG" "$CANONICAL_APK" "$LATEST_APK" "$SHA_PATH" --repo "${{ github.repository }}" --clobber
           else
             echo "Creating new canonical release $RELEASE_TAG..."
-            gh release create "$RELEASE_TAG" "$APK_PATH" "$SHA_PATH" \
+            gh release create "$RELEASE_TAG" "$CANONICAL_APK" "$LATEST_APK" "$SHA_PATH" \
               --repo "${{ github.repository }}" \
               --title "UnifyVault Android v${V_NAME}" \
               --notes-file /tmp/release_notes.md
@@ -248,7 +256,7 @@ jobs:
         run: |
           CANONICAL_TAG="v${V_NAME}"
           APK_CHECKSUM=$(cat apps/web-v2/android/SHA256SUMS.txt | awk '{print $1}')
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${CANONICAL_TAG}/app-release.apk"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${CANONICAL_TAG}/UnifyVault-${CANONICAL_TAG}.apk"
 
           echo "Updating version descriptor on canonical branch 'main' for release: $CANONICAL_TAG"
 
@@ -290,3 +298,112 @@ jobs:
             git push origin main
           fi
           rm -rf "$WORKDIR"
+
+      - name: Dispatch Firebase Cloud Messaging Topic Notification
+        if: (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish_release == 'true') && env.FIREBASE_SERVICE_ACCOUNT_JSON != ''
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          V_NAME: ${{ steps.versioning.outputs.version_name }}
+        run: |
+          node -e '
+            const https = require("https");
+            const crypto = require("crypto");
+
+            function request(options, body) {
+              return new Promise((resolve, reject) => {
+                const req = https.request(options, (res) => {
+                  let data = "";
+                  res.on("data", (chunk) => data += chunk);
+                  res.on("end", () => resolve({ statusCode: res.statusCode, data }));
+                });
+                req.on("error", reject);
+                if (body) req.write(body);
+                req.end();
+              });
+            }
+
+            async function run() {
+              let sa;
+              try {
+                sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+              } catch (e) {
+                console.error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON format");
+                process.exit(1);
+              }
+
+              if (!sa.client_email || !sa.private_key || !sa.project_id) {
+                console.error("FIREBASE_SERVICE_ACCOUNT_JSON missing required fields (client_email, private_key, project_id)");
+                process.exit(1);
+              }
+
+              const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
+              const now = Math.floor(Date.now() / 1000);
+              const claim = Buffer.from(JSON.stringify({
+                iss: sa.client_email,
+                scope: "https://www.googleapis.com/auth/firebase.messaging",
+                aud: "https://oauth2.googleapis.com/token",
+                exp: now + 3600,
+                iat: now
+              })).toString("base64url");
+
+              const sign = crypto.createSign("RSA-SHA256");
+              sign.update(header + "." + claim);
+              const sig = sign.sign(sa.private_key, "base64url");
+              const jwt = header + "." + claim + "." + sig;
+
+              const postData = "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=" + jwt;
+              const tokenRes = await request({
+                hostname: "oauth2.googleapis.com",
+                path: "/token",
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+              }, postData);
+
+              if (tokenRes.statusCode < 200 || tokenRes.statusCode >= 300) {
+                console.error("Google OAuth2 token generation failed with status:", tokenRes.statusCode);
+                process.exit(1);
+              }
+
+              const tokenData = JSON.parse(tokenRes.data);
+              if (!tokenData.access_token) {
+                console.error("No access_token found in OAuth2 response");
+                process.exit(1);
+              }
+
+              const fcmPayload = JSON.stringify({
+                message: {
+                  topic: "unifyvault-updates",
+                  notification: {
+                    title: "New UnifyVault Update Available",
+                    body: "Version v" + process.env.V_NAME + " is now available."
+                  },
+                  data: {
+                    version: process.env.V_NAME,
+                    click_action: "OPEN_UPDATE_MODAL"
+                  }
+                }
+              });
+
+              const fcmRes = await request({
+                hostname: "fcm.googleapis.com",
+                path: "/v1/projects/" + sa.project_id + "/messages:send",
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer " + tokenData.access_token,
+                  "Content-Type": "application/json"
+                }
+              }, fcmPayload);
+
+              if (fcmRes.statusCode < 200 || fcmRes.statusCode >= 300) {
+                console.error("FCM topic dispatch failed with status:", fcmRes.statusCode);
+                process.exit(1);
+              }
+
+              console.log("✓ FCM topic notification dispatched successfully for unifyvault-updates. Status:", fcmRes.statusCode);
+            }
+
+            run().catch((err) => {
+              console.error("FCM dispatch execution error:", err.message);
+              process.exit(1);
+            });
+          '
