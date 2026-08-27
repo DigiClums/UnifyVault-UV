@@ -15,11 +15,27 @@ export const CURRENT_APP_VERSION: string = (() => {
 const VERSION_METADATA_URL =
   'https://raw.githubusercontent.com/DigiClums/UnifyVault-UV/main/apps/web-v2/public/version.json';
 
+function isNewerVersion(latest: string, current: string): boolean {
+  const parse = (v: string) =>
+    v
+      .replace(/^v/, '')
+      .split('.')
+      .map((num) => parseInt(num, 10) || 0);
+
+  const [lMajor = 0, lMinor = 0, lPatch = 0] = parse(latest);
+  const [cMajor = 0, cMinor = 0, cPatch = 0] = parse(current);
+
+  if (lMajor !== cMajor) return lMajor > cMajor;
+  if (lMinor !== cMinor) return lMinor > cMinor;
+  return lPatch > cPatch;
+}
+
 export function UpdateCheckerModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
+  const [isUpToDate, setIsUpToDate] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(
     'https://github.com/DigiClums/UnifyVault-UV/releases/latest/download/UnifyVault-latest.apk',
   );
@@ -30,7 +46,7 @@ export function UpdateCheckerModal() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    async function checkVersion() {
+    async function checkVersion(isManual = false) {
       try {
         const res = await fetch(`${VERSION_METADATA_URL}?t=${Date.now()}`, {
           cache: 'no-store',
@@ -44,7 +60,14 @@ export function UpdateCheckerModal() {
           setReleaseNotes(data.releaseNotes || ['Performance improvements & security updates']);
           setIsMandatory(Boolean(data.mandatory));
           if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
-          if (data.latestVersion !== CURRENT_APP_VERSION) {
+
+          const hasNewUpdate = isNewerVersion(data.latestVersion, CURRENT_APP_VERSION);
+
+          if (hasNewUpdate) {
+            setIsUpToDate(false);
+            setIsOpen(true);
+          } else if (isManual) {
+            setIsUpToDate(true);
             setIsOpen(true);
           }
         }
@@ -53,8 +76,8 @@ export function UpdateCheckerModal() {
       }
     }
 
-    checkVersion();
-    const interval = setInterval(checkVersion, 30_000);
+    checkVersion(false);
+    const interval = setInterval(() => checkVersion(false), 30_000);
 
     const handleProgress = (e: any) => {
       if (typeof e.detail?.progress === 'number') {
@@ -78,9 +101,7 @@ export function UpdateCheckerModal() {
     window.addEventListener('native-updater-downloadFailed', handleFailed as EventListener);
 
     const handleManualTrigger = () => {
-      setLatestVersion((prev) => prev || '2.4.0');
-      setIsOpen(true);
-      checkVersion();
+      checkVersion(true);
     };
 
     window.addEventListener('open-update-modal', handleManualTrigger);
@@ -128,13 +149,21 @@ export function UpdateCheckerModal() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#BFFF00] text-black flex items-center justify-center font-black">
-              <Sparkles className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded-2xl ${
+                isUpToDate ? 'bg-emerald-500 text-black' : 'bg-[#BFFF00] text-black'
+              } flex items-center justify-center font-black`}
+            >
+              {isUpToDate ? <CheckCircle2 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="text-base font-bold text-white font-sans">New Update Available!</h3>
+              <h3 className="text-base font-bold text-white font-sans">
+                {isUpToDate ? 'You Are Up to Date!' : 'New Update Available!'}
+              </h3>
               <p className="text-xs text-[#BFFF00] font-mono">
-                v{CURRENT_APP_VERSION} → v{latestVersion}
+                {isUpToDate
+                  ? `Current Version: v${CURRENT_APP_VERSION}`
+                  : `v${CURRENT_APP_VERSION} → v${latestVersion}`}
               </p>
             </div>
           </div>
@@ -148,20 +177,36 @@ export function UpdateCheckerModal() {
           )}
         </div>
 
-        {/* Notes */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-white/70 font-semibold uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4 text-[#BFFF00]" />
-            <span>What's New:</span>
+        {/* Content Body */}
+        {isUpToDate ? (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center space-y-2">
+            <p className="text-xs text-white/80 leading-relaxed font-sans">
+              UnifyVault is running on the latest production version (
+              <strong>v{CURRENT_APP_VERSION}</strong>). No update is needed.
+            </p>
           </div>
-          <ul className="text-xs text-white/80 space-y-1.5 pl-2 list-disc list-inside">
-            {releaseNotes.map((note, idx) => (
-              <li key={idx} className="leading-relaxed">
-                {note}
-              </li>
-            ))}
-          </ul>
-        </div>
+        ) : (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2 overflow-hidden">
+            <div className="flex items-center gap-1.5 text-xs text-white/70 font-semibold uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-[#BFFF00] shrink-0" />
+              <span>What's New:</span>
+            </div>
+            <ul className="text-xs text-white/80 space-y-2 pl-2 list-disc list-inside">
+              {releaseNotes.map((note, idx) => {
+                const isChecksum = note.toLowerCase().includes('sha-256');
+                return (
+                  <li key={idx} className="leading-relaxed break-words break-all text-[11px]">
+                    {isChecksum ? (
+                      <span className="font-mono text-[10px] text-white/70 opacity-90">{note}</span>
+                    ) : (
+                      note
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {/* Progress bar if downloading */}
         {isDownloading && (
@@ -181,7 +226,15 @@ export function UpdateCheckerModal() {
 
         {/* Actions */}
         <div className="space-y-2 pt-2">
-          {downloadCompleted ? (
+          {isUpToDate ? (
+            <button
+              onClick={() => setIsOpen(false)}
+              className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Already Updated</span>
+            </button>
+          ) : downloadCompleted ? (
             <div className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
               <span>Downloaded! Opening Installer...</span>
@@ -206,7 +259,7 @@ export function UpdateCheckerModal() {
             </button>
           )}
 
-          {!isMandatory && !isDownloading && (
+          {!isMandatory && !isDownloading && !isUpToDate && (
             <button
               onClick={() => setIsOpen(false)}
               className="w-full py-2.5 text-center text-xs text-white/50 hover:text-white transition-colors font-sans"
