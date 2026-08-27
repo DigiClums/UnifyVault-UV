@@ -142,11 +142,25 @@ jobs:
             exit 1
           fi
 
+          BUILD_TOOLS_DIR=$(ls -d ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/* | sort -V | tail -n 1)
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+          AAPT2="$BUILD_TOOLS_DIR/aapt2"
+
+          if [ ! -x "$APKSIGNER" ]; then
+            APKSIGNER=$(which apksigner || true)
+          fi
+          if [ ! -x "$AAPT2" ]; then
+            AAPT2=$(which aapt2 || true)
+          fi
+
+          echo "Using apksigner: $APKSIGNER"
+          echo "Using aapt2: $AAPT2"
+
           echo "Checking APK signature..."
-          apksigner verify --verbose "$APK_PATH"
+          "$APKSIGNER" verify --verbose "$APK_PATH"
 
           echo "Checking APK metadata using aapt2..."
-          DUMP_OUTPUT=$(aapt2 dump badging "$APK_PATH" || true)
+          DUMP_OUTPUT=$("$AAPT2" dump badging "$APK_PATH" || true)
           echo "$DUMP_OUTPUT" | grep -E "package: name=" || true
 
           PKG_NAME=$(echo "$DUMP_OUTPUT" | grep -o "package: name='[^']*'" | cut -d"'" -f2)
