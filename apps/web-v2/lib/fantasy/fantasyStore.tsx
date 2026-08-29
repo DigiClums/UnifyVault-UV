@@ -1,290 +1,270 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import {
   Match,
   ContestTier,
   FantasyUserTeam,
-  JoinedContest,
+  FantasyJoinedContest,
+  LeaderboardEntry,
   FantasyWalletState,
   Player,
 } from './types';
-import { mockMatches, mockContestTiers, mockFantasyWallet } from './mockData';
+import { mockMatches, mockContestTiers, mockLeaderboards, mockFantasyWallet } from './mockData';
+import { validateTeamSelection } from './rules';
 
 interface FantasyContextType {
   matches: Match[];
   contests: ContestTier[];
   userTeams: FantasyUserTeam[];
-  joinedContests: JoinedContest[];
+  joinedContests: FantasyJoinedContest[];
   wallet: FantasyWalletState;
+  getMatchById: (id: string) => Match | undefined;
+  getContestsByMatchId: (matchId: string) => ContestTier[];
+  getContestById: (contestId: string) => ContestTier | undefined;
+  getUserTeamsForMatch: (matchId: string) => FantasyUserTeam[];
+  getTeamById: (teamId: string) => FantasyUserTeam | undefined;
   createOrUpdateTeam: (
     matchId: string,
-    teamName: string,
-    playerIds: string[],
+    players: Player[],
     captainId: string,
     viceCaptainId: string,
-    creditsUsed: number,
     existingTeamId?: string,
   ) => FantasyUserTeam;
-  joinContest: (
-    contestId: string,
-    matchId: string,
-    userTeamId: string,
-    entryFeeUVBE: number,
-  ) => { success: boolean; message: string; joinedContest?: JoinedContest };
-  getTeamById: (teamId: string) => FantasyUserTeam | undefined;
-  getTeamsForMatch: (matchId: string) => FantasyUserTeam[];
-  getJoinedContestsForMatch: (matchId: string) => JoinedContest[];
-  getContestById: (contestId: string) => ContestTier | undefined;
-  getMatchById: (matchId: string) => Match | undefined;
+  joinContest: (contestId: string, teamId: string) => boolean;
+  claimWinnings: (contestId: string) => void;
+  depositToFantasyWallet: (amountUVBE: number) => void;
+  withdrawFromFantasyWallet: (amountUVBE: number) => void;
 }
 
-const STORAGE_KEY_TEAMS = 'uvbe_fantasy_teams_v1';
-const STORAGE_KEY_JOINED = 'uvbe_fantasy_joined_v1';
-const STORAGE_KEY_WALLET = 'uvbe_fantasy_wallet_v1';
+const FantasyContext = createContext<FantasyContextType | undefined>(undefined);
 
-const defaultInitialTeam: FantasyUserTeam = {
-  id: 'team-default-1',
-  matchId: 'match-ind-aus-1',
-  teamName: 'My UV Champions',
-  createdAt: new Date().toISOString(),
-  playerIds: [
-    'ind-1',
-    'ind-2',
-    'ind-3',
-    'ind-5',
-    'ind-7',
-    'ind-8',
-    'ind-9',
-    'aus-1',
-    'aus-4',
-    'aus-5',
-    'aus-10',
-  ],
-  captainPlayerId: 'ind-2',
-  viceCaptainPlayerId: 'ind-8',
-  totalCreditsUsed: 99.5,
-  pointsEarned: 586,
-  rank: 3,
+const STORAGE_KEYS = {
+  TEAMS: 'uv_fantasy_user_teams',
+  JOINED: 'uv_fantasy_joined_contests',
+  WALLET: 'uv_fantasy_wallet',
 };
 
-const defaultInitialJoined: JoinedContest[] = [
-  {
-    id: 'jc-1',
-    contestId: 'contest-gl-1',
-    matchId: 'match-ind-aus-1',
-    userTeamId: 'team-default-1',
-    joinedAt: new Date(Date.now() - 3600000).toISOString(),
-    entryFeePaidUVBE: 100,
-    rank: 3,
-    points: 586,
-    potentialWinningUVBE: 7500,
-    settled: false,
-    settledWinningsUVBE: 0,
-  },
-  {
-    id: 'jc-2',
-    contestId: 'contest-h2h-1',
-    matchId: 'match-ind-pak-4',
-    userTeamId: 'team-default-1',
-    joinedAt: new Date(Date.now() - 86400000).toISOString(),
-    entryFeePaidUVBE: 100,
-    rank: 1,
-    points: 512,
-    potentialWinningUVBE: 180,
-    settled: true,
-    settledWinningsUVBE: 180,
-  },
-];
-
-const FantasyContext = createContext<FantasyContextType | null>(null);
-
 export function FantasyProvider({ children }: { children: React.ReactNode }) {
-  const [matches] = useState<Match[]>(mockMatches);
+  const [matches, setMatches] = useState<Match[]>(mockMatches);
   const [contests, setContests] = useState<ContestTier[]>(mockContestTiers);
-  const [userTeams, setUserTeams] = useState<FantasyUserTeam[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY_TEAMS);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.warn('Could not read saved fantasy teams:', e);
-      }
-    }
-    return [defaultInitialTeam];
-  });
-
-  const [joinedContests, setJoinedContests] = useState<JoinedContest[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY_JOINED);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.warn('Could not read saved joined contests:', e);
-      }
-    }
-    return defaultInitialJoined;
-  });
-
-  const [wallet, setWallet] = useState<FantasyWalletState>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY_WALLET);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.warn('Could not read saved fantasy wallet:', e);
-      }
-    }
-    return mockFantasyWallet;
-  });
+  const [userTeams, setUserTeams] = useState<FantasyUserTeam[]>([]);
+  const [joinedContests, setJoinedContests] = useState<FantasyJoinedContest[]>([]);
+  const [wallet, setWallet] = useState<FantasyWalletState>(mockFantasyWallet);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(userTeams));
-    }
-  }, [userTeams]);
+    if (typeof window === 'undefined') return;
+    try {
+      const savedTeams = localStorage.getItem(STORAGE_KEYS.TEAMS);
+      if (savedTeams) setUserTeams(JSON.parse(savedTeams));
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_JOINED, JSON.stringify(joinedContests));
-    }
-  }, [joinedContests]);
+      const savedJoined = localStorage.getItem(STORAGE_KEYS.JOINED);
+      if (savedJoined) setJoinedContests(JSON.parse(savedJoined));
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY_WALLET, JSON.stringify(wallet));
+      const savedWallet = localStorage.getItem(STORAGE_KEYS.WALLET);
+      if (savedWallet) setWallet(JSON.parse(savedWallet));
+    } catch (e) {
+      console.error('Error loading fantasy local data', e);
     }
-  }, [wallet]);
+  }, []);
+
+  const saveTeams = (newTeams: FantasyUserTeam[]) => {
+    setUserTeams(newTeams);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(newTeams));
+    }
+  };
+
+  const saveJoined = (newJoined: FantasyJoinedContest[]) => {
+    setJoinedContests(newJoined);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.JOINED, JSON.stringify(newJoined));
+    }
+  };
+
+  const saveWallet = (newWallet: FantasyWalletState) => {
+    setWallet(newWallet);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.WALLET, JSON.stringify(newWallet));
+    }
+  };
+
+  const getMatchById = (id: string) => {
+    return matches.find((m) => m.id === id) || mockMatches.find((m) => m.id === id);
+  };
+
+  const getContestsByMatchId = (matchId: string) => {
+    return contests.filter((c) => c.matchId === matchId);
+  };
+
+  const getContestById = (contestId: string) => {
+    return (
+      contests.find((c) => c.id === contestId) || mockContestTiers.find((c) => c.id === contestId)
+    );
+  };
+
+  const getUserTeamsForMatch = (matchId: string) => {
+    return userTeams.filter((t) => t.matchId === matchId);
+  };
+
+  const getTeamById = (teamId: string) => {
+    return userTeams.find((t) => t.id === teamId);
+  };
 
   const createOrUpdateTeam = (
     matchId: string,
-    teamName: string,
-    playerIds: string[],
+    players: Player[],
     captainId: string,
     viceCaptainId: string,
-    creditsUsed: number,
     existingTeamId?: string,
   ): FantasyUserTeam => {
-    if (existingTeamId) {
-      const updatedTeams = userTeams.map((t) => {
-        if (t.id === existingTeamId) {
-          return {
-            ...t,
-            teamName: teamName || t.teamName,
-            playerIds,
-            captainPlayerId: captainId,
-            viceCaptainPlayerId: viceCaptainId,
-            totalCreditsUsed: creditsUsed,
-          };
-        }
-        return t;
-      });
-      setUserTeams(updatedTeams);
-      const updated = updatedTeams.find((t) => t.id === existingTeamId)!;
-      return updated;
+    const match = getMatchById(matchId);
+    if (!match) throw new Error('Match not found');
+
+    const captain = players.find((p) => p.id === captainId);
+    const viceCaptain = players.find((p) => p.id === viceCaptainId);
+
+    if (!captain || !viceCaptain) {
+      throw new Error('Captain and Vice-Captain must be selected from selected players');
     }
 
-    const newTeamNumber = userTeams.filter((t) => t.matchId === matchId).length + 1;
-    const newTeam: FantasyUserTeam = {
-      id: `team-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    const totalCreditsUsed = players.reduce((sum, p) => sum + p.credits, 0);
+
+    const teamData: FantasyUserTeam = {
+      id: existingTeamId || `team-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       matchId,
-      teamName: teamName || `Team T${newTeamNumber}`,
+      name: `Team ${userTeams.filter((t) => t.matchId === matchId).length + 1}`,
+      players,
+      captain,
+      viceCaptain,
+      totalCreditsUsed,
       createdAt: new Date().toISOString(),
-      playerIds,
-      captainPlayerId: captainId,
-      viceCaptainPlayerId: viceCaptainId,
-      totalCreditsUsed: creditsUsed,
-      pointsEarned: 0,
     };
 
-    setUserTeams((prev) => [newTeam, ...prev]);
-    return newTeam;
+    if (existingTeamId) {
+      const updated = userTeams.map((t) => (t.id === existingTeamId ? teamData : t));
+      saveTeams(updated);
+    } else {
+      saveTeams([...userTeams, teamData]);
+    }
+
+    return teamData;
   };
 
-  const joinContest = (
-    contestId: string,
-    matchId: string,
-    userTeamId: string,
-    entryFeeUVBE: number,
-  ) => {
-    const contest = contests.find((c) => c.id === contestId);
-    if (!contest) {
-      return { success: false, message: 'Contest not found' };
+  const joinContest = (contestId: string, teamId: string): boolean => {
+    const contest = getContestById(contestId);
+    const team = getTeamById(teamId);
+
+    if (!contest || !team) return false;
+    if (wallet.availableUVBE < contest.entryFeeUVBE) {
+      alert('Insufficient UVBE balance in Fantasy Wallet! Please deposit more UVBE.');
+      return false;
     }
 
-    if (contest.currentParticipants >= contest.maxParticipants) {
-      return { success: false, message: 'Contest is already full' };
-    }
-
-    const newJoined: JoinedContest = {
-      id: `jc-${Date.now()}`,
+    const joinedRecord: FantasyJoinedContest = {
+      id: `joined-${Date.now()}`,
       contestId,
-      matchId,
-      userTeamId,
+      teamId,
       joinedAt: new Date().toISOString(),
-      entryFeePaidUVBE: entryFeeUVBE,
-      rank: contest.currentParticipants + 1,
-      points: 0,
-      potentialWinningUVBE: contest.firstPrizeUVBE,
-      settled: false,
-      settledWinningsUVBE: 0,
+      entryFeePaid: contest.entryFeeUVBE,
+      isClaimed: false,
     };
 
-    setJoinedContests((prev) => [newJoined, ...prev]);
+    saveJoined([...joinedContests, joinedRecord]);
 
+    // Deduct entry fee
+    saveWallet({
+      ...wallet,
+      availableUVBE: wallet.availableUVBE - contest.entryFeeUVBE,
+      fantasyLockedUVBE: wallet.fantasyLockedUVBE + contest.entryFeeUVBE,
+      totalFantasyEntries: wallet.totalFantasyEntries + 1,
+    });
+
+    // Increment participant count
     setContests((prev) =>
       prev.map((c) =>
         c.id === contestId ? { ...c, currentParticipants: c.currentParticipants + 1 } : c,
       ),
     );
 
-    setWallet((prev) => ({
-      ...prev,
-      availableUVBE: Math.max(0, prev.availableUVBE - entryFeeUVBE),
-      fantasyLockedUVBE: prev.fantasyLockedUVBE + entryFeeUVBE,
-      totalFantasyEntries: prev.totalFantasyEntries + 1,
-    }));
-
-    return {
-      success: true,
-      message: 'Successfully joined contest in demo mode!',
-      joinedContest: newJoined,
-    };
+    return true;
   };
 
-  const getTeamById = (teamId: string) => userTeams.find((t) => t.id === teamId);
-  const getTeamsForMatch = (matchId: string) => userTeams.filter((t) => t.matchId === matchId);
-  const getJoinedContestsForMatch = (matchId: string) =>
-    joinedContests.filter((jc) => jc.matchId === matchId);
-  const getContestById = (contestId: string) => contests.find((c) => c.id === contestId);
-  const getMatchById = (matchId: string) => matches.find((m) => m.id === matchId);
+  const claimWinnings = (contestId: string) => {
+    const joined = joinedContests.find((jc) => jc.contestId === contestId && !jc.isClaimed);
+    if (!joined || !joined.finalPrizeUVBE) return;
 
-  return (
-    <FantasyContext.Provider
-      value={{
-        matches,
-        contests,
-        userTeams,
-        joinedContests,
-        wallet,
-        createOrUpdateTeam,
-        joinContest,
-        getTeamById,
-        getTeamsForMatch,
-        getJoinedContestsForMatch,
-        getContestById,
-        getMatchById,
-      }}
-    >
-      {children}
-    </FantasyContext.Provider>
+    saveJoined(joinedContests.map((jc) => (jc.id === joined.id ? { ...jc, isClaimed: true } : jc)));
+
+    saveWallet({
+      ...wallet,
+      availableUVBE: wallet.availableUVBE + joined.finalPrizeUVBE,
+      fantasyRewardsUVBE: wallet.fantasyRewardsUVBE + joined.finalPrizeUVBE,
+      totalWonUVBE: wallet.totalWonUVBE + joined.finalPrizeUVBE,
+    });
+  };
+
+  const depositToFantasyWallet = (amountUVBE: number) => {
+    saveWallet({
+      ...wallet,
+      availableUVBE: wallet.availableUVBE + amountUVBE,
+    });
+  };
+
+  const withdrawFromFantasyWallet = (amountUVBE: number) => {
+    if (amountUVBE > wallet.availableUVBE) return;
+    saveWallet({
+      ...wallet,
+      availableUVBE: wallet.availableUVBE - amountUVBE,
+    });
+  };
+
+  const value = useMemo(
+    () => ({
+      matches,
+      contests,
+      userTeams,
+      joinedContests,
+      wallet,
+      getMatchById,
+      getContestsByMatchId,
+      getContestById,
+      getUserTeamsForMatch,
+      getTeamById,
+      createOrUpdateTeam,
+      joinContest,
+      claimWinnings,
+      depositToFantasyWallet,
+      withdrawFromFantasyWallet,
+    }),
+    [matches, contests, userTeams, joinedContests, wallet],
   );
+
+  return <FantasyContext.Provider value={value}>{children}</FantasyContext.Provider>;
 }
+
+const fallbackContext: FantasyContextType = {
+  matches: mockMatches,
+  contests: mockContestTiers,
+  userTeams: [],
+  joinedContests: [],
+  wallet: mockFantasyWallet,
+  getMatchById: (id: string) => mockMatches.find((m) => m.id === id),
+  getContestsByMatchId: (matchId: string) => mockContestTiers.filter((c) => c.matchId === matchId),
+  getContestById: (contestId: string) => mockContestTiers.find((c) => c.id === contestId),
+  getUserTeamsForMatch: () => [],
+  getTeamById: () => undefined,
+  createOrUpdateTeam: () => ({}) as any,
+  joinContest: () => false,
+  claimWinnings: () => {},
+  depositToFantasyWallet: () => {},
+  withdrawFromFantasyWallet: () => {},
+};
 
 export function useFantasy() {
   const context = useContext(FantasyContext);
   if (!context) {
-    throw new Error('useFantasy must be used within a FantasyProvider');
+    return fallbackContext;
   }
   return context;
 }
