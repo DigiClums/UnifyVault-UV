@@ -7,6 +7,8 @@ import { ThemeProvider } from '../providers/ThemeProvider';
 import { Web3Provider } from '../providers/Web3Provider';
 import { AppShell } from '../components/layout/AppShell';
 import { UpdateCheckerModal } from '../components/common/UpdateCheckerModal';
+import { AppExitModal } from '../components/common/AppExitModal';
+import { FantasyProvider } from '../lib/fantasy/fantasyStore';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -72,8 +74,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <Web3Provider>
-            <UpdateCheckerModal />
-            <AppShell>{children}</AppShell>
+            <FantasyProvider>
+              <UpdateCheckerModal />
+              <AppExitModal />
+              <AppShell>{children}</AppShell>
+            </FantasyProvider>
           </Web3Provider>
         </ThemeProvider>
       </body>
