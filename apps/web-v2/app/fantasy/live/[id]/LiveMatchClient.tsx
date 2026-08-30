@@ -50,7 +50,7 @@ export default function LiveMatchClient({ matchId }: { matchId: string }) {
           </span>
         </div>
 
-        <LeaderboardTable matchStatus={match.status} />
+        <LeaderboardTable contestName="Live Grand League" />
       </div>
     </div>
   );

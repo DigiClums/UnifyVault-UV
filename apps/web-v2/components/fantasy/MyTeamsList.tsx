@@ -23,7 +23,6 @@ export function MyTeamsList({ matchId, onViewTeamGround }: MyTeamsListProps) {
       [...team.playerIds],
       team.captainPlayerId,
       team.viceCaptainPlayerId,
-      team.totalCreditsUsed,
     );
   };
 

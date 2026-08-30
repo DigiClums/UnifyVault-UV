@@ -5,19 +5,18 @@ import {
   Match,
   ContestTier,
   FantasyUserTeam,
-  FantasyJoinedContest,
+  JoinedContest,
   LeaderboardEntry,
   FantasyWalletState,
   Player,
 } from './types';
-import { mockMatches, mockContestTiers, mockLeaderboards, mockFantasyWallet } from './mockData';
-import { validateTeamSelection } from './rules';
+import { mockMatches, mockContestTiers, mockLeaderboard, mockFantasyWallet } from './mockData';
 
 interface FantasyContextType {
   matches: Match[];
   contests: ContestTier[];
   userTeams: FantasyUserTeam[];
-  joinedContests: FantasyJoinedContest[];
+  joinedContests: JoinedContest[];
   wallet: FantasyWalletState;
   getMatchById: (id: string) => Match | undefined;
   getContestsByMatchId: (matchId: string) => ContestTier[];
@@ -26,9 +25,10 @@ interface FantasyContextType {
   getTeamById: (teamId: string) => FantasyUserTeam | undefined;
   createOrUpdateTeam: (
     matchId: string,
-    players: Player[],
-    captainId: string,
-    viceCaptainId: string,
+    teamName: string,
+    playerIds: string[],
+    captainPlayerId: string,
+    viceCaptainPlayerId: string,
     existingTeamId?: string,
   ) => FantasyUserTeam;
   joinContest: (contestId: string, teamId: string) => boolean;
@@ -49,7 +49,7 @@ export function FantasyProvider({ children }: { children: React.ReactNode }) {
   const [matches, setMatches] = useState<Match[]>(mockMatches);
   const [contests, setContests] = useState<ContestTier[]>(mockContestTiers);
   const [userTeams, setUserTeams] = useState<FantasyUserTeam[]>([]);
-  const [joinedContests, setJoinedContests] = useState<FantasyJoinedContest[]>([]);
+  const [joinedContests, setJoinedContests] = useState<JoinedContest[]>([]);
   const [wallet, setWallet] = useState<FantasyWalletState>(mockFantasyWallet);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export function FantasyProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const saveJoined = (newJoined: FantasyJoinedContest[]) => {
+  const saveJoined = (newJoined: JoinedContest[]) => {
     setJoinedContests(newJoined);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.JOINED, JSON.stringify(newJoined));
@@ -113,32 +113,30 @@ export function FantasyProvider({ children }: { children: React.ReactNode }) {
 
   const createOrUpdateTeam = (
     matchId: string,
-    players: Player[],
-    captainId: string,
-    viceCaptainId: string,
+    teamName: string,
+    playerIds: string[],
+    captainPlayerId: string,
+    viceCaptainPlayerId: string,
     existingTeamId?: string,
   ): FantasyUserTeam => {
     const match = getMatchById(matchId);
     if (!match) throw new Error('Match not found');
 
-    const captain = players.find((p) => p.id === captainId);
-    const viceCaptain = players.find((p) => p.id === viceCaptainId);
-
-    if (!captain || !viceCaptain) {
-      throw new Error('Captain and Vice-Captain must be selected from selected players');
-    }
-
-    const totalCreditsUsed = players.reduce((sum, p) => sum + p.credits, 0);
+    const totalCreditsUsed = playerIds.reduce((sum, pid) => {
+      const p = match.players.find((item) => item.id === pid);
+      return sum + (p?.credits || 9.0);
+    }, 0);
 
     const teamData: FantasyUserTeam = {
       id: existingTeamId || `team-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       matchId,
-      name: `Team ${userTeams.filter((t) => t.matchId === matchId).length + 1}`,
-      players,
-      captain,
-      viceCaptain,
-      totalCreditsUsed,
+      teamName,
       createdAt: new Date().toISOString(),
+      playerIds,
+      captainPlayerId,
+      viceCaptainPlayerId,
+      totalCreditsUsed,
+      pointsEarned: 0,
     };
 
     if (existingTeamId) {
@@ -161,13 +159,18 @@ export function FantasyProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    const joinedRecord: FantasyJoinedContest = {
+    const joinedRecord: JoinedContest = {
       id: `joined-${Date.now()}`,
       contestId,
-      teamId,
+      matchId: team.matchId,
+      userTeamId: teamId,
       joinedAt: new Date().toISOString(),
-      entryFeePaid: contest.entryFeeUVBE,
-      isClaimed: false,
+      entryFeePaidUVBE: contest.entryFeeUVBE,
+      rank: 1,
+      points: 0,
+      potentialWinningUVBE: contest.firstPrizeUVBE,
+      settled: false,
+      settledWinningsUVBE: 0,
     };
 
     saveJoined([...joinedContests, joinedRecord]);
@@ -191,16 +194,16 @@ export function FantasyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const claimWinnings = (contestId: string) => {
-    const joined = joinedContests.find((jc) => jc.contestId === contestId && !jc.isClaimed);
-    if (!joined || !joined.finalPrizeUVBE) return;
+    const joined = joinedContests.find((jc) => jc.contestId === contestId && !jc.settled);
+    if (!joined || !joined.settledWinningsUVBE) return;
 
-    saveJoined(joinedContests.map((jc) => (jc.id === joined.id ? { ...jc, isClaimed: true } : jc)));
+    saveJoined(joinedContests.map((jc) => (jc.id === joined.id ? { ...jc, settled: true } : jc)));
 
     saveWallet({
       ...wallet,
-      availableUVBE: wallet.availableUVBE + joined.finalPrizeUVBE,
-      fantasyRewardsUVBE: wallet.fantasyRewardsUVBE + joined.finalPrizeUVBE,
-      totalWonUVBE: wallet.totalWonUVBE + joined.finalPrizeUVBE,
+      availableUVBE: wallet.availableUVBE + joined.settledWinningsUVBE,
+      fantasyRewardsUVBE: wallet.fantasyRewardsUVBE + joined.settledWinningsUVBE,
+      totalWonUVBE: wallet.totalWonUVBE + joined.settledWinningsUVBE,
     });
   };
 

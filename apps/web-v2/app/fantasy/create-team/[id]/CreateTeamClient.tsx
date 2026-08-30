@@ -15,7 +15,7 @@ export default function CreateTeamClient({ matchId }: { matchId: string }) {
   const editTeamId = searchParams.get('editTeamId') || undefined;
   const autoContestId = searchParams.get('autoContestId') || undefined;
 
-  const { getMatchById, getTeamById, getContestById, createOrUpdateTeam, joinContest } =
+  const { getMatchById, getTeamById, getContestById, createOrUpdateTeam, joinContest, userTeams } =
     useFantasy();
   const match = getMatchById(matchId);
 
@@ -27,6 +27,7 @@ export default function CreateTeamClient({ matchId }: { matchId: string }) {
     players: Player[];
     captainId: string;
     viceCaptainId: string;
+    teamName: string;
   } | null>(null);
 
   if (!match) {
@@ -44,17 +45,24 @@ export default function CreateTeamClient({ matchId }: { matchId: string }) {
     );
   }
 
-  const handleSaveTeam = (players: Player[], captainId: string, viceCaptainId: string) => {
-    setPendingTeamData({ players, captainId, viceCaptainId });
+  const handleProceedToConfirmation = (
+    selectedPlayers: Player[],
+    captainId: string,
+    viceCaptainId: string,
+    teamName: string,
+  ) => {
+    setPendingTeamData({ players: selectedPlayers, captainId, viceCaptainId, teamName });
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmTeam = async () => {
+  const handleConfirmTeam = () => {
     if (!pendingTeamData) return;
 
     const team = createOrUpdateTeam(
       match.id,
-      pendingTeamData.players,
+      pendingTeamData.teamName ||
+        `Team ${userTeams.filter((t) => t.matchId === match.id).length + 1}`,
+      pendingTeamData.players.map((p) => p.id),
       pendingTeamData.captainId,
       pendingTeamData.viceCaptainId,
       existingTeam?.id,
@@ -78,18 +86,26 @@ export default function CreateTeamClient({ matchId }: { matchId: string }) {
         <span>Back to Match</span>
       </Link>
 
-      <TeamBuilder match={match} existingTeam={existingTeam} onSaveTeam={handleSaveTeam} />
+      <TeamBuilder
+        match={match}
+        existingTeamId={existingTeam?.id}
+        initialSelectedPlayerIds={existingTeam?.playerIds}
+        initialCaptainId={existingTeam?.captainPlayerId}
+        initialViceCaptainId={existingTeam?.viceCaptainPlayerId}
+        onProceedToConfirmation={handleProceedToConfirmation}
+      />
 
       {pendingTeamData && (
         <TeamConfirmationModal
           isOpen={isConfirmModalOpen}
           onClose={() => setIsConfirmModalOpen(false)}
-          onConfirm={handleConfirmTeam}
+          onConfirmJoin={handleConfirmTeam}
           match={match}
-          players={pendingTeamData.players}
+          selectedPlayers={pendingTeamData.players}
           captainId={pendingTeamData.captainId}
           viceCaptainId={pendingTeamData.viceCaptainId}
-          autoContest={autoContest}
+          teamName={pendingTeamData.teamName}
+          selectedContest={autoContest}
         />
       )}
     </div>

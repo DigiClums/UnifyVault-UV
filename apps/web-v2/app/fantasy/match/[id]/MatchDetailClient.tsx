@@ -189,21 +189,13 @@ export default function MatchDetailClient({ matchId }: { matchId: string }) {
             <ContestCard
               key={contest.id}
               contest={contest}
-              matchStatus={match.status}
-              onJoin={() => handleJoinContestClick(contest)}
-              onViewBreakdown={() => setSelectedContestForBreakdown(contest)}
+              onJoinClick={() => handleJoinContestClick(contest)}
+              onViewDetails={() => setSelectedContestForBreakdown(contest)}
             />
           ))}
         </div>
       ) : (
-        <MyTeamsList
-          teams={userTeams}
-          match={match}
-          onCreateTeam={() => router.push(`/fantasy/create-team/${match.id}`)}
-          onEditTeam={(teamId) =>
-            router.push(`/fantasy/create-team/${match.id}?editTeamId=${teamId}`)
-          }
-        />
+        <MyTeamsList matchId={match.id} />
       )}
 
       {/* Prize Breakdown Modal */}
@@ -211,10 +203,7 @@ export default function MatchDetailClient({ matchId }: { matchId: string }) {
         <PrizeBreakdownModal
           isOpen={Boolean(selectedContestForBreakdown)}
           onClose={() => setSelectedContestForBreakdown(null)}
-          contestName={selectedContestForBreakdown.name}
-          entryFeeUVBE={selectedContestForBreakdown.entryFeeUVBE}
-          totalPrizePoolUVBE={selectedContestForBreakdown.totalPrizePoolUVBE}
-          breakdown={selectedContestForBreakdown.prizeBreakdown}
+          contest={selectedContestForBreakdown}
         />
       )}
 
@@ -238,10 +227,10 @@ export default function MatchDetailClient({ matchId }: { matchId: string }) {
                 >
                   <div>
                     <div className="font-black text-xs text-foreground">
-                      Team {idx + 1} ({team.players.length} Players)
+                      {team.teamName} ({team.playerIds.length} Players)
                     </div>
                     <div className="text-[11px] text-muted-foreground font-mono">
-                      Cap: {team.captain.name} &bull; VC: {team.viceCaptain.name}
+                      Credits used: {team.totalCreditsUsed} / 100
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground" />

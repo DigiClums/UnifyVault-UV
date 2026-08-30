@@ -19,13 +19,10 @@ import {
   Sparkles,
   Zap,
   TrendingUp,
-  Power,
-  LogOut,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
 import { useAdminAccess } from '../../hooks/useAdminAccess';
-import { Capacitor } from '@capacitor/core';
 
 interface NavItem {
   href: string;
@@ -49,17 +46,6 @@ const publicNavLinks: NavItem[] = [
 export function Navbar() {
   const pathname = usePathname();
   const { isAdmin } = useAdminAccess();
-  const [isNativeApp, setIsNativeApp] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const native =
-        Capacitor.isNativePlatform() ||
-        Boolean((window as any).AndroidNativeUpdater) ||
-        Boolean((window as any).Capacitor?.isNativePlatform?.());
-      setIsNativeApp(native);
-    }
-  }, []);
 
   const navLinks = React.useMemo(() => {
     if (isAdmin) {
@@ -153,26 +139,6 @@ export function Navbar() {
           )}
 
           <ThemeToggle />
-
-          {/* Exit App Action Button (Native APK only) */}
-          {isNativeApp && (
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('open-exit-modal'));
-                }
-              }}
-              className="p-1.5 sm:px-2 sm:py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25 transition-all flex items-center gap-1 cursor-pointer"
-              title="Exit App"
-              aria-label="Exit App"
-            >
-              <Power className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider">
-                Exit
-              </span>
-            </button>
-          )}
 
           <div className="scale-95 sm:scale-100 origin-right flex items-center shrink-0">
             <ConnectButton.Custom>

@@ -133,16 +133,13 @@ export default function ContestDetailClient({ contestId }: { contestId: string }
           <Award className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
           <span>Contest Leaderboard</span>
         </h2>
-        <LeaderboardTable matchStatus={match?.status || 'upcoming'} contestId={contest.id} />
+        <LeaderboardTable contestName={contest.name} />
       </div>
 
       <PrizeBreakdownModal
         isOpen={showBreakdownModal}
         onClose={() => setShowBreakdownModal(false)}
-        contestName={contest.name}
-        entryFeeUVBE={contest.entryFeeUVBE}
-        totalPrizePoolUVBE={contest.totalPrizePoolUVBE}
-        breakdown={contest.prizeBreakdown}
+        contest={contest}
       />
     </div>
   );
