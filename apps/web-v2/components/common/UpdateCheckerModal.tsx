@@ -9,7 +9,7 @@ export const CURRENT_APP_VERSION: string = (() => {
     return version.trim();
   }
   // Safe default for development/local builds if env var not explicitly supplied
-  return '1.0.0';
+  return '2.3.8';
 })();
 
 const VERSION_METADATA_URL =

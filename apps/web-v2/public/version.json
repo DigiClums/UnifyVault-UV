@@ -1,16 +1,14 @@
 {
-  "latestVersion": "1.0.1",
+  "latestVersion": "2.3.8",
   "minimumVersion": "1.0.0",
   "mandatory": false,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v1.0.1/app-release.apk",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.3.8/app-release.apk",
   "iosStoreUrl": "",
-  "sha256": "19c9c7c63e0037fbc43604cbb44f87bca7ce1235c54e76a89b339585bbcff9be",
   "releaseNotes": [
-    "🚀 Production Release v1.0.1",
-    "⚡ Automated CI/CD Android Signing & Release Pipeline",
-    "🛡️ Node 22 & Android SDK 35 Toolchain Compatibility",
-    "📊 Compact Single-Screen Portfolio & Strategy Dashboard",
-    "🔒 Decentralized P2P Escrow & Zero-Gas Account Abstraction",
-    "🛡️ Verified APK SHA-256: 19c9c7c63e0037fbc43604cbb44f87bca7ce1235c54e76a89b339585bbcff9be"
+    "🚀 Production Release v2.3.8",
+    "⚡ 600.00% Dynamic APY Cap Staking & Reward Engine",
+    "🔒 Verified StakingVault, ReferralRegistry & RewardDistributor (Base Mainnet)",
+    "📊 Transparent UnifyVault Portfolio Value & Claimable Rewards Breakdown",
+    "🛡️ Institutional 48-Hour Timelock & Solvency Protections"
   ]
 }
