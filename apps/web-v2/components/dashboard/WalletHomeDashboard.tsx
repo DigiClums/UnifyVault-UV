@@ -60,6 +60,7 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
   const uvbePct = totalNetWorthUsd > 0 ? (uvbeHoldingUsd / totalNetWorthUsd) * 100 : 0;
   const usdcPct = totalNetWorthUsd > 0 ? (usdcHoldingUsd / totalNetWorthUsd) * 100 : 0;
   const stakedPct = totalNetWorthUsd > 0 ? (stakedHoldingUsd / totalNetWorthUsd) * 100 : 0;
+  const rewardsPct = totalNetWorthUsd > 0 ? (rewardsHoldingUsd / totalNetWorthUsd) * 100 : 0;
 
   return (
     <div className="space-y-3 sm:space-y-4 max-w-6xl mx-auto pb-4">
@@ -72,7 +73,7 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                Total Wallet Net Worth
+                UnifyVault Portfolio Value
               </span>
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black bg-[#BFFF00] text-black border border-black">
                 <span className="h-1.5 w-1.5 rounded-full bg-black animate-pulse" />
@@ -358,6 +359,60 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
                   style={{ width: `${stakedPct}%` }}
                 />
               </div>
+            </div>
+
+            {/* Asset 4: Claimable Staking Rewards (If any) */}
+            {userClaimableUvbe > 0 && (
+              <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-[#BFFF00]/10 via-card to-card border-2 border-black dark:border-white/15 hover:border-[#BFFF00] transition-all shadow-[2px_2px_0_rgba(0,0,0,0.85)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#BFFF00] text-black font-black flex items-center justify-center border border-black text-xs">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                        <span>Claimable Rewards</span>
+                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#BFFF00]/20 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/30">
+                          Ready to Claim
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono text-muted-foreground">
+                        Staking & MLM Yield
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right font-mono">
+                    <div className="font-bold text-xs sm:text-sm text-[#5f8f00] dark:text-[#BFFF00]">
+                      +$
+                      {rewardsHoldingUsd.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {userClaimableUvbe.toLocaleString('en-US', { maximumFractionDigits: 4 })} UVBE
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#BFFF00] h-full transition-all"
+                    style={{ width: `${rewardsPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Transparency Note */}
+            <div className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-black/10 dark:border-white/10 text-[10px] text-muted-foreground flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00] shrink-0" />
+              <span>
+                Tracks UnifyVault ecosystem assets (Liquid UVBE, USDC Reserves, Staked Vault
+                Principal & Claimable Rewards).
+              </span>
             </div>
           </div>
         </div>
