@@ -23,11 +23,8 @@ import {
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
 } from '../../../lib/contracts/escrow';
-import {
-  DEPLOYED_CONTRACTS_SEPOLIA,
-  getExplorerBaseUrl,
-  getDefaultChainId,
-} from '../../../constants';
+import { getDeployedContracts, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
+import { isAddress, type Address } from 'viem';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
@@ -54,6 +51,9 @@ import {
   Activity,
   Layers,
   ChevronRight,
+  Search,
+  UserCheck,
+  Users,
 } from 'lucide-react';
 
 export default function AdminStakingPage() {
@@ -61,11 +61,15 @@ export default function AdminStakingPage() {
   const chainId = chain?.id || getDefaultChainId();
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
 
-  const vaultAddress = DEPLOYED_CONTRACTS_SEPOLIA.StakingVault;
-  const distributorAddress = DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor;
-  const registryAddress = DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry;
+  const deployed = getDeployedContracts(chainId);
+  const vaultAddress = (deployed.UVBEStakingVault || deployed.StakingVault) as Address;
+  const distributorAddress = (deployed.UVBERewardDistributor ||
+    deployed.RewardDistributor) as Address;
+  const registryAddress = (deployed.UVBEReferralRegistry || deployed.ReferralRegistry) as Address;
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [lookupInput, setLookupInput] = useState('');
+  const [targetWallet, setTargetWallet] = useState<Address | null>(null);
   const [activeAction, setActiveAction] = useState<
     | 'checkpoint'
     | 'finalizeEpoch'
@@ -75,6 +79,69 @@ export default function AdminStakingPage() {
     | 'unpauseDistributor'
     | null
   >(null);
+
+  const isValidTarget = Boolean(targetWallet && isAddress(targetWallet));
+
+  const { data: userLookupData, isLoading: isLookupLoading } = useReadContracts({
+    contracts: [
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'getRank',
+        args: isValidTarget ? [targetWallet as Address] : undefined,
+      },
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'getTeamVolume',
+        args: isValidTarget ? [targetWallet as Address] : undefined,
+      },
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'getActiveDirectCount',
+        args: isValidTarget ? [targetWallet as Address] : undefined,
+      },
+      {
+        address: vaultAddress,
+        abi: STAKING_VAULT_ABI,
+        functionName: 'getPermanentStake',
+        args: isValidTarget ? [targetWallet as Address] : undefined,
+      },
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'getDirects',
+        args: isValidTarget ? [targetWallet as Address] : undefined,
+      },
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'getReferrer',
+        args: isValidTarget ? [targetWallet as Address] : undefined,
+      },
+    ],
+    query: {
+      enabled: isValidTarget,
+    },
+  });
+
+  const inspectedRank = Number(userLookupData?.[0]?.result ?? 0);
+  const inspectedTeamVolume = (userLookupData?.[1]?.result as bigint) ?? 0n;
+  const inspectedDirectsCount = Number(userLookupData?.[2]?.result ?? 0n);
+  const inspectedPermanentStake = (userLookupData?.[3]?.result as bigint) ?? 0n;
+  const inspectedDirectsList = (userLookupData?.[4]?.result as Address[]) ?? [];
+  const inspectedReferrer =
+    (userLookupData?.[5]?.result as Address) ??
+    ('0x0000000000000000000000000000000000000000' as Address);
+
+  const handleSearchWallet = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = lookupInput.trim();
+    if (isAddress(clean)) {
+      setTargetWallet(clean as Address);
+    }
+  };
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -811,6 +878,162 @@ export default function AdminStakingPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── LIVE WALLET RANK & DOWNLINE INSPECTOR ── */}
+      <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-subtle/40">
+          <div className="flex items-center space-x-2">
+            <Award className="w-5 h-5 text-amber-400" />
+            <h3 className="text-base font-bold text-white tracking-tight">
+              On-Chain Wallet Rank & Downline Inspector
+            </h3>
+          </div>
+          <span className="text-xs font-mono text-slate-400">
+            Query any staker rank, volume & affiliate hierarchy
+          </span>
+        </div>
+
+        {/* Search Input */}
+        <form onSubmit={handleSearchWallet} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Enter staker wallet address (0x...)"
+              value={lookupInput}
+              onChange={(e) => setLookupInput(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 font-mono focus:outline-none focus:border-[#BFFF00]"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!isAddress(lookupInput.trim())}
+            className="px-4 py-2.5 rounded-xl bg-[#BFFF00] text-black font-bold text-xs hover:bg-[#a6df00] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Inspect Wallet
+          </button>
+        </form>
+
+        {/* Query Result Card */}
+        {isValidTarget && (
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-700 space-y-4">
+            {isLookupLoading ? (
+              <div className="flex items-center justify-center py-6 text-xs text-slate-400 gap-2 font-mono">
+                <Loader2 className="w-4 h-4 animate-spin text-[#BFFF00]" />
+                <span>Reading on-chain registry state...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <UserCheck className="w-4 h-4 text-emerald-400" />
+                    <span className="font-mono text-xs text-white font-bold">{targetWallet}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 font-mono">Current Rank:</span>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold ${
+                        inspectedRank === 5
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                          : inspectedRank === 4
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                            : inspectedRank === 3
+                              ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
+                              : inspectedRank === 2
+                                ? 'bg-slate-300/20 text-slate-200 border border-slate-300/40'
+                                : inspectedRank === 1
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}
+                    >
+                      {inspectedRank === 5
+                        ? '👑 Rank 5: Diamond Legend'
+                        : inspectedRank === 4
+                          ? '💎 Rank 4: Platinum Ambassador'
+                          : inspectedRank === 3
+                            ? '🥇 Rank 3: Gold Commander'
+                            : inspectedRank === 2
+                              ? '🥈 Rank 2: Silver Captain'
+                              : inspectedRank === 1
+                                ? '🥉 Rank 1: Bronze Pioneer'
+                                : 'Rank 0: Member'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                      Permanent Stake
+                    </span>
+                    <span className="text-sm font-mono font-bold text-white">
+                      {Number(formatUnits(inspectedPermanentStake, 18)).toLocaleString()} UVBE
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                      Team Volume
+                    </span>
+                    <span className="text-sm font-mono font-bold text-[#BFFF00]">
+                      ${Number(formatUnits(inspectedTeamVolume, 18)).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                      Active Directs
+                    </span>
+                    <span className="text-sm font-mono font-bold text-cyan-400">
+                      {inspectedDirectsCount} Members
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                      Bound Referrer
+                    </span>
+                    <span
+                      className="text-xs font-mono font-bold text-purple-300 truncate block"
+                      title={inspectedReferrer}
+                    >
+                      {inspectedReferrer === '0x0000000000000000000000000000000000000000'
+                        ? 'Genesis Root (Admin)'
+                        : `${inspectedReferrer.slice(0, 6)}...${inspectedReferrer.slice(-4)}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Direct Referrals List */}
+                {inspectedDirectsList.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-800">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                      Direct Downlines ({inspectedDirectsList.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {inspectedDirectsList.map((direct, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setLookupInput(direct);
+                            setTargetWallet(direct as Address);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[11px] font-mono text-slate-300 hover:border-[#BFFF00] hover:text-white transition-colors"
+                        >
+                          {direct.slice(0, 6)}...{direct.slice(-4)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Module Initialization & Emergency Controls Grid */}
