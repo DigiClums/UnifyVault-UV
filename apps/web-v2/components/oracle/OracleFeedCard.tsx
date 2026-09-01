@@ -71,50 +71,54 @@ export function OracleFeedCard({ status, explorerBaseUrl }: OracleFeedCardProps)
         </div>
       </div>
 
-      {/* Main Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-0.5">
-          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
-            Normalized Price (18d)
+      {/* Main Metrics (2x2 Grid for optimal readability & zero overflow) */}
+      <div className="grid grid-cols-2 gap-2.5 text-xs">
+        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-1 min-w-0">
+          <span className="text-[10px] text-muted-foreground uppercase font-bold block truncate">
+            Normalized Price
           </span>
-          <div className="font-mono font-bold text-foreground text-sm">{status.priceFormatted}</div>
-          <span className="text-[10px] text-muted-foreground font-mono truncate block">
-            {status.price.toString()} wei
+          <div className="font-mono font-black text-foreground text-sm sm:text-base truncate">
+            {status.priceFormatted}
+          </div>
+          <span className="text-[9px] text-muted-foreground font-mono truncate block">
+            18 Decimals
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-0.5">
-          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-1 min-w-0">
+          <span className="text-[10px] text-muted-foreground uppercase font-bold block truncate">
             Last Valid Price
           </span>
-          <div className="font-mono font-bold text-cyan-400 text-sm">
+          <div className="font-mono font-black text-cyan-400 text-sm sm:text-base truncate">
             {status.lastValidPriceFormatted}
           </div>
-          <span className="text-[10px] text-muted-foreground font-mono truncate block">
-            {status.lastValidPrice.toString()} wei
+          <span className="text-[9px] text-muted-foreground font-mono truncate block">
+            Circuit Anchor
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-0.5">
-          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
-            Max Deviation Cap
+        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-1 min-w-0">
+          <span className="text-[10px] text-muted-foreground uppercase font-bold block truncate">
+            Max Deviation
           </span>
-          <div className="font-mono font-bold text-purple-400 text-sm">{deviationPercent}%</div>
-          <span className="text-[10px] text-muted-foreground font-mono block">
-            {status.maxDeviationBps.toString()} BPS
-          </span>
-        </div>
-
-        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-0.5">
-          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
-            Heartbeat Interval
-          </span>
-          <div className="font-mono font-bold text-foreground text-sm flex items-center space-x-1">
-            <Clock className="w-3 h-3 text-muted-foreground" />
-            <span>{status.heartbeat}s</span>
+          <div className="font-mono font-black text-purple-400 text-sm sm:text-base truncate">
+            {deviationPercent}%
           </div>
-          <span className="text-[10px] text-muted-foreground block">
-            ({(status.heartbeat / 3600).toFixed(1)} hours)
+          <span className="text-[9px] text-muted-foreground font-mono truncate block">
+            {status.maxDeviationBps.toString()} BPS Cap
+          </span>
+        </div>
+
+        <div className="p-3 rounded-xl bg-card/60 border border-border-subtle space-y-1 min-w-0">
+          <span className="text-[10px] text-muted-foreground uppercase font-bold block truncate">
+            Heartbeat
+          </span>
+          <div className="font-mono font-black text-foreground text-sm sm:text-base flex items-center space-x-1 truncate">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">{status.heartbeat}s</span>
+          </div>
+          <span className="text-[9px] text-muted-foreground truncate block">
+            {(status.heartbeat / 3600).toFixed(1)}h Max Age
           </span>
         </div>
       </div>

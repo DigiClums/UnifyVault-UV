@@ -65,8 +65,8 @@ export function StatCard({
         )}
       </div>
 
-      <div className="mt-3 space-y-1">
-        <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">
+      <div className="mt-3 space-y-1 min-w-0">
+        <div className="text-xl sm:text-2xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight truncate">
           {value}
         </div>
 
