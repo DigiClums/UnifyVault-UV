@@ -54,7 +54,7 @@ contract UVBEDynamicRewardSystemTest is Test {
     token.approve(address(vault), type(uint256).max);
   }
 
-  // 1. Zero liabilities + High reward capacity => Dynamic calculation up to 10000 BPS (100%)
+  // 1. Zero liabilities + High reward capacity => Dynamic calculation up to 60000 BPS (600%)
   function test_ZeroLiabilities_HighCapacity_HitsCeiling() public {
     vm.prank(alice);
     vault.stake(1_000 * 1e18, genesis); // 950 net stake, 57 liabilities (5% Gen 1 + 1% DAO)
@@ -62,7 +62,7 @@ contract UVBEDynamicRewardSystemTest is Test {
     // Capital = 950 UVBE, Liabilities = 57 UVBE => Surplus = 893 UVBE
     // APY = floor(893 * 10000 / 950) = 9400 BPS (94.00%)
     assertEq(distributor.getCurrentAnnualBps(), 9400);
-    assertEq(distributor.MAX_RECURRING_ANNUAL_BPS(), 10_000);
+    assertEq(distributor.MAX_RECURRING_ANNUAL_BPS(), 60_000);
   }
 
   // 2. Proportional APY calculation based on surplus protocol capital
@@ -113,25 +113,25 @@ contract UVBEDynamicRewardSystemTest is Test {
     (uint256 availCap, uint256 liab, uint256 surplus, uint256 newBps) = distributor
       .getRewardCapacity();
     assertGt(availCap, 1000 * 1e18, 'Capital must expand');
-    assertLe(newBps, 10000, 'APY clamped at 100% max');
+    assertLe(newBps, 60000, 'APY clamped at 600% max');
   }
 
-  // 6. APY Ceiling: Never exceeds 10,000 BPS
-  function test_APYCeiling_NeverExceeds10000Bps() public {
+  // 6. APY Ceiling: Never exceeds 60,000 BPS
+  function test_APYCeiling_NeverExceeds60000Bps() public {
     vm.prank(alice);
     vault.stake(100 * 1e18, genesis);
-    assertLe(distributor.getCurrentAnnualBps(), 10000);
+    assertLe(distributor.getCurrentAnnualBps(), 60000);
   }
 
-  // 7. APY Range: Between 0 and 10000 BPS
-  function test_APYRange_Between0And10000Bps() public {
+  // 7. APY Range: Between 0 and 60000 BPS
+  function test_APYRange_Between0And60000Bps() public {
     assertEq(distributor.getCurrentAnnualBps(), 0);
 
     vm.prank(alice);
     vault.stake(1_000 * 1e18, genesis);
     uint256 apy = distributor.getCurrentAnnualBps();
     assertGe(apy, 0);
-    assertLe(apy, 10000);
+    assertLe(apy, 60000);
   }
 
   // 8. Solvency invariant

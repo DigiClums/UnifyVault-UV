@@ -160,7 +160,7 @@ export function ProtocolCapitalCard() {
               {dynamicApy}% <span className="text-xs text-slate-500">APY</span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-              Max 100% capacity cap
+              Max 600% capacity cap
             </p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export function ProtocolCapitalCard() {
               </strong>{' '}
               APY is continuously calculated from available vault surplus capacity:
               <code className="mx-1 px-1.5 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 font-mono text-[10px]">
-                APY = min(100%, (Surplus Capacity × 10,000) ÷ Total Staked)
+                APY = min(600%, (Surplus Capacity × 10,000) ÷ Total Staked)
               </code>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">

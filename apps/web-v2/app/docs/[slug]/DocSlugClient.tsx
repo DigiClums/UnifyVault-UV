@@ -1,13 +1,16 @@
 'use client';
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { getDocItemBySlug } from '../../../lib/docs/docsData';
 import { MarkdownRenderer } from '../../../components/docs/MarkdownRenderer';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-export default function DocSlugClient({ slug }: { slug: string }) {
-  const doc = getDocItemBySlug(slug || 'introduction');
+export default function DocSlugClient({ slug: initialSlug }: { slug?: string }) {
+  const params = useParams();
+  const routeSlug = (params?.slug as string) || initialSlug || 'introduction';
+  const doc = getDocItemBySlug(routeSlug);
 
   if (!doc) {
     return (

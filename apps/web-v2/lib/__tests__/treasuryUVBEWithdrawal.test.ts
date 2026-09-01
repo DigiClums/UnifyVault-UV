@@ -188,7 +188,7 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
         '0x57561f781b2f558a7445d2e93a365c03ba2c9b53',
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase()).toBe(
-        '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571',
+        '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1',
       );
     });
   });

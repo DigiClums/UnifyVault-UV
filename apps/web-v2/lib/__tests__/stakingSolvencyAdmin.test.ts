@@ -30,19 +30,19 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
   describe('1. Canonical Deployed Staking Contract Addresses', () => {
     it('verifies exact Base Mainnet UVBEStakingVault address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase()).toBe(
-        '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571',
+        '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1',
       );
     });
 
     it('verifies exact Base Mainnet UVBERewardDistributor address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor.toLowerCase()).toBe(
-        '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa',
+        '0x878eb0e328725cee505c4001de9f3815f6ba16d4',
       );
     });
 
     it('verifies exact Base Mainnet UVBEReferralRegistry address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry.toLowerCase()).toBe(
-        '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e',
+        '0xb157fa8d58f8a610e8ae91a68f38b3304edff309',
       );
     });
   });
@@ -97,16 +97,16 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
       expect(Number(calculatedBps) / 100).toBe(16.0);
     });
 
-    it('caps dynamic APY at MAX_RECURRING_ANNUAL_BPS (100.00% / 10000 BPS)', () => {
-      const availableCapital = parseUnits('200000', 18);
+    it('caps dynamic APY at MAX_RECURRING_ANNUAL_BPS (600.00% / 60000 BPS)', () => {
+      const availableCapital = parseUnits('400000', 18);
       const liabilities = 0n;
-      const totalStaked = parseUnits('50000', 18); // Large surplus relative to stake
+      const totalStaked = parseUnits('50000', 18); // 8x surplus relative to stake = 800%
 
       const surplusCapacity = availableCapital - liabilities;
-      const rawBps = (surplusCapacity * 10000n) / totalStaked; // 40000 BPS (400%)
-      const cappedBps = rawBps > 10000n ? 10000n : rawBps;
+      const rawBps = (surplusCapacity * 10000n) / totalStaked; // 80000 BPS (800%)
+      const cappedBps = rawBps > 60000n ? 60000n : rawBps;
 
-      expect(cappedBps).toBe(10000n); // 100.00% ceiling
+      expect(cappedBps).toBe(60000n); // 600.00% ceiling
     });
   });
 

@@ -229,8 +229,8 @@ Dynamic APY (BPS) = (Surplus Capacity * 10,000) / Total Permanent Staked
    - As more fees from swaps, mints, and Flash 30s settlement flow into the **\`UVBERewardReserve\`**, the **Surplus Capacity** increases, pushing the **Dynamic APY up**.
    - If the total amount of staked UVBE expands, the APY dynamically calibrates to ensure the protocol is always mathematically 100% solvent.
 
-2. **100.00% Max Annual APY Ceiling**:
-   - The contract enforces a hard safety cap of **10,000 BPS (100.00% Annual APY)** to protect the protocol against extreme volatility spikes.
+2. **600.00% Max Annual APY Ceiling**:
+   - The contract enforces a hard safety cap of **60,000 BPS (600.00% Annual APY)** to protect the protocol against extreme volatility spikes.
 
 3. **Continuous Per-Second Accrual**:
    - Rewards accrue every second via global index checkpoints (\`deltaIndex = timeDelta * currentAnnualBps / (SECONDS_PER_YEAR * 10,000)\`).
@@ -345,9 +345,9 @@ All UnifyVault contracts are publicly open-source, deployed on **Base**, and ver
 | **PortfolioManager** | \`0x66182f56bd5e523c655f6890290ab519f528e83f\` | [View on BaseScan](https://basescan.org/address/0x66182f56bd5e523c655f6890290ab519f528e83f) |
 | **OracleManager (Pyth + Chainlink)** | \`0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7\` | [View on BaseScan](https://basescan.org/address/0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7) |
 | **CostBasisManagerV2** | \`0x27b5c6dea90678b78856b0b10dba37a789fde97e\` | [View on BaseScan](https://basescan.org/address/0x27b5c6dea90678b78856b0b10dba37a789fde97e) |
-| **UVBEStakingVault** | \`0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571\` | [View on BaseScan](https://basescan.org/address/0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571) |
-| **UVBEReferralRegistry** | \`0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e\` | [View on BaseScan](https://basescan.org/address/0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e) |
-| **UVBERewardDistributor** | \`0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa\` | [View on BaseScan](https://basescan.org/address/0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa) |
+| **UVBEStakingVault** | \`0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1\` | [View on BaseScan](https://basescan.org/address/0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1) |
+| **UVBEReferralRegistry** | \`0xb157fa8d58f8a610e8ae91a68f38b3304edff309\` | [View on BaseScan](https://basescan.org/address/0xb157fa8d58f8a610e8ae91a68f38b3304edff309) |
+| **UVBERewardDistributor** | \`0x878eb0e328725cee505c4001de9f3815f6ba16d4\` | [View on BaseScan](https://basescan.org/address/0x878eb0e328725cee505c4001de9f3815f6ba16d4) |
 | **P2PEscrowV2** | \`0xa938aacea64be8f41c90960aff232da4df7fc329\` | [View on BaseScan](https://basescan.org/address/0xa938aacea64be8f41c90960aff232da4df7fc329) |
 | **TimelockController** | \`0x610c5f66d99993d444561d270fba172db1f7cff1\` | [View on BaseScan](https://basescan.org/address/0x610c5f66d99993d444561d270fba172db1f7cff1) |
 

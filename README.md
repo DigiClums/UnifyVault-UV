@@ -126,7 +126,7 @@ flowchart TD
 - **Perpetual Staked Position**: 50 UVBE minimum stake (47.5 UVBE net principal after 5% treasury allocation).
 - **Dynamic APY Formula**:
   $$\text{Dynamic APY (BPS)} = \frac{\text{Surplus Capacity} \times 10{,}000}{\text{Total Permanent Staked}}$$
-  _(Enforced 100.00% annual APY safety ceiling)._
+  _(Enforced 600.00% annual APY safety ceiling)._
 - **10-Generation Overrides**: Gen 1 (5.00%), Gen 2 (2.00%), Gen 3 (1.50%), Gen 4 (1.00%), Gen 5 (0.75%), Gen 6 & 7 (0.50%), Gen 8, 9 & 10 (0.25%).
 - **6 Leadership Ranks**: Bronze, Silver, Gold, Platinum (+1 DAO share), Diamond (+3 DAO shares), Crown Ambassador (+10 DAO shares).
 - **1.00% DAO Leadership Pool**: Weekly revenue distributions to qualified rank leaders.
@@ -304,9 +304,9 @@ Code Commit → GitHub Actions CI → Build & Sign APK → SHA256 Verification �
 | **OracleManager (Pyth + Chainlink)**  | `0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7` | Verified            |
 | **CostBasisManagerV2**                | `0x27b5c6dea90678b78856b0b10dba37a789fde97e` | Verified            |
 | **SwapAdapter**                       | `0xaae7104a120e7c6e518a936fcbc102bcd0454b67` | Verified            |
-| **UVBEStakingVault**                  | `0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571` | Verified            |
-| **UVBEReferralRegistry**              | `0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e` | Verified            |
-| **UVBERewardDistributor**             | `0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa` | Verified            |
+| **UVBEStakingVault**                  | `0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1` | Verified            |
+| **UVBEReferralRegistry**              | `0xb157fa8d58f8a610e8ae91a68f38b3304edff309` | Verified            |
+| **UVBERewardDistributor**             | `0x878eb0e328725cee505c4001de9f3815f6ba16d4` | Verified (600% APY) |
 | **P2PEscrowV2**                       | `0xa938aacea64be8f41c90960aff232da4df7fc329` | Verified            |
 | **P2PReputation**                     | `0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8` | Verified            |
 | **Marketplace**                       | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified            |

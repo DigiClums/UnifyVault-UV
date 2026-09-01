@@ -1,0 +1,193 @@
+import { createPublicClient, http, formatEther, isAddress, parseAbi } from 'viem';
+import { base } from 'viem/chains';
+
+// Public Base Mainnet RPC
+const RPC_URL =
+  process.env.BASE_MAINNET_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || 'https://mainnet.base.org';
+
+export const publicClient = createPublicClient({
+  chain: base,
+  transport: http(RPC_URL),
+});
+
+// Canonical Base Mainnet Deployed Addresses
+export const CONTRACTS = {
+  UVBEToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
+  UVBEStakingVault: '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1' as `0x${string}`,
+  UVBEReferralRegistry: '0xb157fa8d58f8a610e8ae91a68f38b3304edff309' as `0x${string}`,
+  UVBERewardDistributor: '0x878eb0e328725cee505c4001de9f3815f6ba16d4' as `0x${string}`,
+  UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
+};
+
+const ERC20_ABI = parseAbi([
+  'function balanceOf(address account) external view returns (uint256)',
+  'function decimals() external view returns (uint8)',
+  'function symbol() external view returns (string)',
+]);
+
+const STAKING_VAULT_ABI = parseAbi([
+  'function getPermanentStake(address user) external view returns (uint256)',
+  'function totalPermanentStaked() external view returns (uint256)',
+  'function getStakeCount(address user) external view returns (uint256)',
+]);
+
+const REWARD_DISTRIBUTOR_ABI = parseAbi([
+  'function getClaimableRewards(address user) external view returns (uint256)',
+  'function getPendingRecurringReward(address user) external view returns (uint256)',
+  'function getDetailedRewardInfo(address user) external view returns (uint256 recurringReward, uint256 directReward, uint256 generationReward, uint256 rankReward, uint256 daoReward, uint256 totalClaimable, uint256 totalClaimed, uint256 totalRestaked)',
+  'function getCurrentAnnualBps() external view returns (uint256)',
+]);
+
+const REFERRAL_REGISTRY_ABI = parseAbi([
+  'function getRank(address user) external view returns (uint8)',
+  'function getReferrer(address user) external view returns (address)',
+  'function getActiveDirectCount(address user) external view returns (uint256 activeCount)',
+  'function getTeamVolume(address user) external view returns (uint256)',
+]);
+
+export interface OnChainUserData {
+  address: `0x${string}`;
+  ethBalance: string;
+  uvbeBalance: string;
+  stakedAmount: string;
+  stakeCount: number;
+  totalClaimableRewards: string;
+  pendingRecurringReward: string;
+  totalClaimed: string;
+  rank: number;
+  activeDirects: number;
+  teamVolume: string;
+  currentApyBps: number;
+}
+
+export async function fetchLiveUserData(userAddress: string): Promise<OnChainUserData> {
+  if (!isAddress(userAddress)) {
+    throw new Error('Invalid Ethereum / Base address');
+  }
+
+  const addr = userAddress as `0x${string}`;
+
+  // Read ETH Balance
+  const ethBalanceWei = await publicClient.getBalance({ address: addr });
+
+  // Read UVBE Balance
+  let uvbeBalanceWei = 0n;
+  try {
+    uvbeBalanceWei = await publicClient.readContract({
+      address: CONTRACTS.UVBEToken,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [addr],
+    });
+  } catch (e) {
+    console.error('Error reading UVBE balance:', e);
+  }
+
+  // Read Staking info
+  let permanentStakeWei = 0n;
+  let stakeCountBig = 0n;
+  try {
+    permanentStakeWei = await publicClient.readContract({
+      address: CONTRACTS.UVBEStakingVault,
+      abi: STAKING_VAULT_ABI,
+      functionName: 'getPermanentStake',
+      args: [addr],
+    });
+
+    stakeCountBig = await publicClient.readContract({
+      address: CONTRACTS.UVBEStakingVault,
+      abi: STAKING_VAULT_ABI,
+      functionName: 'getStakeCount',
+      args: [addr],
+    });
+  } catch (e) {
+    console.error('Error reading staking vault:', e);
+  }
+
+  // Read Rewards info
+  let claimableWei = 0n;
+  let recurringWei = 0n;
+  let claimedWei = 0n;
+  let apyBps = 0n;
+  try {
+    const details = await publicClient.readContract({
+      address: CONTRACTS.UVBERewardDistributor,
+      abi: REWARD_DISTRIBUTOR_ABI,
+      functionName: 'getDetailedRewardInfo',
+      args: [addr],
+    });
+    recurringWei = details[0];
+    claimableWei = details[5];
+    claimedWei = details[6];
+
+    apyBps = await publicClient.readContract({
+      address: CONTRACTS.UVBERewardDistributor,
+      abi: REWARD_DISTRIBUTOR_ABI,
+      functionName: 'getCurrentAnnualBps',
+    });
+  } catch (e) {
+    console.error('Error reading rewards distributor:', e);
+  }
+
+  // Read Referral and Rank info
+  let rank = 0;
+  let activeDirects = 0;
+  let teamVolumeWei = 0n;
+  try {
+    rank = Number(
+      await publicClient.readContract({
+        address: CONTRACTS.UVBEReferralRegistry,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'getRank',
+        args: [addr],
+      }),
+    );
+
+    const directCount = await publicClient.readContract({
+      address: CONTRACTS.UVBEReferralRegistry,
+      abi: REFERRAL_REGISTRY_ABI,
+      functionName: 'getActiveDirectCount',
+      args: [addr],
+    });
+    activeDirects = Number(directCount);
+
+    teamVolumeWei = await publicClient.readContract({
+      address: CONTRACTS.UVBEReferralRegistry,
+      abi: REFERRAL_REGISTRY_ABI,
+      functionName: 'getTeamVolume',
+      args: [addr],
+    });
+  } catch (e) {
+    console.error('Error reading referral registry:', e);
+  }
+
+  return {
+    address: addr,
+    ethBalance: parseFloat(formatEther(ethBalanceWei)).toFixed(5),
+    uvbeBalance: parseFloat(formatEther(uvbeBalanceWei)).toFixed(2),
+    stakedAmount: parseFloat(formatEther(permanentStakeWei)).toFixed(2),
+    stakeCount: Number(stakeCountBig),
+    totalClaimableRewards: parseFloat(formatEther(claimableWei)).toFixed(2),
+    pendingRecurringReward: parseFloat(formatEther(recurringWei)).toFixed(2),
+    totalClaimed: parseFloat(formatEther(claimedWei)).toFixed(2),
+    rank,
+    activeDirects,
+    teamVolume: parseFloat(formatEther(teamVolumeWei)).toFixed(2),
+    currentApyBps: Number(apyBps),
+  };
+}
+
+export async function fetchTxStatus(txHash: string) {
+  try {
+    const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+    return {
+      status: receipt.status === 'success' ? 'Confirmed ✅' : 'Reverted ❌',
+      blockNumber: receipt.blockNumber.toString(),
+      gasUsed: receipt.gasUsed.toString(),
+      from: receipt.from,
+      to: receipt.to,
+    };
+  } catch (e) {
+    return null;
+  }
+}

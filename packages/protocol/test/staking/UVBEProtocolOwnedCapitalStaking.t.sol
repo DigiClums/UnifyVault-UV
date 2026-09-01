@@ -287,14 +287,14 @@ contract UVBEProtocolOwnedCapitalStakingTest is Test {
     assertEq(distributor.getCurrentAnnualBps(), 0, 'APY is 0 when no capital staked');
   }
 
-  // 14. APY <= 100%
-  function test_14_ApyNeverExceeds100Percent() public {
+  // 14. APY <= 600%
+  function test_14_ApyNeverExceeds600Percent() public {
     vm.startPrank(alice);
     token.approve(address(vault), 50 * 1e18);
     vault.stake(50 * 1e18, genesisRoot);
     vm.stopPrank();
 
-    assertLe(distributor.getCurrentAnnualBps(), 10_000, 'APY must be clamped at 10000 BPS');
+    assertLe(distributor.getCurrentAnnualBps(), 60_000, 'APY must be clamped at 60000 BPS');
   }
 
   // 15. New stake cannot receive historical rewards

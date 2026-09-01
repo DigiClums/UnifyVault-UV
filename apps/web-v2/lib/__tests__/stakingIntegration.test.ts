@@ -18,13 +18,13 @@ import {
 describe('Staking Contracts & Frontend Integration', () => {
   it('has valid deployed Base Mainnet staking addresses', () => {
     expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault).toBe(
-      '0xd6d6b6297aa98126e9a2b7eaf64f6db19c86f571',
+      '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1',
     );
     expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry).toBe(
-      '0x95618e4347a923a80565dcc7ab23b89ce9ec0b1e',
+      '0xb157fa8d58f8a610e8ae91a68f38b3304edff309',
     );
     expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor).toBe(
-      '0xb911a7655d1edef73b45e29f9a0d4dfdd9ba60aa',
+      '0x878eb0e328725cee505c4001de9f3815f6ba16d4',
     );
     expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
     expect(DEPLOYED_CONTRACTS_MAINNET.GenesisReferrer).toBe(

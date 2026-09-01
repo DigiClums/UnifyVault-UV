@@ -16,6 +16,9 @@ import {
   Shield,
   Layers,
   Sparkles,
+  Zap,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { encodeDeployData, parseEther, isAddress, type Address } from 'viem';
 import { DEPLOYMENT_ARTIFACTS } from '../../lib/deployment/generatedArtifacts';
@@ -51,6 +54,25 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
   const [deployed, setDeployed] = useState<DeployedState>({});
   const [txHashes, setTxHashes] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyConfigJson = () => {
+    const config = {
+      UVBEStakingVault: deployed.stakingVault || '',
+      UVBEReferralRegistry: deployed.referralRegistry || '',
+      UVBERewardDistributor: deployed.rewardDistributor || '',
+      P2PReputation: deployed.p2pReputation || '',
+      Paymaster: deployed.paymaster || '',
+      GasTreasury: deployed.gasTreasury || '',
+      StabilizerVault: deployed.stabilizerVault || '',
+      Timelock: deployed.timelock || '',
+      dynamicApyCapBps: 60000,
+      dynamicApyCapPercent: '600.00%',
+    };
+    navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const explorerUrl = getExplorerBaseUrl(chainId || 8453);
 
@@ -236,6 +258,102 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
     }
   };
 
+  // 1-Click Full Staking Suite Deployer (Vault -> Registry -> Distributor 600% APY -> Interlink)
+  const deployAllStakingSuite = async () => {
+    try {
+      if (!walletClient || !publicClient) throw new Error('Wallet not connected');
+      setError(null);
+
+      // Step 2: Vault
+      setLoadingStep(2);
+      const vArtifact = DEPLOYMENT_ARTIFACTS.UVBEStakingVault;
+      const vDeployData = encodeDeployData({
+        abi: vArtifact.abi,
+        bytecode: vArtifact.bytecode,
+        args: [address || GOV, UVBE_TOKEN],
+      });
+      const vHash = await walletClient.sendTransaction({
+        data: vDeployData,
+        chain: walletClient.chain,
+        account: walletClient.account,
+      });
+      setTxHashes((prev) => ({ ...prev, stakingVault: vHash }));
+      const vReceipt = await publicClient.waitForTransactionReceipt({ hash: vHash });
+      if (!vReceipt.contractAddress) throw new Error('Vault deployment failed');
+      const vaultAddr = vReceipt.contractAddress as Address;
+      setDeployed((prev) => ({ ...prev, stakingVault: vaultAddr }));
+
+      // Step 3: Registry
+      setLoadingStep(3);
+      const rArtifact = DEPLOYMENT_ARTIFACTS.UVBEReferralRegistry;
+      const rDeployData = encodeDeployData({
+        abi: rArtifact.abi,
+        bytecode: rArtifact.bytecode,
+        args: [address || GOV, address || GOV],
+      });
+      const rHash = await walletClient.sendTransaction({
+        data: rDeployData,
+        chain: walletClient.chain,
+        account: walletClient.account,
+      });
+      setTxHashes((prev) => ({ ...prev, referralRegistry: rHash }));
+      const rReceipt = await publicClient.waitForTransactionReceipt({ hash: rHash });
+      if (!rReceipt.contractAddress) throw new Error('Registry deployment failed');
+      const registryAddr = rReceipt.contractAddress as Address;
+      setDeployed((prev) => ({ ...prev, referralRegistry: registryAddr }));
+
+      // Step 4: Distributor (with 600% APY cap)
+      setLoadingStep(4);
+      const dArtifact = DEPLOYMENT_ARTIFACTS.UVBERewardDistributor;
+      const dDeployData = encodeDeployData({
+        abi: dArtifact.abi,
+        bytecode: dArtifact.bytecode,
+        args: [address || GOV, UVBE_TOKEN],
+      });
+      const dHash = await walletClient.sendTransaction({
+        data: dDeployData,
+        chain: walletClient.chain,
+        account: walletClient.account,
+      });
+      setTxHashes((prev) => ({ ...prev, rewardDistributor: dHash }));
+      const dReceipt = await publicClient.waitForTransactionReceipt({ hash: dHash });
+      if (!dReceipt.contractAddress) throw new Error('Distributor deployment failed');
+      const distributorAddr = dReceipt.contractAddress as Address;
+      setDeployed((prev) => ({ ...prev, rewardDistributor: distributorAddr }));
+
+      // Step 5: Interlink all 3 modules
+      setLoadingStep(5);
+      const svHash = await walletClient.writeContract({
+        address: vaultAddr,
+        abi: vArtifact.abi,
+        functionName: 'setModules',
+        args: [registryAddr, distributorAddr],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: svHash });
+
+      const srHash = await walletClient.writeContract({
+        address: registryAddr,
+        abi: rArtifact.abi,
+        functionName: 'setModules',
+        args: [vaultAddr, distributorAddr],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: srHash });
+
+      const sdHash = await walletClient.writeContract({
+        address: distributorAddr,
+        abi: dArtifact.abi,
+        functionName: 'setModules',
+        args: [vaultAddr, registryAddr],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: sdHash });
+      setTxHashes((prev) => ({ ...prev, interlink: sdHash }));
+    } catch (err: any) {
+      setError(err?.message || 'Full Staking Suite automated deployment failed');
+    } finally {
+      setLoadingStep(null);
+    }
+  };
+
   // 6. Deploy P2P Reputation
   const deployP2PReputation = async () => {
     try {
@@ -408,16 +526,85 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#BFFF00] text-black">
               1-Click Web Deployer
             </span>
-            <span className="text-xs text-white/50">Base Mainnet (8453)</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              600.00% APY Engine
+            </span>
+            <span className="text-xs text-white/50">
+              {chainId === 84532 ? 'Base Sepolia (84532)' : 'Base Mainnet (8453)'}
+            </span>
           </div>
           <h2 className="text-xl font-black text-white flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#BFFF00]" />
             <span>Pending Contracts Deployment & Interlinking Suite</span>
           </h2>
           <p className="text-xs text-white/70">
-            Deploy Timelock, Staking Ecosystem, P2P Reputation Engine & ERC-4337 Gasless Paymaster
-            directly from your connected wallet.
+            Deploy Timelock, Staking Ecosystem (with 600% Dynamic APY Cap), P2P Reputation & Gasless
+            Paymaster directly from your connected wallet.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={copyConfigJson}
+            disabled={!deployed.stakingVault && !deployed.rewardDistributor}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all cursor-pointer disabled:opacity-40"
+          >
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 text-[#BFFF00]" />
+            )}
+            <span>{copied ? 'Copied JSON!' : 'Copy Config JSON'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 1-Click Staking Ecosystem Quick Deployer Box */}
+      <div className="p-4 rounded-xl bg-gradient-to-r from-[#BFFF00]/10 via-purple-500/10 to-transparent border border-[#BFFF00]/30 space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#BFFF00]" />
+              <span className="text-sm font-black text-white">
+                1-Click Staking Ecosystem Setup (600% Dynamic APY Cap)
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#BFFF00]/20 text-[#BFFF00] border border-[#BFFF00]/30">
+                Steps 2 → 3 → 4 → 5
+              </span>
+            </div>
+            <p className="text-xs text-white/70">
+              Automatically deploys UVBEStakingVault, UVBEReferralRegistry, UVBERewardDistributor
+              (600% APY Ceiling), and permanently freezes all module interlinks in sequence.
+            </p>
+          </div>
+
+          <button
+            onClick={deployAllStakingSuite}
+            disabled={loadingStep !== null || !isConnected}
+            className="px-5 py-2.5 rounded-xl text-xs font-black bg-[#BFFF00] text-black hover:bg-[#a6df00] shadow-[0_0_15px_rgba(191,255,0,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+          >
+            {loadingStep && [2, 3, 4, 5].includes(loadingStep) ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>
+                  {loadingStep === 2 && 'Deploying StakingVault...'}
+                  {loadingStep === 3 && 'Deploying ReferralRegistry...'}
+                  {loadingStep === 4 && 'Deploying RewardDistributor (600% APY)...'}
+                  {loadingStep === 5 && 'Freezing Interlinks...'}
+                </span>
+              </>
+            ) : txHashes.interlink ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-black" />
+                <span>Staking Suite Deployed & Linked!</span>
+              </>
+            ) : (
+              <>
+                <Rocket className="w-4 h-4" />
+                <span>⚡ Auto-Deploy Full Staking Suite</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -557,9 +744,17 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
               <Flame className="w-4 h-4 text-[#BFFF00]" />
               <span className="font-bold text-sm text-white">4. Reward Distributor</span>
             </div>
-            {deployed.rewardDistributor && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+            {deployed.rewardDistributor ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#BFFF00]/20 text-[#BFFF00]">
+                600% APY Cap
+              </span>
+            )}
           </div>
-          <p className="text-xs text-white/60">Dynamic solvent APY engine & 30-day DAO pool.</p>
+          <p className="text-xs text-white/60">
+            Dynamic solvent APY engine (600% cap) & 30-day DAO pool.
+          </p>
           {deployed.rewardDistributor ? (
             <a
               href={`${explorerUrl}/address/${deployed.rewardDistributor}`}

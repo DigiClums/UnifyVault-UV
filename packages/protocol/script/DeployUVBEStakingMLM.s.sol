@@ -115,7 +115,7 @@ contract DeployUVBEStakingMLMScript is Script {
     require(distributor.vault() == address(vault), 'Distributor vault mismatch');
     require(distributor.registry() == address(registry), 'Distributor registry mismatch');
 
-    require(distributor.MAX_RECURRING_ANNUAL_BPS() == 10000, 'Invalid max rate');
+    require(distributor.MAX_RECURRING_ANNUAL_BPS() == 60000, 'Invalid max rate');
     require(distributor.getCurrentAnnualBps() == 0, 'Initial rate without stake must be 0');
     require(distributor.SECONDS_PER_YEAR() == 31536000, 'Invalid year seconds');
     require(vault.MIN_STAKE() == 50 * 1e18, 'Invalid min stake');

@@ -16,7 +16,7 @@ import '../libraries/AccessRoles.sol';
  */
 contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, ReentrancyGuard, Pausable {
   uint256 public constant BPS_DENOMINATOR = 10_000;
-  uint256 public constant override MAX_RECURRING_ANNUAL_BPS = 10_000; // 100.00% maximum annual APY ceiling
+  uint256 public constant override MAX_RECURRING_ANNUAL_BPS = 60_000; // 600.00% maximum annual APY ceiling
   uint256 public constant SECONDS_PER_YEAR = 31_536_000; // 365 days
   uint256 public constant DAO_POOL_BPS = 100; // 1.00% to DAO leadership pool
   uint256 public constant DAO_CYCLE_DURATION = 30 days;
@@ -498,7 +498,7 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     uint256 calculatedBps = (surplusCapacity * BPS_DENOMINATOR) / totalStaked;
 
     if (calculatedBps > MAX_RECURRING_ANNUAL_BPS) {
-      return MAX_RECURRING_ANNUAL_BPS; // Cap at 100.00% max ceiling (10000 BPS)
+      return MAX_RECURRING_ANNUAL_BPS; // Cap at 600.00% max ceiling (60000 BPS)
     }
     return calculatedBps;
   }

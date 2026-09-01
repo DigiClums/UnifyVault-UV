@@ -1,14 +1,21 @@
 {
-  "newAdmin": "0x0000000000000000000000000000000000000000",
-  "oldAdmin": "0x0000000000000000000000000000000000000000",
-  "guardian": "0x0000000000000000000000000000000000000000",
-  "confirmRenounce": false,
+  "newAdmin": "0xe37b77ca9e49c2586365e7394f0f037901ed8a95",
+  "oldAdmin": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "guardian": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+  "timelock": "0x610c5f66d99993d444561d270fba172db1f7cff1",
+  "confirmRenounce": true,
   "contracts": {
-    "ProtocolDirectory": "0x0000000000000000000000000000000000000000",
-    "UnifyVaultController": "0x0000000000000000000000000000000000000000",
-    "CustodyVault": "0x0000000000000000000000000000000000000000",
-    "Treasury": "0x0000000000000000000000000000000000000000",
-    "OracleManager": "0x0000000000000000000000000000000000000000",
-    "UVBTCETHToken": "0x0000000000000000000000000000000000000000"
+    "ProtocolDirectory": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+    "UVBEToken": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
+    "UnifyVaultController": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
+    "CustodyVault": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
+    "PortfolioManager": "0x66182f56bd5e523c655f6890290ab519f528e83f",
+    "OracleManager": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
+    "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
+    "UVBEStakingVault": "0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1",
+    "UVBEReferralRegistry": "0xb157fa8d58f8a610e8ae91a68f38b3304edff309",
+    "UVBERewardDistributor": "0x878eb0e328725cee505c4001de9f3815f6ba16d4",
+    "P2PEscrowV2": "0xa938aacea64be8f41c90960aff232da4df7fc329",
+    "TimelockController": "0x610c5f66d99993d444561d270fba172db1f7cff1"
   }
 }

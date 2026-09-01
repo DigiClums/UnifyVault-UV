@@ -20,8 +20,9 @@
 - **Status**: **PASS — FULLY OPERATIONAL**
 - **Operational Reality**: UnifyVault V2 operates under Single-EOA governance mode today.
 - **Authorized Authority**:
-  - `Admin EOA` (`0xd905920c91853039060246Ed5724AA72B91a96DA`) holds `DEFAULT_ADMIN_ROLE` and `GOVERNANCE_ROLE` across all 16 core protocol contracts and `DEFAULT_ADMIN_ROLE` on `UnifyVaultTimelock`.
-  - `Deployer EOA` (`0x516FaAad5bce5a9269AC4a1A2FD986DdaBa1AbA1`) holds `owner()` on `GasTreasury` and `UnifyVaultPaymaster`.
+  - `Master Admin EOA` (`0xe37b77ca9e49c2586365e7394f0f037901ed8a95`) holds `DEFAULT_ADMIN_ROLE` across core protocol contracts.
+  - `Deployer & Guardian EOA` (`0x441dbf8076d0b143EC17199baE94Daa884161454`) holds `GOVERNANCE_ROLE` & `GUARDIAN_ROLE` across ProtocolDirectory, UVBE, StakingVault, and controllers.
+  - `Timelock Controller` (`0x610c5f66d99993d444561d270fba172db1f7cff1`) enforces 48-hour execution delay.
 - **Frontend UX**: Dynamic role inspection via `hasRole()` allows single-wallet administrators to manage the protocol without a multisig dependency.
 
 ---
