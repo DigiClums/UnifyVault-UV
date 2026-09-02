@@ -292,52 +292,67 @@ Code Commit → GitHub Actions CI → Build & Sign APK → SHA256 Verification �
 
 ### 🌐 Base Mainnet (Chain ID `8453`)
 
-| Contract Module                       | Address                                      | Verification Status |
-| :------------------------------------ | :------------------------------------------- | :------------------ |
-| **ProtocolDirectory**                 | `0xe74b400f4aea3a0b593be5acbc54f56631c0d60e` | Verified            |
-| **UVBE Index Coin (`UVBEToken`)**     | `0xd2715141a0f5998b707baa963990bfc2e94cf145` | Verified            |
-| **UnifyVaultController (UUPS Proxy)** | `0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366` | Verified            |
-| **CustodyVault**                      | `0xbb35a3434c689942e0b7d58909eae0d2cc0769ca` | Verified            |
-| **Treasury**                          | `0x57561F781b2f558A7445D2E93a365C03BA2c9B53` | Verified            |
-| **PortfolioManager**                  | `0x66182f56bd5e523c655f6890290ab519f528e83f` | Verified            |
-| **StrategyManager**                   | `0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a` | Verified            |
-| **OracleManager (Pyth + Chainlink)**  | `0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7` | Verified            |
-| **CostBasisManagerV2**                | `0x27b5c6dea90678b78856b0b10dba37a789fde97e` | Verified            |
-| **SwapAdapter**                       | `0xaae7104a120e7c6e518a936fcbc102bcd0454b67` | Verified            |
-| **UVBEStakingVault**                  | `0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1` | Verified            |
-| **UVBEReferralRegistry**              | `0xb157fa8d58f8a610e8ae91a68f38b3304edff309` | Verified            |
-| **UVBERewardDistributor**             | `0x878eb0e328725cee505c4001de9f3815f6ba16d4` | Verified (600% APY) |
-| **P2PEscrowV2**                       | `0xa938aacea64be8f41c90960aff232da4df7fc329` | Verified            |
-| **P2PReputation**                     | `0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8` | Verified            |
-| **Marketplace**                       | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified            |
-| **Paymaster**                         | `0xdf96b619934d17ae85142dcef1655a8d3b19040a` | Verified            |
-| **TimelockController**                | `0x610c5f66d99993d444561d270fba172db1f7cff1` | Verified (48h)      |
+| Contract Module                       | Address (BaseScan Link)                                                                    | Role / Purpose                                        | Status                 |
+| :------------------------------------ | :----------------------------------------------------------------------------------------- | :---------------------------------------------------- | :--------------------- |
+| **ProtocolDirectory**                 | [`0xe74b...d60e`](https://basescan.org/address/0xe74b400f4aea3a0b593be5acbc54f56631c0d60e) | Canonical Module Registry & Dynamic Address Resolver  | 🟢 Verified            |
+| **UVBE Index Coin (`UVBEToken`)**     | [`0xd271...f145`](https://basescan.org/address/0xd2715141a0f5998b707baa963990bfc2e94cf145) | 60/40 Backed Index Share (cbBTC + WETH)               | 🟢 Verified            |
+| **UnifyVaultController (UUPS Proxy)** | [`0xe6cd...c366`](https://basescan.org/address/0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366) | Atomic Deposit, Mint, NAV & Redemption Controller     | 🟢 Verified            |
+| **CustodyVault**                      | [`0xbb35...69ca`](https://basescan.org/address/0xbb35a3434c689942e0b7d58909eae0d2cc0769ca) | Segregated Collateral Asset Vault (cbBTC, WETH, USDC) | 🟢 Verified            |
+| **Treasury**                          | [`0x5756...9B53`](https://basescan.org/address/0x57561F781b2f558A7445D2E93a365C03BA2c9B53) | Protocol Reserve Capital & Fee Accrual                | 🟢 Verified            |
+| **PortfolioManager**                  | [`0x6618...e83f`](https://basescan.org/address/0x66182f56bd5e523c655f6890290ab519f528e83f) | Asset Balancing & Valuation Calculation Engine        | 🟢 Verified            |
+| **StrategyManager**                   | [`0x4f7f...354a`](https://basescan.org/address/0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a) | Target Allocation Weights (60% cbBTC / 40% WETH)      | 🟢 Verified            |
+| **LiquidityManager**                  | [`0x9af8...16d3`](https://basescan.org/address/0x9af86a9ac1563b7fdbf43b19335348240a8c16d3) | Buffer & Active Rebalance Liquidity Router            | 🟢 Verified            |
+| **PerformanceManager**                | [`0x19ec...9473`](https://basescan.org/address/0x19ec1b685c2ced1400b4f249da6be89662e59473) | High-Water Mark & Performance Fee Tracking            | 🟢 Verified            |
+| **FeeManager**                        | [`0xa5b0...7881`](https://basescan.org/address/0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881) | Dynamic Fee Split & Treasury Routing                  | 🟢 Verified            |
+| **OracleManager (Pyth + Chainlink)**  | [`0x91b4...8ea7`](https://basescan.org/address/0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7) | Dual-Oracle Price Aggregation Engine                  | 🟢 Verified            |
+| **CostBasisManagerV2**                | [`0x27b5...e97e`](https://basescan.org/address/0x27b5c6dea90678b78856b0b10dba37a789fde97e) | On-Chain FIFO Cost-Basis & Accounting Migration       | 🟢 Verified            |
+| **SwapAdapter**                       | [`0xaae7...4b67`](https://basescan.org/address/0xaae7104a120e7c6e518a936fcbc102bcd0454b67) | Uniswap V3 Execution Adapter                          | 🟢 Verified            |
+| **UVBEStakingVault**                  | [`0x5cd0...a3e1`](https://basescan.org/address/0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1) | Perpetual Dynamic Staking Engine (47.5 Net Principal) | 🟢 Verified            |
+| **UVBEReferralRegistry**              | [`0xb157...f309`](https://basescan.org/address/0xb157fa8d58f8a610e8ae91a68f38b3304edff309) | 10-Tier On-Chain Referral & Lineage Tree              | 🟢 Verified            |
+| **UVBERewardDistributor**             | [`0x878e...16d4`](https://basescan.org/address/0x878eb0e328725cee505c4001de9f3815f6ba16d4) | Dynamic APY Distribution & DAO Leadership Pool        | 🟢 Verified (600% APY) |
+| **P2PEscrowV2**                       | [`0xa938...c329`](https://basescan.org/address/0xa938aacea64be8f41c90960aff232da4df7fc329) | Non-Custodial OTC Escrow & Fiat Settlement            | 🟢 Verified            |
+| **P2PReputation**                     | [`0xdab9...64c8`](https://basescan.org/address/0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8) | On-Chain Trader Reputation & Trust Scoring            | 🟢 Verified            |
+| **Marketplace**                       | [`0xabfe...e5a6`](https://basescan.org/address/0xabfe3034db275e32de396c7bdd1649a62ac9e5a6) | P2P Orderbook & Matchmaking Engine                    | 🟢 Verified            |
+| **UnifyVaultPaymaster (ERC-4337)**    | [`0xdf96...040a`](https://basescan.org/address/0xdf96b619934d17ae85142dcef1655a8d3b19040a) | Zero-Gas Account Abstraction Sponsorship              | 🟢 Verified            |
+| **GasTreasury**                       | [`0x136a...6424`](https://basescan.org/address/0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424) | Paymaster Refill Reserve & Operator Policy Guard      | 🟢 Verified            |
+| **StabilizerVault**                   | [`0xc268...0c11`](https://basescan.org/address/0xc268709ebb4d3f0f473c6c5767f60e540d330c11) | Protocol Floor Liquidity Stabilizer                   | 🟢 Verified            |
+| **TimelockController**                | [`0x610c...cff1`](https://basescan.org/address/0x610c5f66d99993d444561d270fba172db1f7cff1) | 48-Hour Governance Delay Enforcement                  | 🟢 Verified (48h)      |
 
 ---
 
-### 🧪 Base Sepolia Testnet (Chain ID `84532`)
+### 🪙 Underlying Collateral Assets (Base Mainnet)
 
-| Contract Module                       | Address                                      | Verification Status |
-| :------------------------------------ | :------------------------------------------- | :------------------ |
-| **ProtocolDirectory**                 | `0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f` | Verified            |
-| **UVBE Index Coin (`UVBEToken`)**     | `0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde` | Verified            |
-| **UnifyVaultController (UUPS Proxy)** | `0x07f3d3432b64dbf67c5b061af2bc8aef70221cea` | Verified            |
-| **CustodyVault**                      | `0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64` | Verified            |
-| **Treasury**                          | `0xe0764477914f8eb0fe90c7f27bca0ade1ee95316` | Verified            |
-| **PortfolioManager**                  | `0x1c65b1667c8cc03138b8e57cdd40b0bf28a4cdc4` | Verified            |
-| **StrategyManager**                   | `0x14058459198a2cffc8ce89c364334a80da82d6a3` | Verified            |
-| **OracleManager**                     | `0xabfe3034db275e32de396c7bdd1649a62ac9e5a6` | Verified            |
-| **CostBasisManagerV2**                | `0xcc405c38ed50efc715afcebadc37c01da6838ddd` | Verified            |
-| **SwapAdapter**                       | `0x8deca9efb0bdc300aae96111bdf0dcd32651db90` | Verified            |
-| **UVBEStakingVault**                  | `0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4` | Verified            |
-| **UVBEReferralRegistry**              | `0xc1F00539B6869b2445d85056EDc036114b939Ddd` | Verified            |
-| **UVBERewardDistributor**             | `0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9` | Verified            |
-| **UVBERewardReserve**                 | `0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda` | Verified            |
-| **P2PEscrowV2**                       | `0xcba65af8a993061cf1acc47d9b02d7ebacbcf655` | Verified            |
-| **P2PReputation**                     | `0x49460e2fF8c20ba96121C18e7D36Fd4aE293C70c` | Verified            |
-| **Marketplace**                       | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` | Verified            |
-| **Paymaster**                         | `0x42c6342516714CFd64474bd41Ce360605b9fEA88` | Verified            |
-| **TimelockController**                | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` | Verified (48h)      |
+| Asset Symbol | Asset Name               | Contract Address (BaseScan Link)                                                         | Decimals |
+| :----------- | :----------------------- | :--------------------------------------------------------------------------------------- | :------- |
+| **cbBTC**    | Coinbase Wrapped Bitcoin | [`0xcbB7...33Bf`](https://basescan.org/token/0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf) | 8        |
+| **WETH**     | Wrapped Ether            | [`0x4200...0006`](https://basescan.org/token/0x4200000000000000000000000000000000000006) | 18       |
+| **USDC**     | USD Coin (Native Circle) | [`0x8335...2913`](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) | 6        |
+
+---
+
+### 🧪 Base Sepolia Testnet (Chain ID `84532`) _(Legacy / Devnet)_
+
+| Contract Module                       | Address (BaseScan Link)                                                                             | Status         |
+| :------------------------------------ | :-------------------------------------------------------------------------------------------------- | :------------- |
+| **ProtocolDirectory**                 | [`0xe293...c01f`](https://sepolia.basescan.org/address/0xe293143a52dc2555bf4f92ac9cbf11668bbfc01f)  | Verified       |
+| **UVBE Index Coin (`UVBEToken`)**     | [`0xa3db...5bde`](https://sepolia.basescan.org/address/0xa3db7c3dee9a50d966a06e19b5df4fcdee615bde)  | Verified       |
+| **UnifyVaultController (UUPS Proxy)** | [`0x07f3...1cea`](https://sepolia.basescan.org/address/0x07f3d3432b64dbf67c5b061af2bc8aef70221cea)  | Verified       |
+| **CustodyVault**                      | [`0x6385...eb64`](https://sepolia.basescan.org/address/0x63856ae48d9b3e74b538a0d720b8d8a5e5f7eb64)  | Verified       |
+| **Treasury**                          | [`0xe076...5316`](https://sepolia.basescan.org/address/0xe0764477914f8eb0fe90c7f27bca0ade1ee95316)  | Verified       |
+| **PortfolioManager**                  | [`0x1c65...cdc4`](https://sepolia.basescan.org/address/0x1c65b1667c8cc03138b8e57cdd40b0bf28a4cdc4)  | Verified       |
+| **StrategyManager**                   | [`0x1405...d6a3`](https://sepolia.basescan.org/address/0x14058459198a2cffc8ce89c364334a80da82d6a3)  | Verified       |
+| **OracleManager**                     | [`0xabfe...e5a6`](https://sepolia.basescan.org/address/0xabfe3034db275e32de396c7bdd1649a62ac9e5a6)  | Verified       |
+| **CostBasisManagerV2**                | [`0xcc40...8ddd`](https://sepolia.basescan.org/address/0xcc405c38ed50efc715afcebadc37c01da6838ddd)  | Verified       |
+| **SwapAdapter**                       | [`0x8dec...db90`](https://sepolia.basescan.org/address/0x8deca9efb0bdc300aae96111bdf0dcd32651db90)  | Verified       |
+| **UVBEStakingVault**                  | [`0xaa5d...27e4`](https://sepolia.basescan.org/address/0xaa5deaF54BCfb5ddf4C7196eDEd2A4B981a327e4)  | Verified       |
+| **UVBEReferralRegistry**              | [`0xc1F0...9Ddd`](https://sepolia.basescan.org/address/0xc1F00539B6869b2445d85056EDc036114b939Ddd)  | Verified       |
+| **UVBERewardDistributor**             | [`0x49D3...20E9`](https://sepolia.basescan.org/address/0x49D3Fef686b838a26b9B14E9728Ab99b66e320E9)  | Verified       |
+| **UVBERewardReserve**                 | [`0xf1E4...7Fda`](https://sepolia.basescan.org/address/0xf1E40C0e7aA253CE259A224f1CFEDEDEd6D77Fda)  | Verified       |
+| **P2PEscrowV2**                       | [`0xcba6...cf655`](https://sepolia.basescan.org/address/0xcba65af8a993061cf1acc47d9b02d7ebacbcf655) | Verified       |
+| **P2PReputation**                     | [`0x4946...C70c`](https://sepolia.basescan.org/address/0x49460e2fF8c20ba96121C18e7D36Fd4aE293C70c)  | Verified       |
+| **Marketplace**                       | [`0xe908...451A`](https://sepolia.basescan.org/address/0xe908377f96F313a6b7771570ff6Fb414D38F451A)  | Verified       |
+| **Paymaster**                         | [`0x42c6...EA88`](https://sepolia.basescan.org/address/0x42c6342516714CFd64474bd41Ce360605b9fEA88)  | Verified       |
+| **TimelockController**                | [`0x9094...8d02`](https://sepolia.basescan.org/address/0x9094145Cd2AEA2f309eDf14237444a07edF98d02)  | Verified (48h) |
 
 ---
 
@@ -348,6 +363,7 @@ Code Commit → GitHub Actions CI → Build & Sign APK → SHA256 Verification �
 3. **Dead Share Protection**: Initial deposit burns `1000` wei dead shares to prevent ERC-4626 inflation attacks.
 4. **P2P Escrow Isolation**: P2P transfers are isolated from cost-basis and share valuation mutations.
 5. **Emergency Circuit Breakers**: Guardians can immediately pause deposits/redemptions in response to oracle or market anomalies.
+6. **Gas Policy Guards**: `GasTreasury` enforces strict daily refill ceilings and per-transaction limits to protect against drain vectors.
 
 ---
 

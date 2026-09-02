@@ -17,6 +17,7 @@ export const CONTRACTS = {
   UVBEReferralRegistry: '0xb157fa8d58f8a610e8ae91a68f38b3304edff309' as `0x${string}`,
   UVBERewardDistributor: '0x878eb0e328725cee505c4001de9f3815f6ba16d4' as `0x${string}`,
   UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
+  P2PEscrow: '0xa938aacea64be8f41c90960aff232da4df7fc329' as `0x${string}`,
 };
 
 const ERC20_ABI = parseAbi([
@@ -190,4 +191,88 @@ export async function fetchTxStatus(txHash: string) {
   } catch (e) {
     return null;
   }
+}
+
+export interface ProtocolMetrics {
+  totalPermanentStaked: string;
+  vaultAvailableCapital: string;
+  totalOutstandingLiabilities: string;
+  currentAnnualApyPercent: string;
+  currentEpochId: string;
+  epochPoolAmount: string;
+}
+
+export async function fetchProtocolMetrics(): Promise<ProtocolMetrics> {
+  let totalPermanentStaked = '0';
+  let vaultAvailableCapital = '0';
+  let totalOutstandingLiabilities = '0';
+  let currentAnnualApyPercent = '0';
+  let currentEpochId = '0';
+  let epochPoolAmount = '0';
+
+  try {
+    const totalStakedWei = await publicClient.readContract({
+      address: CONTRACTS.UVBEStakingVault,
+      abi: STAKING_VAULT_ABI,
+      functionName: 'totalPermanentStaked',
+    });
+    totalPermanentStaked = parseFloat(formatEther(totalStakedWei)).toLocaleString();
+  } catch (e) {
+    console.error('Error reading totalPermanentStaked:', e);
+  }
+
+  try {
+    const availableWei = await publicClient.readContract({
+      address: CONTRACTS.UVBEStakingVault,
+      abi: parseAbi(['function getAvailableProtocolCapital() external view returns (uint256)']),
+      functionName: 'getAvailableProtocolCapital',
+    });
+    vaultAvailableCapital = parseFloat(formatEther(availableWei)).toLocaleString();
+  } catch (e) {
+    console.error('Error reading availableCapital:', e);
+  }
+
+  try {
+    const liabilitiesWei = await publicClient.readContract({
+      address: CONTRACTS.UVBERewardDistributor,
+      abi: parseAbi(['function totalOutstandingLiabilities() external view returns (uint256)']),
+      functionName: 'totalOutstandingLiabilities',
+    });
+    totalOutstandingLiabilities = parseFloat(formatEther(liabilitiesWei)).toLocaleString();
+
+    const apyBps = await publicClient.readContract({
+      address: CONTRACTS.UVBERewardDistributor,
+      abi: REWARD_DISTRIBUTOR_ABI,
+      functionName: 'getCurrentAnnualBps',
+    });
+    currentAnnualApyPercent = (Number(apyBps) / 100).toFixed(2);
+
+    const epochId = await publicClient.readContract({
+      address: CONTRACTS.UVBERewardDistributor,
+      abi: parseAbi(['function currentDaoEpochId() external view returns (uint256)']),
+      functionName: 'currentDaoEpochId',
+    });
+    currentEpochId = epochId.toString();
+
+    const epochInfo = await publicClient.readContract({
+      address: CONTRACTS.UVBERewardDistributor,
+      abi: parseAbi([
+        'function daoEpochs(uint256) external view returns (uint256 startTime, uint256 endTime, uint256 poolAmount, uint256 totalShares, bool isFinalized)',
+      ]),
+      functionName: 'daoEpochs',
+      args: [epochId],
+    });
+    epochPoolAmount = parseFloat(formatEther(epochInfo[2])).toLocaleString();
+  } catch (e) {
+    console.error('Error reading distributor protocol metrics:', e);
+  }
+
+  return {
+    totalPermanentStaked,
+    vaultAvailableCapital,
+    totalOutstandingLiabilities,
+    currentAnnualApyPercent,
+    currentEpochId,
+    epochPoolAmount,
+  };
 }

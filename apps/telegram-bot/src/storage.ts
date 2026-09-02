@@ -8,52 +8,106 @@ if (!fs.existsSync(path.dirname(DATA_FILE))) {
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 }
 
-interface WalletStorage {
-  [telegramUserId: string]: {
-    address: string;
-    linkedAt: string;
-  };
+interface UserRecord {
+  userId: string;
+  username?: string;
+  firstName?: string;
+  address?: string;
+  joinedAt: string;
+  lastActive: string;
 }
 
-function loadWallets(): WalletStorage {
+interface StorageData {
+  users: { [telegramUserId: string]: UserRecord };
+}
+
+function loadStorage(): StorageData {
   try {
     if (fs.existsSync(DATA_FILE)) {
       const content = fs.readFileSync(DATA_FILE, 'utf-8');
-      return JSON.parse(content);
+      const data = JSON.parse(content);
+      // Migration from old schema if necessary
+      if (!data.users) {
+        const users: { [id: string]: UserRecord } = {};
+        for (const [id, val] of Object.entries(data)) {
+          const w = val as { address: string; linkedAt: string };
+          users[id] = {
+            userId: id,
+            address: w.address,
+            joinedAt: w.linkedAt || new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+          };
+        }
+        return { users };
+      }
+      return data;
     }
   } catch (e) {
-    console.error('Error loading wallet storage:', e);
+    console.error('Error loading storage:', e);
   }
-  return {};
+  return { users: {} };
 }
 
-function saveWallets(data: WalletStorage) {
+function saveStorage(data: StorageData) {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
-    console.error('Error saving wallet storage:', e);
+    console.error('Error saving storage:', e);
   }
 }
 
+export function registerUser(userId: number | string, username?: string, firstName?: string) {
+  const data = loadStorage();
+  const idStr = userId.toString();
+  if (!data.users[idStr]) {
+    data.users[idStr] = {
+      userId: idStr,
+      username,
+      firstName,
+      joinedAt: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
+    };
+  } else {
+    data.users[idStr].lastActive = new Date().toISOString();
+    if (username) data.users[idStr].username = username;
+    if (firstName) data.users[idStr].firstName = firstName;
+  }
+  saveStorage(data);
+}
+
+export function getAllUsers(): UserRecord[] {
+  const data = loadStorage();
+  return Object.values(data.users);
+}
+
 export function linkWallet(userId: number | string, address: string) {
-  const wallets = loadWallets();
-  wallets[userId.toString()] = {
-    address: address.toLowerCase(),
-    linkedAt: new Date().toISOString(),
-  };
-  saveWallets(wallets);
+  const data = loadStorage();
+  const idStr = userId.toString();
+  if (!data.users[idStr]) {
+    data.users[idStr] = {
+      userId: idStr,
+      address: address.toLowerCase(),
+      joinedAt: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
+    };
+  } else {
+    data.users[idStr].address = address.toLowerCase();
+    data.users[idStr].lastActive = new Date().toISOString();
+  }
+  saveStorage(data);
 }
 
 export function getLinkedWallet(userId: number | string): string | null {
-  const wallets = loadWallets();
-  return wallets[userId.toString()]?.address || null;
+  const data = loadStorage();
+  return data.users[userId.toString()]?.address || null;
 }
 
 export function unlinkWallet(userId: number | string) {
-  const wallets = loadWallets();
-  if (wallets[userId.toString()]) {
-    delete wallets[userId.toString()];
-    saveWallets(wallets);
+  const data = loadStorage();
+  const idStr = userId.toString();
+  if (data.users[idStr] && data.users[idStr].address) {
+    delete data.users[idStr].address;
+    saveStorage(data);
     return true;
   }
   return false;

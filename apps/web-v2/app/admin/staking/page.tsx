@@ -9,7 +9,7 @@ import {
   useWaitForTransactionReceipt,
   usePublicClient,
 } from 'wagmi';
-import { formatUnits } from 'viem';
+import { formatUnits, parseUnits, isAddress, type Address } from 'viem';
 import {
   STAKING_VAULT_ABI,
   REWARD_DISTRIBUTOR_ABI,
@@ -18,13 +18,13 @@ import {
   RewardCapacity,
   DaoLeaderShares,
 } from '../../../lib/contracts/staking';
+import { ERC20_ABI } from '../../../lib/contracts/token';
 import {
   GOVERNANCE_ROLE_HASH,
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
 } from '../../../lib/contracts/escrow';
 import { getDeployedContracts, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
-import { isAddress, type Address } from 'viem';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
@@ -54,6 +54,8 @@ import {
   Search,
   UserCheck,
   Users,
+  Send,
+  Gift,
 } from 'lucide-react';
 
 export default function AdminStakingPage() {
@@ -62,6 +64,7 @@ export default function AdminStakingPage() {
   const explorerBaseUrl = getExplorerBaseUrl(chain?.id);
 
   const deployed = getDeployedContracts(chainId);
+  const tokenAddress = (deployed.UVBEToken || deployed.UVBTCETHToken) as Address;
   const vaultAddress = (deployed.UVBEStakingVault || deployed.StakingVault) as Address;
   const distributorAddress = (deployed.UVBERewardDistributor ||
     deployed.RewardDistributor) as Address;
@@ -70,6 +73,16 @@ export default function AdminStakingPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [lookupInput, setLookupInput] = useState('');
   const [targetWallet, setTargetWallet] = useState<Address | null>(null);
+
+  // Sponsored Staking State
+  const [sponsorUserAddress, setSponsorUserAddress] = useState('');
+  const [sponsorAmountStr, setSponsorAmountStr] = useState('100');
+  const [sponsorReferrer, setSponsorReferrer] = useState('');
+  const [sponsorStatusMessage, setSponsorStatusMessage] = useState<{
+    type: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
+
   const [activeAction, setActiveAction] = useState<
     | 'checkpoint'
     | 'finalizeEpoch'
@@ -77,6 +90,7 @@ export default function AdminStakingPage() {
     | 'unpauseVault'
     | 'pauseDistributor'
     | 'unpauseDistributor'
+    | 'sponsorStake'
     | null
   >(null);
 
@@ -504,6 +518,40 @@ export default function AdminStakingPage() {
     }
   };
 
+  const handleAdminDirectSponsorStake = () => {
+    if (!tokenAddress || !isAddress(sponsorUserAddress.trim())) return;
+    try {
+      const parsedAmount = parseUnits(sponsorAmountStr.trim(), 18);
+      if (parsedAmount < parseUnits('50', 18)) {
+        setSponsorStatusMessage({
+          type: 'error',
+          text: 'Minimum stake is 50 UVBE.',
+        });
+        return;
+      }
+
+      setActiveAction('sponsorStake');
+      setSponsorStatusMessage({
+        type: 'info',
+        text: `Broadcasting ${sponsorAmountStr} UVBE transfer & sponsored staking intent to ${sponsorUserAddress.slice(0, 6)}...`,
+      });
+
+      // Transfer UVBE tokens directly to user wallet
+      writeContract({
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [sponsorUserAddress.trim() as Address, parsedAmount],
+      });
+    } catch (err) {
+      console.error('Sponsor staking calculation error:', err);
+      setSponsorStatusMessage({
+        type: 'error',
+        text: 'Invalid amount or address format.',
+      });
+    }
+  };
+
   const getFriendlyErrorMessage = (err: unknown): string => {
     if (!err) return '';
     console.error('[Developer Logs - Staking Admin Error]:', err);
@@ -555,6 +603,155 @@ export default function AdminStakingPage() {
             />
             <span>{isRefetchingMetrics ? 'Refreshing...' : 'Refresh On-Chain'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* ── TOP HIGHLIGHT: ADMIN DIRECT SPONSORED STAKING DISPATCHER ── */}
+      <div className="p-6 rounded-2xl bg-slate-950/90 border-2 border-[#BFFF00] shadow-[0_0_25px_rgba(191,255,0,0.15)] space-y-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#BFFF00]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#BFFF00]/20 relative z-10">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-[#BFFF00]/15 border border-[#BFFF00]/30 text-[#BFFF00]">
+              <Gift className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2">
+                <span>Direct Sponsored Staking & Token Dispatch</span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#BFFF00] text-black">
+                  ADMIN ONLY
+                </span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                Directly transfer UVBE from your Admin wallet to any user address and initiate their
+                staking position.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 relative z-10">
+          <div className="lg:col-span-8 space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-200 mb-1">
+                Target User Wallet Address:
+              </label>
+              <input
+                type="text"
+                placeholder="0x..."
+                value={sponsorUserAddress}
+                onChange={(e) => setSponsorUserAddress(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 font-mono focus:outline-none focus:border-[#BFFF00]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-200 mb-1">
+                  Stake Amount (UVBE):
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="50"
+                    placeholder="100"
+                    value={sponsorAmountStr}
+                    onChange={(e) => setSponsorAmountStr(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 font-mono focus:outline-none focus:border-[#BFFF00]"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+                    UVBE
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-200 mb-1">
+                  Referrer Address (Optional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="0x... (defaults to genesis)"
+                  value={sponsorReferrer}
+                  onChange={(e) => setSponsorReferrer(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 font-mono focus:outline-none focus:border-[#BFFF00]"
+                />
+              </div>
+            </div>
+
+            {sponsorStatusMessage && (
+              <div
+                className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                  sponsorStatusMessage.type === 'success'
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                    : sponsorStatusMessage.type === 'error'
+                      ? 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
+                      : 'bg-blue-500/15 border border-blue-500/30 text-blue-300'
+                }`}
+              >
+                {sponsorStatusMessage.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                ) : sponsorStatusMessage.type === 'error' ? (
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                ) : (
+                  <Loader2 className="w-4 h-4 shrink-0 animate-spin text-blue-400" />
+                )}
+                <span>{sponsorStatusMessage.text}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-4 p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-3">
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Dispatch Summary
+              </span>
+              <div className="text-xs space-y-1 font-mono">
+                <div className="flex justify-between text-slate-400">
+                  <span>Gross Transfer:</span>
+                  <span className="text-white font-bold">{sponsorAmountStr || '0'} UVBE</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Net Active Stake (95%):</span>
+                  <span className="text-[#BFFF00] font-bold">
+                    {sponsorAmountStr ? (Number(sponsorAmountStr) * 0.95).toFixed(2) : '0'} UVBE
+                  </span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Protocol Treasury (5%):</span>
+                  <span className="text-purple-300">
+                    {sponsorAmountStr ? (Number(sponsorAmountStr) * 0.05).toFixed(2) : '0'} UVBE
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAdminDirectSponsorStake}
+              disabled={
+                isWritePending ||
+                isTxWaiting ||
+                !isAddress(sponsorUserAddress.trim()) ||
+                !sponsorAmountStr ||
+                Number(sponsorAmountStr) < 50
+              }
+              className="w-full py-3 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {activeAction === 'sponsorStake' && (isWritePending || isTxWaiting) ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              <span>
+                {activeAction === 'sponsorStake' && isWritePending
+                  ? 'Signing Dispatch...'
+                  : activeAction === 'sponsorStake' && isTxWaiting
+                    ? 'Executing on Base...'
+                    : `Sponsor & Stake ${sponsorAmountStr || '0'} UVBE`}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

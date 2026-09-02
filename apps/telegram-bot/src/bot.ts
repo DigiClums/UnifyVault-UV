@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import { Telegraf, Markup } from 'telegraf';
 import { isAddress } from 'viem';
-import { fetchLiveUserData, fetchTxStatus, CONTRACTS } from './blockchain';
-import { getLinkedWallet, linkWallet, unlinkWallet } from './storage';
+import { fetchLiveUserData, fetchTxStatus, fetchProtocolMetrics, CONTRACTS } from './blockchain';
+import { getLinkedWallet, linkWallet, unlinkWallet, registerUser, getAllUsers } from './storage';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+const adminChatId = process.env.ADMIN_CHAT_ID || '2079720192';
 
 if (!token) {
   throw new Error('TELEGRAM_BOT_TOKEN is not configured');
@@ -12,7 +13,12 @@ if (!token) {
 
 const bot = new Telegraf(token);
 
-function getMainMenu() {
+function isUserAdmin(userId?: number | string): boolean {
+  if (!userId) return false;
+  return userId.toString() === adminChatId.toString();
+}
+
+function getUserMainMenu() {
   return Markup.inlineKeyboard([
     [Markup.button.url('🚀 Open UnifyVault App', 'https://unifyvault.xyz')],
     [
@@ -24,31 +30,74 @@ function getMainMenu() {
       Markup.button.callback('🏆 Rank & Team', 'team'),
     ],
     [
+      Markup.button.callback('🤝 P2P Escrow Info', 'p2p_info'),
       Markup.button.callback('🎰 Casino', 'casino'),
-      Markup.button.callback('🌐 Ecosystem', 'ecosystem'),
     ],
-    [Markup.button.callback('💬 Support', 'support')],
+    [
+      Markup.button.callback('🌐 Ecosystem', 'ecosystem'),
+      Markup.button.callback('💬 Support', 'support'),
+    ],
+  ]);
+}
+
+function getAdminMainMenu() {
+  return Markup.inlineKeyboard([
+    [Markup.button.url('🚀 Open Admin DApp', 'https://unifyvault.xyz/admin')],
+    [
+      Markup.button.callback('⚡ Protocol Metrics', 'admin_metrics'),
+      Markup.button.callback('🔒 Solvency Status', 'admin_solvency'),
+    ],
+    [
+      Markup.button.callback('👑 DAO Leadership', 'admin_dao'),
+      Markup.button.callback('🔍 Inspect Staker', 'admin_inspect_prompt'),
+    ],
+    [
+      Markup.button.callback('📢 Broadcast Update', 'admin_broadcast_prompt'),
+      Markup.button.callback('👥 Total Registered', 'admin_users_count'),
+    ],
+    [
+      Markup.button.callback('📊 My Staking Position', 'staking'),
+      Markup.button.callback('👛 My Wallet', 'wallet'),
+    ],
+    [Markup.button.callback('🌐 Ecosystem & Contracts', 'ecosystem')],
   ]);
 }
 
 bot.start(async (ctx) => {
   const userId = ctx.from?.id;
+  if (userId) {
+    registerUser(userId, ctx.from?.username, ctx.from?.first_name);
+  }
+  const isAdmin = isUserAdmin(userId);
   const linked = userId ? getLinkedWallet(userId) : null;
 
   const walletMsg = linked
     ? `🔗 Linked Wallet: \`${linked.slice(0, 6)}...${linked.slice(-4)}\`\n`
     : `ℹ️ Tip: Link your EVM wallet with \`/link 0xYourAddress\` to track your live assets.\n`;
 
-  await ctx.reply(
-    `Welcome to UnifyVault 🌐 (Base Mainnet)\n\n` +
-      `Your gateway to the UnifyVault DeFi ecosystem.\n\n` +
-      walletMsg +
-      `Explore on-chain staking, rewards, your portfolio dashboard and updates.`,
-    {
-      parse_mode: 'Markdown',
-      ...getMainMenu(),
-    },
-  );
+  if (isAdmin) {
+    await ctx.reply(
+      `🛡️ *UnifyVault Administrator Control Panel (Base Mainnet)*\n\n` +
+        `Welcome, Administrator! You have full access to protocol solvency surveillance, DAO cycles, broadcast tools, and staker intelligence.\n\n` +
+        walletMsg +
+        `🔒 *Privacy Guard:* User sessions are strictly isolated. Standard users cannot see admin commands or metrics.`,
+      {
+        parse_mode: 'Markdown',
+        ...getAdminMainMenu(),
+      },
+    );
+  } else {
+    await ctx.reply(
+      `Welcome to UnifyVault 🌐 (Base Mainnet)\n\n` +
+        `Your gateway to the UnifyVault DeFi ecosystem.\n\n` +
+        walletMsg +
+        `Explore on-chain staking, rewards, your portfolio dashboard and updates.`,
+      {
+        parse_mode: 'Markdown',
+        ...getUserMainMenu(),
+      },
+    );
+  }
 });
 
 // Staking Callback / Command
@@ -318,6 +367,296 @@ bot.command('tx', async (ctx) => {
   );
 });
 
+// ── Admin-Only Callbacks & Handlers ──
+bot.action('admin_metrics', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Unauthorized: This command is restricted to the Protocol Administrator.');
+  }
+
+  try {
+    const metrics = await fetchProtocolMetrics();
+    return ctx.reply(
+      `⚡ *Protocol Surveillance & Macro Metrics*\n\n` +
+        `📊 *Total Permanent Staked:* \`${metrics.totalPermanentStaked} UVBE\`\n` +
+        `🏦 *Available Vault Capital:* \`${metrics.vaultAvailableCapital} UVBE\`\n` +
+        `⚖️ *Outstanding Liabilities:* \`${metrics.totalOutstandingLiabilities} UVBE\`\n` +
+        `📈 *Dynamic APY Rate:* \`${metrics.currentAnnualApyPercent}%\`\n` +
+        `🏆 *Active DAO Epoch:* \`#${metrics.currentEpochId}\`\n` +
+        `💰 *DAO Epoch Pool:* \`${metrics.epochPoolAmount} UVBE\``,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Refresh Metrics', 'admin_metrics')],
+          [Markup.button.callback('⬅️ Back to Admin Menu', 'admin_menu')],
+        ]),
+      },
+    );
+  } catch (error: any) {
+    return ctx.reply(`❌ Error fetching metrics: ${error.message}`);
+  }
+});
+
+bot.action('admin_solvency', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Unauthorized: This command is restricted to the Protocol Administrator.');
+  }
+
+  try {
+    const metrics = await fetchProtocolMetrics();
+    return ctx.reply(
+      `🔒 *Solvency Health Status*\n\n` +
+        `• Vault Capital: \`${metrics.vaultAvailableCapital} UVBE\`\n` +
+        `• Debt Liabilities: \`${metrics.totalOutstandingLiabilities} UVBE\`\n` +
+        `• Health Invariant: \`Available Capital >= Liabilities\` ✅\n` +
+        `• Rate Controller: \`Dynamic Solvency Engine Active\`\n\n` +
+        `[Open Admin Solvency Console](https://unifyvault.xyz/admin/staking)`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('🚀 Open Solvency Console', 'https://unifyvault.xyz/admin/staking')],
+          [Markup.button.callback('⬅️ Back to Admin Menu', 'admin_menu')],
+        ]),
+      },
+    );
+  } catch (error: any) {
+    return ctx.reply(`❌ Error checking solvency: ${error.message}`);
+  }
+});
+
+bot.action('admin_dao', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Unauthorized.');
+  }
+
+  try {
+    const metrics = await fetchProtocolMetrics();
+    return ctx.reply(
+      `👑 *DAO Leadership Epoch Status*\n\n` +
+        `• Current Cycle: *Epoch #${metrics.currentEpochId}*\n` +
+        `• Accumulated Pool: \`${metrics.epochPoolAmount} UVBE\`\n` +
+        `• Eligible Ranks: *Platinum (Rank 4), Diamond (Rank 5)*\n\n` +
+        `[Manage DAO Cycles on Admin Panel](https://unifyvault.xyz/admin/staking)`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('🚀 Finalize / View Leaders', 'https://unifyvault.xyz/admin/staking')],
+          [Markup.button.callback('⬅️ Back to Admin Menu', 'admin_menu')],
+        ]),
+      },
+    );
+  } catch (error: any) {
+    return ctx.reply(`❌ Error checking DAO epoch: ${error.message}`);
+  }
+});
+
+bot.action('admin_inspect_prompt', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) return ctx.reply('⛔ Unauthorized.');
+
+  return ctx.reply(
+    `🔍 *On-Chain Staker Inspector*\n\n` +
+      `To inspect any user rank, stake, directs and volume, send:\n` +
+      `\`/inspect 0xUserWalletAddress\``,
+    { parse_mode: 'Markdown' },
+  );
+});
+
+bot.action('admin_menu', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('Main Menu', getUserMainMenu());
+  }
+  return ctx.reply(
+    `🛡️ *UnifyVault Administrator Control Panel*\n\nChoose an administrative surveillance tool:`,
+    {
+      parse_mode: 'Markdown',
+      ...getAdminMainMenu(),
+    },
+  );
+});
+
+// Admin command: /admin
+bot.command('admin', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Access Denied. You do not have administrator permissions.');
+  }
+
+  return ctx.reply(
+    `🛡️ *UnifyVault Administrator Control Panel*\n\nSelect an administrative action:`,
+    {
+      parse_mode: 'Markdown',
+      ...getAdminMainMenu(),
+    },
+  );
+});
+
+// Admin command: /inspect <address>
+bot.command('inspect', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Access Denied.');
+  }
+
+  const args = ctx.message.text.trim().split(/\s+/);
+  if (args.length < 2 || !isAddress(args[1].trim())) {
+    return ctx.reply('ℹ️ Usage: `/inspect 0xUserAddress`', { parse_mode: 'Markdown' });
+  }
+
+  const targetAddr = args[1].trim();
+  try {
+    const data = await fetchLiveUserData(targetAddr);
+    const apyPercent = (data.currentApyBps / 100).toFixed(2);
+
+    return ctx.reply(
+      `🔍 *Staker Intelligence Report*\n\n` +
+        `👤 *Address:* \`${data.address}\`\n` +
+        `🎖️ *Rank:* Level ${data.rank}\n` +
+        `🔒 *Permanent Stake:* \`${data.stakedAmount} UVBE\`\n` +
+        `👥 *Active Directs:* ${data.activeDirects}\n` +
+        `📈 *Team Volume:* \`${data.teamVolume} UVBE\`\n` +
+        `💎 *UVBE Balance:* \`${data.uvbeBalance} UVBE\`\n` +
+        `🎁 *Claimable Yield:* \`${data.totalClaimableRewards} UVBE\`\n` +
+        `💵 *Lifetime Claimed:* \`${data.totalClaimed} UVBE\`\n\n` +
+        `[View on BaseScan](https://basescan.org/address/${data.address})`,
+      {
+        parse_mode: 'Markdown',
+        link_preview_options: { is_disabled: true },
+      },
+    );
+  } catch (err: any) {
+    return ctx.reply(`❌ Failed to inspect wallet: ${err.message}`);
+  }
+});
+
+// Broadcast Prompt Callback
+bot.action('admin_broadcast_prompt', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) return ctx.reply('⛔ Unauthorized.');
+
+  const users = getAllUsers();
+  return ctx.reply(
+    `📢 *Official Broadcast Dispatcher*\n\n` +
+      `Total Registered Users: *${users.length}*\n\n` +
+      `To broadcast an official announcement to all bot users, send:\n` +
+      `\`/broadcast Your message text here\``,
+    { parse_mode: 'Markdown' },
+  );
+});
+
+// Admin Users Count Callback
+bot.action('admin_users_count', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) return ctx.reply('⛔ Unauthorized.');
+
+  const users = getAllUsers();
+  const linkedCount = users.filter((u) => u.address).length;
+
+  return ctx.reply(
+    `👥 *Telegram Bot Community Analytics*\n\n` +
+      `• Total Users: *${users.length}*\n` +
+      `• Linked EVM Wallets: *${linkedCount}*\n` +
+      `• Network: *Base Mainnet*\n\n` +
+      `[Open Admin Portal](https://unifyvault.xyz/admin)`,
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('📢 Broadcast to All', 'admin_broadcast_prompt')],
+        [Markup.button.callback('⬅️ Back to Admin Menu', 'admin_menu')],
+      ]),
+    },
+  );
+});
+
+// Admin Command: /broadcast <message>
+bot.command('broadcast', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Access Denied. Only the Administrator can broadcast.');
+  }
+
+  const rawText = ctx.message.text.trim();
+  const messageContent = rawText.replace(/^\/broadcast\s*/i, '').trim();
+
+  if (!messageContent) {
+    return ctx.reply(
+      `ℹ️ Usage:\n\`/broadcast 🚀 Important Update: Dynamic APY rate has updated!\``,
+      { parse_mode: 'Markdown' },
+    );
+  }
+
+  const users = getAllUsers();
+  let successCount = 0;
+  let failCount = 0;
+
+  const statusMsg = await ctx.reply(
+    `📢 Broadcasting announcement to *${users.length}* registered users...`,
+    { parse_mode: 'Markdown' },
+  );
+
+  for (const user of users) {
+    try {
+      await bot.telegram.sendMessage(
+        user.userId,
+        `📢 *Official UnifyVault Announcement*\n\n${messageContent}\n\n[Open UnifyVault App](https://unifyvault.xyz)`,
+        { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } },
+      );
+      successCount++;
+    } catch (e) {
+      failCount++;
+    }
+  }
+
+  return ctx.reply(
+    `✅ *Broadcast Complete!*\n\n` +
+      `• Successfully Delivered: *${successCount}*\n` +
+      `• Failed / Blocked: *${failCount}*`,
+    { parse_mode: 'Markdown' },
+  );
+});
+
+// P2P Escrow Info Action & Command
+async function handleP2P(ctx: any) {
+  return ctx.reply(
+    `🤝 *UnifyVault P2P Fiat & Crypto Escrow (Base Mainnet)*\n\n` +
+      `• Decentralized P2P On/Off-Ramp on Base\n` +
+      `• Instant Smart Account & Paymaster Gasless Releases\n` +
+      `• On-Chain Proof-of-Payment Verification\n` +
+      `• Contract Address: \`${CONTRACTS.P2PEscrow}\`\n\n` +
+      `Trade directly peer-to-peer with zero centralized custody:`,
+    {
+      parse_mode: 'Markdown',
+      link_preview_options: { is_disabled: true },
+      ...Markup.inlineKeyboard([
+        [Markup.button.url('🚀 Open P2P Portal', 'https://unifyvault.xyz/p2p')],
+        [
+          Markup.button.url(
+            '🔍 BaseScan P2P Contract',
+            `https://basescan.org/address/${CONTRACTS.P2PEscrow}`,
+          ),
+        ],
+      ]),
+    },
+  );
+}
+
+bot.action('p2p_info', async (ctx) => {
+  await ctx.answerCbQuery();
+  return handleP2P(ctx);
+});
+bot.command('p2p', handleP2P);
+bot.command('escrow', handleP2P);
+
 bot.action('casino', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.reply(
@@ -352,6 +691,27 @@ bot.action('support', async (ctx) => {
 });
 
 bot.help((ctx) => {
+  const userId = ctx.from?.id;
+  const isAdmin = isUserAdmin(userId);
+
+  if (isAdmin) {
+    return ctx.reply(
+      `📖 *Administrator Bot Commands*\n\n` +
+        `/admin - Open Administrator Control Panel\n` +
+        `/broadcast <msg> - Broadcast announcement to all users\n` +
+        `/inspect <address> - Inspect any staker rank, volume & stake\n` +
+        `/start - Main Menu\n` +
+        `/balance - View live wallet balances\n` +
+        `/stake - View live staking status\n` +
+        `/p2p - View P2P escrow info\n` +
+        `/team - View referral volume\n` +
+        `/tx <hash> - Check Base transaction confirmation\n` +
+        `/ecosystem - Ecosystem contracts\n` +
+        `/support - Help & Links`,
+      { parse_mode: 'Markdown' },
+    );
+  }
+
   return ctx.reply(
     `📖 *UnifyVault Bot Commands*\n\n` +
       `/start - Open Main Menu\n` +
@@ -359,6 +719,7 @@ bot.help((ctx) => {
       `/unlink - Unlink current wallet\n` +
       `/balance - View live ETH, UVBE & staked balances\n` +
       `/stake - View live staking status & APY\n` +
+      `/p2p - P2P decentralized escrow info\n` +
       `/team - View your rank & referral volume\n` +
       `/tx <hash> - Check Base transaction confirmation\n` +
       `/wallet - Wallet settings\n` +
