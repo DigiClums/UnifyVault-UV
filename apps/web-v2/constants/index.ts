@@ -34,7 +34,7 @@ export const DIRECTORY_ADDRESS_MAINNET = (
     ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS_MAINNET
     : isNonZeroAddress(process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS)
       ? process.env.NEXT_PUBLIC_DIRECTORY_ADDRESS
-      : '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
+      : '0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5'
 ) as `0x${string}`;
 
 /**
@@ -58,9 +58,8 @@ export function isNonZeroAddress(addr?: string): boolean {
   return (
     clean !== '' &&
     clean !== '0x0000000000000000000000000000000000000000' &&
-    clean !== '0x0' &&
-    clean.startsWith('0x') &&
-    clean.length === 42
+    clean.length === 42 &&
+    clean.startsWith('0x')
   );
 }
 
@@ -68,34 +67,39 @@ export function isNonZeroAddress(addr?: string): boolean {
  * Base Mainnet Deployed Contracts (Canonical Verified Architecture)
  */
 export const DEPLOYED_CONTRACTS_MAINNET = {
-  ProtocolDirectory: '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e' as `0x${string}`,
-  Treasury: '0x57561F781b2f558A7445D2E93a365C03BA2c9B53' as `0x${string}`,
-  CustodyVault: '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca' as `0x${string}`,
-  OracleManager: '0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7' as `0x${string}`,
-  UVBEToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
-  UVBTCETHToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
+  ProtocolDirectory: '0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5' as `0x${string}`,
+  OracleManager: '0xdbab63fe1d8accff6620214a5c616d4151a8fec7' as `0x${string}`,
+  ChainlinkOracleProvider: '0x39af66781d16ec8a72d2b1a4a1b7697a577626a2' as `0x${string}`,
+  Treasury: '0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9' as `0x${string}`,
+  FeeManager: '0x76c8a1ab608403cd974ec7598b01ec88b44320d3' as `0x${string}`,
+  CustodyVault: '0xcf3dc2cd20fb7c3c99138038092eed60385bfa9c' as `0x${string}`,
+  LiquidityManager: '0x6a52c50d9be9eab8bf8987f77d8714aecd9e0919' as `0x${string}`,
+  UVBEV2: '0x051979deb1eb4823672e6274a55c44d7818ff523' as `0x${string}`,
+  UVBEToken: '0x051979deb1eb4823672e6274a55c44d7818ff523' as `0x${string}`,
+  UVBTCETHToken: '0x051979deb1eb4823672e6274a55c44d7818ff523' as `0x${string}`,
+  SwapAdapter: '0x9560361d964ebfeea402e75ad3b74fad4d8057be' as `0x${string}`,
+  StrategyManager: '0x8c196a631531ac3a9754016db1d7b873ebbdb6e9' as `0x${string}`,
+  PortfolioManager: '0xce97c16a1c544f1df87e46695f86c7cc61ea486a' as `0x${string}`,
   UnifyVaultController: (isNonZeroAddress(process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET
-    : '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366') as `0x${string}`,
+    : '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c') as `0x${string}`,
   UnifyVaultControllerImplementation: (isNonZeroAddress(
     process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET,
   )
     ? process.env.NEXT_PUBLIC_CONTROLLER_ADDRESS_MAINNET
-    : '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366') as `0x${string}`,
-  CostBasisManager: '0x27b5c6dea90678b78856b0b10dba37a789fde97e' as `0x${string}`,
-  LiquidityManager: '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3' as `0x${string}`,
-  StrategyManager: '0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a' as `0x${string}`,
-  SwapAdapter: '0xaae7104a120e7c6e518a936fcbc102bcd0454b67' as `0x${string}`,
-  PortfolioManager: '0x66182f56bd5e523c655f6890290ab519f528e83f' as `0x${string}`,
-  PerformanceManager: '0x19ec1b685c2ced1400b4f249da6be89662e59473' as `0x${string}`,
-  FeeManager: '0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881' as `0x${string}`,
-  ChainlinkOracleProvider: '0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E' as `0x${string}`,
+    : '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c') as `0x${string}`,
+  CostBasisManager: '0x3fcf09b4e1545926c1031d22a302a39e552b3469' as `0x${string}`,
+  CostBasisManagerV2: '0x3fcf09b4e1545926c1031d22a302a39e552b3469' as `0x${string}`,
   P2PEscrow: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET
-    : '0xa938aacea64be8f41c90960aff232da4df7fc329') as `0x${string}`,
+    : '0x400916339033b88cda38b1d8a5fb0f82e4889f38') as `0x${string}`,
+  P2PEscrowV2: (isNonZeroAddress(process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET)
+    ? process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET
+    : '0x400916339033b88cda38b1d8a5fb0f82e4889f38') as `0x${string}`,
+  PerformanceManager: '0x3e13aae6c9befaaec11b2247e2af678ce871f338' as `0x${string}`,
   Marketplace: (isNonZeroAddress(process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET)
     ? process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS_MAINNET
-    : '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6') as `0x${string}`,
+    : '0x6e3be632747e161a0b017cb35243d39eb90d0d8a') as `0x${string}`,
   UnifyVaultTimelock: '0x610c5f66d99993d444561d270fba172db1f7cff1' as `0x${string}`,
   TimelockController: '0x610c5f66d99993d444561d270fba172db1f7cff1' as `0x${string}`,
   StakingVault: '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1' as `0x${string}`,
@@ -123,8 +127,8 @@ export function getDeployedContracts(chainId?: number) {
  */
 export const DEPLOYED_CONTRACTS_SEPOLIA = DEPLOYED_CONTRACTS_MAINNET;
 
-// Safety Invariant Check: Base Mainnet Controller must strictly resolve to 0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366
-export const CANONICAL_MAINNET_CONTROLLER = '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as const;
+// Safety Invariant Check: Base Mainnet Controller must strictly resolve to 0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c
+export const CANONICAL_MAINNET_CONTROLLER = '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c' as const;
 if (
   typeof window !== 'undefined' &&
   DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase() !==

@@ -1,51 +1,435 @@
 {
-  "manifestVersion": 14,
+  "manifestVersion": 55,
   "chainId": 8453,
   "network": "Base Mainnet",
   "deploymentVersion": "V2",
   "protocolVersion": "2.0.0",
   "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
-  "status": "live",
+  "status": "completed",
   "isLocked": true,
-  "currentStepIndex": 10,
+  "currentStepIndex": 55,
   "totalSteps": 55,
   "contracts": {
-    "ProtocolDirectory": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
-    "UnifyVaultController": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
-    "CustodyVault": "0xbb35a3434c689942e0b7d58909eae0d2cc0769ca",
-    "Treasury": "0x57561F781b2f558A7445D2E93a365C03BA2c9B53",
-    "OracleManager": "0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7",
-    "StrategyManager": "0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a",
-    "PortfolioManager": "0x66182f56bd5e523c655f6890290ab519f528e83f",
-    "UVBEV2": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
-    "UVBEToken": "0xd2715141a0f5998b707baa963990bfc2e94cf145",
-    "SwapAdapter": "0x5b6067982c6cce2dc760eb4731c1b40136776d4a",
-    "LiquidityManager": "0x9af86a9ac1563b7fdbf43b19335348240a8c16d3",
-    "CostBasisManagerV2": "0x27b5c6dea90678b78856b0b10dba37a789fde97e",
-    "PerformanceManager": "0x19ec1b685c2ced1400b4f249da6be89662e59473",
-    "P2PEscrowV2": "0xa938aacea64be8f41c90960aff232da4df7fc329",
-    "Marketplace": "0xabfe3034db275e32de396c7bdd1649a62ac9e5a6",
-    "UnifyVaultTimelock": "0x610c5f66d99993d444561d270fba172db1f7cff1",
-    "UVBEStakingVault": "0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1",
-    "UVBEReferralRegistry": "0xb157fa8d58f8a610e8ae91a68f38b3304edff309",
-    "UVBERewardDistributor": "0x878eb0e328725cee505c4001de9f3815f6ba16d4",
-    "P2PReputation": "0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8",
-    "UnifyVaultPaymaster": "0xdf96b619934d17ae85142dcef1655a8d3b19040a",
-    "GasTreasury": "0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424"
+    "ProtocolDirectory": "0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5",
+    "OracleManager": "0xdbab63fe1d8accff6620214a5c616d4151a8fec7",
+    "ChainlinkOracleProvider": "0x39af66781d16ec8a72d2b1a4a1b7697a577626a2",
+    "Treasury": "0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9",
+    "FeeManager": "0x76c8a1ab608403cd974ec7598b01ec88b44320d3",
+    "CustodyVault": "0xcf3dc2cd20fb7c3c99138038092eed60385bfa9c",
+    "LiquidityManager": "0x6a52c50d9be9eab8bf8987f77d8714aecd9e0919",
+    "UVBEV2": "0x051979deb1eb4823672e6274a55c44d7818ff523",
+    "SwapAdapter": "0x9560361d964ebfeea402e75ad3b74fad4d8057be",
+    "StrategyManager": "0x8c196a631531ac3a9754016db1d7b873ebbdb6e9",
+    "PortfolioManager": "0xce97c16a1c544f1df87e46695f86c7cc61ea486a",
+    "UnifyVaultController": "0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c",
+    "CostBasisManagerV2": "0x3fcf09b4e1545926c1031d22a302a39e552b3469",
+    "P2PEscrowV2": "0x400916339033b88cda38b1d8a5fb0f82e4889f38",
+    "PerformanceManager": "0x3e13aae6c9befaaec11b2247e2af678ce871f338",
+    "Marketplace": "0x6e3be632747e161a0b017cb35243d39eb90d0d8a"
   },
   "stepRecords": {
+    "1": {
+      "stepNumber": 1,
+      "stepId": "step_1",
+      "status": "confirmed",
+      "deployedAddress": "0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5",
+      "txHash": "0x8fb0fd12ab7d0c169f211de810b98de593297e877e121b47cb74d56dbaa070e3",
+      "timestamp": 1788468842900
+    },
+    "2": {
+      "stepNumber": 2,
+      "stepId": "step_2",
+      "status": "confirmed",
+      "deployedAddress": "0xdbab63fe1d8accff6620214a5c616d4151a8fec7",
+      "txHash": "0xc9ab6bcd4b87399c9b6ca8f5b107b5ee86da1adbbc3e02e052e31ba10ea39519",
+      "timestamp": 1788469070678
+    },
+    "3": {
+      "stepNumber": 3,
+      "stepId": "step_3",
+      "status": "confirmed",
+      "deployedAddress": "0x39af66781d16ec8a72d2b1a4a1b7697a577626a2",
+      "txHash": "0x9dd77173e07073a830995a13a800d4ac49a22975a68a60f085d3290f1286700b",
+      "timestamp": 1788469113956
+    },
+    "4": {
+      "stepNumber": 4,
+      "stepId": "step_4",
+      "status": "confirmed",
+      "deployedAddress": "0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9",
+      "txHash": "0xed9d5d5649ad5868e9c08a7c388b5869d78546b51eacb0bf6580486e5f1580f1",
+      "timestamp": 1788469138265
+    },
+    "5": {
+      "stepNumber": 5,
+      "stepId": "step_5",
+      "status": "confirmed",
+      "deployedAddress": "0x76c8a1ab608403cd974ec7598b01ec88b44320d3",
+      "txHash": "0xd986a6789e57bfb4254730953f360993b7b04304a18f94ac0e49573c59c4dde0",
+      "timestamp": 1788469171729
+    },
+    "6": {
+      "stepNumber": 6,
+      "stepId": "step_6",
+      "status": "confirmed",
+      "deployedAddress": "0xcf3dc2cd20fb7c3c99138038092eed60385bfa9c",
+      "txHash": "0x41bf71a22d6f492947cf932b0936f386a57b832a142a4aa58d46ac1f5fc012d5",
+      "timestamp": 1788469227336
+    },
+    "7": {
+      "stepNumber": 7,
+      "stepId": "step_7",
+      "status": "confirmed",
+      "deployedAddress": "0x6a52c50d9be9eab8bf8987f77d8714aecd9e0919",
+      "txHash": "0x21c60b5a9ed1dbe001e33be7c51e4d4c914994b4ff5f4e7bbb3cca6e20010459",
+      "timestamp": 1788469358320
+    },
+    "8": {
+      "stepNumber": 8,
+      "stepId": "step_8",
+      "status": "confirmed",
+      "deployedAddress": "0x051979deb1eb4823672e6274a55c44d7818ff523",
+      "txHash": "0x936d19d81b698b31d8055c90f7c80eb2ba766fed819bddb8dcb85233d455e2ce",
+      "timestamp": 1788469418263
+    },
+    "9": {
+      "stepNumber": 9,
+      "stepId": "step_9",
+      "status": "confirmed",
+      "deployedAddress": "0x9560361d964ebfeea402e75ad3b74fad4d8057be",
+      "txHash": "0xe46199e0f6d70d3a227ee29adb223ce2dc4914f18ed224258bae02bbf1b7379d",
+      "timestamp": 1788469640310
+    },
+    "10": {
+      "stepNumber": 10,
+      "stepId": "step_10",
+      "status": "confirmed",
+      "deployedAddress": "0x8c196a631531ac3a9754016db1d7b873ebbdb6e9",
+      "txHash": "0xd9d10fc1295aa286694c0e013ce0947629431f204d91901106701b29971c005a",
+      "timestamp": 1788469659575
+    },
+    "11": {
+      "stepNumber": 11,
+      "stepId": "step_11",
+      "status": "confirmed",
+      "deployedAddress": "0xce97c16a1c544f1df87e46695f86c7cc61ea486a",
+      "txHash": "0x3c66d597a1599d2782a617116cd4184a34d6d3dd0b4fd6c79f3e402abb7511e5",
+      "timestamp": 1788469681347
+    },
     "12": {
       "stepNumber": 12,
       "stepId": "step_12",
       "status": "confirmed",
-      "deployedAddress": "0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366",
-      "txHash": "0xafc4c65a0a27f10d1a9a9c14f7a1cc7e98263d19215eacbb1b947d9f054110c3",
-      "timestamp": 1787455989791
+      "deployedAddress": "0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c",
+      "txHash": "0xaff300304414886f6a67c26a232d9202c5f8e787793f62aa8ce3e104b82a39cb",
+      "timestamp": 1788469704347
+    },
+    "13": {
+      "stepNumber": 13,
+      "stepId": "step_13",
+      "status": "confirmed",
+      "deployedAddress": "0x3fcf09b4e1545926c1031d22a302a39e552b3469",
+      "txHash": "0x1d6ccb4ed1f21649094ed469f29cd7470ba51e93ae3ee0ee083046c24a015f3f",
+      "timestamp": 1788469720569
+    },
+    "14": {
+      "stepNumber": 14,
+      "stepId": "step_14",
+      "status": "confirmed",
+      "deployedAddress": "0x400916339033b88cda38b1d8a5fb0f82e4889f38",
+      "txHash": "0x1c4476101b1aaab6e6d5a267f0eb9bf5a75c757f2019fd79d923cd1509ab745e",
+      "timestamp": 1788469743107
+    },
+    "15": {
+      "stepNumber": 15,
+      "stepId": "step_15",
+      "status": "confirmed",
+      "deployedAddress": "0x3e13aae6c9befaaec11b2247e2af678ce871f338",
+      "txHash": "0xfa2bddfca2b38199dc2a11e5cc499c7bbcd2689348dcead281ac8a4eb65c62ad",
+      "timestamp": 1788469755590
+    },
+    "16": {
+      "stepNumber": 16,
+      "stepId": "step_16",
+      "status": "confirmed",
+      "txHash": "0x0c3bdd585bde5f1f2defac7a9e7e5f57080c6265bbb2d1ec10080fc82ac21868",
+      "timestamp": 1788469769958
+    },
+    "17": {
+      "stepNumber": 17,
+      "stepId": "step_17",
+      "status": "confirmed",
+      "txHash": "0x11776243def2d544aab6210545f6b9d4ffa9fb2d3558028e5acd3299a6f53512",
+      "timestamp": 1788469784694
+    },
+    "18": {
+      "stepNumber": 18,
+      "stepId": "step_18",
+      "status": "confirmed",
+      "txHash": "0x2bfa3904736134606e429d830e6db84aa6037f786f329673e26f7120a1c9d284",
+      "timestamp": 1788469797248
+    },
+    "19": {
+      "stepNumber": 19,
+      "stepId": "step_19",
+      "status": "confirmed",
+      "txHash": "0x711c482e6b0483f00221ca168769ca4b3e9a39710f8a8139b0ddf30be25c6e39",
+      "timestamp": 1788469809989
+    },
+    "20": {
+      "stepNumber": 20,
+      "stepId": "step_20",
+      "status": "confirmed",
+      "txHash": "0x80d7fd9ff16e9dd524537f8bd40862418fb319466ed9526e6f4519697cf92e2f",
+      "timestamp": 1788469821273
+    },
+    "21": {
+      "stepNumber": 21,
+      "stepId": "step_21",
+      "status": "confirmed",
+      "txHash": "0xd70bf36639ffe9568619ede35b7a4d1c8b8c8e5c4b023bca74204fc1a1696611",
+      "timestamp": 1788469835728
+    },
+    "22": {
+      "stepNumber": 22,
+      "stepId": "step_22",
+      "status": "confirmed",
+      "txHash": "0x4c694f264fa412d43e478fbeb7b8a5422b6c9c17912376bdd134cb3c18ae7952",
+      "timestamp": 1788469852262
+    },
+    "23": {
+      "stepNumber": 23,
+      "stepId": "step_23",
+      "status": "confirmed",
+      "txHash": "0x8c20b7baa238535205d9a5ba9fb8dbc9f796c2a161e6ebe9d329b6ee1c2f8bd8",
+      "timestamp": 1788469863732
+    },
+    "24": {
+      "stepNumber": 24,
+      "stepId": "step_24",
+      "status": "confirmed",
+      "txHash": "0xa97cef9031c67b985972812fe232845f1ae934450b265ed6a86f21cb4dc96719",
+      "timestamp": 1788469878103
+    },
+    "25": {
+      "stepNumber": 25,
+      "stepId": "step_25",
+      "status": "confirmed",
+      "txHash": "0xa95e01b9f90fb5c0b23ce44e5fa66ecea598c162da3537c77b4f835f8285d59e",
+      "timestamp": 1788469893037
+    },
+    "26": {
+      "stepNumber": 26,
+      "stepId": "step_26",
+      "status": "confirmed",
+      "txHash": "0x5b5e6d06ecf2c7056872fe803edfa80a1f32ef52d6fd019c3ba64683c080cf10",
+      "timestamp": 1788469904787
+    },
+    "27": {
+      "stepNumber": 27,
+      "stepId": "step_27",
+      "status": "confirmed",
+      "txHash": "0x522f6af300acac006814782fc8ba5eeb910cbace02901c6c4489b5736999260c",
+      "timestamp": 1788469919007
+    },
+    "28": {
+      "stepNumber": 28,
+      "stepId": "step_28",
+      "status": "confirmed",
+      "txHash": "0x59dbb22d9a071955482b598fd3c812e5ea52dd9e99502485c37d600d04a542ef",
+      "timestamp": 1788469933898
+    },
+    "29": {
+      "stepNumber": 29,
+      "stepId": "step_29",
+      "status": "confirmed",
+      "txHash": "0xa6ddf75436fe9be1082787d8b1d532f8a51d9c508b6661aa6661f1d91eb260de",
+      "timestamp": 1788469948063
+    },
+    "30": {
+      "stepNumber": 30,
+      "stepId": "step_30",
+      "status": "confirmed",
+      "txHash": "0x724e120542184356b36111fe0ef790afb11294ac7a210d09fa916da41f447fed",
+      "timestamp": 1788469962477
+    },
+    "31": {
+      "stepNumber": 31,
+      "stepId": "step_31",
+      "status": "confirmed",
+      "txHash": "0x1a9f801d8a9541a4f22a3a74880ded858c1a4e9ec6cc7ffabd75f8aa8bad790a",
+      "timestamp": 1788469976272
+    },
+    "32": {
+      "stepNumber": 32,
+      "stepId": "step_32",
+      "status": "confirmed",
+      "txHash": "0xb0729cd840d6f3755d5f0c80243069bed7380ecf5735c4f1384917092526efec",
+      "timestamp": 1788469988904
+    },
+    "33": {
+      "stepNumber": 33,
+      "stepId": "step_33",
+      "status": "confirmed",
+      "txHash": "0x25b488fab14745f902cf954f11fd6ed05187170e46e3fd064b34ae176cd8e710",
+      "timestamp": 1788470003209
+    },
+    "34": {
+      "stepNumber": 34,
+      "stepId": "step_34",
+      "status": "confirmed",
+      "txHash": "0x9a9ec975dee08ae2298e882eaeb88d41c4b95f47201a2a6ec00f7bd009d1b81b",
+      "timestamp": 1788470018857
+    },
+    "35": {
+      "stepNumber": 35,
+      "stepId": "step_35",
+      "status": "confirmed",
+      "txHash": "0x3a9e149e4bb24296239bf51c78f14f79cacbeb893d4bf8ea744ef8d388f47e3d",
+      "timestamp": 1788470031020
+    },
+    "36": {
+      "stepNumber": 36,
+      "stepId": "step_36",
+      "status": "confirmed",
+      "txHash": "0x0ae82c371eda95727d788d07a82de82fff5aebc74053592d46b8aafa5a8e7dfc",
+      "timestamp": 1788470046641
+    },
+    "37": {
+      "stepNumber": 37,
+      "stepId": "step_37",
+      "status": "confirmed",
+      "txHash": "0xcb72109961fa48e453e1352fbd497b1cb910b0101202afc117683325bb0816e3",
+      "timestamp": 1788470059281
+    },
+    "38": {
+      "stepNumber": 38,
+      "stepId": "step_38",
+      "status": "confirmed",
+      "txHash": "0xc2cfe85e40cd63be3bdc928c4c20e4946df492b5e814b839fba6ff7baf7dcb37",
+      "timestamp": 1788470073865
+    },
+    "39": {
+      "stepNumber": 39,
+      "stepId": "step_39",
+      "status": "confirmed",
+      "txHash": "0x76f7544e1223c5ce158555a3f7c84d4af1deb2e12875cc619616571f320aecd1",
+      "timestamp": 1788470085316
+    },
+    "40": {
+      "stepNumber": 40,
+      "stepId": "step_40",
+      "status": "confirmed",
+      "txHash": "0x101bb5b27f3aec244dff91e4a4a2896c4795c7cfc5fab0d478ce6c4230329dc2",
+      "timestamp": 1788470100428
+    },
+    "41": {
+      "stepNumber": 41,
+      "stepId": "step_41",
+      "status": "confirmed",
+      "txHash": "0x5a7a1c953ce6388af7cb40f0a166f9e707742f51aefbfa3f2b85f4d88cbe3808",
+      "timestamp": 1788470113817
+    },
+    "42": {
+      "stepNumber": 42,
+      "stepId": "step_42",
+      "status": "confirmed",
+      "txHash": "0xfa13ceb6c41248e8a939709f6d420cb1d8166d65704761748e2a2c45ac256591",
+      "timestamp": 1788470127127
+    },
+    "43": {
+      "stepNumber": 43,
+      "stepId": "step_43",
+      "status": "confirmed",
+      "txHash": "0xc64c43816031a021559967adf6f6640c3e4a949edc0ec1085d884102f63c3f3e",
+      "timestamp": 1788470139017
+    },
+    "44": {
+      "stepNumber": 44,
+      "stepId": "step_44",
+      "status": "confirmed",
+      "txHash": "0xebfe3dac75c0d0debba45c4182bad953af9875a95e02c7553afdc879beabac0e",
+      "timestamp": 1788470154622
+    },
+    "45": {
+      "stepNumber": 45,
+      "stepId": "step_45",
+      "status": "confirmed",
+      "txHash": "0x65ddd0735e6cf4bd052b87ca350a8dc49b44eaf7dec9e4dd7b6e85b0ed01b12c",
+      "timestamp": 1788470167758
+    },
+    "46": {
+      "stepNumber": 46,
+      "stepId": "step_46",
+      "status": "confirmed",
+      "txHash": "0x9a1b724a4a9e241b97459baf9ea4e93685023d696b4e8c083fb49759318536d5",
+      "timestamp": 1788470182182
+    },
+    "47": {
+      "stepNumber": 47,
+      "stepId": "step_47",
+      "status": "confirmed",
+      "txHash": "0xbb885ec7de0962c371489467c6e8c7633248fe57f64af94c257e2a014f381005",
+      "timestamp": 1788470198252
+    },
+    "48": {
+      "stepNumber": 48,
+      "stepId": "step_48",
+      "status": "confirmed",
+      "txHash": "0x66e9238824b367c6cda873fd85cedcc59435c4a2ce33b95318bd56f90b31be34",
+      "timestamp": 1788470212282
+    },
+    "49": {
+      "stepNumber": 49,
+      "stepId": "step_49",
+      "status": "confirmed",
+      "txHash": "0xd15eac99d77779c4456b110dac956624d2b76fd17dd8f9e685fe0e1e1bd23fd4",
+      "timestamp": 1788470227532
+    },
+    "50": {
+      "stepNumber": 50,
+      "stepId": "step_50",
+      "status": "confirmed",
+      "txHash": "0x7c0edb12acc21552506e5c4b67aa3a149701b71693e95d7462bdd20d0171a4ad",
+      "timestamp": 1788470251092
+    },
+    "51": {
+      "stepNumber": 51,
+      "stepId": "step_51",
+      "status": "confirmed",
+      "txHash": "0x04445b4569c551625d1c273bd7aca8330ae7b6014df2c592eedd940bccfd2b1f",
+      "timestamp": 1788470352125
+    },
+    "52": {
+      "stepNumber": 52,
+      "stepId": "step_52",
+      "status": "confirmed",
+      "txHash": "0x247f6b974674805f3b3111a1fb8f72931b4675073f2b32d744474597b3f9e433",
+      "timestamp": 1788470367917
+    },
+    "53": {
+      "stepNumber": 53,
+      "stepId": "step_53",
+      "status": "confirmed",
+      "txHash": "0xfee4846e02e5c509ab1cded855a1674254e5fd6e83e33ba91e2c59b755c501aa",
+      "timestamp": 1788470381848
+    },
+    "54": {
+      "stepNumber": 54,
+      "stepId": "step_54",
+      "status": "confirmed",
+      "deployedAddress": "0x6e3be632747e161a0b017cb35243d39eb90d0d8a",
+      "txHash": "0x18bcab67091e5c57c89b821f05e0bdb23a9a1ae1ce7fab6075a8a11b36d5336c",
+      "timestamp": 1788470399353
+    },
+    "55": {
+      "stepNumber": 55,
+      "stepId": "step_55",
+      "status": "confirmed",
+      "txHash": "0x27123683e2cc3e7ee8d9139bd0bdb6d16ffe690db8baffe249e7dc155ba2a317",
+      "timestamp": 1788470411238
     }
   },
   "verificationResults": [],
-  "lastUpdated": 1788264145417,
-  "_pendingUpgrades": {
-    "SwapAdapter": "CURRENT=0x5b6067982c6cce2dc760eb4731c1b40136776d4a (fee=3000, immutable). UPGRADE REQUIRED to new fee=500 adapter before production deposits will succeed."
-  }
+  "lastUpdated": 1788470549508
 }

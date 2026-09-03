@@ -1,0 +1,1195 @@
+{
+  "observations": [
+    {
+      "timestamp": 1788467833,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467848,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467863,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467878,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467893,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467908,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467923,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467938,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467953,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467968,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467983,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788467998,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468013,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468028,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468043,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468058,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468073,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468088,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468103,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468118,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468133,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468148,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468163,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468178,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468193,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468208,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468223,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468238,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468253,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468268,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468283,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468298,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468313,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468328,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468343,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468358,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468373,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468388,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468403,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468418,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468433,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468448,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468463,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468478,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468493,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468508,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468523,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468538,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468553,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468568,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468583,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468598,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468613,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468628,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468643,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468658,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468673,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468688,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468703,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468718,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468733,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468748,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468763,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468778,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468793,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468808,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468823,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468838,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468853,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468868,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468883,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468898,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468913,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468928,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468943,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468958,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468973,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788468988,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469003,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469018,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469033,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469048,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469063,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469078,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469093,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469108,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469123,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469138,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469153,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469168,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469183,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469198,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469213,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469228,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469243,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469258,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469273,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469288,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469303,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469318,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469333,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469348,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469363,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469378,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469393,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469408,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469423,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469438,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469453,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469468,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469483,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469498,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469513,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469528,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469543,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469558,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469573,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469588,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469603,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469618,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469633,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469648,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469663,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469678,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469693,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469708,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469723,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469738,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469753,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469768,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469783,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469798,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469813,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469828,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469843,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469858,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469873,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469888,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469903,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469918,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469933,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469948,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469963,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469978,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788469993,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470008,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470023,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470038,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470053,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470068,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470083,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470098,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470113,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470128,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470143,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470158,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470173,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470188,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470203,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470218,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470233,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470248,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470263,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470278,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470293,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470308,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470323,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470338,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470353,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470368,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470383,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470398,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470413,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470428,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470443,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470458,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470473,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470488,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470503,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470518,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470533,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470548,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470563,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470578,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470593,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470608,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470623,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470638,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470653,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470668,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470683,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470698,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470713,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470728,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470743,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470758,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470773,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470788,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470803,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470818,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470833,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470848,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470863,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470878,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470893,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470908,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470923,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470938,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470953,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470968,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470983,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788470998,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471013,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471028,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471043,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471058,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471073,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471088,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471103,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471118,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471133,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471148,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471163,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471178,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471193,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471208,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471223,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471238,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471253,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471268,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471283,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471298,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471313,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471328,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471343,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471358,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471373,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    },
+    {
+      "timestamp": 1788471388,
+      "price": 1173.2643416635692,
+      "source": "ON_CHAIN_INDEX_MANAGER"
+    }
+  ],
+  "lastUpdated": 1788471388267
+}

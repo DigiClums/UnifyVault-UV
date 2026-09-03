@@ -1,14 +1,13 @@
 {
-  "latestVersion": "2.3.8",
+  "latestVersion": "2.4.0",
   "minimumVersion": "1.0.0",
   "mandatory": false,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.3.8/app-release.apk",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.0/app-release.apk",
   "iosStoreUrl": "",
   "releaseNotes": [
-    "🚀 Production Release v2.3.8",
-    "⚡ 600.00% Dynamic APY Cap Staking & Reward Engine",
-    "🔒 Verified StakingVault, ReferralRegistry & RewardDistributor (Base Mainnet)",
-    "📊 Transparent UnifyVault Portfolio Value & Claimable Rewards Breakdown",
-    "🛡️ Institutional 48-Hour Timelock & Solvency Protections"
+    "🚀 Production Release v2.4.0",
+    "🔒 Fresh Canonical Stack Deployment (16 Contracts, 55 Verified Steps on Base Mainnet)",
+    "📈 Options Protocol Architecture & Dynamic Indexing Integration",
+    "⚡ Fully Synchronized Protocol Directory & Multi-Asset Custody Vault"
   ]
 }

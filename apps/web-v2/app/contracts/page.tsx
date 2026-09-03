@@ -104,7 +104,7 @@ export default function ContractsPage() {
         address:
           directory.directory ||
           (isMainnet
-            ? '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
+            ? '0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5'
             : DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory),
         category: 'Core Vault',
         protocolKey: 'Core Registry Entrypoint',
@@ -117,7 +117,7 @@ export default function ContractsPage() {
         address:
           directory.controller ||
           (isMainnet
-            ? '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366'
+            ? '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c'
             : DEPLOYED_CONTRACTS_SEPOLIA.UnifyVaultController),
         category: 'Core Vault',
         protocolKey: 'keccak256("DepositManager")',
@@ -130,7 +130,7 @@ export default function ContractsPage() {
         address:
           directory.vault ||
           (isMainnet
-            ? '0xbb35a3434c689942e0b7d58909eae0d2cc0769ca'
+            ? '0xcf3dc2cd20fb7c3c99138038092eed60385bfa9c'
             : DEPLOYED_CONTRACTS_SEPOLIA.CustodyVault),
         category: 'Core Vault',
         protocolKey: 'keccak256("CustodyVault")',
@@ -143,7 +143,7 @@ export default function ContractsPage() {
         address:
           directory.treasury ||
           (isMainnet
-            ? '0x57561F781b2f558A7445D2E93a365C03BA2c9B53'
+            ? '0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9'
             : DEPLOYED_CONTRACTS_SEPOLIA.Treasury),
         category: 'Core Vault',
         protocolKey: 'keccak256("Treasury")',
@@ -156,7 +156,7 @@ export default function ContractsPage() {
         address:
           directory.portfolioManager ||
           (isMainnet
-            ? '0x66182f56bd5e523c655f6890290ab519f528e83f'
+            ? '0xce97c16a1c544f1df87e46695f86c7cc61ea486a'
             : DEPLOYED_CONTRACTS_SEPOLIA.PortfolioManager),
         category: 'Core Vault',
         protocolKey: 'keccak256("PortfolioManager")',
@@ -169,7 +169,7 @@ export default function ContractsPage() {
         address:
           directory.strategyManager ||
           (isMainnet
-            ? '0x4f7f99653d9d7acd462429fffc0c4b6c8cf4354a'
+            ? '0x8c196a631531ac3a9754016db1d7b873ebbdb6e9'
             : DEPLOYED_CONTRACTS_SEPOLIA.StrategyManager),
         category: 'Core Vault',
         protocolKey: 'keccak256("StrategyManager")',
@@ -182,7 +182,7 @@ export default function ContractsPage() {
         address:
           directory.liquidityManager ||
           (isMainnet
-            ? '0x9af86a9ac1563b7fdbf43b19335348240a8c16d3'
+            ? '0x6a52c50d9be9eab8bf8987f77d8714aecd9e0919'
             : DEPLOYED_CONTRACTS_SEPOLIA.LiquidityManager),
         category: 'Core Vault',
         protocolKey: 'keccak256("LiquidityManager")',
@@ -195,7 +195,7 @@ export default function ContractsPage() {
         address:
           directory.swapAdapter ||
           (isMainnet
-            ? '0xaae7104a120e7c6e518a936fcbc102bcd0454b67'
+            ? '0x9560361d964ebfeea402e75ad3b74fad4d8057be'
             : DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter),
         category: 'Core Vault',
         protocolKey: 'keccak256("SwapAdapter")',
@@ -247,7 +247,7 @@ export default function ContractsPage() {
         address:
           directory.p2pEscrow ||
           (isMainnet
-            ? '0xa938aacea64be8f41c90960aff232da4df7fc329'
+            ? '0x400916339033b88cda38b1d8a5fb0f82e4889f38'
             : DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow),
         category: 'P2P & Escrow',
         protocolKey: 'keccak256("P2PEscrow")',
@@ -258,7 +258,7 @@ export default function ContractsPage() {
         name: 'Marketplace',
         description: 'Non-custodial limit orderbook engine with linked escrow creation',
         address: isMainnet
-          ? '0xabfe3034db275e32de396c7bdd1649a62ac9e5a6'
+          ? '0x6e3be632747e161a0b017cb35243d39eb90d0d8a'
           : DEPLOYED_CONTRACTS_SEPOLIA.Marketplace,
         category: 'P2P & Escrow',
         protocolKey: 'Orderbook Matching Engine',
@@ -285,7 +285,7 @@ export default function ContractsPage() {
         address:
           directory.feeManager ||
           (isMainnet
-            ? '0xa5b0a1c71f4ffa357ddf5f50cc5003ff69c87881'
+            ? '0x76c8a1ab608403cd974ec7598b01ec88b44320d3'
             : DEPLOYED_CONTRACTS_SEPOLIA.FeeManager),
         category: 'Accounting',
         protocolKey: 'keccak256("FeeManager")',
@@ -298,7 +298,7 @@ export default function ContractsPage() {
         address:
           directory.costBasisManager ||
           (isMainnet
-            ? '0x27b5c6dea90678b78856b0b10dba37a789fde97e'
+            ? '0x3fcf09b4e1545926c1031d22a302a39e552b3469'
             : DEPLOYED_CONTRACTS_SEPOLIA.CostBasisManager),
         category: 'Accounting',
         protocolKey: 'keccak256("CostBasisManager")',
@@ -311,7 +311,7 @@ export default function ContractsPage() {
         address:
           directory.performanceManager ||
           (isMainnet
-            ? '0x19ec1b685c2ced1400b4f249da6be89662e59473'
+            ? '0x3e13aae6c9befaaec11b2247e2af678ce871f338'
             : DEPLOYED_CONTRACTS_SEPOLIA.PerformanceManager),
         category: 'Accounting',
         protocolKey: 'keccak256("PerformanceManager")',
@@ -326,7 +326,7 @@ export default function ContractsPage() {
         address:
           directory.oracle ||
           (isMainnet
-            ? '0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7'
+            ? '0xdbab63fe1d8accff6620214a5c616d4151a8fec7'
             : DEPLOYED_CONTRACTS_SEPOLIA.OracleManager),
         category: 'Oracle',
         protocolKey: 'keccak256("OracleManager")',
@@ -337,7 +337,7 @@ export default function ContractsPage() {
         name: 'ChainlinkOracleProvider',
         description: 'Chainlink AggregatorV3 price feed adapter & staleness heartbeat validator',
         address: isMainnet
-          ? '0x5f75d0Fc1c45c0994dAb01BaAaD0Bdb64333d85E'
+          ? '0x39af66781d16ec8a72d2b1a4a1b7697a577626a2'
           : DEPLOYED_CONTRACTS_SEPOLIA.ChainlinkOracleProvider,
         category: 'Oracle',
         protocolKey: 'Chainlink Provider Target',
@@ -423,7 +423,7 @@ export default function ContractsPage() {
         address:
           directory.token ||
           (isMainnet
-            ? '0xd2715141a0f5998b707baa963990bfc2e94cf145'
+            ? '0x051979deb1eb4823672e6274a55c44d7818ff523'
             : DEPLOYED_CONTRACTS_SEPOLIA.UVBTCETHToken),
         category: 'Tokens',
         protocolKey: 'keccak256("IndexToken")',
