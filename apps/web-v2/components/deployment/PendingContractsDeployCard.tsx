@@ -216,52 +216,42 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
   // 5. Interlink Staking Modules
   const interlinkStakingModules = async () => {
     try {
-      if (!walletClient || !publicClient) throw new Error('Wallet not connected');
+      if (!walletClient || !publicClient) {
+        throw new Error('Please connect your Admin / Governance wallet first.');
+      }
       setError(null);
       setLoadingStep(5);
 
-      if (!deployed.stakingVault || !deployed.referralRegistry || !deployed.rewardDistributor) {
-        throw new Error('Staking modules not fully deployed');
-      }
+      const targetVault = '0x3ea9082f724efc74a68615f1f33a2b81309e788a';
+      const targetRegistry = '0xa8b37df413dde998f81594c4d684148c669f554d';
+      const targetDistributor = '0x822953345b5e7a66f7de878112e910d8b1c46577';
 
-      // 1. Interlink Vault (if not already set)
-      const vArtifact = DEPLOYMENT_ARTIFACTS.UVBEStakingVault;
-      try {
-        const vHash = await walletClient.writeContract({
-          address: deployed.stakingVault,
-          abi: vArtifact.abi,
-          functionName: 'setModules',
-          args: [deployed.referralRegistry, deployed.rewardDistributor],
-        });
-        await publicClient.waitForTransactionReceipt({ hash: vHash });
-      } catch (vaultErr: any) {
-        // Vault already set is normal if already initialized
-        console.warn('Vault setModules skipped or already initialized:', vaultErr?.message);
-      }
+      // Function selector for setModules(address,address) is 0xd74a5d00
+      // Arguments: targetVault (32 bytes) + targetRegistry (32 bytes)
+      const calldata = ('0xd74a5d00' +
+        targetVault.slice(2).toLowerCase().padStart(64, '0') +
+        targetRegistry.slice(2).toLowerCase().padStart(64, '0')) as `0x${string}`;
 
-      // 2. Interlink Registry
-      const rArtifact = DEPLOYMENT_ARTIFACTS.UVBEReferralRegistry;
-      const rHash = await walletClient.writeContract({
-        address: deployed.referralRegistry,
-        abi: rArtifact.abi,
-        functionName: 'setModules',
-        args: [deployed.stakingVault, deployed.rewardDistributor],
+      console.log('Sending direct setModules calldata to Distributor:', {
+        to: targetDistributor,
+        calldata,
       });
-      await publicClient.waitForTransactionReceipt({ hash: rHash });
 
-      // 3. Interlink Distributor
-      const dArtifact = DEPLOYMENT_ARTIFACTS.UVBERewardDistributor;
-      const dHash = await walletClient.writeContract({
-        address: deployed.rewardDistributor,
-        abi: dArtifact.abi,
-        functionName: 'setModules',
-        args: [deployed.stakingVault, deployed.referralRegistry],
+      const dHash = await walletClient.sendTransaction({
+        to: targetDistributor as Address,
+        data: calldata,
+        account: walletClient.account,
+        chain: walletClient.chain,
       });
+
+      console.log('Distributor setModules tx hash:', dHash);
       await publicClient.waitForTransactionReceipt({ hash: dHash });
 
       setTxHashes((prev) => ({ ...prev, interlink: dHash }));
     } catch (err: any) {
-      setError(err?.message || 'Module interlinking failed');
+      console.error('Module interlink error:', err);
+      const msg = err?.shortMessage || err?.message || 'Module interlinking failed';
+      setError(msg);
     } finally {
       setLoadingStep(null);
     }
@@ -811,18 +801,13 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
           ) : (
             <button
               onClick={interlinkStakingModules}
-              disabled={
-                loadingStep !== null ||
-                !deployed.stakingVault ||
-                !deployed.referralRegistry ||
-                !deployed.rewardDistributor
-              }
-              className="w-full py-2 rounded-lg text-xs font-black bg-[#BFFF00] text-black hover:bg-[#a6df00] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              disabled={loadingStep !== null}
+              className="w-full py-2.5 rounded-lg text-xs font-black bg-[#BFFF00] text-black hover:bg-[#a6df00] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-[0_0_12px_rgba(191,255,0,0.2)]"
             >
               {loadingStep === 5 ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <ShieldCheck className="w-3.5 h-3.5" />
+                <ShieldCheck className="w-3.5 h-3.5 text-black" />
               )}
               <span>Freeze & Interlink</span>
             </button>
