@@ -263,6 +263,27 @@ export function useStaking() {
         abi: REWARD_DISTRIBUTOR_ABI,
         functionName: 'totalRewardPaid',
       },
+      // 19: User Total Deposited Principal
+      {
+        address: stakingVaultAddress,
+        abi: STAKING_VAULT_ABI,
+        functionName: 'getTotalDepositedPrincipal',
+        args: userAddress ? [userAddress] : undefined,
+      },
+      // 20: User Has Unlocked 3x Lifetime Cap
+      {
+        address: registryAddress,
+        abi: REFERRAL_REGISTRY_ABI,
+        functionName: 'hasUnlocked3x',
+        args: userAddress ? [userAddress] : undefined,
+      },
+      // 21: User Lifetime Cap Details (maxEarnings, totalEarned, isCapReached)
+      {
+        address: distributorAddress,
+        abi: REWARD_DISTRIBUTOR_ABI,
+        functionName: 'getLifetimeCap',
+        args: userAddress ? [userAddress] : undefined,
+      },
     ],
     query: {
       enabled: !!stakingVaultAddress,
@@ -334,6 +355,9 @@ export function useStaking() {
 
   const genesisReferrer = (data?.[17]?.result as Address) || fallbackGenesisReferrer;
   const totalRewardPaid = (data?.[18]?.result as bigint) || 0n;
+  const totalDepositedPrincipal = (data?.[19]?.result as bigint) || 0n;
+  const hasUnlocked3x = Boolean(data?.[20]?.result);
+  const rawLifetimeCap = data?.[21]?.result as [bigint, bigint, boolean] | undefined;
 
   // Optional: Read first stake record if user has staked
   const { data: firstStakeRecord } = useReadContract({
@@ -684,11 +708,15 @@ export function useStaking() {
     };
   }, [currentRank, permanentStake, activeDirectCount, teamVolume]);
 
-  // 2x Non-Referral Lifetime Return Cap details
-  const nonReferralCapInfo = useMemo(() => {
-    const isCapped = activeDirectCount === 0 && permanentStake > 0n;
-    const maxEarnings = permanentStake * 2n;
-    const totalEarned = rewards.totalClaimable + rewards.totalClaimed + rewards.totalRestaked;
+  // Lifetime Payout Cap Details (2x for 0 directs, 3x for 1+ directs based on Total Deposited Principal)
+  const lifetimeCapInfo = useMemo(() => {
+    const is3x = hasUnlocked3x || activeDirectCount > 0;
+    const multiplier = is3x ? 3n : 2n;
+    const maxEarnings = rawLifetimeCap?.[0] ?? totalDepositedPrincipal * multiplier;
+    const totalEarned =
+      rawLifetimeCap?.[1] ?? rewards.totalClaimable + rewards.totalClaimed + rewards.totalRestaked;
+    const isCapReached =
+      rawLifetimeCap?.[2] ?? (totalDepositedPrincipal > 0n && totalEarned >= maxEarnings);
 
     const remainingToCap = maxEarnings > totalEarned ? maxEarnings - totalEarned : 0n;
     const progressPercent =
@@ -697,14 +725,20 @@ export function useStaking() {
         : 0;
 
     return {
-      isCapped,
+      totalDepositedPrincipal,
+      hasUnlocked3x: is3x,
+      multiplier: Number(multiplier),
       maxEarnings,
       totalEarned,
       remainingToCap,
       progressPercent,
-      isCapReached: isCapped && totalEarned >= maxEarnings,
+      isCapReached,
+      isCapped: totalDepositedPrincipal > 0n,
     };
-  }, [activeDirectCount, permanentStake, rewards]);
+  }, [hasUnlocked3x, activeDirectCount, rawLifetimeCap, totalDepositedPrincipal, rewards]);
+
+  // Backwards compatibility alias
+  const nonReferralCapInfo = lifetimeCapInfo;
 
   return {
     // State
@@ -712,6 +746,9 @@ export function useStaking() {
     uvbeAllowance,
     permanentStake,
     totalPermanentStaked,
+    totalDepositedPrincipal,
+    hasUnlocked3x,
+    lifetimeCapInfo,
     stakeCount,
     initialStakeTimestamp,
     initialStakeDate,

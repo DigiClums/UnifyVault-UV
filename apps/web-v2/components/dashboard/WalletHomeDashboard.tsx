@@ -17,6 +17,7 @@ import {
   Layers,
   Sparkles,
   Send,
+  PieChart,
 } from 'lucide-react';
 import { DashboardMetrics } from '../../types';
 import { useAccount } from 'wagmi';
@@ -186,16 +187,16 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
             </div>
           </Link>
 
-          {/* Action 4: Treasury */}
+          {/* Action 4: Portfolio */}
           <Link
-            href="/treasury"
+            href="/portfolio"
             className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-1.5 sm:gap-2 p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-foreground font-black border border-black dark:border-white/15 hover:border-[#BFFF00] transition-all transform active:scale-95 shadow-[2px_2px_0_rgba(0,0,0,0.85)]"
           >
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-black text-[#BFFF00] flex items-center justify-center shrink-0">
-              <Zap className="w-3.5 h-3.5" />
+              <PieChart className="w-3.5 h-3.5" />
             </div>
             <div className="text-center sm:text-left min-w-0">
-              <div className="text-[11px] sm:text-xs font-black truncate">Treasury</div>
+              <div className="text-[11px] sm:text-xs font-black truncate">Portfolio</div>
             </div>
           </Link>
 

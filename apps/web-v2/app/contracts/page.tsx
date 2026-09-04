@@ -208,7 +208,7 @@ export default function ContractsPage() {
         name: 'UVBEStakingVault',
         description: 'Staking vault backing dynamic APY, referral tiers, and reward engine',
         address: isMainnet
-          ? '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1'
+          ? '0x91744fa47837474c7e9d9d532c7fd8a2fe04c5ee'
           : DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Staking Vault',
@@ -219,7 +219,7 @@ export default function ContractsPage() {
         name: 'UVBEReferralRegistry',
         description: '10-tier immutable referral tree & deterministic rank progression system',
         address: isMainnet
-          ? '0xb157fa8d58f8a610e8ae91a68f38b3304edff309'
+          ? '0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9'
           : DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Referral Registry',
@@ -231,7 +231,7 @@ export default function ContractsPage() {
         description:
           'Dynamic APY (600% cap), 10-tier affiliate commissions & 30-day DAO leadership pool engine',
         address: isMainnet
-          ? '0x878eb0e328725cee505c4001de9f3815f6ba16d4'
+          ? '0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3'
           : DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Reward Distributor',
@@ -350,7 +350,7 @@ export default function ContractsPage() {
         name: 'UnifyVaultPaymaster',
         description: 'ERC-4337 verifying paymaster for gasless smart account operations',
         address: isMainnet
-          ? '0xdf96b619934d17ae85142dcef1655a8d3b19040a'
+          ? '0xb5b7719f28368b35cd807a2f885843c9d1fdd0e9'
           : DEPLOYED_CONTRACTS_SEPOLIA.Paymaster,
         category: 'Account Abstraction',
         protocolKey: 'ERC-4337 Verifying Paymaster',
@@ -361,7 +361,7 @@ export default function ContractsPage() {
         name: 'GasTreasury',
         description: 'Automated paymaster refill vault with rate-limited sponsorship protection',
         address: isMainnet
-          ? '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424'
+          ? '0x166477b1eb662dd553287d32af958436cad20c17'
           : DEPLOYED_CONTRACTS_SEPOLIA.GasTreasury,
         category: 'Account Abstraction',
         protocolKey: 'Paymaster Gas Reserve',

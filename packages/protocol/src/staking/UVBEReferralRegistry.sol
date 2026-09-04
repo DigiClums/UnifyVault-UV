@@ -25,6 +25,7 @@ contract UVBEReferralRegistry is IUVBEReferralRegistry, AccessControl, Reentranc
   mapping(address => uint256) private _teamVolumeOf;
   mapping(address => uint8) private _rankOf;
   mapping(address => bool) private _isRegistered;
+  mapping(address => bool) private _hasUnlockedLifetime3x;
   address[] private _daoLeaders;
   mapping(address => bool) private _isDaoLeader;
 
@@ -35,6 +36,7 @@ contract UVBEReferralRegistry is IUVBEReferralRegistry, AccessControl, Reentranc
   error ZeroAddress();
 
   event ReferralRegistered(address indexed user, address indexed referrer, uint256 timestamp);
+  event Lifetime3xUnlocked(address indexed user, address indexed directReferral, uint256 timestamp);
   event TeamVolumeUpdated(address indexed upline, uint256 addedVolume, uint256 totalVolume);
   event RankAchieved(address indexed user, uint8 rankId, uint256 milestoneReward);
 
@@ -88,6 +90,14 @@ contract UVBEReferralRegistry is IUVBEReferralRegistry, AccessControl, Reentranc
     for (uint8 i = 1; i <= MAX_GENERATION_DEPTH && current != address(0); i++) {
       _teamVolumeOf[current] += amount;
       emit TeamVolumeUpdated(current, amount, _teamVolumeOf[current]);
+
+      // Direct referrer: Check permanent 3x lifetime qualification
+      if (i == 1 && !_hasUnlockedLifetime3x[current] && vault != address(0)) {
+        if (IUVBEStakingVault(vault).getPermanentStake(user) >= MIN_ACTIVE_STAKE) {
+          _hasUnlockedLifetime3x[current] = true;
+          emit Lifetime3xUnlocked(current, user, block.timestamp);
+        }
+      }
 
       // Check and update rank for ancestor
       _evaluateRank(current);
@@ -262,5 +272,11 @@ contract UVBEReferralRegistry is IUVBEReferralRegistry, AccessControl, Reentranc
   function isUserActive(address user) external view override returns (bool) {
     if (vault == address(0)) return false;
     return IUVBEStakingVault(vault).getPermanentStake(user) >= MIN_ACTIVE_STAKE;
+  }
+
+  function hasUnlocked3x(address user) external view override returns (bool) {
+    if (user == genesisReferrer) return true;
+    if (_hasUnlockedLifetime3x[user]) return true;
+    return getActiveDirectCount(user) > 0;
   }
 }

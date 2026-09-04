@@ -20,6 +20,7 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
   uint256 public constant SECONDS_PER_YEAR = 31_536_000; // 365 days
   uint256 public constant DAO_POOL_BPS = 500; // 5.00% to DAO leadership pool
   uint256 public constant NON_REFERRAL_MAX_CAP_MULTIPLIER = 2; // 2x lifetime earnings cap for stakers with 0 active directs
+  uint256 public constant REFERRAL_MAX_CAP_MULTIPLIER = 3; // 3x lifetime earnings cap for stakers with >=1 active directs
   uint256 public constant DAO_CYCLE_DURATION = 30 days;
   uint256 public constant INDEX_PRECISION = 1e18; // WAD scaling for cumulative reward index
 
@@ -404,11 +405,15 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
         uint256 deltaIdx = rewardIndex - userIdx;
         uint256 pending = (userStake * deltaIdx) / INDEX_PRECISION;
 
-        // 2x Lifetime Return Cap check for users with 0 active direct referrals
+        // Lifetime Payout Cap check (2x for 0 directs, 3x for 1+ directs) based on Total Deposited Principal
         if (pending > 0 && registry != address(0)) {
-          uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(user);
-          if (activeDirects == 0) {
-            uint256 maxEarnings = userStake * NON_REFERRAL_MAX_CAP_MULTIPLIER;
+          uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(user);
+          if (depositedPrincipal > 0) {
+            bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(user);
+            uint256 multiplier =
+              is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
+            uint256 maxEarnings = depositedPrincipal * multiplier;
+
             uint256 totalEarnedSoFar =
               _claimableRecurring[user] +
                 _claimableDirect[user] +
@@ -480,11 +485,18 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
           uint256 deltaIdx = rewardIndex - userIdx;
           uint256 pending = (preUserStake * deltaIdx) / INDEX_PRECISION;
 
-          // 2x Lifetime Return Cap check for users with 0 active direct referrals
+          // Lifetime Payout Cap check based on pre-stake deposited principal
           if (pending > 0 && registry != address(0)) {
-            uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(staker);
-            if (activeDirects == 0) {
-              uint256 maxEarnings = preUserStake * NON_REFERRAL_MAX_CAP_MULTIPLIER;
+            uint256 currentDeposited = IUVBEStakingVault(vault).getTotalDepositedPrincipal(staker);
+            uint256 preDeposited =
+              currentDeposited >= addedPrincipal ? currentDeposited - addedPrincipal : 0;
+
+            if (preDeposited > 0) {
+              bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(staker);
+              uint256 multiplier =
+                is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
+              uint256 maxEarnings = preDeposited * multiplier;
+
               uint256 totalEarnedSoFar =
                 _claimableRecurring[staker] +
                   _claimableDirect[staker] +
@@ -711,11 +723,15 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     if (simulatedIndex > userIdx) {
       uint256 pending = (userStake * (simulatedIndex - userIdx)) / INDEX_PRECISION;
 
-      // 2x Lifetime Return Cap check for users with 0 active direct referrals
+      // Lifetime Payout Cap check (2x for 0 directs, 3x for 1+ directs) based on Total Deposited Principal
       if (pending > 0 && registry != address(0)) {
-        uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(user);
-        if (activeDirects == 0) {
-          uint256 maxEarnings = userStake * NON_REFERRAL_MAX_CAP_MULTIPLIER;
+        uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(user);
+        if (depositedPrincipal > 0) {
+          bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(user);
+          uint256 multiplier =
+            is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
+          uint256 maxEarnings = depositedPrincipal * multiplier;
+
           uint256 totalEarnedSoFar =
             _claimableRecurring[user] +
               _claimableDirect[user] +
@@ -736,6 +752,37 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       return pending;
     }
     return 0;
+  }
+
+  /**
+   * @notice Returns exact lifetime cap parameters and current progress for a staker
+   */
+  function getLifetimeCap(
+    address user
+  ) external view override returns (uint256 maxEarnings, uint256 totalEarned, bool isCapReached) {
+    if (user == address(0) || vault == address(0)) return (0, 0, false);
+
+    uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(user);
+    if (depositedPrincipal == 0) return (0, 0, false);
+
+    bool is3xQualified =
+      registry != address(0) && IUVBEReferralRegistry(registry).hasUnlocked3x(user);
+    uint256 multiplier =
+      is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
+    maxEarnings = depositedPrincipal * multiplier;
+
+    uint256 pendingRec = getPendingRecurringReward(user);
+    totalEarned =
+      _claimableRecurring[user] +
+      pendingRec +
+      _claimableDirect[user] +
+      _claimableGeneration[user] +
+      _claimableRank[user] +
+      _claimableDao[user] +
+      _totalClaimed[user] +
+      _totalRestaked[user];
+
+    isCapReached = totalEarned >= maxEarnings;
   }
 
   function getCurrentAnnualBps() public view override returns (uint256) {

@@ -32,6 +32,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   uint256 private _totalPermanentStaked;
   mapping(address => uint256) private _permanentStakeOf;
+  mapping(address => uint256) private _totalDepositedPrincipalOf;
   mapping(address => IUVBEStakingMLM.StakeRecord[]) private _stakeRecords;
 
   error BelowMinStake(uint256 provided, uint256 minimum);
@@ -188,6 +189,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     // 3. The net 95% remains in this vault as permanent protocol-owned staking capital.
     _totalPermanentStaked += principalAmount;
     _permanentStakeOf[user] += principalAmount;
+    _totalDepositedPrincipalOf[user] += principalAmount;
 
     uint256 stakeId = _stakeRecords[user].length;
     _stakeRecords[user].push(
@@ -215,6 +217,10 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   function getPermanentStake(address user) external view override returns (uint256) {
     return _permanentStakeOf[user];
+  }
+
+  function getTotalDepositedPrincipal(address user) external view override returns (uint256) {
+    return _totalDepositedPrincipalOf[user];
   }
 
   function getStakeRecord(

@@ -99,6 +99,7 @@ interface IUVBEStakingMLM {
   );
   event TreasuryFeeCollected(address indexed user, address indexed treasury, uint256 feeAmount);
   event ReferralRegistered(address indexed user, address indexed referrer, uint256 timestamp);
+  event Lifetime3xUnlocked(address indexed user, address indexed directReferral, uint256 timestamp);
   event RecurringRewardAccrued(
     address indexed user,
     uint256 amount,
@@ -150,6 +151,7 @@ interface IUVBEStakingVault {
   function recordRestake(address user, uint256 amount) external;
   function disburseReward(address recipient, uint256 amount) external;
   function getPermanentStake(address user) external view returns (uint256);
+  function getTotalDepositedPrincipal(address user) external view returns (uint256);
   function getStakeRecord(
     address user,
     uint256 index
@@ -172,6 +174,7 @@ interface IUVBEReferralRegistry {
   function getRank(address user) external view returns (uint8);
   function getUplineChain(address user, uint8 maxDepth) external view returns (address[] memory);
   function isUserActive(address user) external view returns (bool);
+  function hasUnlocked3x(address user) external view returns (bool);
   function getDaoLeaders() external view returns (address[] memory);
   function getDaoLeaderShares()
     external
@@ -198,6 +201,10 @@ interface IUVBERewardDistributor {
   function MAX_RECURRING_ANNUAL_BPS() external pure returns (uint256);
   function DAO_POOL_BPS() external view returns (uint256);
   function NON_REFERRAL_MAX_CAP_MULTIPLIER() external view returns (uint256);
+  function REFERRAL_MAX_CAP_MULTIPLIER() external view returns (uint256);
+  function getLifetimeCap(
+    address user
+  ) external view returns (uint256 maxEarnings, uint256 totalEarned, bool isCapReached);
   function getRewardCapacity()
     external
     view

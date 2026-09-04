@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Wallet, PieChart, Zap, Coins, History } from 'lucide-react';
+import { Wallet, PieChart, Zap, Coins, Send } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
 interface NavItem {
@@ -17,7 +17,7 @@ const navTabs: NavItem[] = [
   { href: '/portfolio', label: 'Vault', icon: PieChart },
   { href: '/staking', label: 'Stake', icon: Zap },
   { href: '/p2p', label: 'P2P', icon: Coins },
-  { href: '/transactions', label: 'Activity', icon: History },
+  { href: '/transfer', label: 'Transfer', icon: Send },
 ];
 
 export function MobileBottomNav() {

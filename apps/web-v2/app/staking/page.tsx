@@ -25,45 +25,104 @@ import {
   History,
 } from 'lucide-react';
 
-type StakingMobileTab = 'overview' | 'stake' | 'referrals' | 'ranks' | 'history';
+type StakingTab = 'overview' | 'stake' | 'referrals' | 'ranks' | 'calculator' | 'history';
+
+interface TabItem {
+  id: StakingTab;
+  label: string;
+  mobileLabel: string;
+  icon: React.ElementType;
+  badge?: string;
+  description: string;
+}
+
+const TABS: TabItem[] = [
+  {
+    id: 'overview',
+    label: 'Overview',
+    mobileLabel: 'Overview',
+    icon: LayoutDashboard,
+    description: 'Vault health, active position, and lifetime return cap progress',
+  },
+  {
+    id: 'stake',
+    label: 'Stake & Claim',
+    mobileLabel: 'Stake & Claim',
+    icon: Coins,
+    description: 'Permanent vault staking and 0% fee compound restaking',
+  },
+  {
+    id: 'referrals',
+    label: 'Affiliate Network',
+    mobileLabel: 'Affiliates',
+    icon: Users,
+    badge: '10 Tiers',
+    description: '10-tier commission overrides and direct referral tree',
+  },
+  {
+    id: 'ranks',
+    label: 'Ranks & DAO',
+    mobileLabel: 'Ranks & DAO',
+    icon: Award,
+    badge: '5% Pool',
+    description: 'Rank milestone achievements and 30-day DAO leadership distributions',
+  },
+  {
+    id: 'calculator',
+    label: 'Calculator',
+    mobileLabel: 'Calculator',
+    icon: Sparkles,
+    description: 'Interactive yield simulator with compounding projections',
+  },
+  {
+    id: 'history',
+    label: 'Logs',
+    mobileLabel: 'Logs',
+    icon: History,
+    description: 'Onchain stakes, claims, and restake event records',
+  },
+];
 
 export default function StakingPage() {
   const { chain, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
-  const { dynamicApy } = useStaking();
-  const [activeTab, setActiveTab] = useState<StakingMobileTab>('overview');
+  const { dynamicApy, rewards, lifetimeCapInfo } = useStaking();
+  const [activeTab, setActiveTab] = useState<StakingTab>('overview');
 
   const targetChainId = getDefaultChainId();
   const isWrongNetwork = isConnected && chain && chain.id !== targetChainId;
 
+  const activeTabMeta = TABS.find((t) => t.id === activeTab) || TABS[0];
+
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-8">
-      {/* ── Header (Compact on mobile) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+    <div className="space-y-4 max-w-7xl mx-auto pb-10">
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-foreground tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-black dark:text-[#BFFF00]" />
               UVBE Staking
             </h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-black bg-[#BFFF00]/15 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40">
-              Dynamic {dynamicApy}% APY
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-black bg-[#BFFF00]/20 text-[#5f8f00] dark:text-[#BFFF00] border border-[#BFFF00]/40">
+              {dynamicApy}% Live APY
             </span>
+            {lifetimeCapInfo.isCapReached && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">
+                {lifetimeCapInfo.hasUnlocked3x ? '3× Cap Reached' : '2× Cap Reached'}
+              </span>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">
-            Perpetual dynamic staking rewards, 10-tier affiliate commissions, and DAO leadership
-            pool.
-          </p>
         </div>
 
         <div className="flex items-center space-x-2 shrink-0 self-start sm:self-auto">
-          <div className="flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-black text-white dark:bg-white/10 dark:text-white border border-black dark:border-white/20 shadow-sm">
+          <div className="flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-black text-white dark:bg-white/10 dark:text-white border border-black dark:border-white/20">
             <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
             <span>{CHAIN_CONFIG.name}</span>
           </div>
-          <div className="flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-[#BFFF00]/15 text-black dark:text-[#BFFF00] border border-black dark:border-[#BFFF00]/30 shadow-[1px_1px_0_#000]">
+          <div className="flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-[#BFFF00]/15 text-black dark:text-[#BFFF00] border border-black dark:border-[#BFFF00]/30">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>10 Tiers Active</span>
+            <span>10 Tiers</span>
           </div>
         </div>
       </div>
@@ -89,105 +148,107 @@ export default function StakingPage() {
         </div>
       )}
 
-      {/* ── Mobile Compact Segment Selector (Zero Scroll Experience) ── */}
-      <div className="md:hidden flex items-center p-1 bg-slate-200 dark:bg-black/80 rounded-2xl border-2 border-black dark:border-white/15 overflow-x-auto no-scrollbar shadow-[2px_2px_0_#000] gap-1">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
-            activeTab === 'overview'
-              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <LayoutDashboard className="w-3.5 h-3.5" />
-          <span>Stats</span>
-        </button>
+      {/* ── Persistent Top KPI Highlights ── */}
+      <StakingHeroCards />
 
-        <button
-          onClick={() => setActiveTab('stake')}
-          className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
-            activeTab === 'stake'
-              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Coins className="w-3.5 h-3.5" />
-          <span>Stake</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('referrals')}
-          className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
-            activeTab === 'referrals'
-              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Referral</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('ranks')}
-          className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
-            activeTab === 'ranks'
-              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Award className="w-3.5 h-3.5" />
-          <span>Ranks</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-center font-black text-[11px] transition-all flex items-center justify-center gap-1 ${
-            activeTab === 'history'
-              ? 'bg-[#BFFF00] text-black shadow-[2px_2px_0_#000]'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <History className="w-3.5 h-3.5" />
-          <span>History</span>
-        </button>
+      {/* ── Section Navigation Bar (Responsive Clean View) ── */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-1.5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 min-w-[130px] sm:min-w-0 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? 'bg-black text-white dark:bg-[#BFFF00] dark:text-black shadow-[2px_2px_0_#000] dark:shadow-none'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
+                }`}
+              >
+                <Icon
+                  className={`w-4 h-4 ${isActive ? 'text-[#BFFF00] dark:text-black' : 'text-slate-500'}`}
+                />
+                <span className="hidden sm:inline font-extrabold">{tab.label}</span>
+                <span className="sm:hidden font-extrabold">{tab.mobileLabel}</span>
+                {tab.badge && (
+                  <span
+                    className={`hidden md:inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-black ${
+                      isActive
+                        ? 'bg-white/20 text-white dark:bg-black/20 dark:text-black'
+                        : 'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+                {tab.id === 'stake' && rewards.totalClaimable > 0n && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── 1. Top Metrics (Active on 'overview' on mobile or always on desktop) ── */}
-      <div className={`${activeTab === 'overview' ? 'block' : 'hidden md:block'}`}>
-        <StakingHeroCards />
+      {/* ── Active Tab Header Context ── */}
+      <div className="px-1 py-1 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <activeTabMeta.icon className="w-5 h-5 text-black dark:text-[#BFFF00]" />
+          <div>
+            <h2 className="text-base font-black text-foreground">{activeTabMeta.label}</h2>
+            <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
+          </div>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch mt-4">
-          <ProtocolCapitalCard />
+      {/* ── Section Content Panes ── */}
+      {activeTab === 'overview' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+            <ProtocolCapitalCard />
+            <PermanentStakePositionCard />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'stake' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+            <StakeActionForm />
+            <RewardsClaimPanel />
+          </div>
           <PermanentStakePositionCard />
         </div>
-      </div>
+      )}
 
-      {/* ── 2. Primary Action Area (Stake & Claim) ── */}
-      <div className={`${activeTab === 'stake' ? 'block' : 'hidden md:block'} space-y-4`}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-          <StakeActionForm />
-          <RewardsClaimPanel />
+      {activeTab === 'referrals' && (
+        <div className="space-y-4">
+          <ReferralNetworkView />
         </div>
-        <StakingYieldCalculator />
-      </div>
+      )}
 
-      {/* ── 3. Referrals & MLM Network ── */}
-      <div className={`${activeTab === 'referrals' ? 'block' : 'hidden md:block'}`}>
-        <ReferralNetworkView />
-      </div>
-
-      {/* ── 4. Ranks & DAO Pool ── */}
-      <div className={`${activeTab === 'ranks' ? 'block' : 'hidden md:block'}`}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-          <RankProgressionCard />
-          <DaoLeadershipPoolCard />
+      {activeTab === 'ranks' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+            <RankProgressionCard />
+            <DaoLeadershipPoolCard />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── 5. Staking History ── */}
-      <div className={`${activeTab === 'history' ? 'block' : 'hidden md:block'}`}>
-        <StakingTransactionHistory />
-      </div>
+      {activeTab === 'calculator' && (
+        <div className="space-y-4">
+          <StakingYieldCalculator />
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="space-y-4">
+          <StakingTransactionHistory />
+        </div>
+      )}
     </div>
   );
 }

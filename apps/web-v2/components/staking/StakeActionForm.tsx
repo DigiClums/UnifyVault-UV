@@ -144,33 +144,18 @@ export function StakeActionForm() {
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
-                <Lock className="w-5 h-5 text-black dark:text-[#BFFF00]" />
+              <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
+                <Lock className="w-4 h-4 text-black dark:text-[#BFFF00]" />
                 Stake UVBE
               </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                Stake UVBE to earn dynamic APY, 10-tier referral commissions, and DAO rewards.
-              </p>
             </div>
             <div className="text-right shrink-0">
               <span className="text-[10px] font-mono uppercase font-bold text-slate-500 block">
-                Minimum Stake
+                Min Stake
               </span>
               <div className="text-xs font-mono font-black text-slate-900 dark:text-white">
                 50.0 UVBE
               </div>
-            </div>
-          </div>
-
-          {/* Protocol Capital Info */}
-          <div className="mb-4 p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-slate-800 dark:text-slate-200 text-xs flex items-start gap-2">
-            <Sparkles className="w-4 h-4 shrink-0 text-emerald-600 dark:text-[#BFFF00] mt-0.5" />
-            <div>
-              <span className="font-bold text-slate-950 dark:text-white">
-                Yield-Generating Protocol Capital:
-              </span>{' '}
-              Staking UVBE creates a perpetual yield position with dynamic APY, 10-tier affiliate
-              rewards, and DAO leadership eligibility.
             </div>
           </div>
 

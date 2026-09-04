@@ -24,7 +24,7 @@ export function PermanentStakePositionCard() {
     isUserActive,
     currentRank,
     rankDetails,
-    nonReferralCapInfo,
+    lifetimeCapInfo,
     dynamicApy,
     estimatedAnnualReward,
     isLoading,
@@ -153,54 +153,76 @@ export function PermanentStakePositionCard() {
         </div>
       </div>
 
-      {/* 2x Non-Referral Return Cap Indicator */}
-      {nonReferralCapInfo.isCapped && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300">
+      {/* Lifetime Return Cap Indicator */}
+      {lifetimeCapInfo.isCapped && (
+        <div
+          className={`p-4 rounded-xl border space-y-2.5 ${
+            lifetimeCapInfo.isCapReached
+              ? 'bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200'
+              : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center justify-between text-xs font-bold">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
-              2x Non-Referral Earnings Cap:
+              <ShieldCheck
+                className={`w-4 h-4 ${
+                  lifetimeCapInfo.isCapReached
+                    ? 'text-amber-500'
+                    : lifetimeCapInfo.hasUnlocked3x
+                      ? 'text-emerald-500'
+                      : 'text-blue-500'
+                }`}
+              />
+              <span>
+                {lifetimeCapInfo.hasUnlocked3x
+                  ? '3× Referral Lifetime Cap'
+                  : '2× Passive Lifetime Cap'}
+              </span>
             </span>
-            <span className="font-mono">
-              {Number(formatUnits(nonReferralCapInfo.totalEarned, 18)).toFixed(2)} /{' '}
-              {Number(formatUnits(nonReferralCapInfo.maxEarnings, 18)).toFixed(2)} UVBE (
-              {nonReferralCapInfo.progressPercent}%)
+            <span className="font-mono text-xs">
+              {Number(formatUnits(lifetimeCapInfo.totalEarned, 18)).toFixed(2)} /{' '}
+              {Number(formatUnits(lifetimeCapInfo.maxEarnings, 18)).toFixed(2)} UVBE (
+              {lifetimeCapInfo.progressPercent}%)
             </span>
           </div>
 
           <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
             <div
               className={`h-full transition-all duration-300 ${
-                nonReferralCapInfo.isCapReached ? 'bg-amber-500' : 'bg-[#BFFF00]'
+                lifetimeCapInfo.isCapReached
+                  ? 'bg-amber-500'
+                  : lifetimeCapInfo.hasUnlocked3x
+                    ? 'bg-emerald-500'
+                    : 'bg-[#BFFF00]'
               }`}
-              style={{ width: `${nonReferralCapInfo.progressPercent}%` }}
+              style={{ width: `${lifetimeCapInfo.progressPercent}%` }}
             />
           </div>
 
           <p className="text-[11px] text-slate-600 dark:text-slate-400">
-            {nonReferralCapInfo.isCapReached ? (
-              <strong className="text-amber-700 dark:text-amber-300">
-                2x Cap Reached! Refer 1+ active partner (≥50 UVBE) or restake to unlock unlimited
-                dynamic APY.
-              </strong>
+            {lifetimeCapInfo.isCapReached ? (
+              <span className="font-medium text-amber-700 dark:text-amber-300">
+                {!lifetimeCapInfo.hasUnlocked3x
+                  ? '2× Cap reached. Refer 1 partner (≥50 UVBE) to unlock 3× cap, or deposit new principal.'
+                  : '3× Cap reached. Deposit new principal to expand your lifetime cap.'}
+              </span>
             ) : (
               <span>
-                Earn up to 2x (200%) passively. Refer 1 active partner to unlock unlimited 600% APY.
+                {!lifetimeCapInfo.hasUnlocked3x
+                  ? 'Passive 2× Cap. Refer 1 partner (≥50 UVBE) to unlock 3× Lifetime Cap.'
+                  : `3× Cap Unlocked (Max: ${Number(formatUnits(lifetimeCapInfo.maxEarnings, 18)).toFixed(2)} UVBE).`}
               </span>
             )}
           </p>
         </div>
       )}
 
-      {/* Perpetual Yield Information */}
-      <div className="p-3.5 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs flex items-start gap-2.5">
-        <Sparkles className="w-4 h-4 text-emerald-600 dark:text-[#BFFF00] shrink-0 mt-0.5" />
+      {/* Protocol Information */}
+      <div className="p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-emerald-600 dark:text-[#BFFF00] shrink-0" />
         <div className="text-slate-700 dark:text-slate-300">
-          <strong className="text-slate-950 dark:text-white font-bold">
-            Perpetual Reward Mechanism:
-          </strong>{' '}
-          Staked UVBE establishes a perpetual reward position in the protocol vault. All earnings,
-          affiliate bonuses, and 5% DAO rewards are claimable and restakeable anytime with 0% fees.
+          Permanent vault capital generates dynamic APY, affiliate rewards, and 5% DAO shares. 0%
+          fee restaking.
         </div>
       </div>
     </div>

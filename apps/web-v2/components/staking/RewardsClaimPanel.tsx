@@ -198,15 +198,6 @@ export function RewardsClaimPanel() {
             </div>
           </div>
 
-          {/* Restake Info Alert */}
-          <div className="p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs text-slate-800 dark:text-slate-200 flex items-start gap-2 mb-4">
-            <RefreshCw className="w-4 h-4 text-black dark:text-[#BFFF00] shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-slate-950 dark:text-white">0% Fee Compound Restaking:</strong>{' '}
-              Restaking rewards compounds directly into your staking balance with 0% protocol fees.
-            </div>
-          </div>
-
           {/* Action Tabs & Custom Inputs */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-2">

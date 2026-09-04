@@ -16,6 +16,7 @@ export const STAKING_VAULT_ABI = parseAbi([
   'function hasRole(bytes32 role, address account) external view returns (bool)',
   'function totalPermanentStaked() external view returns (uint256)',
   'function getPermanentStake(address user) external view returns (uint256)',
+  'function getTotalDepositedPrincipal(address user) external view returns (uint256)',
   'function getAvailableProtocolCapital() external view returns (uint256)',
   'function totalProtocolCapital() external view returns (uint256)',
   'function getStakeCount(address user) external view returns (uint256)',
@@ -51,6 +52,7 @@ export const REFERRAL_REGISTRY_ABI = parseAbi([
   'function getReferrer(address user) external view returns (address)',
   'function getDirects(address user) external view returns (address[])',
   'function getActiveDirectCount(address user) external view returns (uint256 activeCount)',
+  'function hasUnlocked3x(address user) external view returns (bool)',
   'function getTeamVolume(address user) external view returns (uint256)',
   'function getRank(address user) external view returns (uint8)',
   'function isUserActive(address user) external view returns (bool)',
@@ -64,6 +66,7 @@ export const REFERRAL_REGISTRY_ABI = parseAbi([
 
   // Events
   'event ReferralRegistered(address indexed user, address indexed referrer, uint256 timestamp)',
+  'event Lifetime3xUnlocked(address indexed referrer, address indexed referee, uint256 timestamp)',
   'event TeamVolumeUpdated(address indexed upline, uint256 addedVolume, uint256 totalVolume)',
   'event RankAchieved(address indexed user, uint8 rankId, uint256 milestoneReward)',
 ]);
@@ -75,6 +78,8 @@ export const REWARD_DISTRIBUTOR_ABI = parseAbi([
   // Constants & Parameters
   'function BPS_DENOMINATOR() external view returns (uint256)',
   'function MAX_RECURRING_ANNUAL_BPS() external pure returns (uint256)',
+  'function NON_REFERRAL_MAX_CAP_MULTIPLIER() external view returns (uint256)',
+  'function REFERRAL_MAX_CAP_MULTIPLIER() external view returns (uint256)',
   'function getCurrentAnnualBps() external view returns (uint256)',
   'function currentAnnualBps() external view returns (uint256)',
   'function getRewardCapacity() external view returns (uint256 availableCapital, uint256 liabilities, uint256 surplusCapacity, uint256 currentBps)',
@@ -97,6 +102,7 @@ export const REWARD_DISTRIBUTOR_ABI = parseAbi([
   'function getClaimableRewards(address user) external view returns (uint256)',
   'function getPendingRecurringReward(address user) external view returns (uint256)',
   'function getDetailedRewardInfo(address user) external view returns (uint256 recurringReward, uint256 directReward, uint256 generationReward, uint256 rankReward, uint256 daoReward, uint256 totalClaimable, uint256 totalClaimed, uint256 totalRestaked)',
+  'function getLifetimeCap(address user) external view returns (uint256 maxEarnings, uint256 totalEarned, bool isCapReached)',
 
   // Reward Execution
   'function distributeCommissions(address staker, uint256 amount, bool isRestake) external',

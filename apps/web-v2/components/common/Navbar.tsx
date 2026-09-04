@@ -37,10 +37,8 @@ const publicNavLinks: NavItem[] = [
   { href: '/deposit', label: 'Deposit', icon: ArrowDownRight },
   { href: '/transfer', label: 'Transfer', icon: Send },
   { href: '/portfolio', label: 'Portfolio', icon: PieChart },
-  { href: '/transactions', label: 'Activity', icon: History },
   { href: '/redeem', label: 'Redeem', icon: ArrowUpRight },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/treasury', label: 'Treasury', icon: Vault },
 ];
 
 export function Navbar() {

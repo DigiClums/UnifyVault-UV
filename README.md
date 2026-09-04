@@ -307,14 +307,14 @@ Code Commit → GitHub Actions CI → Build & Sign APK → SHA256 Verification �
 | **OracleManager (Pyth + Chainlink)**  | [`0x91b4...8ea7`](https://basescan.org/address/0x91b488cde0f2ef28141fe4ffd8531c4179b48ea7) | Dual-Oracle Price Aggregation Engine                  | 🟢 Verified            |
 | **CostBasisManagerV2**                | [`0x27b5...e97e`](https://basescan.org/address/0x27b5c6dea90678b78856b0b10dba37a789fde97e) | On-Chain FIFO Cost-Basis & Accounting Migration       | 🟢 Verified            |
 | **SwapAdapter**                       | [`0xaae7...4b67`](https://basescan.org/address/0xaae7104a120e7c6e518a936fcbc102bcd0454b67) | Uniswap V3 Execution Adapter                          | 🟢 Verified            |
-| **UVBEStakingVault**                  | [`0x5cd0...a3e1`](https://basescan.org/address/0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1) | Perpetual Dynamic Staking Engine (47.5 Net Principal) | 🟢 Verified            |
-| **UVBEReferralRegistry**              | [`0xb157...f309`](https://basescan.org/address/0xb157fa8d58f8a610e8ae91a68f38b3304edff309) | 10-Tier On-Chain Referral & Lineage Tree              | 🟢 Verified            |
-| **UVBERewardDistributor**             | [`0x878e...16d4`](https://basescan.org/address/0x878eb0e328725cee505c4001de9f3815f6ba16d4) | Dynamic APY Distribution & DAO Leadership Pool        | 🟢 Verified (600% APY) |
+| **UVBEStakingVault**                  | [`0x9174...c5ee`](https://basescan.org/address/0x91744fa47837474c7e9d9d532c7fd8a2fe04c5ee) | Perpetual Dynamic Staking Engine (47.5 Net Principal) | 🟢 Verified            |
+| **UVBEReferralRegistry**              | [`0x6a94...36d9`](https://basescan.org/address/0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9) | 10-Tier On-Chain Referral & Lineage Tree              | 🟢 Verified            |
+| **UVBERewardDistributor**             | [`0xd3c7...dbc3`](https://basescan.org/address/0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3) | Dynamic APY Distribution & DAO Leadership Pool        | 🟢 Verified (600% APY) |
 | **P2PEscrowV2**                       | [`0xa938...c329`](https://basescan.org/address/0xa938aacea64be8f41c90960aff232da4df7fc329) | Non-Custodial OTC Escrow & Fiat Settlement            | 🟢 Verified            |
 | **P2PReputation**                     | [`0xdab9...64c8`](https://basescan.org/address/0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8) | On-Chain Trader Reputation & Trust Scoring            | 🟢 Verified            |
 | **Marketplace**                       | [`0xabfe...e5a6`](https://basescan.org/address/0xabfe3034db275e32de396c7bdd1649a62ac9e5a6) | P2P Orderbook & Matchmaking Engine                    | 🟢 Verified            |
-| **UnifyVaultPaymaster (ERC-4337)**    | [`0xdf96...040a`](https://basescan.org/address/0xdf96b619934d17ae85142dcef1655a8d3b19040a) | Zero-Gas Account Abstraction Sponsorship              | 🟢 Verified            |
-| **GasTreasury**                       | [`0x136a...6424`](https://basescan.org/address/0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424) | Paymaster Refill Reserve & Operator Policy Guard      | 🟢 Verified            |
+| **UnifyVaultPaymaster (ERC-4337)**    | [`0xb5b7...d0e9`](https://basescan.org/address/0xb5b7719f28368b35cd807a2f885843c9d1fdd0e9) | Zero-Gas Account Abstraction Sponsorship              | 🟢 Verified            |
+| **GasTreasury**                       | [`0x1664...0c17`](https://basescan.org/address/0x166477b1eb662dd553287d32af958436cad20c17) | Paymaster Refill Reserve & Operator Policy Guard      | 🟢 Verified            |
 | **StabilizerVault**                   | [`0xc268...0c11`](https://basescan.org/address/0xc268709ebb4d3f0f473c6c5767f60e540d330c11) | Protocol Floor Liquidity Stabilizer                   | 🟢 Verified            |
 | **TimelockController**                | [`0x610c...cff1`](https://basescan.org/address/0x610c5f66d99993d444561d270fba172db1f7cff1) | 48-Hour Governance Delay Enforcement                  | 🟢 Verified (48h)      |
 

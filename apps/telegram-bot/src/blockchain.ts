@@ -13,9 +13,9 @@ export const publicClient = createPublicClient({
 // Canonical Base Mainnet Deployed Addresses
 export const CONTRACTS = {
   UVBEToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
-  UVBEStakingVault: '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1' as `0x${string}`,
-  UVBEReferralRegistry: '0xb157fa8d58f8a610e8ae91a68f38b3304edff309' as `0x${string}`,
-  UVBERewardDistributor: '0x878eb0e328725cee505c4001de9f3815f6ba16d4' as `0x${string}`,
+  UVBEStakingVault: '0x91744fa47837474c7e9d9d532c7fd8a2fe04c5ee' as `0x${string}`,
+  UVBEReferralRegistry: '0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9' as `0x${string}`,
+  UVBERewardDistributor: '0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3' as `0x${string}`,
   UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
   P2PEscrow: '0xa938aacea64be8f41c90960aff232da4df7fc329' as `0x${string}`,
 };
