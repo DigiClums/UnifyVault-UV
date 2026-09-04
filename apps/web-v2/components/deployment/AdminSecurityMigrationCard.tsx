@@ -24,7 +24,7 @@ import { getContractRolesMatrix } from '../../lib/admin/adminRolesMatrix';
 import { getAllAdminRoleTransferCalls } from '../../lib/admin/batchRoleMigrator';
 import type { ContractRoleMigrationItem, AdminMigrationAuditRecord } from '../../lib/admin/types';
 import type { DeployedContractsMap } from '../../lib/deployment/types';
-import { getExplorerBaseUrl } from '../../constants';
+import { DEPLOYED_CONTRACTS_MAINNET, getExplorerBaseUrl } from '../../constants';
 
 // Canonical MultiCall3 on Base Mainnet (8453) and Base Sepolia (84532)
 const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as const;
@@ -98,9 +98,22 @@ function AdminSecurityMigrationInner({
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
+  // If deployedContracts is empty, fallback to Canonical Base Mainnet deployed contracts
+  const effectiveContracts = React.useMemo(() => {
+    if (deployedContracts && Object.keys(deployedContracts).length > 0) {
+      return deployedContracts;
+    }
+    return DEPLOYED_CONTRACTS_MAINNET as unknown as DeployedContractsMap;
+  }, [deployedContracts]);
+
   const [currentAdmin] = useState<`0x${string}`>('0x441dbf8076d0b143EC17199baE94Daa884161454');
-  const [hardwareWalletInput, setHardwareWalletInput] = useState<string>('');
-  const [hardwareWalletAddress, setHardwareWalletAddress] = useState<`0x${string}` | null>(null);
+  const [hardwareWalletInput, setHardwareWalletInput] = useState<string>(
+    '0xe37b77ca9e49c2586365e7394f0f037901ed8a95',
+  );
+  const [hardwareWalletAddress, setHardwareWalletAddress] = useState<`0x${string}` | null>(
+    '0xe37b77ca9e49c2586365e7394f0f037901ed8a95' as `0x${string}`,
+  );
+  const [retainTreasuryAdmin, setRetainTreasuryAdmin] = useState<boolean>(true);
   const [isVerifyingRoles, setIsVerifyingRoles] = useState<boolean>(false);
   const [roleItems, setRoleItems] = useState<ContractRoleMigrationItem[]>([]);
   const [auditRecords, setAuditRecords] = useState<AdminMigrationAuditRecord[]>([]);
@@ -108,13 +121,13 @@ function AdminSecurityMigrationInner({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const explorerBase = getExplorerBaseUrl(chainId || 84532);
+  const explorerBase = getExplorerBaseUrl(chainId || 8453);
 
   // Initialize matrix safely
   useEffect(() => {
     try {
       const items = getContractRolesMatrix(
-        deployedContracts || {},
+        effectiveContracts || {},
         currentAdmin,
         hardwareWalletAddress || undefined,
       );
@@ -123,7 +136,7 @@ function AdminSecurityMigrationInner({
       console.warn('[AdminSecurityMigrationCard] Error generating roles matrix:', err);
       setRoleItems([]);
     }
-  }, [deployedContracts, currentAdmin, hardwareWalletAddress]);
+  }, [effectiveContracts, currentAdmin, hardwareWalletAddress]);
 
   // Read on-chain role state
   const verifyOnChainRoles = useCallback(async () => {
@@ -436,9 +449,15 @@ function AdminSecurityMigrationInner({
       return;
     }
 
-    const unrevoked = roleItems.filter((r) => r.isCurrentAuthorityVerified);
+    const unrevoked = roleItems.filter((r) => {
+      if (!r.isCurrentAuthorityVerified) return false;
+      if (retainTreasuryAdmin && r.contractName === 'Treasury') return false;
+      return true;
+    });
     if (unrevoked.length === 0) {
-      setSuccessMessage('All roles are already revoked from previous deployer!');
+      setSuccessMessage(
+        'All target roles are already revoked from previous deployer (Treasury Admin is preserved)!',
+      );
       return;
     }
 
@@ -462,7 +481,9 @@ function AdminSecurityMigrationInner({
       }
 
       setSuccessMessage(
-        `🎉 Successfully revoked ALL roles from previous deployer! Hardware wallet is now exclusive administrator!`,
+        retainTreasuryAdmin
+          ? `🎉 Successfully revoked protocol roles from previous deployer while STRICTLY preserving Treasury Admin (${currentAdmin.slice(0, 6)}...${currentAdmin.slice(-4)})!`
+          : `🎉 Successfully revoked ALL roles from previous deployer! Hardware wallet is now exclusive administrator!`,
       );
       await verifyOnChainRoles();
     } catch (err: any) {
@@ -623,10 +644,22 @@ function AdminSecurityMigrationInner({
               <Lock className="w-3.5 h-3.5" />
               <span>
                 {actionInProgress === 'batch-revoke'
-                  ? 'Executing 1-Click Revoke...'
-                  : '🔒 1-Click Revoke All (1 QR Scan)'}
+                  ? 'Executing Revoke...'
+                  : retainTreasuryAdmin
+                    ? '🔒 Revoke All Except Treasury (Safe)'
+                    : '🔒 Revoke All Protocols'}
               </span>
             </button>
+
+            <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-mono text-xs cursor-pointer select-none font-bold">
+              <input
+                type="checkbox"
+                checked={retainTreasuryAdmin}
+                onChange={(e) => setRetainTreasuryAdmin(e.target.checked)}
+                className="rounded accent-amber-500 w-3.5 h-3.5"
+              />
+              <span>Keep Treasury Admin (0x441dbf...)</span>
+            </label>
 
             {/* Quick Helper: Align SwapRouter to Base Uniswap V3 */}
             <button
