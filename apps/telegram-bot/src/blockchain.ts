@@ -14,8 +14,8 @@ export const publicClient = createPublicClient({
 export const CONTRACTS = {
   UVBEToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
   UVBEStakingVault: '0x3ea9082f724efc74a68615f1f33a2b81309e788a' as `0x${string}`,
-  UVBEReferralRegistry: '0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9' as `0x${string}`,
-  UVBERewardDistributor: '0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3' as `0x${string}`,
+  UVBEReferralRegistry: '0xa8b37df413dde998f81594c4d684148c669f554d' as `0x${string}`,
+  UVBERewardDistributor: '0x822953345b5e7a66f7de878112e910d8b1c46577' as `0x${string}`,
   UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
   P2PEscrow: '0xa938aacea64be8f41c90960aff232da4df7fc329' as `0x${string}`,
 };

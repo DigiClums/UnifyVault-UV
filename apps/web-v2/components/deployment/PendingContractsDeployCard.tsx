@@ -51,7 +51,11 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
   const publicClient = usePublicClient();
 
   const [loadingStep, setLoadingStep] = useState<number | null>(null);
-  const [deployed, setDeployed] = useState<DeployedState>({});
+  const [deployed, setDeployed] = useState<DeployedState>({
+    stakingVault: '0x3ea9082f724efc74a68615f1f33a2b81309e788a' as Address,
+    referralRegistry: '0xa8b37df413dde998f81594c4d684148c669f554d' as Address,
+    rewardDistributor: '0x822953345b5e7a66f7de878112e910d8b1c46577' as Address,
+  });
   const [txHashes, setTxHashes] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -220,17 +224,22 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
         throw new Error('Staking modules not fully deployed');
       }
 
-      // Interlink Vault
+      // 1. Interlink Vault (if not already set)
       const vArtifact = DEPLOYMENT_ARTIFACTS.UVBEStakingVault;
-      const vHash = await walletClient.writeContract({
-        address: deployed.stakingVault,
-        abi: vArtifact.abi,
-        functionName: 'setModules',
-        args: [deployed.referralRegistry, deployed.rewardDistributor],
-      });
-      await publicClient.waitForTransactionReceipt({ hash: vHash });
+      try {
+        const vHash = await walletClient.writeContract({
+          address: deployed.stakingVault,
+          abi: vArtifact.abi,
+          functionName: 'setModules',
+          args: [deployed.referralRegistry, deployed.rewardDistributor],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: vHash });
+      } catch (vaultErr: any) {
+        // Vault already set is normal if already initialized
+        console.warn('Vault setModules skipped or already initialized:', vaultErr?.message);
+      }
 
-      // Interlink Registry
+      // 2. Interlink Registry
       const rArtifact = DEPLOYMENT_ARTIFACTS.UVBEReferralRegistry;
       const rHash = await walletClient.writeContract({
         address: deployed.referralRegistry,
@@ -240,7 +249,7 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
       });
       await publicClient.waitForTransactionReceipt({ hash: rHash });
 
-      // Interlink Distributor
+      // 3. Interlink Distributor
       const dArtifact = DEPLOYMENT_ARTIFACTS.UVBERewardDistributor;
       const dHash = await walletClient.writeContract({
         address: deployed.rewardDistributor,

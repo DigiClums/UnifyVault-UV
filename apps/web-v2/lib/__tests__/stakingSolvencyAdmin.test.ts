@@ -36,13 +36,13 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
 
     it('verifies exact Base Mainnet UVBERewardDistributor address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor.toLowerCase()).toBe(
-        '0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3',
+        '0x822953345b5e7a66f7de878112e910d8b1c46577',
       );
     });
 
     it('verifies exact Base Mainnet UVBEReferralRegistry address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry.toLowerCase()).toBe(
-        '0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9',
+        '0xa8b37df413dde998f81594c4d684148c669f554d',
       );
     });
   });
