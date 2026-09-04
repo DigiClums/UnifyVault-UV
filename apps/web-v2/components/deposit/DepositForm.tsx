@@ -259,60 +259,91 @@ export function DepositForm() {
         </div>
 
         {/* Live Multi-Asset Allocation Preview */}
-        <div className="space-y-2 p-3 rounded-xl bg-black/[0.025] dark:bg-white/[0.025] border-2 border-black dark:border-white/10 text-xs">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-            <span className="font-semibold text-foreground flex items-center space-x-1.5">
-              <PieChart className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
-              <span>Target Allocation Breakdown</span>
-            </span>
-            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+        <div className="space-y-3 p-3.5 sm:p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.03] border-2 border-black dark:border-white/15 text-xs shadow-2xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="p-1 rounded-md bg-[#BFFF00] text-black border border-black">
+                <PieChart className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-bold text-foreground text-xs uppercase tracking-wider">
+                Target Allocation
+              </span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-300">
               {strategyLoading
-                ? 'Loading weights...'
-                : `${targetBtcPercent ?? '...'} BTC + ${targetEthPercent ?? '...'} ETH`}
+                ? 'Loading...'
+                : `${targetBtcPercent ?? '60.0%'} BTC / ${targetEthPercent ?? '40.0%'} ETH`}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5 font-mono">
-            <div className="p-2 rounded-lg bg-card border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-foreground flex items-center gap-1.5">
-                  <TokenIcon symbol="cbBTC" size={16} /> cbBTC
+          {/* Allocation Progress Bar */}
+          <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-200 dark:bg-neutral-800 border border-black/20 dark:border-white/10">
+            <div
+              className="bg-[#f7931a] transition-all duration-300"
+              style={{ width: targetBtcPercent || '60%' }}
+              title={`cbBTC: ${targetBtcPercent || '60%'}`}
+            />
+            <div
+              className="bg-[#627eea] transition-all duration-300"
+              style={{ width: targetEthPercent || '40%' }}
+              title={`WETH: ${targetEthPercent || '40%'}`}
+            />
+          </div>
+
+          {/* Asset Allocation Split Cards */}
+          <div className="grid grid-cols-2 gap-2 font-mono">
+            {/* cbBTC Card */}
+            <div className="p-2.5 rounded-xl bg-card border-2 border-black/80 dark:border-white/10 space-y-1 shadow-[2px_2px_0_rgba(0,0,0,0.85)] dark:shadow-none">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <TokenIcon symbol="cbBTC" size={16} />
+                  <span className="font-bold text-foreground text-xs">cbBTC</span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#f7931a]/15 text-[#f7931a] dark:text-[#f7931a] rounded border border-[#f7931a]/30">
+                  {targetBtcPercent ?? '60.0%'}
                 </span>
-                <span className="font-bold text-foreground">{targetBtcPercent ?? '...'}</span>
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                ${btcDepositUSD.toFixed(2)} allocated
+              <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 pt-0.5">
+                ${btcDepositUSD.toFixed(2)}{' '}
+                <span className="text-[9px] font-normal text-muted-foreground">allocated</span>
               </div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-card border border-slate-200 dark:border-slate-800 space-y-0.5 shadow-2xs">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-foreground flex items-center gap-1.5">
-                  <TokenIcon symbol="WETH" size={16} /> WETH
+            {/* WETH Card */}
+            <div className="p-2.5 rounded-xl bg-card border-2 border-black/80 dark:border-white/10 space-y-1 shadow-[2px_2px_0_rgba(0,0,0,0.85)] dark:shadow-none">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <TokenIcon symbol="WETH" size={16} />
+                  <span className="font-bold text-foreground text-xs">WETH</span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#627eea]/15 text-[#627eea] dark:text-[#8ba2ff] rounded border border-[#627eea]/30">
+                  {targetEthPercent ?? '40.0%'}
                 </span>
-                <span className="font-bold text-foreground">{targetEthPercent ?? '...'}</span>
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                ${ethDepositUSD.toFixed(2)} allocated
+              <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 pt-0.5">
+                ${ethDepositUSD.toFixed(2)}{' '}
+                <span className="text-[9px] font-normal text-muted-foreground">allocated</span>
               </div>
             </div>
           </div>
 
           {/* Quote Summary */}
-          <div className="space-y-1.5 font-mono text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex justify-between">
+          <div className="space-y-1.5 font-mono text-slate-600 dark:text-slate-400 pt-2 border-t border-black/10 dark:border-white/10">
+            <div className="flex justify-between text-[11px]">
               <span>Gross Deposit</span>
               <span className="font-bold text-foreground">${depositVal.toFixed(2)}</span>
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between text-[11px]">
               <span>Protocol Fee (0.25%)</span>
-              <span>-{feeUSD}</span>
+              <span className="text-muted-foreground">-{feeUSD}</span>
             </div>
 
-            <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex justify-between items-center font-sans">
-              <span className="font-bold text-foreground text-sm">Est. Shares Received</span>
-              <span className="font-mono font-bold text-[#5f8f00] dark:text-[#BFFF00] text-base">
+            <div className="border-t border-black/10 dark:border-white/10 pt-2 flex justify-between items-center font-sans">
+              <span className="font-bold text-foreground text-xs sm:text-sm">
+                Est. Shares Received
+              </span>
+              <span className="font-mono font-black text-[#5f8f00] dark:text-[#BFFF00] text-sm sm:text-base">
                 {estSharesUSD} UVBE
               </span>
             </div>
