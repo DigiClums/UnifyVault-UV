@@ -19,6 +19,7 @@ import {
   Sparkles,
   Zap,
   TrendingUp,
+  FileCode2,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';

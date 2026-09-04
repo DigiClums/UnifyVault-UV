@@ -208,7 +208,7 @@ export default function ContractsPage() {
         name: 'UVBEStakingVault',
         description: 'Staking vault backing dynamic APY, referral tiers, and reward engine',
         address: isMainnet
-          ? '0x3ea9082f724efc74a68615f1f33a2b81309e788a'
+          ? '0x6fb5dede967270aeb1a893eaaccd123c7d0cfe86'
           : DEPLOYED_CONTRACTS_SEPOLIA.StakingVault,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Staking Vault',
@@ -219,7 +219,7 @@ export default function ContractsPage() {
         name: 'UVBEReferralRegistry',
         description: '10-tier immutable referral tree & deterministic rank progression system',
         address: isMainnet
-          ? '0xa8b37df413dde998f81594c4d684148c669f554d'
+          ? '0x3b3eabedbcd4de77bb89f00d1e94fa482ecaac6a'
           : DEPLOYED_CONTRACTS_SEPOLIA.ReferralRegistry,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Referral Registry',
@@ -231,7 +231,7 @@ export default function ContractsPage() {
         description:
           'Dynamic APY (600% cap), 10-tier affiliate commissions & 30-day DAO leadership pool engine',
         address: isMainnet
-          ? '0x822953345b5e7a66f7de878112e910d8b1c46577'
+          ? '0x8f6169ed7091ed14bb4cdfdda9e7cedbf366c7dd'
           : DEPLOYED_CONTRACTS_SEPOLIA.RewardDistributor,
         category: 'Staking & Referrals',
         protocolKey: 'UVBE Reward Distributor',

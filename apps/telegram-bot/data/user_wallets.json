@@ -1,6 +1,12 @@
 {
-  "2079720192": {
-    "address": "0x441dbf8076d0b143ec17199bae94daa884161454",
-    "linkedAt": "2026-08-31T10:41:22.133Z"
+  "users": {
+    "2079720192": {
+      "userId": "2079720192",
+      "address": "0x441dbf8076d0b143ec17199bae94daa884161454",
+      "joinedAt": "2026-08-31T10:41:22.133Z",
+      "lastActive": "2026-09-04T16:47:54.661Z",
+      "username": "Vijaykewlani",
+      "firstName": "Vijay"
+    }
   }
 }

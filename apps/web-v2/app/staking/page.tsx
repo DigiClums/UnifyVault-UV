@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAccount, useSwitchChain } from 'wagmi';
 import { StakingHeroCards } from '../../components/staking/StakingHeroCards';
 import { StakeActionForm } from '../../components/staking/StakeActionForm';
@@ -23,6 +24,7 @@ import {
   Users,
   Award,
   History,
+  FileCode2,
 } from 'lucide-react';
 
 type StakingTab = 'overview' | 'stake' | 'referrals' | 'ranks' | 'calculator' | 'history';
@@ -116,6 +118,14 @@ export default function StakingPage() {
         </div>
 
         <div className="flex items-center space-x-2 shrink-0 self-start sm:self-auto">
+          <Link
+            href="/contracts"
+            className="flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-[#BFFF00] hover:text-black dark:hover:bg-[#BFFF00] dark:hover:text-black text-foreground border border-black/20 dark:border-white/20 transition-all"
+            title="View Verified Contracts"
+          >
+            <FileCode2 className="w-3.5 h-3.5 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <span>Contracts</span>
+          </Link>
           <div className="flex items-center space-x-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl bg-black text-white dark:bg-white/10 dark:text-white border border-black dark:border-white/20">
             <span className="w-1.5 h-1.5 rounded-full bg-[#BFFF00] animate-pulse" />
             <span>{CHAIN_CONFIG.name}</span>

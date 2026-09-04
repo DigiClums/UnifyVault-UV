@@ -18,6 +18,7 @@ import {
   Sparkles,
   Send,
   PieChart,
+  FileCode2,
 } from 'lucide-react';
 import { DashboardMetrics } from '../../types';
 import { useAccount } from 'wagmi';
@@ -449,6 +450,23 @@ export function WalletHomeDashboard({ metrics, networkName }: WalletHomeDashboar
               className="w-full py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black font-bold text-[11px] flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
             >
               <span>View Deep Analytics</span>
+              <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="p-4 rounded-xl bg-card border-2 border-black dark:border-white/15 space-y-2 shadow-[2px_2px_0_rgba(0,0,0,0.85)]">
+            <h3 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+              <FileCode2 className="w-4 h-4 text-[#BFFF00]" />
+              <span>Smart Contracts</span>
+            </h3>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              View audited Base Mainnet on-chain contracts, vault custodians & oracles.
+            </p>
+            <Link
+              href="/contracts"
+              className="w-full py-2 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-[#BFFF00] hover:text-black dark:hover:bg-[#BFFF00] dark:hover:text-black font-bold text-[11px] flex items-center justify-center gap-1 transition-colors border border-black/10 dark:border-white/10"
+            >
+              <span>Explore Verified Contracts</span>
               <ChevronRight className="w-3 h-3" />
             </Link>
           </div>

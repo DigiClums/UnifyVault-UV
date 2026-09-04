@@ -25,7 +25,7 @@ import { DEPLOYMENT_ARTIFACTS } from '../../lib/deployment/generatedArtifacts';
 import { getExplorerBaseUrl } from '../../constants';
 
 const GOV = '0x441dbf8076d0b143EC17199baE94Daa884161454' as Address;
-const UVBE_TOKEN = '0xD2715141a0F5998B707BaA963990bFC2E94cF145' as Address;
+const UVBE_TOKEN = '0x051979deb1eb4823672e6274a55c44d7818ff523' as Address;
 const P2P_ESCROW_V2 = '0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329' as Address;
 const ENTRY_POINT_V07 = '0x0000000071727De22E5E9d8BAf0edAc6f37da032' as Address;
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as Address;
@@ -51,11 +51,7 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
   const publicClient = usePublicClient();
 
   const [loadingStep, setLoadingStep] = useState<number | null>(null);
-  const [deployed, setDeployed] = useState<DeployedState>({
-    stakingVault: '0x3ea9082f724efc74a68615f1f33a2b81309e788a' as Address,
-    referralRegistry: '0xa8b37df413dde998f81594c4d684148c669f554d' as Address,
-    rewardDistributor: '0x822953345b5e7a66f7de878112e910d8b1c46577' as Address,
-  });
+  const [deployed, setDeployed] = useState<DeployedState>({});
   const [txHashes, setTxHashes] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -219,35 +215,47 @@ export function PendingContractsDeployCard({ chainId }: { chainId?: number }) {
       if (!walletClient || !publicClient) {
         throw new Error('Please connect your Admin / Governance wallet first.');
       }
+      if (!deployed.stakingVault || !deployed.referralRegistry || !deployed.rewardDistributor) {
+        throw new Error(
+          'Please deploy StakingVault, ReferralRegistry, and RewardDistributor first.',
+        );
+      }
       setError(null);
       setLoadingStep(5);
 
-      const targetVault = '0x3ea9082f724efc74a68615f1f33a2b81309e788a';
-      const targetRegistry = '0xa8b37df413dde998f81594c4d684148c669f554d';
-      const targetDistributor = '0x822953345b5e7a66f7de878112e910d8b1c46577';
+      const targetVault = deployed.stakingVault;
+      const targetRegistry = deployed.referralRegistry;
+      const targetDistributor = deployed.rewardDistributor;
 
-      // Function selector for setModules(address,address) is 0xd74a5d00
-      // Arguments: targetVault (32 bytes) + targetRegistry (32 bytes)
-      const calldata = ('0xd74a5d00' +
-        targetVault.slice(2).toLowerCase().padStart(64, '0') +
-        targetRegistry.slice(2).toLowerCase().padStart(64, '0')) as `0x${string}`;
+      const vArtifact = DEPLOYMENT_ARTIFACTS.UVBEStakingVault;
+      const rArtifact = DEPLOYMENT_ARTIFACTS.UVBEReferralRegistry;
+      const dArtifact = DEPLOYMENT_ARTIFACTS.UVBERewardDistributor;
 
-      console.log('Sending direct setModules calldata to Distributor:', {
-        to: targetDistributor,
-        calldata,
+      const svHash = await walletClient.writeContract({
+        address: targetVault,
+        abi: vArtifact.abi,
+        functionName: 'setModules',
+        args: [targetRegistry, targetDistributor],
       });
+      await publicClient.waitForTransactionReceipt({ hash: svHash });
 
-      const dHash = await walletClient.sendTransaction({
-        to: targetDistributor as Address,
-        data: calldata,
-        account: walletClient.account,
-        chain: walletClient.chain,
+      const srHash = await walletClient.writeContract({
+        address: targetRegistry,
+        abi: rArtifact.abi,
+        functionName: 'setModules',
+        args: [targetVault, targetDistributor],
       });
+      await publicClient.waitForTransactionReceipt({ hash: srHash });
 
-      console.log('Distributor setModules tx hash:', dHash);
-      await publicClient.waitForTransactionReceipt({ hash: dHash });
+      const sdHash = await walletClient.writeContract({
+        address: targetDistributor,
+        abi: dArtifact.abi,
+        functionName: 'setModules',
+        args: [targetVault, targetRegistry],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: sdHash });
 
-      setTxHashes((prev) => ({ ...prev, interlink: dHash }));
+      setTxHashes((prev) => ({ ...prev, interlink: sdHash }));
     } catch (err: any) {
       console.error('Module interlink error:', err);
       const msg = err?.shortMessage || err?.message || 'Module interlinking failed';
