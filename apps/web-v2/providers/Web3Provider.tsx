@@ -50,20 +50,29 @@ const config = getDefaultConfig({
   },
   transports: {
     [base.id]: fallback([
-      http('https://base-rpc.publicnode.com', {
-        batch: false,
+      http('https://mainnet.base.org', {
+        batch: true,
         retryCount: 3,
         retryDelay: 800,
+        timeout: 10_000,
+      }),
+      http('https://base.llamarpc.com', {
+        batch: true,
+        retryCount: 3,
+        retryDelay: 800,
+        timeout: 10_000,
+      }),
+      http('https://base-rpc.publicnode.com', {
+        batch: true,
+        retryCount: 3,
+        retryDelay: 800,
+        timeout: 10_000,
       }),
       http('https://1rpc.io/base', {
-        batch: false,
+        batch: true,
         retryCount: 3,
         retryDelay: 800,
-      }),
-      http(mainnetPrimaryRpc, {
-        batch: false,
-        retryCount: 3,
-        retryDelay: 1000,
+        timeout: 10_000,
       }),
     ]),
   },
