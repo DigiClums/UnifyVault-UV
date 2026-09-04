@@ -119,13 +119,20 @@ export function ReferralNetworkView() {
   const [isScheduleExpanded, setIsScheduleExpanded] = useState<boolean>(false);
   const explorerBase = getExplorerBaseUrl(chain?.id);
 
-  const referralUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/staking?ref=${userAddress || ''}`
-      : `${APP_DOMAIN}/staking?ref=${userAddress || ''}`;
+  const referralUrl = useMemo(() => {
+    if (!userAddress) return '';
+    // Prefer authoritative production domain so shared links are always clean and accessible worldwide
+    const baseDomain =
+      typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost' &&
+      !window.location.hostname.includes('127.0.0.1')
+        ? window.location.origin
+        : APP_DOMAIN;
+    return `${baseDomain}/staking?ref=${userAddress}`;
+  }, [userAddress]);
 
   const handleCopyLink = () => {
-    if (!userAddress) return;
+    if (!userAddress || !referralUrl) return;
     navigator.clipboard.writeText(referralUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
