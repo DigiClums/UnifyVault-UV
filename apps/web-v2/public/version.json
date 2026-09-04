@@ -1,12 +1,12 @@
 {
-  "latestVersion": "2.4.3",
+  "latestVersion": "2.4.4",
   "minimumVersion": "1.0.0",
   "mandatory": false,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.3/UnifyVault-v2.4.3.apk",
-  "sha256": "e914a7412172ed67996e2ba87eea8cec3068d94cece866a39ce3dbcd6c26492d",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.4/UnifyVault-v2.4.4.apk",
+  "sha256": "a470fb6f95398ff3e23d8e4845b96d50967785c2fb36f19cdcf6a10def634675",
   "releaseNotes": [
-    "Production Release v2.4.3",
+    "Production Release v2.4.4",
     "Performance improvements & security updates",
-    "Verified APK SHA-256: e914a7412172ed67996e2ba87eea8cec3068d94cece866a39ce3dbcd6c26492d"
+    "Verified APK SHA-256: a470fb6f95398ff3e23d8e4845b96d50967785c2fb36f19cdcf6a10def634675"
   ]
 }
