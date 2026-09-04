@@ -24,6 +24,7 @@ export function PermanentStakePositionCard() {
     isUserActive,
     currentRank,
     rankDetails,
+    nonReferralCapInfo,
     dynamicApy,
     estimatedAnnualReward,
     isLoading,
@@ -152,6 +153,45 @@ export function PermanentStakePositionCard() {
         </div>
       </div>
 
+      {/* 2x Non-Referral Return Cap Indicator */}
+      {nonReferralCapInfo.isCapped && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              2x Non-Referral Earnings Cap:
+            </span>
+            <span className="font-mono">
+              {Number(formatUnits(nonReferralCapInfo.totalEarned, 18)).toFixed(2)} /{' '}
+              {Number(formatUnits(nonReferralCapInfo.maxEarnings, 18)).toFixed(2)} UVBE (
+              {nonReferralCapInfo.progressPercent}%)
+            </span>
+          </div>
+
+          <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${
+                nonReferralCapInfo.isCapReached ? 'bg-amber-500' : 'bg-[#BFFF00]'
+              }`}
+              style={{ width: `${nonReferralCapInfo.progressPercent}%` }}
+            />
+          </div>
+
+          <p className="text-[11px] text-slate-600 dark:text-slate-400">
+            {nonReferralCapInfo.isCapReached ? (
+              <strong className="text-amber-700 dark:text-amber-300">
+                2x Cap Reached! Refer 1+ active partner (≥50 UVBE) or restake to unlock unlimited
+                dynamic APY.
+              </strong>
+            ) : (
+              <span>
+                Earn up to 2x (200%) passively. Refer 1 active partner to unlock unlimited 600% APY.
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Perpetual Yield Information */}
       <div className="p-3.5 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs flex items-start gap-2.5">
         <Sparkles className="w-4 h-4 text-emerald-600 dark:text-[#BFFF00] shrink-0 mt-0.5" />
@@ -160,7 +200,7 @@ export function PermanentStakePositionCard() {
             Perpetual Reward Mechanism:
           </strong>{' '}
           Staked UVBE establishes a perpetual reward position in the protocol vault. All earnings,
-          affiliate bonuses, and DAO rewards are claimable and restakeable anytime with 0% fees.
+          affiliate bonuses, and 5% DAO rewards are claimable and restakeable anytime with 0% fees.
         </div>
       </div>
     </div>

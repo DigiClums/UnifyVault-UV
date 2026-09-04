@@ -18,7 +18,8 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
   uint256 public constant BPS_DENOMINATOR = 10_000;
   uint256 public constant override MAX_RECURRING_ANNUAL_BPS = 60_000; // 600.00% maximum annual APY ceiling
   uint256 public constant SECONDS_PER_YEAR = 31_536_000; // 365 days
-  uint256 public constant DAO_POOL_BPS = 100; // 1.00% to DAO leadership pool
+  uint256 public constant DAO_POOL_BPS = 500; // 5.00% to DAO leadership pool
+  uint256 public constant NON_REFERRAL_MAX_CAP_MULTIPLIER = 2; // 2x lifetime earnings cap for stakers with 0 active directs
   uint256 public constant DAO_CYCLE_DURATION = 30 days;
   uint256 public constant INDEX_PRECISION = 1e18; // WAD scaling for cumulative reward index
 
@@ -168,7 +169,7 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     if (isRestake) return;
 
     // 3. Check total commission demand against available protocol capital in vault
-    uint256 maxPossibleDemand = (amount * 1300) / BPS_DENOMINATOR; // 12% generations + 1% DAO = 13%
+    uint256 maxPossibleDemand = (amount * 1700) / BPS_DENOMINATOR; // 12% generations + 5% DAO = 17%
     uint256 availableCapital = IUVBEStakingVault(vault).getAvailableProtocolCapital();
 
     if (_totalOutstandingLiabilities + maxPossibleDemand > availableCapital) {
@@ -402,6 +403,29 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       if (userIdx < rewardIndex) {
         uint256 deltaIdx = rewardIndex - userIdx;
         uint256 pending = (userStake * deltaIdx) / INDEX_PRECISION;
+
+        // 2x Lifetime Return Cap check for users with 0 active direct referrals
+        if (pending > 0 && registry != address(0)) {
+          uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(user);
+          if (activeDirects == 0) {
+            uint256 maxEarnings = userStake * NON_REFERRAL_MAX_CAP_MULTIPLIER;
+            uint256 totalEarnedSoFar =
+              _claimableRecurring[user] +
+                _claimableDirect[user] +
+                _claimableGeneration[user] +
+                _claimableRank[user] +
+                _claimableDao[user] +
+                _totalClaimed[user] +
+                _totalRestaked[user];
+
+            if (totalEarnedSoFar >= maxEarnings) {
+              pending = 0;
+            } else if (totalEarnedSoFar + pending > maxEarnings) {
+              pending = maxEarnings - totalEarnedSoFar;
+            }
+          }
+        }
+
         if (pending > 0) {
           _claimableRecurring[user] += pending;
           emit RecurringRewardAccrued(user, pending, _claimableRecurring[user]);
@@ -455,6 +479,29 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
         if (userIdx < rewardIndex) {
           uint256 deltaIdx = rewardIndex - userIdx;
           uint256 pending = (preUserStake * deltaIdx) / INDEX_PRECISION;
+
+          // 2x Lifetime Return Cap check for users with 0 active direct referrals
+          if (pending > 0 && registry != address(0)) {
+            uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(staker);
+            if (activeDirects == 0) {
+              uint256 maxEarnings = preUserStake * NON_REFERRAL_MAX_CAP_MULTIPLIER;
+              uint256 totalEarnedSoFar =
+                _claimableRecurring[staker] +
+                  _claimableDirect[staker] +
+                  _claimableGeneration[staker] +
+                  _claimableRank[staker] +
+                  _claimableDao[staker] +
+                  _totalClaimed[staker] +
+                  _totalRestaked[staker];
+
+              if (totalEarnedSoFar >= maxEarnings) {
+                pending = 0;
+              } else if (totalEarnedSoFar + pending > maxEarnings) {
+                pending = maxEarnings - totalEarnedSoFar;
+              }
+            }
+          }
+
           if (pending > 0) {
             _claimableRecurring[staker] += pending;
             emit RecurringRewardAccrued(staker, pending, _claimableRecurring[staker]);
@@ -662,7 +709,31 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
 
     uint256 userIdx = _userRewardIndex[user];
     if (simulatedIndex > userIdx) {
-      return (userStake * (simulatedIndex - userIdx)) / INDEX_PRECISION;
+      uint256 pending = (userStake * (simulatedIndex - userIdx)) / INDEX_PRECISION;
+
+      // 2x Lifetime Return Cap check for users with 0 active direct referrals
+      if (pending > 0 && registry != address(0)) {
+        uint256 activeDirects = IUVBEReferralRegistry(registry).getActiveDirectCount(user);
+        if (activeDirects == 0) {
+          uint256 maxEarnings = userStake * NON_REFERRAL_MAX_CAP_MULTIPLIER;
+          uint256 totalEarnedSoFar =
+            _claimableRecurring[user] +
+              _claimableDirect[user] +
+              _claimableGeneration[user] +
+              _claimableRank[user] +
+              _claimableDao[user] +
+              _totalClaimed[user] +
+              _totalRestaked[user];
+
+          if (totalEarnedSoFar >= maxEarnings) {
+            return 0;
+          } else if (totalEarnedSoFar + pending > maxEarnings) {
+            return maxEarnings - totalEarnedSoFar;
+          }
+        }
+      }
+
+      return pending;
     }
     return 0;
   }

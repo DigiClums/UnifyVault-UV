@@ -173,13 +173,13 @@ contract UVBERecurringRewardTest is Test {
 
   function test_RecurringAccrual_MultiYearLongTerm() public {
     vm.prank(alice);
-    vault.stake(1_000 * 1e18, genesis); // 950 net principal, 57 initial liabilities, 893 surplus
+    vault.stake(1_000 * 1e18, genesis); // 950 net principal, 95 initial liabilities, 855 surplus
 
     skip(3650 days);
 
-    // After 10 years with no new entrants, Alice earns the entire remaining surplus (893 UVBE)
+    // After 10 years with no new entrants, Alice earns the entire remaining surplus (855 UVBE)
     uint256 claimable = distributor.getClaimableRewards(alice);
-    assertEq(claimable, 893 * 1e18, 'Multi-year reward bounded by protocol surplus');
+    assertEq(claimable, 855 * 1e18, 'Multi-year reward bounded by protocol surplus');
     assertEq(distributor.getCurrentAnnualBps(), 0, 'APY drops to 0% when surplus is exhausted');
   }
 
@@ -236,7 +236,7 @@ contract UVBERecurringRewardTest is Test {
     assertEq(tot, rec + dir + gen + rk + dao);
 
     uint256 netStake = (5_000 * 1e18 * 9500) / BPS_DENOMINATOR; // 4,750 UVBE
-    uint256 expectedDaoAlloc = (netStake * 100) / BPS_DENOMINATOR; // 47.5 UVBE
+    uint256 expectedDaoAlloc = (netStake * 500) / BPS_DENOMINATOR; // 237.5 UVBE (5% DAO)
     uint256 expectedGen1Direct = (netStake * 500) / BPS_DENOMINATOR; // 237.5 UVBE (to genesis)
     assertEq(totalLiab, tot + expectedDaoAlloc + expectedGen1Direct);
   }

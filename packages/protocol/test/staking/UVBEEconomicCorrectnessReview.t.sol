@@ -65,22 +65,22 @@ contract UVBEEconomicCorrectnessReviewTest is Test {
 
     // 2. Immediate Liabilities
     // Gen 1 Direct to genesisRoot = 5% of 47.5 = 2.375 UVBE
-    // DAO pool = 1% of 47.5 = 0.475 UVBE
-    // Total immediate liability = 2.85 UVBE
+    // DAO pool = 5% of 47.5 = 2.375 UVBE
+    // Total immediate liability = 4.75 UVBE
     assertEq(
       distributor.totalOutstandingLiabilities(),
-      2.85 * 1e18,
-      'Immediate liabilities = 2.85 UVBE'
+      4.75 * 1e18,
+      'Immediate liabilities = 4.75 UVBE'
     );
 
     // 3. Available Surplus & APY
-    // Surplus = 47.5 - 2.85 = 44.65 UVBE
-    // APY = floor(44.65 * 10000 / 47.5) = 9400 BPS (94.00%)
+    // Surplus = 47.5 - 4.75 = 42.75 UVBE
+    // APY = floor(42.75 * 10000 / 47.5) = 9000 BPS (90.00%)
     (uint256 cap, uint256 liab, uint256 surplus, uint256 apy) = distributor.getRewardCapacity();
     assertEq(cap, 47.5 * 1e18);
-    assertEq(liab, 2.85 * 1e18);
-    assertEq(surplus, 44.65 * 1e18);
-    assertEq(apy, 9400);
+    assertEq(liab, 4.75 * 1e18);
+    assertEq(surplus, 42.75 * 1e18);
+    assertEq(apy, 9000);
   }
 
   // --- 2. No New Users: Capital Depletion Simulation ---
@@ -119,8 +119,8 @@ contract UVBEEconomicCorrectnessReviewTest is Test {
     // Post-claims verification
     assertEq(
       token.balanceOf(alice) - 99_950 * 1e18,
-      44.65 * 1e18,
-      'Alice received exact remaining surplus (44.65 UVBE)'
+      42.75 * 1e18,
+      'Alice received exact remaining surplus (42.75 UVBE)'
     );
     assertEq(
       token.balanceOf(genesisRoot),

@@ -684,6 +684,28 @@ export function useStaking() {
     };
   }, [currentRank, permanentStake, activeDirectCount, teamVolume]);
 
+  // 2x Non-Referral Lifetime Return Cap details
+  const nonReferralCapInfo = useMemo(() => {
+    const isCapped = activeDirectCount === 0 && permanentStake > 0n;
+    const maxEarnings = permanentStake * 2n;
+    const totalEarned = rewards.totalClaimable + rewards.totalClaimed + rewards.totalRestaked;
+
+    const remainingToCap = maxEarnings > totalEarned ? maxEarnings - totalEarned : 0n;
+    const progressPercent =
+      maxEarnings > 0n
+        ? Math.min(100, Math.round((Number(totalEarned) / Number(maxEarnings)) * 100))
+        : 0;
+
+    return {
+      isCapped,
+      maxEarnings,
+      totalEarned,
+      remainingToCap,
+      progressPercent,
+      isCapReached: isCapped && totalEarned >= maxEarnings,
+    };
+  }, [activeDirectCount, permanentStake, rewards]);
+
   return {
     // State
     uvbeBalance,
@@ -711,6 +733,7 @@ export function useStaking() {
     estimatedAnnualReward,
     currentDaoEpochId,
     rankDetails,
+    nonReferralCapInfo,
     genesisReferrer,
     totalRewardPaid,
 

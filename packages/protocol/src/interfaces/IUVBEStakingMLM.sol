@@ -196,6 +196,8 @@ interface IUVBERewardDistributor {
   function getPendingRecurringReward(address user) external view returns (uint256);
   function getCurrentAnnualBps() external view returns (uint256);
   function MAX_RECURRING_ANNUAL_BPS() external pure returns (uint256);
+  function DAO_POOL_BPS() external view returns (uint256);
+  function NON_REFERRAL_MAX_CAP_MULTIPLIER() external view returns (uint256);
   function getRewardCapacity()
     external
     view

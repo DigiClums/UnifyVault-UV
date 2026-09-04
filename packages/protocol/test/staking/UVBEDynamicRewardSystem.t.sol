@@ -57,11 +57,11 @@ contract UVBEDynamicRewardSystemTest is Test {
   // 1. Zero liabilities + High reward capacity => Dynamic calculation up to 60000 BPS (600%)
   function test_ZeroLiabilities_HighCapacity_HitsCeiling() public {
     vm.prank(alice);
-    vault.stake(1_000 * 1e18, genesis); // 950 net stake, 57 liabilities (5% Gen 1 + 1% DAO)
+    vault.stake(1_000 * 1e18, genesis); // 950 net stake, 95 liabilities (5% Gen 1 + 5% DAO)
 
-    // Capital = 950 UVBE, Liabilities = 57 UVBE => Surplus = 893 UVBE
-    // APY = floor(893 * 10000 / 950) = 9400 BPS (94.00%)
-    assertEq(distributor.getCurrentAnnualBps(), 9400);
+    // Capital = 950 UVBE, Liabilities = 95 UVBE => Surplus = 855 UVBE
+    // APY = floor(855 * 10000 / 950) = 9000 BPS (90.00%)
+    assertEq(distributor.getCurrentAnnualBps(), 9000);
     assertEq(distributor.MAX_RECURRING_ANNUAL_BPS(), 60_000);
   }
 

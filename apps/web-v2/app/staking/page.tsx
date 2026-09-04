@@ -10,6 +10,7 @@ import { PermanentStakePositionCard } from '../../components/staking/PermanentSt
 import { ReferralNetworkView } from '../../components/staking/ReferralNetworkView';
 import { RankProgressionCard } from '../../components/staking/RankProgressionCard';
 import { DaoLeadershipPoolCard } from '../../components/staking/DaoLeadershipPoolCard';
+import { StakingYieldCalculator } from '../../components/staking/StakingYieldCalculator';
 import { StakingTransactionHistory } from '../../components/staking/StakingTransactionHistory';
 import { useStaking } from '../../hooks/useStaking';
 import { getDefaultChainId, CHAIN_CONFIG } from '../../constants';
@@ -162,11 +163,12 @@ export default function StakingPage() {
       </div>
 
       {/* ── 2. Primary Action Area (Stake & Claim) ── */}
-      <div className={`${activeTab === 'stake' ? 'block' : 'hidden md:block'}`}>
+      <div className={`${activeTab === 'stake' ? 'block' : 'hidden md:block'} space-y-4`}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
           <StakeActionForm />
           <RewardsClaimPanel />
         </div>
+        <StakingYieldCalculator />
       </div>
 
       {/* ── 3. Referrals & MLM Network ── */}

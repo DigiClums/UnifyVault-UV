@@ -145,13 +145,13 @@ contract UVBEProtocolStakingRedesignTest is Test {
     vm.stopPrank();
 
     // Gen 1 referral to genesisRoot: 5% of 47.5 = 2.375 UVBE
-    // DAO pool 1% of 47.5 = 0.475 UVBE
-    // Total liabilities L = 2.85 UVBE
+    // DAO pool 5% of 47.5 = 2.375 UVBE
+    // Total liabilities L = 4.75 UVBE
     // Available Capital B = 47.5 UVBE
-    // Surplus = 47.5 - 2.85 = 44.65 UVBE
-    // Expected APY = floor(44.65 * 10000 / 47.5) = 9400 BPS (94.00%)
+    // Surplus = 47.5 - 4.75 = 42.75 UVBE
+    // Expected APY = floor(42.75 * 10000 / 47.5) = 9000 BPS (90.00%)
     uint256 apyBps = distributor.getCurrentAnnualBps();
-    assertEq(apyBps, 9400, 'First staker dynamic APY mismatch');
+    assertEq(apyBps, 9000, 'First staker dynamic APY mismatch');
   }
 
   function test_07_ApyDecreasesAsLiabilitiesGrowOverTime() public {

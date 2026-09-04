@@ -32,7 +32,7 @@ export function DaoLeadershipPoolCard() {
             DAO Leadership Pool & Solvency
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            1.00% of all gross staking volume is allocated to the 30-day DAO leadership cycle,
+            5.00% of all gross staking volume is allocated to the 30-day DAO leadership cycle,
             distributed to Platinum, Diamond, and Crown Ambassador leaders.
           </p>
         </div>
