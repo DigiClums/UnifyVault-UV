@@ -247,6 +247,47 @@ export function normalizeTransactionError(err: unknown): {
     };
   }
 
+  // 4b. Staking Subsystem Custom Errors
+  if (lower.includes('belowminstake') || lower.includes('0x9be9d80a')) {
+    return {
+      isUserRejection: false,
+      isTimeout: false,
+      isNetworkError: false,
+      isInsufficientFunds: false,
+      message: 'Minimum stake is 50 UVBE.',
+    };
+  }
+
+  if (lower.includes('exceedsmaxstake') || lower.includes('0xdc0b21db')) {
+    return {
+      isUserRejection: false,
+      isTimeout: false,
+      isNetworkError: false,
+      isInsufficientFunds: false,
+      message: 'Maximum stake is 100,000 UVBE per transaction.',
+    };
+  }
+
+  if (lower.includes('circularreferraldetected') || lower.includes('0x755d2a4c')) {
+    return {
+      isUserRejection: false,
+      isTimeout: false,
+      isNetworkError: false,
+      isInsufficientFunds: false,
+      message: 'Circular referral loop detected.',
+    };
+  }
+
+  if (lower.includes('selfreferralprohibited') || lower.includes('0xc1e46186')) {
+    return {
+      isUserRejection: false,
+      isTimeout: false,
+      isNetworkError: false,
+      isInsufficientFunds: false,
+      message: 'Self-referral is prohibited.',
+    };
+  }
+
   // 5. Wallet Disconnect / Network Mismatch
   if (lower.includes('disconnected') || lower.includes('connector not found')) {
     return {
@@ -268,7 +309,7 @@ export function normalizeTransactionError(err: unknown): {
       isTimeout: false,
       isNetworkError: true,
       isInsufficientFunds: false,
-      message: 'Network mismatch. Please switch to Base Sepolia.',
+      message: 'Network mismatch. Please switch to Base Mainnet (Chain ID 8453).',
     };
   }
 
