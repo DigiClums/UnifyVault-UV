@@ -10,7 +10,6 @@ import {
   CandlestickData,
   Time,
   LineStyle,
-  CandlestickSeries,
 } from 'lightweight-charts';
 import { LineChart, Info } from 'lucide-react';
 
@@ -78,7 +77,7 @@ export function CandlestickChart() {
       handleScale: true,
     });
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
+    const candleSeries = chart.addCandlestickSeries({
       upColor: '#10B981',
       downColor: '#EF4444',
       borderUpColor: '#10B981',
