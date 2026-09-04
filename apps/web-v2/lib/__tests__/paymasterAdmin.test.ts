@@ -559,10 +559,10 @@ describe('Phase 5: Paymaster & Gas Treasury Admin Console Test Suite', () => {
   describe('15. Base Mainnet Address Resolution', () => {
     it('matches canonical Base Mainnet Paymaster, Gas Treasury, and EntryPoint addresses', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.Paymaster.toLowerCase()).toBe(
-        '0xdf96b619934d17ae85142dcef1655a8d3b19040a',
+        '0xb5b7719f28368b35cd807a2f885843c9d1fdd0e9',
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.GasTreasury.toLowerCase()).toBe(
-        '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424',
+        '0x166477b1eb662dd553287d32af958436cad20c17',
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.EntryPoint.toLowerCase()).toBe(
         '0x0000000071727de22e5e9d8baf0edac6f37da032',

@@ -49,7 +49,7 @@ describe('Mobile UI Navigation & /transfer Visibility Suite', () => {
       expect(itemsBlock).toContain("'/p2p'");
       expect(itemsBlock).toContain("'/staking'");
       expect(itemsBlock).toContain("'/portfolio'");
-      expect(itemsBlock).toContain("'/transactions'");
+      expect(itemsBlock).toContain("'/transfer'");
     }
   });
 

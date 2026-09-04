@@ -23,6 +23,7 @@ import {
   GOVERNANCE_ROLE_HASH,
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
+  SPONSOR_DISPATCHER_ROLE_HASH,
 } from '../../../lib/contracts/escrow';
 import { getDeployedContracts, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -90,6 +91,7 @@ export default function AdminStakingPage() {
     | 'unpauseVault'
     | 'pauseDistributor'
     | 'unpauseDistributor'
+    | 'approveSponsor'
     | 'sponsorStake'
     | null
   >(null);
@@ -206,9 +208,32 @@ export default function AdminStakingPage() {
           ? [GUARDIAN_ROLE_HASH, connectedAddress as `0x${string}`]
           : undefined,
       },
+      {
+        address: vaultAddress,
+        abi: STAKING_VAULT_ABI,
+        functionName: 'hasRole',
+        args: connectedAddress
+          ? [SPONSOR_DISPATCHER_ROLE_HASH, connectedAddress as `0x${string}`]
+          : undefined,
+      },
+      {
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: connectedAddress ? [connectedAddress as `0x${string}`] : undefined,
+      },
+      {
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args:
+          connectedAddress && vaultAddress
+            ? [connectedAddress as `0x${string}`, vaultAddress]
+            : undefined,
+      },
     ],
     query: {
-      enabled: !!connectedAddress && !!distributorAddress && !!vaultAddress,
+      enabled: !!connectedAddress && !!distributorAddress && !!vaultAddress && !!tokenAddress,
       staleTime: 15_000,
     },
   });
@@ -218,8 +243,12 @@ export default function AdminStakingPage() {
   const isDistributorAdmin = Boolean(roleData?.[2]?.result);
   const isVaultGov = Boolean(roleData?.[3]?.result);
   const isVaultGuardian = Boolean(roleData?.[4]?.result);
+  const isVaultSponsor = Boolean(roleData?.[5]?.result);
+  const sponsorTokenBalance = (roleData?.[6]?.result as bigint) ?? 0n;
+  const sponsorVaultAllowance = (roleData?.[7]?.result as bigint) ?? 0n;
 
   const isGovernanceAuthorized = isDistributorGov || isVaultGov || isDistributorAdmin;
+  const isSponsorAuthorized = isVaultSponsor || isVaultGov || isDistributorAdmin;
 
   // --- Live Solvency & Staking Metrics ---
   const {
@@ -518,11 +547,46 @@ export default function AdminStakingPage() {
     }
   };
 
-  const handleAdminDirectSponsorStake = () => {
-    if (!tokenAddress || !isAddress(sponsorUserAddress.trim())) return;
+  const parsedSponsorAmount = useMemo(() => {
     try {
-      const parsedAmount = parseUnits(sponsorAmountStr.trim(), 18);
-      if (parsedAmount < parseUnits('50', 18)) {
+      return parseUnits(sponsorAmountStr.trim() || '0', 18);
+    } catch {
+      return 0n;
+    }
+  }, [sponsorAmountStr]);
+
+  const isSponsorAllowanceSufficient =
+    sponsorVaultAllowance >= parsedSponsorAmount && parsedSponsorAmount > 0n;
+  const isSponsorBalanceSufficient = sponsorTokenBalance >= parsedSponsorAmount;
+
+  const handleApproveSponsorAllowance = () => {
+    if (!tokenAddress || !vaultAddress) return;
+    try {
+      setActiveAction('approveSponsor');
+      setSponsorStatusMessage({
+        type: 'info',
+        text: 'Approving UVBE tokens for UVBEStakingVault...',
+      });
+
+      writeContract({
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [vaultAddress, parseUnits('1000000000', 18)], // Large allowance
+      });
+    } catch (err) {
+      console.error('Approval error:', err);
+      setSponsorStatusMessage({
+        type: 'error',
+        text: 'Failed to initiate token approval.',
+      });
+    }
+  };
+
+  const handleAdminDirectSponsorStake = () => {
+    if (!vaultAddress || !tokenAddress || !isAddress(sponsorUserAddress.trim())) return;
+    try {
+      if (parsedSponsorAmount < parseUnits('50', 18)) {
         setSponsorStatusMessage({
           type: 'error',
           text: 'Minimum stake is 50 UVBE.',
@@ -530,18 +594,32 @@ export default function AdminStakingPage() {
         return;
       }
 
+      if (!isSponsorBalanceSufficient) {
+        setSponsorStatusMessage({
+          type: 'error',
+          text: `Insufficient UVBE balance. You hold ${formatUnits(sponsorTokenBalance, 18)} UVBE.`,
+        });
+        return;
+      }
+
+      const targetBeneficiary = sponsorUserAddress.trim() as Address;
+      const targetReferrer = isAddress(sponsorReferrer.trim())
+        ? (sponsorReferrer.trim() as Address)
+        : (deployed.GenesisReferrer as Address) ||
+          ('0x0000000000000000000000000000000000000000' as Address);
+
       setActiveAction('sponsorStake');
       setSponsorStatusMessage({
         type: 'info',
-        text: `Broadcasting ${sponsorAmountStr} UVBE transfer & sponsored staking intent to ${sponsorUserAddress.slice(0, 6)}...`,
+        text: `Executing on-chain sponsored stake of ${sponsorAmountStr} UVBE for ${targetBeneficiary.slice(0, 6)}...`,
       });
 
-      // Transfer UVBE tokens directly to user wallet
+      // Call dedicated stakeFor function on UVBEStakingVault
       writeContract({
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'transfer',
-        args: [sponsorUserAddress.trim() as Address, parsedAmount],
+        address: vaultAddress,
+        abi: STAKING_VAULT_ABI,
+        functionName: 'stakeFor',
+        args: [targetBeneficiary, parsedSponsorAmount, targetReferrer],
       });
     } catch (err) {
       console.error('Sponsor staking calculation error:', err);
@@ -706,7 +784,16 @@ export default function AdminStakingPage() {
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Dispatch Summary
               </span>
-              <div className="text-xs space-y-1 font-mono">
+              <div className="text-xs space-y-1.5 font-mono">
+                <div className="flex justify-between text-slate-400">
+                  <span>Admin Balance:</span>
+                  <span className="text-white font-bold">
+                    {Number(formatUnits(sponsorTokenBalance, 18)).toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}{' '}
+                    UVBE
+                  </span>
+                </div>
                 <div className="flex justify-between text-slate-400">
                   <span>Gross Transfer:</span>
                   <span className="text-white font-bold">{sponsorAmountStr || '0'} UVBE</span>
@@ -726,31 +813,61 @@ export default function AdminStakingPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAdminDirectSponsorStake}
-              disabled={
-                isWritePending ||
-                isTxWaiting ||
-                !isAddress(sponsorUserAddress.trim()) ||
-                !sponsorAmountStr ||
-                Number(sponsorAmountStr) < 50
-              }
-              className="w-full py-3 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {activeAction === 'sponsorStake' && (isWritePending || isTxWaiting) ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
+            <div className="space-y-2">
+              {!isSponsorAllowanceSufficient && parsedSponsorAmount > 0n && (
+                <button
+                  type="button"
+                  onClick={handleApproveSponsorAllowance}
+                  disabled={isWritePending || isTxWaiting}
+                  className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs border border-amber-500 shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {activeAction === 'approveSponsor' && (isWritePending || isTxWaiting) ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Unlock className="w-4 h-4" />
+                  )}
+                  <span>
+                    {activeAction === 'approveSponsor' && isWritePending
+                      ? 'Approving...'
+                      : activeAction === 'approveSponsor' && isTxWaiting
+                        ? 'Confirming Allowance...'
+                        : '1. Approve UVBE for Vault'}
+                  </span>
+                </button>
               )}
-              <span>
-                {activeAction === 'sponsorStake' && isWritePending
-                  ? 'Signing Dispatch...'
-                  : activeAction === 'sponsorStake' && isTxWaiting
-                    ? 'Executing on Base...'
-                    : `Sponsor & Stake ${sponsorAmountStr || '0'} UVBE`}
-              </span>
-            </button>
+
+              <button
+                type="button"
+                onClick={handleAdminDirectSponsorStake}
+                disabled={
+                  isWritePending ||
+                  isTxWaiting ||
+                  !isAddress(sponsorUserAddress.trim()) ||
+                  !sponsorAmountStr ||
+                  Number(sponsorAmountStr) < 50 ||
+                  !isSponsorAllowanceSufficient ||
+                  !isSponsorBalanceSufficient
+                }
+                className="w-full py-3 rounded-xl bg-[#BFFF00] hover:bg-[#d0ff66] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {activeAction === 'sponsorStake' && (isWritePending || isTxWaiting) ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                <span>
+                  {activeAction === 'sponsorStake' && isWritePending
+                    ? 'Signing Dispatch...'
+                    : activeAction === 'sponsorStake' && isTxWaiting
+                      ? 'Executing on Base...'
+                      : !isSponsorBalanceSufficient
+                        ? 'Insufficient UVBE Balance'
+                        : !isSponsorAllowanceSufficient
+                          ? 'Approval Required Above'
+                          : `2. Sponsor & Stake ${sponsorAmountStr || '0'} UVBE`}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

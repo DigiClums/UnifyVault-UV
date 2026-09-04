@@ -22,6 +22,7 @@ export const STAKING_VAULT_ABI = parseAbi([
   'function getStakeCount(address user) external view returns (uint256)',
   'function getStakeRecord(address user, uint256 index) external view returns (uint256 amount, uint256 stakedAt)',
   'function stake(uint256 amount, address referrer) external',
+  'function stakeFor(address beneficiary, uint256 amount, address referrer) external',
   'function stakeWithPermit(uint256 amount, address referrer, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external',
   'function recordRestake(address user, uint256 amount) external',
   'function disburseReward(address recipient, uint256 amount) external',
@@ -31,6 +32,7 @@ export const STAKING_VAULT_ABI = parseAbi([
 
   // Events
   'event StakeCreated(address indexed user, uint256 indexed stakeId, uint256 grossAmount, uint256 protocolCapital, uint256 treasuryFee, address indexed referrer)',
+  'event SponsoredStakeCreated(address indexed sponsor, address indexed beneficiary, uint256 indexed stakeId, uint256 grossAmount, uint256 protocolCapital, uint256 treasuryFee, address referrer)',
   'event PermanentStakeIncreased(address indexed user, uint256 indexed stakeId, uint256 amount, bool isRestake)',
   'event TreasuryFeeCollected(address indexed user, address indexed treasury, uint256 feeAmount)',
   'event RewardDisbursed(address indexed recipient, uint256 amount, uint256 remainingCapital)',

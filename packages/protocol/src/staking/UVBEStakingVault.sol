@@ -60,6 +60,15 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     uint256 amount,
     bool isRestake
   );
+  event SponsoredStakeCreated(
+    address indexed sponsor,
+    address indexed beneficiary,
+    uint256 indexed stakeId,
+    uint256 grossAmount,
+    uint256 protocolCapital,
+    uint256 treasuryFee,
+    address referrer
+  );
   event RewardDisbursed(address indexed recipient, uint256 amount, uint256 remainingCapital);
 
   modifier onlyDistributor() {
@@ -73,6 +82,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     _grantRole(DEFAULT_ADMIN_ROLE, admin);
     _grantRole(AccessRoles.GOVERNANCE_ROLE, admin);
     _grantRole(AccessRoles.GUARDIAN_ROLE, admin);
+    _grantRole(AccessRoles.SPONSOR_DISPATCHER_ROLE, admin);
 
     token = tokenAddress;
     treasury = admin;
@@ -101,7 +111,23 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
    * @param referrer Referrer address for new stakers
    */
   function stake(uint256 amount, address referrer) external override nonReentrant whenNotPaused {
-    _executeStake(msg.sender, amount, referrer);
+    _executeStakeInternal(msg.sender, msg.sender, amount, referrer, false);
+  }
+
+  /**
+   * @notice Direct sponsored staking: allows authorized sponsors to fund and initialize staking positions for beneficiaries
+   * @dev Tokens are pulled from sponsor (msg.sender), while all permanent stake, referral tree, and rewards belong to beneficiary.
+   * @param beneficiary Target user address receiving the staking position and reward rights
+   * @param amount Gross stake amount funded by the sponsor
+   * @param referrer Referrer address for the beneficiary
+   */
+  function stakeFor(
+    address beneficiary,
+    uint256 amount,
+    address referrer
+  ) external override nonReentrant whenNotPaused onlyRole(AccessRoles.SPONSOR_DISPATCHER_ROLE) {
+    if (beneficiary == address(0)) revert ZeroAddress();
+    _executeStakeInternal(msg.sender, beneficiary, amount, referrer, true);
   }
 
   /**
@@ -116,7 +142,7 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
     bytes32 s
   ) external override nonReentrant whenNotPaused {
     IERC20Permit(token).permit(msg.sender, address(this), amount, deadline, v, r, s);
-    _executeStake(msg.sender, amount, referrer);
+    _executeStakeInternal(msg.sender, msg.sender, amount, referrer, false);
   }
 
   /**
@@ -171,45 +197,67 @@ contract UVBEStakingVault is IUVBEStakingVault, AccessControl, ReentrancyGuard, 
 
   // --- Internal Stake Logic ---
 
-  function _executeStake(address user, uint256 amount, address referrer) internal {
+  function _executeStakeInternal(
+    address funder,
+    address beneficiary,
+    uint256 amount,
+    address referrer,
+    bool isSponsored
+  ) internal {
     if (amount < MIN_STAKE) revert BelowMinStake(amount, MIN_STAKE);
     if (amount > MAX_STAKE) revert ExceedsMaxStake(amount, MAX_STAKE);
 
-    // 1. Pull the gross stake amount from the user into the vault.
-    IERC20(token).safeTransferFrom(user, address(this), amount);
+    // 1. Pull the gross stake amount from the funder into the vault.
+    IERC20(token).safeTransferFrom(funder, address(this), amount);
 
     // 2. Send exactly 5% of the gross stake to the admin treasury.
     uint256 feeAmount = (amount * ADMIN_FEE_BPS) / BPS_DENOMINATOR;
     uint256 principalAmount = amount - feeAmount;
     if (feeAmount > 0) {
       IERC20(token).safeTransfer(treasury, feeAmount);
-      emit TreasuryFeeCollected(user, treasury, feeAmount);
+      emit TreasuryFeeCollected(beneficiary, treasury, feeAmount);
     }
 
-    // 3. The net 95% remains in this vault as permanent protocol-owned staking capital.
+    // 3. The net 95% remains in this vault as permanent protocol-owned staking capital credited to beneficiary.
     _totalPermanentStaked += principalAmount;
-    _permanentStakeOf[user] += principalAmount;
-    _totalDepositedPrincipalOf[user] += principalAmount;
+    _permanentStakeOf[beneficiary] += principalAmount;
+    _totalDepositedPrincipalOf[beneficiary] += principalAmount;
 
-    uint256 stakeId = _stakeRecords[user].length;
-    _stakeRecords[user].push(
+    uint256 stakeId = _stakeRecords[beneficiary].length;
+    _stakeRecords[beneficiary].push(
       IUVBEStakingMLM.StakeRecord({ amount: principalAmount, stakedAt: block.timestamp })
     );
 
-    // 4. Notify Registry (Referral bindings, Team Volume, Rank evaluations)
+    // 4. Notify Registry (Referral bindings, Team Volume, Rank evaluations for beneficiary)
     if (registry != address(0)) {
-      IUVBEReferralRegistry(registry).recordStake(user, principalAmount, referrer, false);
+      IUVBEReferralRegistry(registry).recordStake(beneficiary, principalAmount, referrer, false);
     }
 
     // 5. Trigger Reward Distributor to allocate commissions and update dynamic rate.
     if (distributor != address(0)) {
-      IUVBERewardDistributor(distributor).distributeCommissions(user, principalAmount, false);
+      IUVBERewardDistributor(distributor).distributeCommissions(
+        beneficiary,
+        principalAmount,
+        false
+      );
+    }
+
+    if (isSponsored) {
+      emit SponsoredStakeCreated(
+        funder,
+        beneficiary,
+        stakeId,
+        amount,
+        principalAmount,
+        feeAmount,
+        referrer
+      );
     }
 
     if (stakeId == 0) {
-      emit StakeCreated(user, stakeId, amount, principalAmount, feeAmount, referrer);
+      emit StakeCreated(beneficiary, stakeId, amount, principalAmount, feeAmount, referrer);
     } else {
-      emit PermanentStakeIncreased(user, stakeId, principalAmount, false);
+      emit PermanentStakeIncreased(beneficiary, stakeId, principalAmount, false);
     }
   }
 

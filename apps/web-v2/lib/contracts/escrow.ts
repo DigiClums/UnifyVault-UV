@@ -406,6 +406,7 @@ export {
   GOVERNANCE_ROLE_HASH,
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
+  SPONSOR_DISPATCHER_ROLE_HASH,
 } from './governance';
 
 export interface EscrowTrade {

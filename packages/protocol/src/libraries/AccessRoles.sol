@@ -13,4 +13,5 @@ library AccessRoles {
   bytes32 public constant BOT_ROLE = keccak256('BOT_ROLE');
   bytes32 public constant ORACLE_OPERATOR_ROLE = keccak256('ORACLE_OPERATOR_ROLE');
   bytes32 public constant ARBITRATOR_ROLE = keccak256('ARBITRATOR_ROLE');
+  bytes32 public constant SPONSOR_DISPATCHER_ROLE = keccak256('SPONSOR_DISPATCHER_ROLE');
 }

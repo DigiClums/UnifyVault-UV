@@ -8,6 +8,7 @@ import { UVBEReferralRegistry } from '../../src/staking/UVBEReferralRegistry.sol
 import { UVBERewardDistributor } from '../../src/staking/UVBERewardDistributor.sol';
 import { UVBEV2 } from '../../src/token/UVBEV2.sol';
 import { IUVBEStakingMLM } from '../../src/interfaces/IUVBEStakingMLM.sol';
+import { AccessRoles } from '../../src/libraries/AccessRoles.sol';
 
 contract MockProtocolToken is UVBEV2 {
   constructor(address initialAdmin) UVBEV2(initialAdmin) {}
@@ -546,5 +547,186 @@ contract UVBEProtocolOwnedCapitalStakingTest is Test {
     vm.stopPrank();
 
     assertEq(token.totalSupply(), supplyBefore, 'Total supply must never change');
+  }
+
+  // 26. stakeFor: Authorized sponsor successfully creates stake for beneficiary
+  function test_26_StakeFor_AuthorizedSponsorSucceeds() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 100 * 1e18;
+    uint256 adminBalBefore = token.balanceOf(admin);
+    uint256 beneficiaryBalBefore = token.balanceOf(alice);
+    uint256 vaultBalBefore = token.balanceOf(address(vault));
+
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+
+    // 1. Tokens pulled strictly from admin (minus 5% fee sent to admin treasury)
+    assertEq(
+      token.balanceOf(admin),
+      adminBalBefore - 95 * 1e18,
+      'Admin balance net decrease is 95 UVBE'
+    );
+    assertEq(token.balanceOf(alice), beneficiaryBalBefore, 'Beneficiary balance must NOT change');
+
+    // 2. Exact 95% permanent stake credited to beneficiary
+    assertEq(
+      vault.getPermanentStake(alice),
+      95 * 1e18,
+      'Beneficiary permanent stake must be 95 UVBE'
+    );
+    assertEq(vault.getPermanentStake(admin), 0, 'Sponsor permanent stake must remain 0');
+
+    // 3. Vault balance holds 95 UVBE
+    assertEq(
+      token.balanceOf(address(vault)) - vaultBalBefore,
+      95 * 1e18,
+      'Vault must hold 95 UVBE capital'
+    );
+  }
+
+  // 27. stakeFor: Unauthorized caller reverts
+  function test_27_StakeFor_UnauthorizedCallerReverts() public {
+    uint256 stakeGross = 100 * 1e18;
+    vm.startPrank(alice);
+    token.approve(address(vault), stakeGross);
+    vm.expectRevert();
+    vault.stakeFor(bob, stakeGross, genesisRoot);
+    vm.stopPrank();
+  }
+
+  // 28. stakeFor: Zero beneficiary reverts
+  function test_28_StakeFor_ZeroBeneficiaryReverts() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 100 * 1e18;
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vm.expectRevert(IUVBEStakingMLM.ZeroAddress.selector);
+    vault.stakeFor(address(0), stakeGross, genesisRoot);
+    vm.stopPrank();
+  }
+
+  // 29. stakeFor: Below 50 UVBE reverts
+  function test_29_StakeFor_BelowMinStakeReverts() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 49 * 1e18;
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vm.expectRevert(
+      abi.encodeWithSelector(IUVBEStakingMLM.BelowMinStake.selector, 49 * 1e18, MIN_STAKE)
+    );
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+  }
+
+  // 30. stakeFor: Above 100,000 UVBE reverts
+  function test_30_StakeFor_AboveMaxStakeReverts() public {
+    token.mintForTest(admin, 200_000 * 1e18);
+    uint256 stakeGross = 100_001 * 1e18;
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        IUVBEStakingMLM.ExceedsMaxStake.selector,
+        100_001 * 1e18,
+        100_000 * 1e18
+      )
+    );
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+  }
+
+  // 31. stakeFor: Correct 5% Treasury fee and 95% Protocol Capital
+  function test_31_StakeFor_ExactTreasuryFeeAndCapitalDistribution() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 1_000 * 1e18;
+    uint256 treasuryBefore = token.balanceOf(treasury);
+
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+
+    uint256 expectedFee = 50 * 1e18; // 5% of 1,000
+    uint256 expectedCapital = 950 * 1e18; // 95% of 1,000
+
+    assertEq(
+      token.balanceOf(treasury) -
+        (treasury == admin ? (treasuryBefore - stakeGross) : treasuryBefore),
+      expectedFee,
+      'Treasury fee must be exactly 5%'
+    );
+    assertEq(
+      vault.getPermanentStake(alice),
+      expectedCapital,
+      'Alice permanent stake must be 950 UVBE'
+    );
+  }
+
+  // 32. stakeFor: Referral and tree structure belongs to beneficiary
+  function test_32_StakeFor_ReferralBelongsToBeneficiary() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 100 * 1e18;
+
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+
+    assertEq(registry.getReferrer(alice), genesisRoot, 'Alice referrer must be genesisRoot');
+    assertEq(registry.getReferrer(admin), address(0), 'Admin referrer must remain unassigned');
+  }
+
+  // 33. stakeFor: Beneficiary accrues dynamic yield rewards without signing anything
+  function test_33_StakeFor_BeneficiaryAccruesYieldWithoutSigning() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 100 * 1e18;
+
+    vm.startPrank(admin);
+    token.approve(address(vault), stakeGross);
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+
+    // Fast forward 30 days
+    vm.warp(block.timestamp + 30 days);
+    distributor.checkpoint();
+
+    uint256 claimable = distributor.getClaimableRewards(alice);
+    assertGt(claimable, 0, 'Beneficiary must accrue yield from sponsored stake');
+    assertEq(
+      distributor.getClaimableRewards(admin),
+      0,
+      'Sponsor must NOT accrue yield for beneficiary stake'
+    );
+  }
+
+  // 34. stakeFor: Insufficient allowance from sponsor reverts
+  function test_34_StakeFor_InsufficientAllowanceReverts() public {
+    token.mintForTest(admin, 10_000 * 1e18);
+    uint256 stakeGross = 100 * 1e18;
+
+    vm.startPrank(admin);
+    token.approve(address(vault), 50 * 1e18); // Only 50 approved
+    vm.expectRevert();
+    vault.stakeFor(alice, stakeGross, genesisRoot);
+    vm.stopPrank();
+  }
+
+  // 35. Normal stake() behavior remains completely unchanged
+  function test_35_NormalStake_RemainsUnchanged() public {
+    uint256 stakeGross = 200 * 1e18;
+
+    vm.startPrank(alice);
+    token.approve(address(vault), stakeGross);
+    vault.stake(stakeGross, genesisRoot);
+    vm.stopPrank();
+
+    assertEq(
+      vault.getPermanentStake(alice),
+      190 * 1e18,
+      'Normal 200 UVBE stake produces 190 UVBE permanent stake'
+    );
+    assertEq(registry.getReferrer(alice), genesisRoot, 'Alice referrer attached via normal stake');
   }
 }

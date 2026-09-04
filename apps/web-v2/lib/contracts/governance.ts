@@ -54,6 +54,8 @@ export const ARBITRATOR_ROLE_HASH =
   '0x16ceee8289685dd2a02b9c8ae81d2df373176ce53519e6284e2a2950d6546ffa' as const;
 export const ORACLE_OPERATOR_ROLE_HASH =
   '0xf9b712ed3cd0e90cdc9d1abac8fb677bf018af115fb294c768a96b48bd6922c5' as const;
+export const SPONSOR_DISPATCHER_ROLE_HASH =
+  '0xb86c753b05f69c572ae4b9cb2cf7c18fa300cf9d0f488ddf0b9ca0cece3f46f3' as const;
 
 // OpenZeppelin TimelockController Roles
 export const PROPOSER_ROLE_HASH =

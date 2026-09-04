@@ -91,6 +91,15 @@ interface IUVBEStakingMLM {
     uint256 treasuryFee,
     address indexed referrer
   );
+  event SponsoredStakeCreated(
+    address indexed sponsor,
+    address indexed beneficiary,
+    uint256 indexed stakeId,
+    uint256 grossAmount,
+    uint256 protocolCapital,
+    uint256 treasuryFee,
+    address referrer
+  );
   event PermanentStakeIncreased(
     address indexed user,
     uint256 indexed stakeId,
@@ -140,6 +149,7 @@ interface IUVBEStakingVault {
   function registry() external view returns (address);
   function distributor() external view returns (address);
   function stake(uint256 amount, address referrer) external;
+  function stakeFor(address beneficiary, uint256 amount, address referrer) external;
   function stakeWithPermit(
     uint256 amount,
     address referrer,
