@@ -18,7 +18,7 @@ import {
 describe('Staking Contracts & Frontend Integration', () => {
   it('has valid deployed Base Mainnet staking addresses', () => {
     expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault).toBe(
-      '0x91744fa47837474c7e9d9d532c7fd8a2fe04c5ee',
+      '0x3ea9082f724efc74a68615f1f33a2b81309e788a',
     );
     expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry).toBe(
       '0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9',

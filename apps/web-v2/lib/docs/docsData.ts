@@ -350,7 +350,7 @@ All UnifyVault contracts are publicly open-source, deployed on **Base**, and ver
 | **OracleManager** | \`0xdbab63fe1d8accff6620214a5c616d4151a8fec7\` | [View on BaseScan](https://basescan.org/address/0xdbab63fe1d8accff6620214a5c616d4151a8fec7#code) |
 | **ChainlinkOracleProvider** | \`0x39af66781d16ec8a72d2b1a4a1b7697a577626a2\` | [View on BaseScan](https://basescan.org/address/0x39af66781d16ec8a72d2b1a4a1b7697a577626a2#code) |
 | **CostBasisManagerV2** | \`0x3fcf09b4e1545926c1031d22a302a39e552b3469\` | [View on BaseScan](https://basescan.org/address/0x3fcf09b4e1545926c1031d22a302a39e552b3469#code) |
-| **UVBEStakingVault** | \`0x91744fa47837474c7e9d9d532c7fd8a2fe04c5ee\` | [View on BaseScan](https://basescan.org/address/0x91744fa47837474c7e9d9d532c7fd8a2fe04c5ee#code) |
+| **UVBEStakingVault** | \`0x3ea9082f724efc74a68615f1f33a2b81309e788a\` | [View on BaseScan](https://basescan.org/address/0x3ea9082f724efc74a68615f1f33a2b81309e788a#code) |
 | **UVBEReferralRegistry** | \`0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9\` | [View on BaseScan](https://basescan.org/address/0x6a94ee7b0a89ad1b9488b0d29bf99294f5e236d9#code) |
 | **UVBERewardDistributor** | \`0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3\` | [View on BaseScan](https://basescan.org/address/0xd3c7073f5a2d98e1f80590b84dd628fcfd6fdbc3#code) |
 | **P2PEscrowV2** | \`0x400916339033b88cda38b1d8a5fb0f82e4889f38\` | [View on BaseScan](https://basescan.org/address/0x400916339033b88cda38b1d8a5fb0f82e4889f38#code) |
