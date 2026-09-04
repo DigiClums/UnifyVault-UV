@@ -671,9 +671,11 @@ bot.action('ecosystem', async (ctx) => {
     `🌐 *UnifyVault Ecosystem (Base Mainnet)*\n\n` +
       `• Token: *UVBE*\n` +
       `• Network: *Base (Chain ID 8453)*\n` +
-      `• Protocol Directory: \`0xe74b400f4aea3a0b593be5acbc54f56631c0d60e\`\n` +
-      `• Staking Vault: \`0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1\`\n` +
-      `• UVBE Token: \`0xd2715141a0f5998b707baa963990bfc2e94cf145\`\n\n` +
+      `• Protocol Directory: \`${CONTRACTS.ProtocolDirectory}\`\n` +
+      `• Staking Vault: \`${CONTRACTS.UVBEStakingVault}\`\n` +
+      `• Referral Registry: \`${CONTRACTS.UVBEReferralRegistry}\`\n` +
+      `• Reward Distributor: \`${CONTRACTS.UVBERewardDistributor}\`\n` +
+      `• UVBE Token: \`${CONTRACTS.UVBEToken}\`\n\n` +
       `[Explore on BaseScan](https://basescan.org/token/${CONTRACTS.UVBEToken})`,
     {
       parse_mode: 'Markdown',

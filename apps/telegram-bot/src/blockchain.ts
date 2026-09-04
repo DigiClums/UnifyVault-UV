@@ -12,12 +12,13 @@ export const publicClient = createPublicClient({
 
 // Canonical Base Mainnet Deployed Addresses
 export const CONTRACTS = {
-  UVBEToken: '0xd2715141a0f5998b707baa963990bfc2e94cf145' as `0x${string}`,
-  UVBEStakingVault: '0x3ea9082f724efc74a68615f1f33a2b81309e788a' as `0x${string}`,
-  UVBEReferralRegistry: '0xa8b37df413dde998f81594c4d684148c669f554d' as `0x${string}`,
-  UVBERewardDistributor: '0x822953345b5e7a66f7de878112e910d8b1c46577' as `0x${string}`,
-  UnifyVaultController: '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366' as `0x${string}`,
-  P2PEscrow: '0xa938aacea64be8f41c90960aff232da4df7fc329' as `0x${string}`,
+  UVBEToken: '0x051979deb1eb4823672e6274a55c44d7818ff523' as `0x${string}`,
+  UVBEStakingVault: '0x6fb5dede967270aeb1a893eaaccd123c7d0cfe86' as `0x${string}`,
+  UVBEReferralRegistry: '0x3b3eabedbcd4de77bb89f00d1e94fa482ecaac6a' as `0x${string}`,
+  UVBERewardDistributor: '0x8f6169ed7091ed14bb4cdfdda9e7cedbf366c7dd' as `0x${string}`,
+  UnifyVaultController: '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c' as `0x${string}`,
+  P2PEscrow: '0x400916339033b88cda38b1d8a5fb0f82e4889f38' as `0x${string}`,
+  ProtocolDirectory: '0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5' as `0x${string}`,
 };
 
 const ERC20_ABI = parseAbi([
