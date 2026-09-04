@@ -260,26 +260,12 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
       if (currentAllowance < amountRaw) {
         setStepState('awaiting_approval_wallet');
 
-        let approveGas: bigint | undefined;
-        if (publicClient) {
-          try {
-            const est = await publicClient.estimateContractGas({
-              address: selectedTokenAddress,
-              abi: ERC20_ABI,
-              functionName: 'approve',
-              args: [targetController, maxUint256],
-              account: userAddress,
-            });
-            approveGas = (est * 120n) / 100n;
-          } catch {}
-        }
-
         const approveHash = await writeContractAsync({
           address: selectedTokenAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
           args: [targetController, maxUint256],
-          ...(approveGas ? { gas: approveGas } : {}),
+          chainId,
         });
 
         setApprovalTxHash(approveHash);
@@ -324,26 +310,12 @@ export function useDeposit(selectedTokenAddressInput?: `0x${string}`, decimals: 
       // 5. Step 2: Execute Deposit & Mint Shares directly to targetRecipient
       setStepState('awaiting_deposit_wallet');
 
-      let depositGas: bigint | undefined;
-      if (publicClient) {
-        try {
-          const est = await publicClient.estimateContractGas({
-            address: targetController,
-            abi: CONTROLLER_ABI,
-            functionName: 'deposit',
-            args: [selectedTokenAddress, amountRaw, minSharesOut, targetRecipient],
-            account: userAddress,
-          });
-          depositGas = (est * 120n) / 100n;
-        } catch {}
-      }
-
       const depHash = await writeContractAsync({
         address: targetController,
         abi: CONTROLLER_ABI,
         functionName: 'deposit',
         args: [selectedTokenAddress, amountRaw, minSharesOut, targetRecipient],
-        ...(depositGas ? { gas: depositGas } : {}),
+        chainId,
       });
 
       setDepositTxHash(depHash);

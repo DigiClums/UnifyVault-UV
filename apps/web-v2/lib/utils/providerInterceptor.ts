@@ -44,9 +44,7 @@ const TX_METHODS = new Set([
 ]);
 
 // ── Security Access Firewall: Blacklisted Addresses ──
-export const ISOLATED_BLACKLISTED_ADDRESSES = new Set([
-  '0x441dbf8076d0b143ec17199bae94daa884161454', // Initial hot deployer (Permanently Isolated)
-]);
+export const ISOLATED_BLACKLISTED_ADDRESSES = new Set<string>([]);
 
 // ── Security Access Firewall: Authoritative Whitelist ──
 export const AUTHORITATIVE_WHITELISTED_ADMINS = new Set([
