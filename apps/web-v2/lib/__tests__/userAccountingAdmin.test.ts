@@ -360,13 +360,13 @@ describe('Phase 6: User Accounting & Performance Analytics Admin Test Suite', ()
   describe('11. Deployed Addresses on Base Mainnet', () => {
     it('resolves canonical CostBasisManager and PerformanceManager addresses', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.CostBasisManager.toLowerCase()).toBe(
-        '0x27b5c6dea90678b78856b0b10dba37a789fde97e',
+        '0x3fcf09b4e1545926c1031d22a302a39e552b3469',
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.PerformanceManager.toLowerCase()).toBe(
-        '0x19ec1b685c2ced1400b4f249da6be89662e59473',
+        '0x3e13aae6c9befaaec11b2247e2af678ce871f338',
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase()).toBe(
-        '0xd2715141a0f5998b707baa963990bfc2e94cf145',
+        '0x051979deb1eb4823672e6274a55c44d7818ff523',
       );
     });
 

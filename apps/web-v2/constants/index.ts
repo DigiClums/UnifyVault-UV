@@ -108,7 +108,7 @@ export const DEPLOYED_CONTRACTS_MAINNET = {
   UVBEReferralRegistry: '0xb157fa8d58f8a610e8ae91a68f38b3304edff309' as `0x${string}`,
   RewardDistributor: '0x878eb0e328725cee505c4001de9f3815f6ba16d4' as `0x${string}`,
   UVBERewardDistributor: '0x878eb0e328725cee505c4001de9f3815f6ba16d4' as `0x${string}`,
-  P2PReputation: '0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8' as `0x${string}`,
+  P2PReputation: '0x7a4093316955baa5bcb8189c4522d9db31f42d41' as `0x${string}`,
   Paymaster: '0xdf96b619934d17ae85142dcef1655a8d3b19040a' as `0x${string}`,
   UnifyVaultPaymaster: '0xdf96b619934d17ae85142dcef1655a8d3b19040a' as `0x${string}`,
   GasTreasury: '0x136a146af0f3c5f1d62caaea31a3bddaaf4e6424' as `0x${string}`,

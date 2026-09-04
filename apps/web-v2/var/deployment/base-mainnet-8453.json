@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 55,
+  "manifestVersion": 62,
   "chainId": 8453,
   "network": "Base Mainnet",
   "deploymentVersion": "V2",
@@ -7,7 +7,7 @@
   "deployer": "0x441dbf8076d0b143EC17199baE94Daa884161454",
   "status": "completed",
   "isLocked": true,
-  "currentStepIndex": 55,
+  "currentStepIndex": 10,
   "totalSteps": 55,
   "contracts": {
     "ProtocolDirectory": "0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5",
@@ -431,5 +431,5 @@
     }
   },
   "verificationResults": [],
-  "lastUpdated": 1788470549508
+  "lastUpdated": 1788494311458
 }

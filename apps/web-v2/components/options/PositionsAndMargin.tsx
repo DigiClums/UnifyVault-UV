@@ -96,10 +96,10 @@ export function PositionsAndMargin() {
   const portfolioGreeks = useMemo(() => {
     return openPositions.reduce(
       (acc, p) => {
-        acc.delta += p.delta * p.quantityLots;
-        acc.gamma += p.gamma * p.quantityLots;
-        acc.theta += p.theta * p.quantityLots;
-        acc.vega += p.vega * p.quantityLots;
+        acc.delta += (p.delta ?? 0) * p.quantityLots;
+        acc.gamma += (p.gamma ?? 0) * p.quantityLots;
+        acc.theta += (p.theta ?? 0) * p.quantityLots;
+        acc.vega += (p.vega ?? 0) * p.quantityLots;
         return acc;
       },
       { delta: 0, gamma: 0, theta: 0, vega: 0 },
@@ -433,11 +433,16 @@ export function PositionsAndMargin() {
                           <td className="py-2.5 px-3 font-mono text-[11px] text-foreground">
                             {pos.status === 'OPEN' ? (
                               <div>
-                                {pos.currentMarkPremiumUvbe > 0
-                                  ? `${pos.currentMarkPremiumUvbe.toFixed(4)} UVBE`
+                                {(pos.currentMarkPremiumUvbe ?? pos.currentPremiumUvbe) > 0
+                                  ? `${(pos.currentMarkPremiumUvbe ?? pos.currentPremiumUvbe).toFixed(4)} UVBE`
                                   : '—'}
                                 <div className="text-[9px] text-muted-foreground">
-                                  ${pos.currentMarkPremiumUsd.toFixed(2)} USD
+                                  $
+                                  {(
+                                    pos.currentMarkPremiumUsd ??
+                                    pos.currentPremiumUvbe * uvbePriceUsd
+                                  ).toFixed(2)}{' '}
+                                  USD
                                 </div>
                               </div>
                             ) : (
@@ -457,8 +462,15 @@ export function PositionsAndMargin() {
                                 {pos.unrealizedPnlUvbe >= 0 ? '+' : ''}
                                 {pos.unrealizedPnlUvbe.toFixed(4)} UVBE
                                 <div className="text-[9px] font-medium text-muted-foreground">
-                                  {pos.unrealizedPnlUsd >= 0 ? '+' : ''}$
-                                  {pos.unrealizedPnlUsd.toFixed(2)} USD
+                                  {(pos.unrealizedPnlUsd ?? pos.unrealizedPnlUvbe * uvbePriceUsd) >=
+                                  0
+                                    ? '+'
+                                    : ''}
+                                  $
+                                  {(
+                                    pos.unrealizedPnlUsd ?? pos.unrealizedPnlUvbe * uvbePriceUsd
+                                  ).toFixed(2)}{' '}
+                                  USD
                                 </div>
                               </div>
                             ) : (
@@ -469,18 +481,18 @@ export function PositionsAndMargin() {
                           <td className="py-2.5 px-3 font-mono text-[11px]">
                             <span
                               className={
-                                pos.delta >= 0
+                                (pos.delta ?? 0) >= 0
                                   ? 'text-emerald-600 dark:text-emerald-400'
                                   : 'text-rose-600 dark:text-rose-400'
                               }
                             >
-                              {pos.delta >= 0 ? '+' : ''}
-                              {pos.delta.toFixed(3)}
+                              {(pos.delta ?? 0) >= 0 ? '+' : ''}
+                              {(pos.delta ?? 0).toFixed(3)}
                             </span>
                           </td>
 
                           <td className="py-2.5 px-3 text-[11px] text-muted-foreground">
-                            {pos.ivPercent.toFixed(1)}%
+                            {(pos.ivPercent ?? 45.0).toFixed(1)}%
                           </td>
 
                           <td className="py-2.5 px-3">
@@ -580,8 +592,8 @@ export function PositionsAndMargin() {
                     <div>
                       Mark:{' '}
                       <span className="font-bold text-foreground">
-                        {pos.currentMarkPremiumUvbe > 0
-                          ? `${pos.currentMarkPremiumUvbe.toFixed(4)} UVBE`
+                        {(pos.currentMarkPremiumUvbe ?? pos.currentPremiumUvbe) > 0
+                          ? `${(pos.currentMarkPremiumUvbe ?? pos.currentPremiumUvbe).toFixed(4)} UVBE`
                           : '—'}
                       </span>
                     </div>
@@ -664,29 +676,31 @@ export function PositionsAndMargin() {
               <div className="bg-surface p-2.5 rounded-lg border border-border-subtle">
                 <div className="text-[10px] text-muted-foreground">Expiry & DTE</div>
                 <div className="font-bold text-foreground mt-0.5">
-                  {selectedDrawerPos.timeToExpiryStr}
+                  {selectedDrawerPos.timeToExpiryStr ?? selectedDrawerPos.expiryLabel}
                 </div>
               </div>
               <div className="bg-surface p-2.5 rounded-lg border border-border-subtle">
                 <div className="text-[10px] text-muted-foreground">Entry Premium</div>
                 <div className="font-bold text-foreground mt-0.5">
                   {selectedDrawerPos.entryPremiumUvbe > 0
-                    ? `${selectedDrawerPos.entryPremiumUvbe.toFixed(4)} UVBE ($${selectedDrawerPos.entryPremiumUsd.toFixed(2)})`
+                    ? `${selectedDrawerPos.entryPremiumUvbe.toFixed(4)} UVBE ($${(selectedDrawerPos.entryPremiumUsd ?? selectedDrawerPos.entryPremiumUvbe * uvbePriceUsd).toFixed(2)})`
                     : '—'}
                 </div>
               </div>
               <div className="bg-surface p-2.5 rounded-lg border border-border-subtle">
                 <div className="text-[10px] text-muted-foreground">Current Indicative Mark</div>
                 <div className="font-bold text-foreground mt-0.5">
-                  {selectedDrawerPos.currentMarkPremiumUvbe > 0
-                    ? `${selectedDrawerPos.currentMarkPremiumUvbe.toFixed(4)} UVBE ($${selectedDrawerPos.currentMarkPremiumUsd.toFixed(2)})`
+                  {(selectedDrawerPos.currentMarkPremiumUvbe ??
+                    selectedDrawerPos.currentPremiumUvbe) > 0
+                    ? `${(selectedDrawerPos.currentMarkPremiumUvbe ?? selectedDrawerPos.currentPremiumUvbe).toFixed(4)} UVBE ($${(selectedDrawerPos.currentMarkPremiumUsd ?? selectedDrawerPos.currentPremiumUvbe * uvbePriceUsd).toFixed(2)})`
                     : '—'}
                 </div>
               </div>
               <div className="bg-surface p-2.5 rounded-lg border border-border-subtle">
                 <div className="text-[10px] text-muted-foreground">Break-Even @ Expiry</div>
                 <div className="font-bold text-foreground mt-0.5">
-                  ${selectedDrawerPos.breakEvenPriceUsd.toFixed(2)} USD
+                  ${(selectedDrawerPos.breakEvenPriceUsd ?? selectedDrawerPos.strike).toFixed(2)}{' '}
+                  USD
                 </div>
               </div>
               <div className="bg-surface p-2.5 rounded-lg border border-border-subtle">
@@ -704,32 +718,32 @@ export function PositionsAndMargin() {
               <div className="text-[11px] font-black uppercase text-foreground mb-2 flex items-center justify-between">
                 <span>Option Greeks (Live Model)</span>
                 <span className="text-[9px] text-muted-foreground font-normal">
-                  IV: {selectedDrawerPos.ivPercent.toFixed(1)}%
+                  IV: {(selectedDrawerPos.ivPercent ?? 45.0).toFixed(1)}%
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
                 <div className="bg-surface p-2 rounded-md border border-border-subtle">
                   <div className="text-muted-foreground">Delta (Δ)</div>
                   <div className="font-black text-foreground mt-0.5">
-                    {selectedDrawerPos.delta.toFixed(4)}
+                    {(selectedDrawerPos.delta ?? 0).toFixed(4)}
                   </div>
                 </div>
                 <div className="bg-surface p-2 rounded-md border border-border-subtle">
                   <div className="text-muted-foreground">Gamma (Γ)</div>
                   <div className="font-black text-foreground mt-0.5">
-                    +{selectedDrawerPos.gamma.toFixed(4)}
+                    +{(selectedDrawerPos.gamma ?? 0).toFixed(4)}
                   </div>
                 </div>
                 <div className="bg-surface p-2 rounded-md border border-border-subtle">
                   <div className="text-muted-foreground">Theta (Θ)</div>
                   <div className="font-black text-amber-600 dark:text-amber-400 mt-0.5">
-                    {selectedDrawerPos.theta.toFixed(4)}
+                    {(selectedDrawerPos.theta ?? 0).toFixed(4)}
                   </div>
                 </div>
                 <div className="bg-surface p-2 rounded-md border border-border-subtle">
                   <div className="text-muted-foreground">Vega (ν)</div>
                   <div className="font-black text-foreground mt-0.5">
-                    +{selectedDrawerPos.vega.toFixed(4)}
+                    +{(selectedDrawerPos.vega ?? 0).toFixed(4)}
                   </div>
                 </div>
               </div>
@@ -751,7 +765,8 @@ export function PositionsAndMargin() {
               <div>
                 Break-even Index Price:{' '}
                 <span className="font-bold text-foreground">
-                  ${selectedDrawerPos.breakEvenPriceUsd.toFixed(2)} USD
+                  ${(selectedDrawerPos.breakEvenPriceUsd ?? selectedDrawerPos.strike).toFixed(2)}{' '}
+                  USD
                 </span>
               </div>
             </div>
@@ -765,7 +780,7 @@ export function PositionsAndMargin() {
               <div>
                 Series ID:{' '}
                 <span className="font-mono text-foreground break-all">
-                  {selectedDrawerPos.seriesId}
+                  {selectedDrawerPos.seriesId ?? selectedDrawerPos.id}
                 </span>
               </div>
             </div>

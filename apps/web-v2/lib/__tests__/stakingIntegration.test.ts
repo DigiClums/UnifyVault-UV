@@ -26,7 +26,7 @@ describe('Staking Contracts & Frontend Integration', () => {
     expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor).toBe(
       '0x878eb0e328725cee505c4001de9f3815f6ba16d4',
     );
-    expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
+    expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken).toBe('0x051979deb1eb4823672e6274a55c44d7818ff523');
     expect(DEPLOYED_CONTRACTS_MAINNET.GenesisReferrer).toBe(
       '0x441dbf8076d0b143EC17199baE94Daa884161454',
     );

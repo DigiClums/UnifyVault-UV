@@ -80,13 +80,27 @@ export interface UserOptionPosition {
 
   // UVBE metrics
   entryPremiumUvbe: number;
+  entryPremiumUsd?: number;
   currentPremiumUvbe: number;
+  currentMarkPremiumUvbe?: number;
+  currentMarkPremiumUsd?: number;
   collateralLockedUvbe: number; // For writers
 
   // Valuation & PnL
   unrealizedPnlUvbe: number;
+  unrealizedPnlUsd?: number;
   unrealizedPnlPercent: number;
   realizedPnlUvbe: number;
+
+  // Greeks & Analytics
+  delta?: number;
+  gamma?: number;
+  theta?: number;
+  vega?: number;
+  ivPercent?: number;
+  breakEvenPriceUsd?: number;
+  timeToExpiryStr?: string;
+  seriesId?: string;
 
   // Status & Margin
   status: 'OPEN' | 'EXPIRED' | 'SETTLED' | 'LIQUIDATED';

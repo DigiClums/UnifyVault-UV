@@ -15,17 +15,16 @@ import '../src/options/UVOptionSettlementVault.sol';
  * @notice Automated deployment script for UVBE Options Protocol on Base Sepolia.
  */
 contract DeployOptionsProtocolBaseSepolia is Script {
-  address public constant BASE_SEPOLIA_UVBE = 0xa3dB7C3DEe9a50d966a06E19B5dF4FCdEe615BDe;
-  address public constant BASE_SEPOLIA_ORACLE_MANAGER = 0xABfE3034DB275E32dE396c7bDd1649a62Ac9e5a6;
+  address public constant BASE_SEPOLIA_UVBE = 0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE;
+  address public constant BASE_SEPOLIA_ORACLE_MANAGER = 0xabFE3034Db275e32dE396c7Bdd1649a62Ac9e5A6;
   bytes32 public constant UVBE_ASSET_ID = keccak256('UVBE');
   bytes32 public constant BTC_ASSET_ID = keccak256('BTC');
   bytes32 public constant ETH_ASSET_ID = keccak256('ETH');
 
   function run() external {
-    uint256 deployerPrivateKey = vm.envOr('PRIVATE_KEY', uint256(0));
-    address deployer = deployerPrivateKey != 0 ? vm.addr(deployerPrivateKey) : msg.sender;
+    address deployer = msg.sender;
 
-    vm.startBroadcast(deployerPrivateKey);
+    vm.startBroadcast();
 
     // 1. Deploy Index Manager
     UVNiftyIndexManager indexManager = new UVNiftyIndexManager(

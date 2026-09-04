@@ -45,7 +45,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
         DEPLOYED_CONTRACTS_MAINNET.ProtocolDirectory.toLowerCase(),
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.ProtocolDirectory.toLowerCase()).toBe(
-        '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e',
+        '0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5',
       );
     });
 
@@ -60,7 +60,7 @@ describe('Phase 4: Governance, RBAC & Timelock Console Test Suite', () => {
 
     it('verifies UnifyVaultController canonical Mainnet address matches deployment', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.UnifyVaultController.toLowerCase()).toBe(
-        '0xe6cd99f3dcf39bd76d91d211dce7f4bdf801c366',
+        '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c',
       );
     });
   });

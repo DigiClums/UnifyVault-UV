@@ -73,7 +73,7 @@ contract UVOptionOracleTWAPSecurityTest is Test {
     indexManager.registerComponent(ethId, address(oracle), 4000, 3000e18, 18);
   }
 
-  function test_NormalizedPriceCalculation() public view {
+  function test_NormalizedPriceCalculation() public {
     (uint256 price, uint256 updatedAt) = indexManager.getIndexPrice();
     assertEq(price, 1000e18, 'Index spot price must scale correctly with 18 decimals');
     assertEq(updatedAt, block.timestamp);

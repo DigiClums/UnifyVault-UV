@@ -13,14 +13,14 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
   describe('1. Canonical Contract Addresses and Constants', () => {
     it('verifies canonical UVBE token address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.UVBEToken.toLowerCase()).toBe(
-        '0xd2715141a0f5998b707baa963990bfc2e94cf145',
+        '0x051979deb1eb4823672e6274a55c44d7818ff523',
       );
-      expect(mainnetTokens.UVBE?.toLowerCase()).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
+      expect(mainnetTokens.UVBE?.toLowerCase()).toBe('0x051979deb1eb4823672e6274a55c44d7818ff523');
     });
 
     it('verifies canonical Treasury contract address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.Treasury.toLowerCase()).toBe(
-        '0x57561f781b2f558a7445d2e93a365c03ba2c9b53',
+        '0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9',
       );
     });
 
@@ -185,7 +185,7 @@ describe('Treasury UVBE & USDC Withdrawal Integration Test Suite', () => {
         DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase(),
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.Treasury.toLowerCase()).toBe(
-        '0x57561f781b2f558a7445d2e93a365c03ba2c9b53',
+        '0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9',
       );
       expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase()).toBe(
         '0x5cd09aad54f8699e52cb69d0d62f1fb461caa3e1',

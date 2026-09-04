@@ -2,7 +2,7 @@ import { isAddress, getAddress } from 'viem';
 import { base } from 'viem/chains';
 import { getDefaultChainId, DEPLOYED_CONTRACTS_MAINNET } from '../../constants';
 
-export const CANONICAL_UVBE_ADDRESS = '0xd2715141a0f5998b707baa963990bfc2e94cf145' as const;
+export const CANONICAL_UVBE_ADDRESS = '0x051979deb1eb4823672e6274a55c44d7818ff523' as const;
 export const NATIVE_ETH_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export interface P2PAssetInfo {

@@ -10,7 +10,7 @@ import {
 describe('Base Mainnet Preflight & Configuration Hardening', () => {
   it('1. getProtocolDirectoryAddress returns canonical directory address for mainnet', () => {
     const mainnetDir = getProtocolDirectoryAddress(8453);
-    expect(mainnetDir.toLowerCase()).toBe('0xe74b400f4aea3a0b593be5acbc54f56631c0d60e');
+    expect(mainnetDir.toLowerCase()).toBe('0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5');
   });
 
   it('2. Base Mainnet tokens match canonical verified assets in getChainTokens', () => {
@@ -19,7 +19,7 @@ describe('Base Mainnet Preflight & Configuration Hardening', () => {
     expect(mainnetTokens.USDC.toLowerCase()).toBe('0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
     expect(mainnetTokens.cbBTC.toLowerCase()).toBe('0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf');
     expect(mainnetTokens.WETH.toLowerCase()).toBe('0x4200000000000000000000000000000000000006');
-    expect(mainnetTokens.UVBE?.toLowerCase()).toBe('0xd2715141a0f5998b707baa963990bfc2e94cf145');
+    expect(mainnetTokens.UVBE?.toLowerCase()).toBe('0x051979deb1eb4823672e6274a55c44d7818ff523');
   });
 
   it('3. Preflight fails closed when manifest chainId is not 8453', async () => {

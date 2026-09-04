@@ -30,13 +30,13 @@ describe('P2P Arbitration Console Test Suite', () => {
   describe('1. Exact Deployed Escrow Address Verification', () => {
     it('verifies exact Base Mainnet P2PEscrow deployment address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.P2PEscrow.toLowerCase()).toBe(
-        '0xa938aacea64be8f41c90960aff232da4df7fc329',
+        '0x400916339033b88cda38b1d8a5fb0f82e4889f38',
       );
     });
 
     it('verifies P2PReputation deployment address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.P2PReputation.toLowerCase()).toBe(
-        '0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8',
+        '0x7a4093316955baa5bcb8189c4522d9db31f42d41',
       );
     });
   });

@@ -270,7 +270,7 @@ export default function ContractsPage() {
         description:
           'Decentralized Bayesian-smoothed trust and reputation engine for P2P buyers and sellers',
         address: isMainnet
-          ? '0xdab9e0b8caac7ba5dba9fd49ae782d049b5964c8'
+          ? '0x7a4093316955baa5bcb8189c4522d9db31f42d41'
           : DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation,
         category: 'P2P & Escrow',
         protocolKey: 'P2P Trust & Reputation Engine',

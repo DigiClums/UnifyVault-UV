@@ -6,7 +6,7 @@ describe('Phase 3.1 — Marketplace Decimals & Settlement Precision Audit Tests'
   const addressUSDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // 6 decimals
   const addresscbBTC = '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'; // 8 decimals
   const addressWETH = '0x4200000000000000000000000000000000000006'; // 18 decimals
-  const addressUVBE = '0xd2715141a0f5998b707baa963990bfc2e94cf145'; // 18 decimals
+  const addressUVBE = '0x051979deb1eb4823672e6274a55c44d7818ff523'; // 18 decimals
 
   // 1, 2, 4 & 5. Verify Asset Decimals Resolution
   it('1, 2, 4 & 5. Correctly resolves asset decimals for USDC (6), cbBTC (8), WETH (18), and UVBE (18)', () => {
