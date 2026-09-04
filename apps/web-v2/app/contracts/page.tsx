@@ -548,7 +548,7 @@ export default function ContractsPage() {
             {shortAddr(
               directory.directory ||
                 (isMainnet
-                  ? '0xe74b400f4aea3a0b593be5acbc54f56631c0d60e'
+                  ? '0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5'
                   : DEPLOYED_CONTRACTS_SEPOLIA.ProtocolDirectory),
             )}
           </span>
@@ -564,7 +564,7 @@ export default function ContractsPage() {
             {shortAddr(
               directory.p2pEscrow ||
                 (isMainnet
-                  ? '0xa938aacea64be8f41c90960aff232da4df7fc329'
+                  ? '0x400916339033b88cda38b1d8a5fb0f82e4889f38'
                   : DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow),
             )}
           </span>
@@ -580,7 +580,7 @@ export default function ContractsPage() {
             {shortAddr(
               directory.swapAdapter ||
                 (isMainnet
-                  ? '0xaae7104a120e7c6e518a936fcbc102bcd0454b67'
+                  ? '0x9560361d964ebfeea402e75ad3b74fad4d8057be'
                   : DEPLOYED_CONTRACTS_SEPOLIA.SwapAdapter),
             )}
           </span>
