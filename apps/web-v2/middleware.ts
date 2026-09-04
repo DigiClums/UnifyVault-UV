@@ -7,7 +7,6 @@ const MARKETING_HOST = 'unifyvault.xyz';
 const DOCS_HOST = 'docs.unifyvault.xyz';
 
 export function middleware(request: NextRequest) {
-
   const host = request.headers.get('host') || '';
   const { pathname, search } = request.nextUrl;
 
@@ -32,14 +31,6 @@ export function middleware(request: NextRequest) {
 
   // ── app.unifyvault.xyz → Public DeFi application ───────────────────
   if (hostname === APP_HOST) {
-    // Redirect /admin/* to admin host
-    if (pathname.startsWith('/admin')) {
-      const targetPath = pathname === '/admin' ? '/' : pathname.replace(/^\/admin/, '');
-      const redirectUrl = new URL(targetPath, `https://${ADMIN_HOST}`);
-      redirectUrl.search = search;
-      return NextResponse.redirect(redirectUrl, 307);
-    }
-
     // Rewrite root / → /app-home so the compact dashboard renders
     // as the application home (not the marketing hero).
     if (pathname === '/') {
