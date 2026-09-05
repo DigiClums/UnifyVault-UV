@@ -14,6 +14,7 @@ import { MODULE_IDS, getDefaultChainId, getExplorerBaseUrl } from '../../../cons
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
+import { MaintenanceControlCard } from '../../../components/admin/MaintenanceControlCard';
 import {
   Settings,
   ShieldCheck,
@@ -212,6 +213,9 @@ export default function AdminSettingsPage() {
           glowColor="cyan"
         />
       </div>
+
+      {/* GUI Maintenance Control Center */}
+      <MaintenanceControlCard />
 
       {/* Settings Forms Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
