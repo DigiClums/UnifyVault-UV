@@ -38,19 +38,30 @@ public class MainActivity extends BridgeActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-            androidx.core.view.WindowInsetsControllerCompat controller = 
-                androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-            if (controller != null) {
-                controller.setAppearanceLightStatusBars(false); // false = White/light icons for dark background
+        applyStatusBarIcons(false); // default dark theme (white icons)
+    }
+
+    public void applyStatusBarIcons(boolean isLightTheme) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+                androidx.core.view.WindowInsetsControllerCompat controller = 
+                    androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                if (controller != null) {
+                    // isLightTheme = true means light app background -> dark/black icons
+                    // isLightTheme = false means dark app background -> light/white icons
+                    controller.setAppearanceLightStatusBars(isLightTheme);
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                int flags = getWindow().getDecorView().getSystemUiVisibility();
+                if (isLightTheme) {
+                    flags |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                } else {
+                    flags &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                }
+                getWindow().getDecorView().setSystemUiVisibility(flags);
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int flags = getWindow().getDecorView().getSystemUiVisibility();
-            // Clear SYSTEM_UI_FLAG_LIGHT_STATUS_BAR so icons are white
-            flags &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            getWindow().getDecorView().setSystemUiVisibility(flags);
-        }
+        });
     }
 
     private void requestNotificationPermission() {
@@ -131,6 +142,12 @@ public class MainActivity extends BridgeActivity {
         public NativeAppUpdater(MainActivity activity, WebView webView) {
             this.activity = activity;
             this.webView = webView;
+        }
+
+        @JavascriptInterface
+        public void setStatusBarTheme(String theme) {
+            boolean isLight = "light".equalsIgnoreCase(theme);
+            activity.applyStatusBarIcons(isLight);
         }
 
         @JavascriptInterface
