@@ -12,6 +12,7 @@ import { LandingFooter } from '../landing/LandingFooter';
 
 import { DocsLayout } from '../docs/DocsLayout';
 import { UpdateCheckerModal } from '../common/UpdateCheckerModal';
+import { MaintenanceGuard } from '../common/MaintenanceGuard';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -72,7 +73,7 @@ export function AppShell({ children, shellMode: initialShellMode }: AppShellProp
 
   // shellMode === 'app'
   return (
-    <>
+    <MaintenanceGuard>
       <UpdateCheckerModal />
       <GlobalAlertBanner />
       <LivePriceTicker />
@@ -84,6 +85,6 @@ export function AppShell({ children, shellMode: initialShellMode }: AppShellProp
       <div className="hidden lg:block">
         <Footer />
       </div>
-    </>
+    </MaintenanceGuard>
   );
 }
