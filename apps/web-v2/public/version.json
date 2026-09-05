@@ -1,11 +1,12 @@
 {
-  "latestVersion": "2.5.3",
+  "latestVersion": "2.5.4",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.3/UnifyVault-v2.5.3.apk",
-  "sha256": "0d99e9a5468973726ec31df9241864d88d3cedfc8c44877e705ac9a5e75d960c",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.4/UnifyVault-v2.5.4.apk",
+  "sha256": "20cb386b458772711662dc0cb614c48e218a11935b8d6ecd89c3055700b419d0",
   "releaseNotes": [
-    "[✨ Feature] NOTIFICATIONS: add multi-channel P2P, TX alerts, deep-linking and direct update actions",
-    "Verified APK SHA-256: 0d99e9a5468973726ec31df9241864d88d3cedfc8c44877e705ac9a5e75d960c"
+    "[⚡ Performance] optimize webview hardware acceleration, bundle tree-shaking & r8 proguard rules",
+    "[✨ Feature] P2P: add telegram order lookup and trade alert tracking",
+    "Verified APK SHA-256: 20cb386b458772711662dc0cb614c48e218a11935b8d6ecd89c3055700b419d0"
   ]
 }
