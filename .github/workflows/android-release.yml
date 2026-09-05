@@ -95,7 +95,7 @@ jobs:
           echo "version_code=$V_CODE" >> $GITHUB_OUTPUT
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Web App Static Export
         env:

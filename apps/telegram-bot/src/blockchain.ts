@@ -241,29 +241,37 @@ export async function fetchProtocolMetrics(): Promise<ProtocolMetrics> {
     });
     totalOutstandingLiabilities = parseFloat(formatEther(liabilitiesWei)).toLocaleString();
 
-    const apyBps = await publicClient.readContract({
-      address: CONTRACTS.UVBERewardDistributor,
-      abi: REWARD_DISTRIBUTOR_ABI,
-      functionName: 'getCurrentAnnualBps',
-    });
-    currentAnnualApyPercent = (Number(apyBps) / 100).toFixed(2);
+    try {
+      const apyBps = await publicClient.readContract({
+        address: CONTRACTS.UVBERewardDistributor,
+        abi: REWARD_DISTRIBUTOR_ABI,
+        functionName: 'getCurrentAnnualBps',
+      });
+      currentAnnualApyPercent = (Number(apyBps) / 100).toFixed(2);
+    } catch (e) {
+      console.error('Error reading apyBps:', e);
+    }
 
-    const epochId = await publicClient.readContract({
-      address: CONTRACTS.UVBERewardDistributor,
-      abi: parseAbi(['function currentDaoEpochId() external view returns (uint256)']),
-      functionName: 'currentDaoEpochId',
-    });
-    currentEpochId = epochId.toString();
+    try {
+      const epochId = await publicClient.readContract({
+        address: CONTRACTS.UVBERewardDistributor,
+        abi: parseAbi(['function currentDaoEpochId() external view returns (uint256)']),
+        functionName: 'currentDaoEpochId',
+      });
+      currentEpochId = epochId.toString();
 
-    const epochInfo = await publicClient.readContract({
-      address: CONTRACTS.UVBERewardDistributor,
-      abi: parseAbi([
-        'function daoEpochs(uint256) external view returns (uint256 startTime, uint256 endTime, uint256 poolAmount, uint256 totalShares, bool isFinalized)',
-      ]),
-      functionName: 'daoEpochs',
-      args: [epochId],
-    });
-    epochPoolAmount = parseFloat(formatEther(epochInfo[2])).toLocaleString();
+      const epochInfo = await publicClient.readContract({
+        address: CONTRACTS.UVBERewardDistributor,
+        abi: parseAbi([
+          'function getDaoEpoch(uint256) external view returns ((uint256 epochId, uint256 poolAmount, uint256 totalShares, uint256 startTime, uint256 endTime, bool isFinalized))',
+        ]),
+        functionName: 'getDaoEpoch',
+        args: [epochId],
+      });
+      epochPoolAmount = parseFloat(formatEther(epochInfo.poolAmount)).toLocaleString();
+    } catch (e) {
+      console.error('Error reading DAO epoch info:', e);
+    }
   } catch (e) {
     console.error('Error reading distributor protocol metrics:', e);
   }

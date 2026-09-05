@@ -10,12 +10,7 @@ import {
   ShieldCheck,
   Send,
   ExternalLink,
-  Lock,
 } from 'lucide-react';
-import { useAdminAccess } from '../../hooks/useAdminAccess';
-
-export type ModuleKey =
-  'global' | 'staking' | 'p2p' | 'deposit' | 'redeem' | 'transfer' | 'options' | 'fantasy';
 
 export interface ModuleMaintenanceConfig {
   enabled: boolean;
@@ -29,7 +24,6 @@ export interface MaintenanceConfig {
   title?: string;
   message?: string;
   estimatedEndTime?: string;
-  allowAdminBypass?: boolean;
   telegramUrl?: string;
   modules?: {
     staking?: ModuleMaintenanceConfig;
@@ -42,27 +36,37 @@ export interface MaintenanceConfig {
   };
 }
 
-const VERSION_METADATA_URL =
+const GITHUB_BACKUP_URL =
   'https://raw.githubusercontent.com/DigiClums/UnifyVault-UV/main/apps/web-v2/public/version.json';
 
 export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [maintenance, setMaintenance] = useState<MaintenanceConfig | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const [isBypassed, setIsBypassed] = useState(false);
-  const { isAdmin } = useAdminAccess();
 
   const checkMaintenance = async () => {
     try {
       setIsChecking(true);
-      const res = await fetch(`${VERSION_METADATA_URL}?t=${Date.now()}`, {
+      // 1. Try local instant API first
+      let res = await fetch(`/api/maintenance?t=${Date.now()}`, {
         cache: 'no-store',
         headers: { Accept: 'application/json' },
       });
+
+      // 2. Fallback to GitHub raw if local endpoint not reachable
+      if (!res.ok) {
+        res = await fetch(`${GITHUB_BACKUP_URL}?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+      }
+
       if (res.ok) {
         const data = await res.json();
         if (data.maintenance) {
           setMaintenance(data.maintenance);
+        } else if (typeof data.enabled === 'boolean') {
+          setMaintenance(data);
         } else {
           setMaintenance({ enabled: false });
         }
@@ -76,7 +80,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkMaintenance();
-    const interval = setInterval(checkMaintenance, 60_000);
+    const interval = setInterval(checkMaintenance, 15_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -108,7 +112,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       moduleName: 'Global Protocol',
     };
   } else if (maintenance.modules && pathname) {
-    // 2. Check Module-specific maintenance (e.g. /staking, /p2p, /deposit, /redeem, /options)
+    // 2. Check Module-specific maintenance
     const cleanPath = pathname.toLowerCase();
 
     if (cleanPath.startsWith('/staking') && maintenance.modules.staking?.enabled) {
@@ -181,22 +185,9 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Admin bypass
-  if (maintenance.allowAdminBypass !== false && (isAdmin || isBypassed)) {
-    return (
-      <>
-        <div className="fixed top-2 right-2 z-[99999] bg-amber-500/90 text-black px-3 py-1.5 rounded-xl font-mono text-xs font-bold shadow-lg flex items-center gap-2 border border-amber-400 backdrop-blur-md">
-          <AlertTriangle className="w-4 h-4 text-black animate-pulse" />
-          <span>{activeMaintenance.moduleName?.toUpperCase()} MAINTENANCE (ADMIN BYPASS)</span>
-        </div>
-        {children}
-      </>
-    );
-  }
-
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center p-4 relative overflow-hidden font-mono text-white selection:bg-[#BFFF00] selection:text-black">
-      <div className="max-w-md w-full relative z-10 bg-[#0d1017]/90 border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-xl text-center space-y-6">
+    <div className="min-h-[75vh] flex flex-col items-center justify-center p-4 relative overflow-hidden font-mono text-white selection:bg-[#BFFF00] selection:text-black">
+      <div className="max-w-md w-full relative z-10 bg-[#0d1017]/95 border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-xl text-center space-y-6">
         {/* Top Icon Badge */}
         <div className="mx-auto w-20 h-20 rounded-2xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 flex items-center justify-center shadow-[0_0_30px_rgba(191,255,0,0.15)] relative">
           <Wrench className="w-10 h-10 text-[#BFFF00] animate-bounce" />
@@ -258,20 +249,6 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
             </a>
           </div>
         </div>
-
-        {/* Admin Bypass Link */}
-        {isAdmin && (
-          <div className="pt-2 border-t border-white/5">
-            <button
-              type="button"
-              onClick={() => setIsBypassed(true)}
-              className="text-[11px] text-neutral-500 hover:text-amber-400 transition-colors flex items-center justify-center gap-1 mx-auto"
-            >
-              <Lock className="w-3 h-3" />
-              <span>Continue as Protocol Administrator</span>
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
