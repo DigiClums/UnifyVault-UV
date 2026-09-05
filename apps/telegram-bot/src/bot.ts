@@ -895,24 +895,30 @@ function buildEventIdentity(
   return `${chainId}:${contractAddress.toLowerCase()}:${txHash.toLowerCase()}:${logIndex}`;
 }
 
-async function processPaymentSubmittedLog(log: any) {
+async function processPaymentSubmittedLog(log: any): Promise<boolean> {
   const chainId = 8453;
   const contractAddr = CONTRACTS.P2PEscrow;
   const txHash = log.transactionHash || '';
   const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
-  const blockNumber = log.blockNumber ? Number(log.blockNumber) : undefined;
   const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
 
-  if (isEventProcessed(eventKey)) return;
+  if (isEventProcessed(eventKey)) return true;
 
-  try {
-    const tradeId = (log as any).args.tradeId;
-    const buyerAddr = (log as any).args.buyer;
-    const trade = await fetchP2PTrade(tradeId);
-    if (!trade) return;
+  const tradeId = (log as any).args.tradeId;
+  const buyerAddr = (log as any).args.buyer;
+  const trade = await fetchP2PTrade(tradeId);
 
-    const sellerUser = getUserByWallet(trade.seller);
-    if (sellerUser && sellerUser.p2pAlertsEnabled !== false) {
+  // If trade RPC details failed to resolve, do not mark as processed and fail the batch to retry
+  if (!trade) {
+    console.warn(
+      `[P2P Event] Unable to fetch trade #${tradeId} for PaymentSubmitted. Retrying later.`,
+    );
+    return false;
+  }
+
+  const sellerUser = getUserByWallet(trade.seller);
+  if (sellerUser && sellerUser.p2pAlertsEnabled !== false) {
+    try {
       await bot.telegram.sendMessage(
         sellerUser.userId,
         `💰 *P2P PAYMENT RECEIVED ALERT!*\n\n` +
@@ -929,31 +935,38 @@ async function processPaymentSubmittedLog(log: any) {
           ]),
         },
       );
+    } catch (err) {
+      console.error('Error dispatching PaymentSubmitted Telegram alert:', err);
+      // At-least-once delivery: continue to mark processed if message was dropped/blocked by user privacy
     }
-    markEventProcessed(eventKey, blockNumber);
-  } catch (err) {
-    console.error('Error dispatching PaymentSubmitted Telegram alert:', err);
   }
+  markEventProcessed(eventKey);
+  return true;
 }
 
-async function processTradeReleasedLog(log: any) {
+async function processTradeReleasedLog(log: any): Promise<boolean> {
   const chainId = 8453;
   const contractAddr = CONTRACTS.P2PEscrow;
   const txHash = log.transactionHash || '';
   const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
-  const blockNumber = log.blockNumber ? Number(log.blockNumber) : undefined;
   const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
 
-  if (isEventProcessed(eventKey)) return;
+  if (isEventProcessed(eventKey)) return true;
 
-  try {
-    const tradeId = (log as any).args.tradeId;
-    const buyerAddr = (log as any).args.buyer;
-    const trade = await fetchP2PTrade(tradeId);
-    if (!trade) return;
+  const tradeId = (log as any).args.tradeId;
+  const buyerAddr = (log as any).args.buyer;
+  const trade = await fetchP2PTrade(tradeId);
 
-    const buyerUser = getUserByWallet(buyerAddr);
-    if (buyerUser && buyerUser.p2pAlertsEnabled !== false) {
+  if (!trade) {
+    console.warn(
+      `[P2P Event] Unable to fetch trade #${tradeId} for TradeReleased. Retrying later.`,
+    );
+    return false;
+  }
+
+  const buyerUser = getUserByWallet(buyerAddr);
+  if (buyerUser && buyerUser.p2pAlertsEnabled !== false) {
+    try {
       await bot.telegram.sendMessage(
         buyerUser.userId,
         `🎉 *P2P TRADE COMPLETED!*\n\n` +
@@ -968,31 +981,37 @@ async function processTradeReleasedLog(log: any) {
           ]),
         },
       );
+    } catch (err) {
+      console.error('Error dispatching TradeReleased Telegram alert:', err);
     }
-    markEventProcessed(eventKey, blockNumber);
-  } catch (err) {
-    console.error('Error dispatching TradeReleased Telegram alert:', err);
   }
+  markEventProcessed(eventKey);
+  return true;
 }
 
-async function processDisputeRaisedLog(log: any) {
+async function processDisputeRaisedLog(log: any): Promise<boolean> {
   const chainId = 8453;
   const contractAddr = CONTRACTS.P2PEscrow;
   const txHash = log.transactionHash || '';
   const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
-  const blockNumber = log.blockNumber ? Number(log.blockNumber) : undefined;
   const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
 
-  if (isEventProcessed(eventKey)) return;
+  if (isEventProcessed(eventKey)) return true;
 
-  try {
-    const tradeId = (log as any).args.tradeId;
-    const trade = await fetchP2PTrade(tradeId);
-    if (!trade) return;
+  const tradeId = (log as any).args.tradeId;
+  const trade = await fetchP2PTrade(tradeId);
 
-    const notifyUser = async (addr: string, role: string) => {
-      const u = getUserByWallet(addr);
-      if (u && u.p2pAlertsEnabled !== false) {
+  if (!trade) {
+    console.warn(
+      `[P2P Event] Unable to fetch trade #${tradeId} for DisputeRaised. Retrying later.`,
+    );
+    return false;
+  }
+
+  const notifyUser = async (addr: string, role: string) => {
+    const u = getUserByWallet(addr);
+    if (u && u.p2pAlertsEnabled !== false) {
+      try {
         await bot.telegram.sendMessage(
           u.userId,
           `⚠️ *P2P DISPUTE INITIATED*\n\n` +
@@ -1002,68 +1021,107 @@ async function processDisputeRaisedLog(log: any) {
             `[View Dispute #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
           { parse_mode: 'Markdown' },
         );
+      } catch (err) {
+        console.error(`Error dispatching DisputeRaised alert to ${role}:`, err);
       }
-    };
+    }
+  };
 
-    await notifyUser(trade.buyer, 'Buyer');
-    await notifyUser(trade.seller, 'Seller');
-    markEventProcessed(eventKey, blockNumber);
-  } catch (err) {
-    console.error('Error dispatching DisputeRaised Telegram alert:', err);
-  }
+  await notifyUser(trade.buyer, 'Buyer');
+  await notifyUser(trade.seller, 'Seller');
+  markEventProcessed(eventKey);
+  return true;
 }
 
-async function backfillHistoricalEvents(fromBlock: bigint, toBlock: bigint) {
-  if (fromBlock > toBlock) return;
+export async function backfillHistoricalEvents(
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<boolean> {
+  if (fromBlock > toBlock) return true;
   const CHUNK_SIZE = 2000n;
   console.log(`[P2P Event Catchup] Scanning historical blocks ${fromBlock} -> ${toBlock}...`);
 
   for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
     const end = start + CHUNK_SIZE - 1n > toBlock ? toBlock : start + CHUNK_SIZE - 1n;
-    try {
-      const [paymentLogs, releaseLogs, disputeLogs] = await Promise.all([
-        publicClient.getContractEvents({
-          address: CONTRACTS.P2PEscrow,
-          abi: P2P_ESCROW_EVENTS_ABI,
-          eventName: 'PaymentSubmitted',
-          fromBlock: start,
-          toBlock: end,
-        }),
-        publicClient.getContractEvents({
-          address: CONTRACTS.P2PEscrow,
-          abi: P2P_ESCROW_EVENTS_ABI,
-          eventName: 'TradeReleased',
-          fromBlock: start,
-          toBlock: end,
-        }),
-        publicClient.getContractEvents({
-          address: CONTRACTS.P2PEscrow,
-          abi: P2P_ESCROW_EVENTS_ABI,
-          eventName: 'DisputeRaised',
-          fromBlock: start,
-          toBlock: end,
-        }),
-      ]);
+    let chunkSuccess = false;
+    const maxRetries = 3;
 
-      for (const log of paymentLogs) await processPaymentSubmittedLog(log);
-      for (const log of releaseLogs) await processTradeReleasedLog(log);
-      for (const log of disputeLogs) await processDisputeRaisedLog(log);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const [paymentLogs, releaseLogs, disputeLogs] = await Promise.all([
+          publicClient.getContractEvents({
+            address: CONTRACTS.P2PEscrow,
+            abi: P2P_ESCROW_EVENTS_ABI,
+            eventName: 'PaymentSubmitted',
+            fromBlock: start,
+            toBlock: end,
+          }),
+          publicClient.getContractEvents({
+            address: CONTRACTS.P2PEscrow,
+            abi: P2P_ESCROW_EVENTS_ABI,
+            eventName: 'TradeReleased',
+            fromBlock: start,
+            toBlock: end,
+          }),
+          publicClient.getContractEvents({
+            address: CONTRACTS.P2PEscrow,
+            abi: P2P_ESCROW_EVENTS_ABI,
+            eventName: 'DisputeRaised',
+            fromBlock: start,
+            toBlock: end,
+          }),
+        ]);
 
-      setLastProcessedBlock(Number(end));
-    } catch (e: any) {
-      console.error(`[P2P Event Catchup] Error querying block chunk ${start}-${end}:`, e.message);
+        let allLogsProcessed = true;
+        for (const log of paymentLogs) {
+          const ok = await processPaymentSubmittedLog(log);
+          if (!ok) allLogsProcessed = false;
+        }
+        for (const log of releaseLogs) {
+          const ok = await processTradeReleasedLog(log);
+          if (!ok) allLogsProcessed = false;
+        }
+        for (const log of disputeLogs) {
+          const ok = await processDisputeRaisedLog(log);
+          if (!ok) allLogsProcessed = false;
+        }
+
+        if (allLogsProcessed) {
+          setLastProcessedBlock(Number(end));
+          chunkSuccess = true;
+          break;
+        } else {
+          throw new Error('One or more events in chunk could not be fully resolved.');
+        }
+      } catch (e: any) {
+        console.error(
+          `[P2P Event Catchup] Attempt ${attempt}/${maxRetries} failed for chunk ${start}-${end}:`,
+          e.message,
+        );
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
+
+    if (!chunkSuccess) {
+      console.error(
+        `[P2P Event Catchup] Critical: Chunk ${start}-${end} failed all retries. Halting backfill to prevent cursor gap.`,
+      );
+      return false;
     }
   }
+  return true;
 }
 
-async function startP2PEventListener() {
-  console.log('Starting P2P Escrow Real-time & Historical Event Watcher on Base Mainnet...');
-
+let isCatchingUp = false;
+async function triggerCatchupIfBehind() {
+  if (isCatchingUp) return;
+  isCatchingUp = true;
   try {
     const currentBlock = await publicClient.getBlockNumber();
     const savedBlock = getLastProcessedBlock();
 
-    // Catch up missed blocks on startup/restart (bounded max 10,000 blocks to prevent RPC overload)
     if (savedBlock && BigInt(savedBlock) < currentBlock) {
       const maxLookback = 10000n;
       const startBlock =
@@ -1074,7 +1132,21 @@ async function startP2PEventListener() {
     } else if (!savedBlock) {
       setLastProcessedBlock(Number(currentBlock));
     }
+  } catch (err: any) {
+    console.error('[P2P Event Watcher] Catchup cycle encountered error:', err.message);
+  } finally {
+    isCatchingUp = false;
+  }
+}
 
+async function startP2PEventListener() {
+  console.log('Starting P2P Escrow Real-time & Historical Event Watcher on Base Mainnet...');
+
+  try {
+    // 1. Initial catchup before attaching live watcher
+    await triggerCatchupIfBehind();
+
+    // 2. Attach live watchers
     publicClient.watchContractEvent({
       address: CONTRACTS.P2PEscrow,
       abi: P2P_ESCROW_EVENTS_ABI,
@@ -1083,6 +1155,10 @@ async function startP2PEventListener() {
         for (const log of logs) {
           await processPaymentSubmittedLog(log);
         }
+      },
+      onError: (err) => {
+        console.error('[P2P Watcher] PaymentSubmitted error/reconnect notice:', err);
+        triggerCatchupIfBehind();
       },
     });
 
@@ -1095,6 +1171,10 @@ async function startP2PEventListener() {
           await processTradeReleasedLog(log);
         }
       },
+      onError: (err) => {
+        console.error('[P2P Watcher] TradeReleased error/reconnect notice:', err);
+        triggerCatchupIfBehind();
+      },
     });
 
     publicClient.watchContractEvent({
@@ -1106,7 +1186,19 @@ async function startP2PEventListener() {
           await processDisputeRaisedLog(log);
         }
       },
+      onError: (err) => {
+        console.error('[P2P Watcher] DisputeRaised error/reconnect notice:', err);
+        triggerCatchupIfBehind();
+      },
     });
+
+    // 3. Periodic catchup interval every 2 minutes to recover any edge-case reconnect gaps
+    setInterval(
+      () => {
+        triggerCatchupIfBehind();
+      },
+      2 * 60 * 1000,
+    );
   } catch (err) {
     console.error('Failed to initialize P2P real-time event watcher:', err);
   }

@@ -79,20 +79,17 @@ export function isEventProcessed(eventKey: string): boolean {
   return set.has(eventKey);
 }
 
-export function markEventProcessed(eventKey: string, blockNumber?: number) {
+export function markEventProcessed(eventKey: string) {
   const data = loadStorage();
   if (!Array.isArray(data.processedEventKeys)) {
     data.processedEventKeys = [];
   }
   if (!data.processedEventKeys.includes(eventKey)) {
     data.processedEventKeys.push(eventKey);
-    // Keep sliding window of latest 5,000 processed event keys to prevent unbounded file growth
-    if (data.processedEventKeys.length > 5000) {
-      data.processedEventKeys = data.processedEventKeys.slice(-5000);
+    // Keep sliding window of latest 10,000 processed event keys to prevent unbounded file growth
+    if (data.processedEventKeys.length > 10000) {
+      data.processedEventKeys = data.processedEventKeys.slice(-10000);
     }
-  }
-  if (blockNumber !== undefined) {
-    data.lastProcessedBlock = blockNumber;
   }
   saveStorage(data);
 }
