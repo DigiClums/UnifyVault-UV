@@ -151,6 +151,19 @@ public class MainActivity extends BridgeActivity {
         if (!bridgeInjected && this.bridge != null && this.bridge.getWebView() != null) {
             WebView webView = this.bridge.getWebView();
             webView.addJavascriptInterface(new NativeAppUpdater(this, webView), "AndroidNativeUpdater");
+            
+            // WebView Hardware Acceleration & Cache Optimization
+            android.webkit.WebSettings settings = webView.getSettings();
+            settings.setDomStorageEnabled(true);
+            settings.setDatabaseEnabled(true);
+            settings.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+            settings.setAllowFileAccess(false);
+            settings.setAllowContentAccess(false);
+            settings.setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH);
+            
+            // Enable Hardware Layer Acceleration
+            webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
+            
             bridgeInjected = true;
         }
     }
