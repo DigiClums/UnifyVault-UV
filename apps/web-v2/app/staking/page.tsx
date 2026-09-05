@@ -91,6 +91,43 @@ export default function StakingPage() {
   const { dynamicApy, rewards, lifetimeCapInfo } = useStaking();
   const [activeTab, setActiveTab] = useState<StakingTab>('overview');
 
+  // Support deep-linking via ?tab=referrals or ?tab=affiliates or ?ref=0x...
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab')?.toLowerCase();
+      if (
+        tabParam === 'referrals' ||
+        tabParam === 'referral' ||
+        tabParam === 'affiliate' ||
+        tabParam === 'affiliates' ||
+        tabParam === 'team'
+      ) {
+        setActiveTab('referrals');
+      } else if (tabParam === 'stake' || tabParam === 'staking') {
+        setActiveTab('stake');
+      } else if (tabParam === 'ranks' || tabParam === 'rank' || tabParam === 'dao') {
+        setActiveTab('ranks');
+      } else if (tabParam === 'calculator' || tabParam === 'calc') {
+        setActiveTab('calculator');
+      } else if (tabParam === 'history' || tabParam === 'logs') {
+        setActiveTab('history');
+      } else if (params.get('ref')) {
+        // If a referral link is opened, switch directly to Stake tab so user can immediately stake under their upline
+        setActiveTab('stake');
+      }
+    }
+  }, []);
+
+  const handleTabSelect = (tabId: StakingTab) => {
+    setActiveTab(tabId);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tabId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   const targetChainId = getDefaultChainId();
   const isWrongNetwork = isConnected && chain && chain.id !== targetChainId;
 
@@ -163,22 +200,23 @@ export default function StakingPage() {
 
       {/* ── Section Navigation Bar (Responsive Clean View) ── */}
       <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-black dark:border-white/15 p-1.5 shadow-[4px_4px_0_#000] dark:shadow-[4px_4px_0_rgba(0,0,0,0.85)]">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-[130px] sm:min-w-0 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
+                type="button"
+                onClick={() => handleTabSelect(tab.id)}
+                className={`flex-1 min-w-[125px] sm:min-w-0 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer touch-manipulation select-none active:scale-95 ${
                   isActive
                     ? 'bg-black text-white dark:bg-[#BFFF00] dark:text-black shadow-[2px_2px_0_#000] dark:shadow-none'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                 }`}
               >
                 <Icon
-                  className={`w-4 h-4 ${isActive ? 'text-[#BFFF00] dark:text-black' : 'text-slate-500'}`}
+                  className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#BFFF00] dark:text-black' : 'text-slate-500'}`}
                 />
                 <span className="hidden sm:inline font-extrabold">{tab.label}</span>
                 <span className="sm:hidden font-extrabold">{tab.mobileLabel}</span>
