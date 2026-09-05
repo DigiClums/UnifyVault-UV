@@ -30,8 +30,8 @@ public class MainActivity extends BridgeActivity {
         configureEdgeToEdgeStatusBar();
         setupNativeBridge();
         requestNotificationPermission();
-        subscribeToUpdateTopic();
-        checkIntentForUpdateModal(getIntent());
+        subscribeToNotificationTopics();
+        handleNotificationIntent(getIntent());
     }
 
     private void configureEdgeToEdgeStatusBar() {
@@ -79,13 +79,12 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void subscribeToUpdateTopic() {
+    private void subscribeToNotificationTopics() {
         try {
             com.google.firebase.messaging.FirebaseMessaging.getInstance()
-                .subscribeToTopic("unifyvault-updates")
-                .addOnCompleteListener(task -> {
-                    // Topic subscription completed safely
-                });
+                .subscribeToTopic("unifyvault-updates");
+            com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                .subscribeToTopic("unifyvault-announcements");
         } catch (Exception ignored) {}
     }
 
@@ -93,7 +92,7 @@ public class MainActivity extends BridgeActivity {
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        checkIntentForUpdateModal(intent);
+        handleNotificationIntent(intent);
     }
 
     @Override
@@ -111,19 +110,41 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void checkIntentForUpdateModal(Intent intent) {
+    private void handleNotificationIntent(Intent intent) {
         if (intent == null || intent.getExtras() == null) return;
         String clickAction = intent.getStringExtra("click_action");
-        if ("OPEN_UPDATE_MODAL".equals(clickAction) || intent.hasExtra("version")) {
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                if (this.bridge != null && this.bridge.getWebView() != null) {
-                    this.bridge.getWebView().evaluateJavascript(
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (this.bridge != null && this.bridge.getWebView() != null) {
+                WebView webView = this.bridge.getWebView();
+
+                if ("OPEN_UPDATE_MODAL".equals(clickAction) || intent.hasExtra("version")) {
+                    webView.evaluateJavascript(
                         "window.dispatchEvent(new CustomEvent('open-update-modal'));",
                         null
                     );
+                } else if ("NAVIGATE".equals(clickAction)) {
+                    String targetUrl = intent.getStringExtra("target_url");
+                    if (targetUrl != null && !targetUrl.isEmpty()) {
+                        webView.evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('notification-navigate', { detail: { url: '" + targetUrl + "' } }));",
+                            null
+                        );
+                    }
+                } else if ("DIRECT_UPDATE".equals(clickAction)) {
+                    String downloadUrl = intent.getStringExtra("download_url");
+                    if (downloadUrl != null && !downloadUrl.isEmpty()) {
+                        NativeAppUpdater updater = new NativeAppUpdater(this, webView);
+                        updater.downloadAndInstallApk(downloadUrl, "UnifyVault-latest.apk");
+                    } else {
+                        webView.evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('open-update-modal'));",
+                            null
+                        );
+                    }
                 }
-            }, 1000);
-        }
+            }
+        }, 1000);
     }
 
     private void setupNativeBridge() {
