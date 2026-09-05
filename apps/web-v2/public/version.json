@@ -1,11 +1,12 @@
 {
-  "latestVersion": "2.5.7",
+  "latestVersion": "2.5.8",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.7/UnifyVault-v2.5.7.apk",
-  "sha256": "a032d7804daf00df7728cb415008a0dec8ee6ccad05f2847e6b7d54f41161a78",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.8/UnifyVault-v2.5.8.apk",
+  "sha256": "5bf183b67cef1bd8904358df9904e041ce040d55f9ca2c1cf004351826d3de39",
   "releaseNotes": [
-    "[✨ Feature] SETTINGS: add dedicated user settings page, consolidate theme & update controls",
-    "Verified APK SHA-256: a032d7804daf00df7728cb415008a0dec8ee6ccad05f2847e6b7d54f41161a78"
+    "[✨ Feature] APK: add native biometricprompt and android system settings",
+    "[✨ Feature] SETTINGS: complete all 5 user settings modules",
+    "Verified APK SHA-256: 5bf183b67cef1bd8904358df9904e041ce040d55f9ca2c1cf004351826d3de39"
   ]
 }
