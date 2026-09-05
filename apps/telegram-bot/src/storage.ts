@@ -20,6 +20,8 @@ export interface UserRecord {
 
 interface StorageData {
   users: { [telegramUserId: string]: UserRecord };
+  lastProcessedBlock?: number;
+  processedEventKeys?: string[];
 }
 
 function loadStorage(): StorageData {
@@ -39,14 +41,17 @@ function loadStorage(): StorageData {
             lastActive: new Date().toISOString(),
           };
         }
-        return { users };
+        return { users, processedEventKeys: [] };
+      }
+      if (!Array.isArray(data.processedEventKeys)) {
+        data.processedEventKeys = [];
       }
       return data;
     }
   } catch (e) {
     console.error('Error loading storage:', e);
   }
-  return { users: {} };
+  return { users: {}, processedEventKeys: [] };
 }
 
 function saveStorage(data: StorageData) {
@@ -55,6 +60,41 @@ function saveStorage(data: StorageData) {
   } catch (e) {
     console.error('Error saving storage:', e);
   }
+}
+
+export function getLastProcessedBlock(): number | undefined {
+  const data = loadStorage();
+  return data.lastProcessedBlock;
+}
+
+export function setLastProcessedBlock(blockNumber: number) {
+  const data = loadStorage();
+  data.lastProcessedBlock = blockNumber;
+  saveStorage(data);
+}
+
+export function isEventProcessed(eventKey: string): boolean {
+  const data = loadStorage();
+  const set = new Set(data.processedEventKeys || []);
+  return set.has(eventKey);
+}
+
+export function markEventProcessed(eventKey: string, blockNumber?: number) {
+  const data = loadStorage();
+  if (!Array.isArray(data.processedEventKeys)) {
+    data.processedEventKeys = [];
+  }
+  if (!data.processedEventKeys.includes(eventKey)) {
+    data.processedEventKeys.push(eventKey);
+    // Keep sliding window of latest 5,000 processed event keys to prevent unbounded file growth
+    if (data.processedEventKeys.length > 5000) {
+      data.processedEventKeys = data.processedEventKeys.slice(-5000);
+    }
+  }
+  if (blockNumber !== undefined) {
+    data.lastProcessedBlock = blockNumber;
+  }
+  saveStorage(data);
 }
 
 export function registerUser(userId: number | string, username?: string, firstName?: string) {

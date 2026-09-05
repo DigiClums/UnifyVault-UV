@@ -358,8 +358,9 @@ export default function UserSettingsPage() {
               Security & Biometrics
             </h2>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Protect wallet authorizations and release crypto with device biometrics.
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Biometric authentication is a local defense-in-depth security layer. Final transaction
+            authorization is provided by the user&apos;s cryptographic wallet signature.
           </p>
 
           <div className="space-y-3 pt-1">
@@ -540,9 +541,14 @@ export default function UserSettingsPage() {
           </div>
 
           <div className="space-y-2 pt-1">
-            <label className="text-[11px] font-bold text-foreground block">
-              Custom Base RPC URL (Optional)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold text-foreground block">
+                Custom Diagnostic RPC Endpoint (Optional)
+              </label>
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                Read-Only Diagnostics
+              </span>
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -559,6 +565,11 @@ export default function UserSettingsPage() {
                 Save
               </button>
             </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              🛡️ <strong>Security Boundary:</strong> Custom RPC is strictly used for latency and
+              block diagnostics. All contract interactions and fund movements execute through
+              verified Base Mainnet transports with cryptographic wallet authorization.
+            </p>
           </div>
         </div>
 

@@ -17,6 +17,10 @@ import {
   getAllUsers,
   getUserByWallet,
   setP2PAlerts,
+  isEventProcessed,
+  markEventProcessed,
+  getLastProcessedBlock,
+  setLastProcessedBlock,
 } from './storage';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -882,44 +886,202 @@ const P2P_ESCROW_EVENTS_ABI = parseAbi([
   'event DisputeRaised(uint256 indexed tradeId, address indexed initiator, bytes32 reasonHash)',
 ]);
 
-async function startP2PEventListener() {
-  console.log('Starting P2P Escrow Real-time Event Watcher on Base Mainnet...');
+function buildEventIdentity(
+  chainId: number,
+  contractAddress: string,
+  txHash: string,
+  logIndex: number,
+): string {
+  return `${chainId}:${contractAddress.toLowerCase()}:${txHash.toLowerCase()}:${logIndex}`;
+}
+
+async function processPaymentSubmittedLog(log: any) {
+  const chainId = 8453;
+  const contractAddr = CONTRACTS.P2PEscrow;
+  const txHash = log.transactionHash || '';
+  const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
+  const blockNumber = log.blockNumber ? Number(log.blockNumber) : undefined;
+  const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
+
+  if (isEventProcessed(eventKey)) return;
 
   try {
+    const tradeId = (log as any).args.tradeId;
+    const buyerAddr = (log as any).args.buyer;
+    const trade = await fetchP2PTrade(tradeId);
+    if (!trade) return;
+
+    const sellerUser = getUserByWallet(trade.seller);
+    if (sellerUser && sellerUser.p2pAlertsEnabled !== false) {
+      await bot.telegram.sendMessage(
+        sellerUser.userId,
+        `💰 *P2P PAYMENT RECEIVED ALERT!*\n\n` +
+          `Trade: *#${trade.tradeId}*\n` +
+          `Amount: *${trade.fiatAmount} ${trade.fiatCurrency}* (${trade.amount} UVBE)\n` +
+          `Buyer: \`${buyerAddr.slice(0, 6)}...${buyerAddr.slice(-4)}\`\n\n` +
+          `⚠️ Buyer has marked the payment as complete. Please verify the incoming bank/UPI transfer and release the crypto:\n\n` +
+          `[Open Trade #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
+        {
+          parse_mode: 'Markdown',
+          link_preview_options: { is_disabled: true },
+          ...Markup.inlineKeyboard([
+            [Markup.button.url('🚀 Open P2P & Release', 'https://unifyvault.xyz/p2p')],
+          ]),
+        },
+      );
+    }
+    markEventProcessed(eventKey, blockNumber);
+  } catch (err) {
+    console.error('Error dispatching PaymentSubmitted Telegram alert:', err);
+  }
+}
+
+async function processTradeReleasedLog(log: any) {
+  const chainId = 8453;
+  const contractAddr = CONTRACTS.P2PEscrow;
+  const txHash = log.transactionHash || '';
+  const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
+  const blockNumber = log.blockNumber ? Number(log.blockNumber) : undefined;
+  const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
+
+  if (isEventProcessed(eventKey)) return;
+
+  try {
+    const tradeId = (log as any).args.tradeId;
+    const buyerAddr = (log as any).args.buyer;
+    const trade = await fetchP2PTrade(tradeId);
+    if (!trade) return;
+
+    const buyerUser = getUserByWallet(buyerAddr);
+    if (buyerUser && buyerUser.p2pAlertsEnabled !== false) {
+      await bot.telegram.sendMessage(
+        buyerUser.userId,
+        `🎉 *P2P TRADE COMPLETED!*\n\n` +
+          `Trade: *#${trade.tradeId}*\n` +
+          `Crypto Released: *${trade.amount} UVBE*\n` +
+          `Seller: \`${trade.seller.slice(0, 6)}...${trade.seller.slice(-4)}\`\n\n` +
+          `The escrow has released your assets directly to your wallet on Base Mainnet.`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.url('📊 View in Portfolio', 'https://unifyvault.xyz/portfolio')],
+          ]),
+        },
+      );
+    }
+    markEventProcessed(eventKey, blockNumber);
+  } catch (err) {
+    console.error('Error dispatching TradeReleased Telegram alert:', err);
+  }
+}
+
+async function processDisputeRaisedLog(log: any) {
+  const chainId = 8453;
+  const contractAddr = CONTRACTS.P2PEscrow;
+  const txHash = log.transactionHash || '';
+  const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
+  const blockNumber = log.blockNumber ? Number(log.blockNumber) : undefined;
+  const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
+
+  if (isEventProcessed(eventKey)) return;
+
+  try {
+    const tradeId = (log as any).args.tradeId;
+    const trade = await fetchP2PTrade(tradeId);
+    if (!trade) return;
+
+    const notifyUser = async (addr: string, role: string) => {
+      const u = getUserByWallet(addr);
+      if (u && u.p2pAlertsEnabled !== false) {
+        await bot.telegram.sendMessage(
+          u.userId,
+          `⚠️ *P2P DISPUTE INITIATED*\n\n` +
+            `Trade: *#${trade.tradeId}*\n` +
+            `Status: Escrow Locked in Dispute\n` +
+            `Please check the dispute evidence chat on UnifyVault:\n\n` +
+            `[View Dispute #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
+          { parse_mode: 'Markdown' },
+        );
+      }
+    };
+
+    await notifyUser(trade.buyer, 'Buyer');
+    await notifyUser(trade.seller, 'Seller');
+    markEventProcessed(eventKey, blockNumber);
+  } catch (err) {
+    console.error('Error dispatching DisputeRaised Telegram alert:', err);
+  }
+}
+
+async function backfillHistoricalEvents(fromBlock: bigint, toBlock: bigint) {
+  if (fromBlock > toBlock) return;
+  const CHUNK_SIZE = 2000n;
+  console.log(`[P2P Event Catchup] Scanning historical blocks ${fromBlock} -> ${toBlock}...`);
+
+  for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
+    const end = start + CHUNK_SIZE - 1n > toBlock ? toBlock : start + CHUNK_SIZE - 1n;
+    try {
+      const [paymentLogs, releaseLogs, disputeLogs] = await Promise.all([
+        publicClient.getContractEvents({
+          address: CONTRACTS.P2PEscrow,
+          abi: P2P_ESCROW_EVENTS_ABI,
+          eventName: 'PaymentSubmitted',
+          fromBlock: start,
+          toBlock: end,
+        }),
+        publicClient.getContractEvents({
+          address: CONTRACTS.P2PEscrow,
+          abi: P2P_ESCROW_EVENTS_ABI,
+          eventName: 'TradeReleased',
+          fromBlock: start,
+          toBlock: end,
+        }),
+        publicClient.getContractEvents({
+          address: CONTRACTS.P2PEscrow,
+          abi: P2P_ESCROW_EVENTS_ABI,
+          eventName: 'DisputeRaised',
+          fromBlock: start,
+          toBlock: end,
+        }),
+      ]);
+
+      for (const log of paymentLogs) await processPaymentSubmittedLog(log);
+      for (const log of releaseLogs) await processTradeReleasedLog(log);
+      for (const log of disputeLogs) await processDisputeRaisedLog(log);
+
+      setLastProcessedBlock(Number(end));
+    } catch (e: any) {
+      console.error(`[P2P Event Catchup] Error querying block chunk ${start}-${end}:`, e.message);
+    }
+  }
+}
+
+async function startP2PEventListener() {
+  console.log('Starting P2P Escrow Real-time & Historical Event Watcher on Base Mainnet...');
+
+  try {
+    const currentBlock = await publicClient.getBlockNumber();
+    const savedBlock = getLastProcessedBlock();
+
+    // Catch up missed blocks on startup/restart (bounded max 10,000 blocks to prevent RPC overload)
+    if (savedBlock && BigInt(savedBlock) < currentBlock) {
+      const maxLookback = 10000n;
+      const startBlock =
+        currentBlock - BigInt(savedBlock) > maxLookback
+          ? currentBlock - maxLookback
+          : BigInt(savedBlock) + 1n;
+      await backfillHistoricalEvents(startBlock, currentBlock);
+    } else if (!savedBlock) {
+      setLastProcessedBlock(Number(currentBlock));
+    }
+
     publicClient.watchContractEvent({
       address: CONTRACTS.P2PEscrow,
       abi: P2P_ESCROW_EVENTS_ABI,
       eventName: 'PaymentSubmitted',
       onLogs: async (logs: any[]) => {
         for (const log of logs) {
-          try {
-            const tradeId = (log as any).args.tradeId;
-            const buyerAddr = (log as any).args.buyer;
-            const trade = await fetchP2PTrade(tradeId);
-            if (!trade) continue;
-
-            const sellerUser = getUserByWallet(trade.seller);
-            if (sellerUser && sellerUser.p2pAlertsEnabled !== false) {
-              await bot.telegram.sendMessage(
-                sellerUser.userId,
-                `💰 *P2P PAYMENT RECEIVED ALERT!*\n\n` +
-                  `Trade: *#${trade.tradeId}*\n` +
-                  `Amount: *${trade.fiatAmount} ${trade.fiatCurrency}* (${trade.amount} UVBE)\n` +
-                  `Buyer: \`${buyerAddr.slice(0, 6)}...${buyerAddr.slice(-4)}\`\n\n` +
-                  `⚠️ Buyer has marked the payment as complete. Please verify the incoming bank/UPI transfer and release the crypto:\n\n` +
-                  `[Open Trade #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
-                {
-                  parse_mode: 'Markdown',
-                  link_preview_options: { is_disabled: true },
-                  ...Markup.inlineKeyboard([
-                    [Markup.button.url('🚀 Open P2P & Release', 'https://unifyvault.xyz/p2p')],
-                  ]),
-                },
-              );
-            }
-          } catch (err) {
-            console.error('Error dispatching PaymentSubmitted Telegram alert:', err);
-          }
+          await processPaymentSubmittedLog(log);
         }
       },
     });
@@ -930,32 +1092,7 @@ async function startP2PEventListener() {
       eventName: 'TradeReleased',
       onLogs: async (logs: any[]) => {
         for (const log of logs) {
-          try {
-            const tradeId = (log as any).args.tradeId;
-            const buyerAddr = (log as any).args.buyer;
-            const trade = await fetchP2PTrade(tradeId);
-            if (!trade) continue;
-
-            const buyerUser = getUserByWallet(buyerAddr);
-            if (buyerUser && buyerUser.p2pAlertsEnabled !== false) {
-              await bot.telegram.sendMessage(
-                buyerUser.userId,
-                `🎉 *P2P TRADE COMPLETED!*\n\n` +
-                  `Trade: *#${trade.tradeId}*\n` +
-                  `Crypto Released: *${trade.amount} UVBE*\n` +
-                  `Seller: \`${trade.seller.slice(0, 6)}...${trade.seller.slice(-4)}\`\n\n` +
-                  `The escrow has released your assets directly to your wallet on Base Mainnet.`,
-                {
-                  parse_mode: 'Markdown',
-                  ...Markup.inlineKeyboard([
-                    [Markup.button.url('📊 View in Portfolio', 'https://unifyvault.xyz/portfolio')],
-                  ]),
-                },
-              );
-            }
-          } catch (err) {
-            console.error('Error dispatching TradeReleased Telegram alert:', err);
-          }
+          await processTradeReleasedLog(log);
         }
       },
     });
@@ -966,31 +1103,7 @@ async function startP2PEventListener() {
       eventName: 'DisputeRaised',
       onLogs: async (logs: any[]) => {
         for (const log of logs) {
-          try {
-            const tradeId = (log as any).args.tradeId;
-            const trade = await fetchP2PTrade(tradeId);
-            if (!trade) continue;
-
-            const notifyUser = async (addr: string, role: string) => {
-              const u = getUserByWallet(addr);
-              if (u && u.p2pAlertsEnabled !== false) {
-                await bot.telegram.sendMessage(
-                  u.userId,
-                  `⚠️ *P2P DISPUTE INITIATED*\n\n` +
-                    `Trade: *#${trade.tradeId}*\n` +
-                    `Status: Escrow Locked in Dispute\n` +
-                    `Please check the dispute evidence chat on UnifyVault:\n\n` +
-                    `[View Dispute #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
-                  { parse_mode: 'Markdown' },
-                );
-              }
-            };
-
-            await notifyUser(trade.buyer, 'Buyer');
-            await notifyUser(trade.seller, 'Seller');
-          } catch (err) {
-            console.error('Error dispatching DisputeRaised Telegram alert:', err);
-          }
+          await processDisputeRaisedLog(log);
         }
       },
     });
