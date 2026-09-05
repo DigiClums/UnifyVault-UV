@@ -159,7 +159,15 @@ export default function UserSettingsPage() {
     if (hapticsEnabled) triggerHapticNotification('light');
   };
 
-  const toggleBiometrics = () => {
+  const isNativeApk =
+    typeof window !== 'undefined' && Boolean((window as any).AndroidNativeUpdater);
+
+  const toggleBiometrics = async () => {
+    if (!biometricsEnabled) {
+      // Prompt biometric authentication first to verify ownership before enabling
+      const success = await promptBiometricAuth('Confirm biometric authentication setup');
+      if (!success) return;
+    }
     const next = !biometricsEnabled;
     setBiometricsEnabled(next);
     localStorage.setItem('uv_biometrics_enabled', String(next));
@@ -182,10 +190,32 @@ export default function UserSettingsPage() {
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.clear();
+        const nativeUpdater = (window as any).AndroidNativeUpdater;
+        if (nativeUpdater && typeof nativeUpdater.clearNativeAppCache === 'function') {
+          nativeUpdater.clearNativeAppCache();
+        }
         setCacheCleared(true);
         if (hapticsEnabled) triggerHapticNotification('success');
         setTimeout(() => setCacheCleared(false), 3000);
       } catch (e) {}
+    }
+  };
+
+  const openAndroidNotificationSettings = () => {
+    if (typeof window !== 'undefined') {
+      const nativeUpdater = (window as any).AndroidNativeUpdater;
+      if (nativeUpdater && typeof nativeUpdater.openSystemNotificationSettings === 'function') {
+        nativeUpdater.openSystemNotificationSettings();
+      }
+    }
+  };
+
+  const openBatteryOptimizationSettings = () => {
+    if (typeof window !== 'undefined') {
+      const nativeUpdater = (window as any).AndroidNativeUpdater;
+      if (nativeUpdater && typeof nativeUpdater.openBatteryOptimizationSettings === 'function') {
+        nativeUpdater.openBatteryOptimizationSettings();
+      }
     }
   };
 
@@ -286,6 +316,37 @@ export default function UserSettingsPage() {
                 <div className="w-5 h-5 rounded-full bg-black shadow-md" />
               </button>
             </div>
+
+            {/* Android APK Specific System Toggles */}
+            {isNativeApk && (
+              <div className="pt-2 border-t border-border-subtle space-y-2">
+                <span className="text-[10px] font-black uppercase text-[#5f8f00] dark:text-[#BFFF00] block tracking-wider">
+                  📱 Android OS System Settings
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={openAndroidNotificationSettings}
+                    className="p-2.5 rounded-xl bg-background border border-border-subtle text-[11px] font-bold text-foreground hover:bg-muted transition-colors text-left flex flex-col justify-between gap-1"
+                  >
+                    <span>Notification Channels</span>
+                    <span className="text-[9px] text-muted-foreground font-normal">
+                      Manage OS push permissions
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openBatteryOptimizationSettings}
+                    className="p-2.5 rounded-xl bg-background border border-border-subtle text-[11px] font-bold text-foreground hover:bg-muted transition-colors text-left flex flex-col justify-between gap-1"
+                  >
+                    <span>Background Sync</span>
+                    <span className="text-[9px] text-muted-foreground font-normal">
+                      Battery optimization toggle
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -304,11 +365,20 @@ export default function UserSettingsPage() {
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
               <div>
-                <span className="text-xs font-bold text-foreground block">
+                <span className="text-xs font-bold text-foreground block flex items-center gap-1.5">
                   Fingerprint / Face Unlock
+                  {isNativeApk && (
+                    <span className="text-[9px] font-black uppercase bg-[#BFFF00]/20 text-[#5f8f00] dark:text-[#BFFF00] px-1.5 py-0.5 rounded border border-[#BFFF00]/40">
+                      Android Native
+                    </span>
+                  )}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  {biometricsAvailable ? 'Biometric sensor ready' : 'Device authentication active'}
+                  {biometricsAvailable
+                    ? isNativeApk
+                      ? 'Android BiometricPrompt ready'
+                      : 'WebAuthn passkey ready'
+                    : 'Device security active'}
                 </span>
               </div>
               <button

@@ -15,9 +15,14 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import androidx.annotation.NonNull;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.BridgeActivity;
 import java.io.File;
+import java.util.concurrent.Executor;
 
 public class MainActivity extends BridgeActivity {
 
@@ -182,6 +187,139 @@ public class MainActivity extends BridgeActivity {
         public void setStatusBarTheme(String theme) {
             boolean isLight = "light".equalsIgnoreCase(theme);
             activity.applyStatusBarIcons(isLight);
+        }
+
+        @JavascriptInterface
+        public boolean isNativeBiometricAvailable() {
+            try {
+                BiometricManager biometricManager = BiometricManager.from(activity);
+                int canAuthenticate = biometricManager.canAuthenticate(
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                );
+                return canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public void promptNativeBiometric(String title, String subtitle, String callbackId) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    Executor executor = ContextCompat.getMainExecutor(activity);
+                    BiometricPrompt biometricPrompt = new BiometricPrompt(activity, executor,
+                        new BiometricPrompt.AuthenticationCallback() {
+                            @Override
+                            public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                                super.onAuthenticationError(errorCode, errString);
+                                notifyBiometricResult(callbackId, false, errString.toString());
+                            }
+
+                            @Override
+                            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                                super.onAuthenticationSucceeded(result);
+                                notifyBiometricResult(callbackId, true, "SUCCESS");
+                            }
+
+                            @Override
+                            public void onAuthenticationFailed() {
+                                super.onAuthenticationFailed();
+                            }
+                        });
+
+                    BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle(title != null && !title.isEmpty() ? title : "Authentication Required")
+                        .setSubtitle(subtitle != null && !subtitle.isEmpty() ? subtitle : "Verify your identity to proceed")
+                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                        .build();
+
+                    biometricPrompt.authenticate(promptInfo);
+                } catch (Exception e) {
+                    notifyBiometricResult(callbackId, false, e.getMessage());
+                }
+            });
+        }
+
+        private void notifyBiometricResult(String callbackId, boolean success, String message) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (webView != null) {
+                    String cleanMsg = message != null ? message.replace("'", "\\'") : "";
+                    webView.evaluateJavascript(
+                        "window.dispatchEvent(new CustomEvent('native-biometric-response', { detail: { callbackId: '" + callbackId + "', success: " + success + ", message: '" + cleanMsg + "' } }));",
+                        null
+                    );
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openSystemNotificationSettings() {
+            try {
+                Intent intent = new Intent();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                    intent.putExtra(Settings.EXTRA_APP_PACKAGE, activity.getPackageName());
+                } else {
+                    intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.fromParts("package", activity.getPackageName(), null));
+                }
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void openBatteryOptimizationSettings() {
+            try {
+                Intent intent = new Intent();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                } else {
+                    intent.setAction(Settings.ACTION_SETTINGS);
+                }
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void clearNativeAppCache() {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    if (webView != null) {
+                        webView.clearCache(true);
+                        webView.clearHistory();
+                        webView.clearFormData();
+                    }
+                    File cacheDir = activity.getCacheDir();
+                    deleteDir(cacheDir);
+                    File downloadsDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    deleteDir(downloadsDir);
+                    
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('native-cache-cleared'));",
+                            null
+                        );
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
+
+        private boolean deleteDir(File dir) {
+            if (dir != null && dir.isDirectory()) {
+                String[] children = dir.list();
+                if (children != null) {
+                    for (String child : children) {
+                        boolean success = deleteDir(new File(dir, child));
+                        if (!success) return false;
+                    }
+                }
+                return dir.delete();
+            } else if (dir != null && dir.isFile()) {
+                return dir.delete();
+            }
+            return false;
         }
 
         @JavascriptInterface
