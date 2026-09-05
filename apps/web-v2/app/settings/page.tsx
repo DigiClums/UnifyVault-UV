@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { triggerHapticNotification, playAlertChime } from '../../lib/utils/haptics';
 import { CURRENT_APP_VERSION } from '../../components/common/UpdateCheckerModal';
-import { isBiometricAvailable } from '../../lib/security/biometrics';
+import { isBiometricAvailable, promptBiometricAuth } from '../../lib/security/biometrics';
 
 export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
