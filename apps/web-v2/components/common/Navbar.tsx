@@ -20,8 +20,8 @@ import {
   Zap,
   TrendingUp,
   FileCode2,
+  Settings,
 } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../../lib/utils/cn';
 import { useAdminAccess } from '../../hooks/useAdminAccess';
 
@@ -113,20 +113,6 @@ export function Navbar() {
 
         {/* Right Section: Connect Button & Theme Toggle */}
         <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('open-update-modal'));
-              }
-            }}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-[#BFFF00]/15 border border-[#BFFF00]/40 text-[#5f8f00] dark:text-[#BFFF00] hover:bg-[#BFFF00]/25 text-[10px] font-black uppercase tracking-wider transition-all animate-pulse"
-            title="Check for updates"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Update</span>
-          </button>
-
           {isAdmin && (
             <Link
               href="/admin"
@@ -137,7 +123,13 @@ export function Navbar() {
             </Link>
           )}
 
-          <ThemeToggle />
+          <Link
+            href="/settings"
+            className="p-2 rounded-xl bg-surface hover:bg-card border border-border-subtle text-foreground transition-all flex items-center justify-center min-h-[40px] min-w-[40px] shadow-sm active:scale-95 group"
+            title="Settings & Preferences"
+          >
+            <Settings className="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:rotate-45 transition-transform duration-300" />
+          </Link>
 
           <div className="scale-95 sm:scale-100 origin-right flex items-center shrink-0">
             <ConnectButton.Custom>
