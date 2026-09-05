@@ -27,10 +27,30 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        configureEdgeToEdgeStatusBar();
         setupNativeBridge();
         requestNotificationPermission();
         subscribeToUpdateTopic();
         checkIntentForUpdateModal(getIntent());
+    }
+
+    private void configureEdgeToEdgeStatusBar() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            androidx.core.view.WindowInsetsControllerCompat controller = 
+                androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+            if (controller != null) {
+                controller.setAppearanceLightStatusBars(false); // false = White/light icons for dark background
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int flags = getWindow().getDecorView().getSystemUiVisibility();
+            // Clear SYSTEM_UI_FLAG_LIGHT_STATUS_BAR so icons are white
+            flags &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            getWindow().getDecorView().setSystemUiVisibility(flags);
+        }
     }
 
     private void requestNotificationPermission() {
