@@ -350,9 +350,9 @@ All UnifyVault contracts are publicly open-source, deployed on **Base**, and ver
 | **OracleManager** | \`0xdbab63fe1d8accff6620214a5c616d4151a8fec7\` | [View on BaseScan](https://basescan.org/address/0xdbab63fe1d8accff6620214a5c616d4151a8fec7#code) |
 | **ChainlinkOracleProvider** | \`0x39af66781d16ec8a72d2b1a4a1b7697a577626a2\` | [View on BaseScan](https://basescan.org/address/0x39af66781d16ec8a72d2b1a4a1b7697a577626a2#code) |
 | **CostBasisManagerV2** | \`0x3fcf09b4e1545926c1031d22a302a39e552b3469\` | [View on BaseScan](https://basescan.org/address/0x3fcf09b4e1545926c1031d22a302a39e552b3469#code) |
-| **UVBEStakingVault** | \`0x3ea9082f724efc74a68615f1f33a2b81309e788a\` | [View on BaseScan](https://basescan.org/address/0x3ea9082f724efc74a68615f1f33a2b81309e788a#code) |
-| **UVBEReferralRegistry** | \`0xa8b37df413dde998f81594c4d684148c669f554d\` | [View on BaseScan](https://basescan.org/address/0xa8b37df413dde998f81594c4d684148c669f554d#code) |
-| **UVBERewardDistributor** | \`0x822953345b5e7a66f7de878112e910d8b1c46577\` | [View on BaseScan](https://basescan.org/address/0x822953345b5e7a66f7de878112e910d8b1c46577#code) |
+| **UVBEStakingVault** | \`0x625a7697e9fdde7c6a783593ca371ed6c73e61e0\` | [View on BaseScan](https://basescan.org/address/0x625a7697e9fdde7c6a783593ca371ed6c73e61e0#code) |
+| **UVBEReferralRegistry** | \`0x5d486ba39418bb63d03a27dbc77ccc88bb2bf4cc\` | [View on BaseScan](https://basescan.org/address/0x5d486ba39418bb63d03a27dbc77ccc88bb2bf4cc#code) |
+| **UVBERewardDistributor** | \`0xb8c565e7da406261baa4af922771bcca5bfc166a\` | [View on BaseScan](https://basescan.org/address/0xb8c565e7da406261baa4af922771bcca5bfc166a#code) |
 | **P2PEscrowV2** | \`0x400916339033b88cda38b1d8a5fb0f82e4889f38\` | [View on BaseScan](https://basescan.org/address/0x400916339033b88cda38b1d8a5fb0f82e4889f38#code) |
 | **P2PReputation** | \`0x7a4093316955baa5bcb8189c4522d9db31f42d41\` | [View on BaseScan](https://basescan.org/address/0x7a4093316955baa5bcb8189c4522d9db31f42d41#code) |
 | **PerformanceManager** | \`0x3e13aae6c9befaaec11b2247e2af678ce871f338\` | [View on BaseScan](https://basescan.org/address/0x3e13aae6c9befaaec11b2247e2af678ce871f338#code) |

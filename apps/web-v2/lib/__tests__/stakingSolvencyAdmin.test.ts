@@ -30,19 +30,19 @@ describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
   describe('1. Canonical Deployed Staking Contract Addresses', () => {
     it('verifies exact Base Mainnet UVBEStakingVault address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.StakingVault.toLowerCase()).toBe(
-        '0x6fb5dede967270aeb1a893eaaccd123c7d0cfe86',
+        '0x625a7697e9fdde7c6a783593ca371ed6c73e61e0',
       );
     });
 
     it('verifies exact Base Mainnet UVBERewardDistributor address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.RewardDistributor.toLowerCase()).toBe(
-        '0x8f6169ed7091ed14bb4cdfdda9e7cedbf366c7dd',
+        '0xb8c565e7da406261baa4af922771bcca5bfc166a',
       );
     });
 
     it('verifies exact Base Mainnet UVBEReferralRegistry address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.ReferralRegistry.toLowerCase()).toBe(
-        '0x3b3eabedbcd4de77bb89f00d1e94fa482ecaac6a',
+        '0x5d486ba39418bb63d03a27dbc77ccc88bb2bf4cc',
       );
     });
   });

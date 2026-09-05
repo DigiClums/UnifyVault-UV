@@ -446,5 +446,19 @@
     "grantVerified": true,
     "timestamp": 1788545111081,
     "status": "in_progress"
+  },
+  {
+    "chainId": 8453,
+    "oldAdmin": "0x441dbf8076d0b143EC17199baE94Daa884161454",
+    "newAdmin": "0x1111111111111111111111111111111111111111",
+    "contractName": "ProtocolDirectory",
+    "contractAddress": "0xe74b400f4aea3a0b593be5acbc54f56631c0d60e",
+    "roleName": "DEFAULT_ADMIN_ROLE",
+    "roleIdentifier": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "grantTxHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "grantBlockNumber": 1234567,
+    "grantVerified": true,
+    "timestamp": 1788593120081,
+    "status": "in_progress"
   }
 ]
