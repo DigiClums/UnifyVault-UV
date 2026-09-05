@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import { Telegraf, Markup } from 'telegraf';
-import { isAddress } from 'viem';
+import { isAddress, parseAbi } from 'viem';
 import {
   fetchLiveUserData,
   fetchTxStatus,
   fetchProtocolMetrics,
   fetchP2PTrade,
+  publicClient,
   CONTRACTS,
 } from './blockchain';
 import {
@@ -871,3 +872,169 @@ console.log('UnifyVault Telegram bot is running with Base Mainnet live tracking'
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+// ── Automated P2P Real-time Event Listener & Push Dispatcher ──
+const P2P_ESCROW_EVENTS_ABI = parseAbi([
+  'event TradeCreated(uint256 indexed tradeId, address indexed buyer, address indexed seller, address asset, uint256 amount)',
+  'event TradeFunded(uint256 indexed tradeId, address indexed seller, uint256 amount)',
+  'event PaymentSubmitted(uint256 indexed tradeId, address indexed buyer, bytes32 paymentReference, bytes32 evidenceHash)',
+  'event TradeReleased(uint256 indexed tradeId, address indexed buyer, address indexed seller, uint256 amount)',
+  'event DisputeRaised(uint256 indexed tradeId, address indexed initiator, bytes32 reasonHash)',
+]);
+
+async function startP2PEventListener() {
+  console.log('Starting P2P Escrow Real-time Event Watcher on Base Mainnet...');
+
+  try {
+    publicClient.watchContractEvent({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_EVENTS_ABI,
+      eventName: 'PaymentSubmitted',
+      onLogs: async (logs: any[]) => {
+        for (const log of logs) {
+          try {
+            const tradeId = (log as any).args.tradeId;
+            const buyerAddr = (log as any).args.buyer;
+            const trade = await fetchP2PTrade(tradeId);
+            if (!trade) continue;
+
+            const sellerUser = getUserByWallet(trade.seller);
+            if (sellerUser && sellerUser.p2pAlertsEnabled !== false) {
+              await bot.telegram.sendMessage(
+                sellerUser.userId,
+                `💰 *P2P PAYMENT RECEIVED ALERT!*\n\n` +
+                  `Trade: *#${trade.tradeId}*\n` +
+                  `Amount: *${trade.fiatAmount} ${trade.fiatCurrency}* (${trade.amount} UVBE)\n` +
+                  `Buyer: \`${buyerAddr.slice(0, 6)}...${buyerAddr.slice(-4)}\`\n\n` +
+                  `⚠️ Buyer has marked the payment as complete. Please verify the incoming bank/UPI transfer and release the crypto:\n\n` +
+                  `[Open Trade #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
+                {
+                  parse_mode: 'Markdown',
+                  link_preview_options: { is_disabled: true },
+                  ...Markup.inlineKeyboard([
+                    [Markup.button.url('🚀 Open P2P & Release', 'https://unifyvault.xyz/p2p')],
+                  ]),
+                },
+              );
+            }
+          } catch (err) {
+            console.error('Error dispatching PaymentSubmitted Telegram alert:', err);
+          }
+        }
+      },
+    });
+
+    publicClient.watchContractEvent({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_EVENTS_ABI,
+      eventName: 'TradeReleased',
+      onLogs: async (logs: any[]) => {
+        for (const log of logs) {
+          try {
+            const tradeId = (log as any).args.tradeId;
+            const buyerAddr = (log as any).args.buyer;
+            const trade = await fetchP2PTrade(tradeId);
+            if (!trade) continue;
+
+            const buyerUser = getUserByWallet(buyerAddr);
+            if (buyerUser && buyerUser.p2pAlertsEnabled !== false) {
+              await bot.telegram.sendMessage(
+                buyerUser.userId,
+                `🎉 *P2P TRADE COMPLETED!*\n\n` +
+                  `Trade: *#${trade.tradeId}*\n` +
+                  `Crypto Released: *${trade.amount} UVBE*\n` +
+                  `Seller: \`${trade.seller.slice(0, 6)}...${trade.seller.slice(-4)}\`\n\n` +
+                  `The escrow has released your assets directly to your wallet on Base Mainnet.`,
+                {
+                  parse_mode: 'Markdown',
+                  ...Markup.inlineKeyboard([
+                    [Markup.button.url('📊 View in Portfolio', 'https://unifyvault.xyz/portfolio')],
+                  ]),
+                },
+              );
+            }
+          } catch (err) {
+            console.error('Error dispatching TradeReleased Telegram alert:', err);
+          }
+        }
+      },
+    });
+
+    publicClient.watchContractEvent({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_EVENTS_ABI,
+      eventName: 'DisputeRaised',
+      onLogs: async (logs: any[]) => {
+        for (const log of logs) {
+          try {
+            const tradeId = (log as any).args.tradeId;
+            const trade = await fetchP2PTrade(tradeId);
+            if (!trade) continue;
+
+            const notifyUser = async (addr: string, role: string) => {
+              const u = getUserByWallet(addr);
+              if (u && u.p2pAlertsEnabled !== false) {
+                await bot.telegram.sendMessage(
+                  u.userId,
+                  `⚠️ *P2P DISPUTE INITIATED*\n\n` +
+                    `Trade: *#${trade.tradeId}*\n` +
+                    `Status: Escrow Locked in Dispute\n` +
+                    `Please check the dispute evidence chat on UnifyVault:\n\n` +
+                    `[View Dispute #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
+                  { parse_mode: 'Markdown' },
+                );
+              }
+            };
+
+            await notifyUser(trade.buyer, 'Buyer');
+            await notifyUser(trade.seller, 'Seller');
+          } catch (err) {
+            console.error('Error dispatching DisputeRaised Telegram alert:', err);
+          }
+        }
+      },
+    });
+  } catch (err) {
+    console.error('Failed to initialize P2P real-time event watcher:', err);
+  }
+}
+
+startP2PEventListener();
+
+// ── Automated Protocol & Keeper Health Watchdog ──
+export async function sendAdminEmergencyAlert(title: string, message: string) {
+  if (!adminChatId) return;
+  try {
+    await bot.telegram.sendMessage(
+      adminChatId,
+      `🚨 *UNIFYVAULT SYSTEM SURVEILLANCE ALERT*\n\n` +
+        `*${title}*\n` +
+        `${message}\n\n` +
+        `Timestamp: \`${new Date().toUTCString()}\``,
+      { parse_mode: 'Markdown' },
+    );
+  } catch (err) {
+    console.error('Failed to send admin emergency alert:', err);
+  }
+}
+
+// Watchdog interval checking Base RPC and Contract Liveness every 5 minutes
+setInterval(
+  async () => {
+    try {
+      const block = await publicClient.getBlockNumber();
+      if (!block || block === 0n) {
+        await sendAdminEmergencyAlert(
+          'RPC Outage Warning',
+          'Base RPC returned an empty block height.',
+        );
+      }
+    } catch (e: any) {
+      await sendAdminEmergencyAlert(
+        'Base RPC Health Error',
+        `Failed to query Base Mainnet: ${e.message || 'Timeout'}`,
+      );
+    }
+  },
+  5 * 60 * 1000,
+);
