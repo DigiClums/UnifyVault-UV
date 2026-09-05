@@ -2,7 +2,8 @@
   "latestVersion": "2.4.7",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.7/app-release.apk",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.7/UnifyVault-v2.4.7.apk",
+  "sha256": "dc67ff55e9847428beb25d38b602298fed2fb65def02c199b54acfdf62061f6d",
   "iosStoreUrl": "",
   "maintenance": {
     "enabled": false,
@@ -48,6 +49,7 @@
     "🚀 Production Release v2.4.7",
     "🔒 Verified Base Mainnet Staking Trio (Vault 0x625a, Registry 0x5d48, Distributor 0xb8c5)",
     "📈 600% Dynamic APY cap & Hard Solvency Bounds",
-    "⚡ 2x/3x Lifetime Payout Cap & 1% DAO Leadership Pool"
+    "⚡ 2x/3x Lifetime Payout Cap & 1% DAO Leadership Pool",
+    "Verified APK SHA-256: dc67ff55e9847428beb25d38b602298fed2fb65def02c199b54acfdf62061f6d"
   ]
 }
