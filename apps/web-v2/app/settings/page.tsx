@@ -14,24 +14,48 @@ import {
   Send,
   Trash2,
   CheckCircle2,
-  ExternalLink,
   Volume2,
-  VolumeX,
   Smartphone,
-  Info,
+  Network,
+  Activity,
+  Coins,
+  Lock,
+  Timer,
+  RefreshCw,
+  Clock,
+  Radio,
 } from 'lucide-react';
 import { triggerHapticNotification, playAlertChime } from '../../lib/utils/haptics';
 import { CURRENT_APP_VERSION } from '../../components/common/UpdateCheckerModal';
 import { isBiometricAvailable } from '../../lib/security/biometrics';
 
 export default function UserSettingsPage() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [hapticsEnabled, setHapticsEnabled] = useState(true);
+
+  // 1. Notification Preferences
   const [p2pAlerts, setP2pAlerts] = useState(true);
+  const [stakingAlerts, setStakingAlerts] = useState(true);
+  const [updatePopups, setUpdatePopups] = useState(true);
+
+  // 2. Security & Biometrics
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [autoLockTimer, setAutoLockTimer] = useState<'immediate' | '5min' | '15min' | 'never'>(
+    '5min',
+  );
+
+  // 3. Audio & Tactile Feedback
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
+
+  // 4. Network & RPC
+  const [customRpcUrl, setCustomRpcUrl] = useState('');
+  const [rpcLatency, setRpcLatency] = useState<number | null>(null);
+  const [blockHeight, setBlockHeight] = useState<string>('Loading...');
+  const [isPingingRpc, setIsPingingRpc] = useState(false);
+
+  // 5. System Cache & Actions
   const [cacheCleared, setCacheCleared] = useState(false);
 
   useEffect(() => {
@@ -46,9 +70,54 @@ export default function UserSettingsPage() {
       const savedBio = localStorage.getItem('uv_biometrics_enabled');
       if (savedBio !== null) setBiometricsEnabled(savedBio === 'true');
 
+      const savedP2p = localStorage.getItem('uv_p2p_alerts');
+      if (savedP2p !== null) setP2pAlerts(savedP2p === 'true');
+
+      const savedStaking = localStorage.getItem('uv_staking_alerts');
+      if (savedStaking !== null) setStakingAlerts(savedStaking === 'true');
+
+      const savedPopups = localStorage.getItem('uv_update_popups');
+      if (savedPopups !== null) setUpdatePopups(savedPopups === 'true');
+
+      const savedLock = localStorage.getItem('uv_auto_lock_timer') as any;
+      if (savedLock) setAutoLockTimer(savedLock);
+
+      const savedRpc = localStorage.getItem('uv_custom_rpc');
+      if (savedRpc) setCustomRpcUrl(savedRpc);
+
       isBiometricAvailable().then((res) => setBiometricsAvailable(res));
+      checkRpcHealth();
     }
   }, []);
+
+  const checkRpcHealth = async () => {
+    setIsPingingRpc(true);
+    const start = Date.now();
+    try {
+      const rpcEndpoint = customRpcUrl.trim() || 'https://mainnet.base.org';
+      const res = await fetch(rpcEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_blockNumber',
+          params: [],
+        }),
+      });
+      const data = await res.json();
+      const end = Date.now();
+      setRpcLatency(end - start);
+      if (data.result) {
+        setBlockHeight(parseInt(data.result, 16).toLocaleString());
+      }
+    } catch (e) {
+      setRpcLatency(null);
+      setBlockHeight('Offline');
+    } finally {
+      setIsPingingRpc(false);
+    }
+  };
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
@@ -69,10 +138,43 @@ export default function UserSettingsPage() {
     if (next) triggerHapticNotification('success');
   };
 
+  const toggleP2pAlerts = () => {
+    const next = !p2pAlerts;
+    setP2pAlerts(next);
+    localStorage.setItem('uv_p2p_alerts', String(next));
+    if (hapticsEnabled) triggerHapticNotification('light');
+  };
+
+  const toggleStakingAlerts = () => {
+    const next = !stakingAlerts;
+    setStakingAlerts(next);
+    localStorage.setItem('uv_staking_alerts', String(next));
+    if (hapticsEnabled) triggerHapticNotification('light');
+  };
+
+  const toggleUpdatePopups = () => {
+    const next = !updatePopups;
+    setUpdatePopups(next);
+    localStorage.setItem('uv_update_popups', String(next));
+    if (hapticsEnabled) triggerHapticNotification('light');
+  };
+
   const toggleBiometrics = () => {
     const next = !biometricsEnabled;
     setBiometricsEnabled(next);
     localStorage.setItem('uv_biometrics_enabled', String(next));
+    if (hapticsEnabled) triggerHapticNotification('success');
+  };
+
+  const handleAutoLockChange = (timer: 'immediate' | '5min' | '15min' | 'never') => {
+    setAutoLockTimer(timer);
+    localStorage.setItem('uv_auto_lock_timer', timer);
+    if (hapticsEnabled) triggerHapticNotification('light');
+  };
+
+  const handleSaveCustomRpc = () => {
+    localStorage.setItem('uv_custom_rpc', customRpcUrl);
+    checkRpcHealth();
     if (hapticsEnabled) triggerHapticNotification('success');
   };
 
@@ -108,22 +210,153 @@ export default function UserSettingsPage() {
             Settings & Preferences
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Customize your display, alerts, security, and application experience.
+            Configure your notifications, security, themes, network RPC and system preferences.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* Appearance & Theme Card */}
+        {/* 1. Notification Preferences Card */}
+        <div className="bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
+          <div className="flex items-center gap-2.5">
+            <Bell className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
+              Notification Preferences
+            </h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Manage real-time push alerts and automatic trade updates.
+          </p>
+
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
+              <div>
+                <span className="text-xs font-bold text-foreground block">
+                  P2P Trade & Escrow Alerts
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Instant alerts when orders match or payment is received
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleP2pAlerts}
+                className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
+                  p2pAlerts ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-black shadow-md" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
+              <div>
+                <span className="text-xs font-bold text-foreground block">
+                  Staking & Rewards Alerts
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Notify when weekly staking yields are distributed
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleStakingAlerts}
+                className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
+                  stakingAlerts ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-black shadow-md" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
+              <div>
+                <span className="text-xs font-bold text-foreground block">App Update Popups</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Show in-app update prompts when new APK is live
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleUpdatePopups}
+                className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
+                  updatePopups ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-black shadow-md" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Security & Biometrics Card */}
+        <div className="bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
+          <div className="flex items-center gap-2.5">
+            <Fingerprint className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
+            <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
+              Security & Biometrics
+            </h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Protect wallet authorizations and release crypto with device biometrics.
+          </p>
+
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
+              <div>
+                <span className="text-xs font-bold text-foreground block">
+                  Fingerprint / Face Unlock
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {biometricsAvailable ? 'Biometric sensor ready' : 'Device authentication active'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleBiometrics}
+                className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
+                  biometricsEnabled ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-black shadow-md" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-background border border-border-subtle space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                <Timer className="w-4 h-4 text-muted-foreground" />
+                <span>Auto-Lock App Timer</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {(['immediate', '5min', '15min', 'never'] as const).map((time) => (
+                  <button
+                    key={time}
+                    type="button"
+                    onClick={() => handleAutoLockChange(time)}
+                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all ${
+                      autoLockTimer === time
+                        ? 'bg-[#BFFF00] text-black border-black shadow-[2px_2px_0_#000]'
+                        : 'bg-card text-muted-foreground border-border-subtle hover:text-foreground'
+                    }`}
+                  >
+                    {time === 'immediate' ? 'Now' : time === 'never' ? 'Off' : time}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Appearance & Audio Card */}
         <div className="bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
           <div className="flex items-center gap-2.5">
             <Sun className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
             <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
-              Display & Theme Mode
+              Appearance & Audio
             </h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            Choose your preferred color theme. Changes sync instantly across the app.
+            Switch theme palettes and sound/vibration feedback.
           </p>
 
           <div className="grid grid-cols-3 gap-2 pt-1">
@@ -166,140 +399,167 @@ export default function UserSettingsPage() {
               <span className="text-xs">System</span>
             </button>
           </div>
-        </div>
 
-        {/* Audio & Haptic Feedback */}
-        <div className="bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
-          <div className="flex items-center gap-2.5">
-            <Volume2 className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
-            <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
-              Sound & Vibrations
-            </h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Configure sound effects and tactile feedback for trading & wallet actions.
-          </p>
-
-          <div className="space-y-3 pt-1">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
-              <div>
-                <span className="text-xs font-bold text-foreground block">Notification Sound</span>
-                <span className="text-[10px] text-muted-foreground">
-                  Play tone on P2P orders & updates
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={toggleSound}
-                className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
-                  soundEnabled ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
-                }`}
-              >
-                <div className="w-5 h-5 rounded-full bg-black shadow-md" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
-              <div>
-                <span className="text-xs font-bold text-foreground block">Haptic Vibration</span>
-                <span className="text-[10px] text-muted-foreground">
-                  Vibrate on button taps & actions
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={toggleHaptics}
-                className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
-                  hapticsEnabled ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
-                }`}
-              >
-                <div className="w-5 h-5 rounded-full bg-black shadow-md" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Security & Biometrics */}
-        <div className="bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
-          <div className="flex items-center gap-2.5">
-            <Fingerprint className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
-            <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
-              Security & Biometrics
-            </h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Protect your transactions with device biometric verification.
-          </p>
-
-          <div className="p-3 rounded-xl bg-background border border-border-subtle flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-foreground block">Fingerprint / Face ID</span>
-              <span className="text-[10px] text-muted-foreground">
-                {biometricsAvailable
-                  ? 'Hardware biometric sensor ready'
-                  : 'Device biometric authentication active'}
-              </span>
-            </div>
+          <div className="grid grid-cols-2 gap-2 pt-2">
             <button
               type="button"
-              onClick={toggleBiometrics}
-              className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${
-                biometricsEnabled ? 'bg-[#BFFF00] justify-end' : 'bg-muted justify-start'
+              onClick={toggleSound}
+              className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all ${
+                soundEnabled
+                  ? 'bg-[#BFFF00]/15 border-[#BFFF00]/40 text-[#5f8f00] dark:text-[#BFFF00]'
+                  : 'bg-background border-border-subtle text-muted-foreground'
               }`}
             >
-              <div className="w-5 h-5 rounded-full bg-black shadow-md" />
+              <span>Audio Chimes</span>
+              <Volume2 className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleHaptics}
+              className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all ${
+                hapticsEnabled
+                  ? 'bg-[#BFFF00]/15 border-[#BFFF00]/40 text-[#5f8f00] dark:text-[#BFFF00]'
+                  : 'bg-background border-border-subtle text-muted-foreground'
+              }`}
+            >
+              <span>Haptic Vibe</span>
+              <Radio className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* App Version & Updates */}
+        {/* 4. Network & RPC Settings Card */}
         <div className="bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Network className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
+              <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
+                Network & RPC
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={checkRpcHealth}
+              disabled={isPingingRpc}
+              className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Ping RPC"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isPingingRpc ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Live connectivity status on Base Mainnet (Chain ID 8453).
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-3 rounded-xl bg-background border border-border-subtle">
+              <span className="text-[10px] text-muted-foreground uppercase block font-bold">
+                Latency
+              </span>
+              <span className="text-xs font-black text-[#5f8f00] dark:text-[#BFFF00]">
+                {rpcLatency !== null ? `${rpcLatency} ms` : 'Checking...'}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-background border border-border-subtle">
+              <span className="text-[10px] text-muted-foreground uppercase block font-bold">
+                Block Height
+              </span>
+              <span className="text-xs font-black text-foreground font-mono">#{blockHeight}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <label className="text-[11px] font-bold text-foreground block">
+              Custom Base RPC URL (Optional)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="https://mainnet.base.org"
+                value={customRpcUrl}
+                onChange={(e) => setCustomRpcUrl(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl bg-background border border-border-subtle text-xs font-mono text-foreground focus:outline-none focus:border-black dark:focus:border-white"
+              />
+              <button
+                type="button"
+                onClick={handleSaveCustomRpc}
+                className="px-3.5 py-2 rounded-xl bg-[#BFFF00] text-black font-bold text-xs border border-black shadow-[2px_2px_0_#000]"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. App Info & Version Updates (Full Width) */}
+        <div className="md:col-span-2 bg-card p-5 sm:p-6 rounded-2xl border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] space-y-4">
           <div className="flex items-center gap-2.5">
             <Smartphone className="w-5 h-5 text-[#5f8f00] dark:text-[#BFFF00]" />
             <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
-              App Version & System
+              App Info, Version & Maintenance
             </h2>
           </div>
-          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border-subtle">
+
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-background border border-border-subtle">
             <div>
-              <span className="text-xs font-bold text-foreground block">Current Version</span>
-              <span className="text-[10px] font-mono text-muted-foreground">
-                Release: v{CURRENT_APP_VERSION} (Base Mainnet)
+              <span className="text-sm font-bold text-foreground block">
+                UnifyVault Decentralized Suite
+              </span>
+              <span className="text-xs font-mono text-muted-foreground">
+                App Version: v{CURRENT_APP_VERSION} • Production Release (Base Mainnet)
               </span>
             </div>
-            <button
-              type="button"
-              onClick={triggerUpdateModal}
-              className="px-3.5 py-2 rounded-xl bg-[#BFFF00] text-black font-black text-xs border border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Check Updates</span>
-            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={triggerUpdateModal}
+                className="px-4 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border border-black shadow-[2px_2px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-1.5"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Check for Updates</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <button
-              type="button"
-              onClick={handleClearCache}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-subtle text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              {cacheCleared ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#5f8f00]" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-              <span>{cacheCleared ? 'Cache Cleared!' : 'Clear App Cache'}</span>
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearCache}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-border-subtle text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                {cacheCleared ? (
+                  <CheckCircle2 className="w-4 h-4 text-[#5f8f00]" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>{cacheCleared ? 'Cache Cleaned Successfully!' : 'Clear App Cache'}</span>
+              </button>
+            </div>
 
-            <a
-              href="https://t.me/UVBE_bot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0088cc]/15 text-[#0088cc] border border-[#0088cc]/30 text-xs font-bold hover:bg-[#0088cc]/25 transition-colors"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>@UVBE_bot</span>
-            </a>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://t.me/UVBE_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#0088cc]/15 text-[#0088cc] border border-[#0088cc]/30 text-xs font-bold hover:bg-[#0088cc]/25 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+                <span>Telegram Bot (@UVBE_bot)</span>
+              </a>
+
+              <a
+                href="https://docs.unifyvault.xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface border border-border-subtle text-xs font-bold text-foreground hover:bg-muted transition-colors"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Official Docs</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
