@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.5.5",
+  "latestVersion": "2.5.6",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.5/UnifyVault-v2.5.5.apk",
-  "sha256": "ed8bb777a0a05e8d3869d5ad7e6d9d7e2fc9b34cf117fd798d44caf8df86cc98",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.6/UnifyVault-v2.5.6.apk",
+  "sha256": "4ce3032cb763afc11e68696f74bf120c4603a4b179f55fde8061455a4eca9733",
   "releaseNotes": [
-    "[🐛 Fix] P2P: update telegram bot url to https://t.me/UVBE_bot",
-    "Verified APK SHA-256: ed8bb777a0a05e8d3869d5ad7e6d9d7e2fc9b34cf117fd798d44caf8df86cc98"
+    "[✨ Feature] add p2p event watcher, keeper watchdog & biometric haptics",
+    "Verified APK SHA-256: 4ce3032cb763afc11e68696f74bf120c4603a4b179f55fde8061455a4eca9733"
   ]
 }
