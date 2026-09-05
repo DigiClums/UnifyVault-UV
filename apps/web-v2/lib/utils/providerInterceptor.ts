@@ -166,6 +166,27 @@ function proxyProvider(provider: ProviderProxy, providerName: string): ProviderP
         };
       }
 
+      if (prop === 'on' || prop === 'addListener') {
+        return (event: string, listener: (...args: any[]) => void) => {
+          if (event === 'accountsChanged' && typeof listener === 'function') {
+            const wrappedListener = (accounts: any) => {
+              if (Array.isArray(accounts)) {
+                const sanitizedAccounts = accounts.filter(
+                  (a) => typeof a === 'string' && a.startsWith('0x') && a.length === 42,
+                );
+                return listener(sanitizedAccounts);
+              }
+              return listener(accounts || []);
+            };
+            return (target as any)[prop](event, wrappedListener);
+          }
+          const origMethod = (target as any)[prop];
+          if (typeof origMethod === 'function') {
+            return origMethod.bind(target)(event, listener);
+          }
+        };
+      }
+
       const value = Reflect.get(target, prop, receiver);
       if (typeof value === 'function') {
         return value.bind(target);

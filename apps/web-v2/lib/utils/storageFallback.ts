@@ -174,7 +174,7 @@ export function setupWalletConnectGuard(): void {
     // Ignore storage access errors in restricted environments
   }
 
-  // 2. Intercept unhandled promise rejections related to WalletConnect relay / subscription errors
+  // 2. Intercept unhandled promise rejections related to WalletConnect relay or inpage wallet address conversion
   window.addEventListener('unhandledrejection', (event) => {
     const reasonStr = String(event?.reason?.message || event?.reason || '');
     const isWcRelayerError =
@@ -183,6 +183,8 @@ export function setupWalletConnectGuard(): void {
       reasonStr.includes('RESTORE_WILL_OVERRIDE') ||
       reasonStr.includes('relay.walletconnect.org') ||
       reasonStr.includes('relay.walletconnect.com') ||
+      reasonStr.includes('InvalidAddressError') ||
+      reasonStr.includes('Address "undefined" is invalid') ||
       (reasonStr.includes('ERR_NAME_NOT_RESOLVED') &&
         (reasonStr.includes('walletconnect') || reasonStr.includes('relay')));
 
