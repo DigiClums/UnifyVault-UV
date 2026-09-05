@@ -1,8 +1,22 @@
 import 'dotenv/config';
 import { Telegraf, Markup } from 'telegraf';
 import { isAddress } from 'viem';
-import { fetchLiveUserData, fetchTxStatus, fetchProtocolMetrics, CONTRACTS } from './blockchain';
-import { getLinkedWallet, linkWallet, unlinkWallet, registerUser, getAllUsers } from './storage';
+import {
+  fetchLiveUserData,
+  fetchTxStatus,
+  fetchProtocolMetrics,
+  fetchP2PTrade,
+  CONTRACTS,
+} from './blockchain';
+import {
+  getLinkedWallet,
+  linkWallet,
+  unlinkWallet,
+  registerUser,
+  getAllUsers,
+  getUserByWallet,
+  setP2PAlerts,
+} from './storage';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.ADMIN_CHAT_ID || '2079720192';
@@ -627,13 +641,26 @@ bot.command('broadcast', async (ctx) => {
 
 // P2P Escrow Info Action & Command
 async function handleP2P(ctx: any) {
+  const userId = ctx.from?.id;
+  const linked = userId ? getLinkedWallet(userId) : null;
+
+  let userStatusText = '';
+  if (linked) {
+    userStatusText = `\n👤 *Your Linked Wallet:* \`${linked.slice(0, 6)}...${linked.slice(-4)}\`\n🔔 *Trade Alerts:* Active ✅ (Instant Telegram notifications enabled)`;
+  } else {
+    userStatusText = `\n⚠️ *Alerts Disabled:* Link your wallet with \`/link 0xAddress\` to receive instant trade notifications!`;
+  }
+
   return ctx.reply(
     `🤝 *UnifyVault P2P Fiat & Crypto Escrow (Base Mainnet)*\n\n` +
       `• Decentralized P2P On/Off-Ramp on Base\n` +
       `• Instant Smart Account & Paymaster Gasless Releases\n` +
-      `• On-Chain Proof-of-Payment Verification\n` +
-      `• Contract Address: \`${CONTRACTS.P2PEscrow}\`\n\n` +
-      `Trade directly peer-to-peer with zero centralized custody:`,
+      `• Real-time Telegram Alerts for Orders & Payments\n` +
+      `• Contract Address: \`${CONTRACTS.P2PEscrow}\`\n` +
+      userStatusText +
+      `\n\nCommands:\n` +
+      `• \`/order <id>\` - Check live status of an escrow trade\n` +
+      `• \`/p2p_alerts on/off\` - Toggle Telegram trade notifications`,
     {
       parse_mode: 'Markdown',
       link_preview_options: { is_disabled: true },
@@ -656,6 +683,89 @@ bot.action('p2p_info', async (ctx) => {
 });
 bot.command('p2p', handleP2P);
 bot.command('escrow', handleP2P);
+
+// P2P Single Order Status Lookup: /order <id>
+bot.command('order', async (ctx) => {
+  const args = ctx.message.text.trim().split(/\s+/);
+  if (args.length < 2) {
+    return ctx.reply('ℹ️ Usage: `/order <tradeId>` (e.g. `/order 1`)', { parse_mode: 'Markdown' });
+  }
+
+  const tradeIdStr = args[1].trim();
+  const tradeId = parseInt(tradeIdStr, 10);
+  if (isNaN(tradeId) || tradeId < 0) {
+    return ctx.reply('❌ Invalid Trade ID. Please enter a valid numerical ID.');
+  }
+
+  const statusMsg = await ctx.reply(
+    `🔍 Fetching P2P Escrow Trade #${tradeId} from Base Mainnet...`,
+  );
+
+  try {
+    const trade = await fetchP2PTrade(tradeId);
+    if (!trade) {
+      return ctx.reply(`❌ Escrow Trade #${tradeId} not found on Base Mainnet contract.`);
+    }
+
+    const buyerShort = `${trade.buyer.slice(0, 6)}...${trade.buyer.slice(-4)}`;
+    const sellerShort = `${trade.seller.slice(0, 6)}...${trade.seller.slice(-4)}`;
+
+    return ctx.reply(
+      `🤝 *UnifyVault P2P Escrow Trade #${trade.tradeId}*\n\n` +
+        `• Status: *${trade.stateLabel}*\n` +
+        `• Crypto Amount: *${trade.amount} UVBE*\n` +
+        `• Fiat Amount: *${trade.fiatAmount} ${trade.fiatCurrency}*\n` +
+        `• Payment Window: *${trade.paymentWindowMinutes} Minutes*\n\n` +
+        `👤 *Buyer:* \`${trade.buyer}\`\n` +
+        `🏪 *Seller:* \`${trade.seller}\`\n\n` +
+        `[Open Order in P2P App](https://unifyvault.xyz/p2p)`,
+      {
+        parse_mode: 'Markdown',
+        link_preview_options: { is_disabled: true },
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('🚀 Open P2P Portal', 'https://unifyvault.xyz/p2p')],
+          [
+            Markup.button.url(
+              '🔍 BaseScan Contract',
+              `https://basescan.org/address/${CONTRACTS.P2PEscrow}`,
+            ),
+          ],
+        ]),
+      },
+    );
+  } catch (err: any) {
+    return ctx.reply(`❌ Error checking trade: ${err.message || 'RPC Error'}`);
+  }
+});
+
+// P2P Alert Notification Toggle: /p2p_alerts on/off
+bot.command('p2p_alerts', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  const args = ctx.message.text.trim().split(/\s+/);
+  if (args.length < 2) {
+    return ctx.reply('ℹ️ Usage: `/p2p_alerts on` or `/p2p_alerts off`', { parse_mode: 'Markdown' });
+  }
+
+  const choice = args[1].trim().toLowerCase();
+  if (choice === 'on' || choice === 'enable') {
+    setP2PAlerts(userId, true);
+    return ctx.reply(
+      '✅ *P2P Telegram Trade Alerts are now ENABLED!*\nYou will receive instant messages when your orders are matched, paid, or released.',
+      { parse_mode: 'Markdown' },
+    );
+  } else if (choice === 'off' || choice === 'disable') {
+    setP2PAlerts(userId, false);
+    return ctx.reply('🔕 *P2P Telegram Trade Alerts are now DISABLED.*', {
+      parse_mode: 'Markdown',
+    });
+  } else {
+    return ctx.reply('ℹ️ Please specify `on` or `off`. Example: `/p2p_alerts on`', {
+      parse_mode: 'Markdown',
+    });
+  }
+});
 
 bot.action('casino', async (ctx) => {
   await ctx.answerCbQuery();
@@ -722,6 +832,8 @@ bot.help((ctx) => {
       `/balance - View live ETH, UVBE & staked balances\n` +
       `/stake - View live staking status & APY\n` +
       `/p2p - P2P decentralized escrow info\n` +
+      `/order <id> - Inspect live status of P2P Trade #ID\n` +
+      `/p2p_alerts <on/off> - Toggle trade alerts on Telegram\n` +
       `/team - View your rank & referral volume\n` +
       `/tx <hash> - Check Base transaction confirmation\n` +
       `/wallet - Wallet settings\n` +
