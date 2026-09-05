@@ -130,7 +130,7 @@ export default function P2PPage() {
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <a
-            href="https://t.me/UnifyVault_bot"
+            href="https://t.me/UVBE_bot"
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 sm:flex-none px-4 py-3 rounded-xl bg-surface hover:bg-muted text-foreground font-bold text-xs border-2 border-black dark:border-white/10 shadow-[4px_4px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px]"
