@@ -1,12 +1,12 @@
 {
-  "latestVersion": "2.4.6",
+  "latestVersion": "2.1.0-staking-fix",
   "minimumVersion": "1.0.0",
   "mandatory": false,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.6/UnifyVault-v2.4.6.apk",
-  "sha256": "898398e93fa1b6de9722368424e91a250aa0213bcadb48d9210fefc09cfc1b7a",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.1.0-staking-fix/UnifyVault-v2.1.0-staking-fix.apk",
+  "sha256": "09d893515a56a71283d8efb8ca9c5541706d84486c380e92544c7e17c4a2e44e",
   "releaseNotes": [
-    "Production Release v2.4.6",
+    "Production Release v2.1.0-staking-fix",
     "Performance improvements & security updates",
-    "Verified APK SHA-256: 898398e93fa1b6de9722368424e91a250aa0213bcadb48d9210fefc09cfc1b7a"
+    "Verified APK SHA-256: 09d893515a56a71283d8efb8ca9c5541706d84486c380e92544c7e17c4a2e44e"
   ]
 }
