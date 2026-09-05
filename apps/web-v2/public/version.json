@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.5.6",
+  "latestVersion": "2.5.7",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.6/UnifyVault-v2.5.6.apk",
-  "sha256": "4ce3032cb763afc11e68696f74bf120c4603a4b179f55fde8061455a4eca9733",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.7/UnifyVault-v2.5.7.apk",
+  "sha256": "a032d7804daf00df7728cb415008a0dec8ee6ccad05f2847e6b7d54f41161a78",
   "releaseNotes": [
-    "[✨ Feature] add p2p event watcher, keeper watchdog & biometric haptics",
-    "Verified APK SHA-256: 4ce3032cb763afc11e68696f74bf120c4603a4b179f55fde8061455a4eca9733"
+    "[✨ Feature] SETTINGS: add dedicated user settings page, consolidate theme & update controls",
+    "Verified APK SHA-256: a032d7804daf00df7728cb415008a0dec8ee6ccad05f2847e6b7d54f41161a78"
   ]
 }
