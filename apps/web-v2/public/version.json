@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.5.0",
+  "latestVersion": "2.5.1",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.0/UnifyVault-v2.5.0.apk",
-  "sha256": "ceb3cdb3a0d261540550a709468041111bad8177052acfe92937fdc361d61128",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.1/UnifyVault-v2.5.1.apk",
+  "sha256": "c5a35751714b8d133f8f4dc1d4b1b4ff2dbd442d2f5caa350ca044b3a7b48993",
   "releaseNotes": [
-    "[✨ Feature] CI: generate dynamic release notes and changelog from git commits for in-app updates",
-    "Verified APK SHA-256: ceb3cdb3a0d261540550a709468041111bad8177052acfe92937fdc361d61128"
+    "[🐛 Fix] ANDROID: make status bar transparent with visible white icons on notch devices",
+    "Verified APK SHA-256: c5a35751714b8d133f8f4dc1d4b1b4ff2dbd442d2f5caa350ca044b3a7b48993"
   ]
 }
