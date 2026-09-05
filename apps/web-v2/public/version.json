@@ -1,13 +1,13 @@
 {
-  "latestVersion": "2.4.0",
+  "latestVersion": "2.4.7",
   "minimumVersion": "1.0.0",
-  "mandatory": false,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.0/app-release.apk",
+  "mandatory": true,
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.4.7/app-release.apk",
   "iosStoreUrl": "",
   "releaseNotes": [
-    "🚀 Production Release v2.4.0",
-    "🔒 Fresh Canonical Stack Deployment (16 Contracts, 55 Verified Steps on Base Mainnet)",
-    "📈 Options Protocol Architecture & Dynamic Indexing Integration",
-    "⚡ Fully Synchronized Protocol Directory & Multi-Asset Custody Vault"
+    "🚀 Production Release v2.4.7",
+    "🔒 Verified Base Mainnet Staking Trio (Vault 0x625a, Registry 0x5d48, Distributor 0xb8c5)",
+    "📈 600% Dynamic APY cap & Hard Solvency Bounds",
+    "⚡ 2x/3x Lifetime Payout Cap & 1% DAO Leadership Pool"
   ]
 }
