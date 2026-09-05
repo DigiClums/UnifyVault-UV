@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.5.2",
+  "latestVersion": "2.5.3",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.2/UnifyVault-v2.5.2.apk",
-  "sha256": "6980355cfcfbb4171a879d148e216982b1a705daf509afa3399be26e6fdb7a80",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.3/UnifyVault-v2.5.3.apk",
+  "sha256": "0d99e9a5468973726ec31df9241864d88d3cedfc8c44877e705ac9a5e75d960c",
   "releaseNotes": [
-    "[🐛 Fix] ANDROID: dynamic status bar icon contrast on light and dark theme toggle",
-    "Verified APK SHA-256: 6980355cfcfbb4171a879d148e216982b1a705daf509afa3399be26e6fdb7a80"
+    "[✨ Feature] NOTIFICATIONS: add multi-channel P2P, TX alerts, deep-linking and direct update actions",
+    "Verified APK SHA-256: 0d99e9a5468973726ec31df9241864d88d3cedfc8c44877e705ac9a5e75d960c"
   ]
 }
