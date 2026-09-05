@@ -263,29 +263,84 @@ jobs:
 
           echo "Updating version descriptor on canonical branch 'main' for release: $CANONICAL_TAG"
 
+          # Extract commit history since previous tag for dynamic What's New notes
+          PREV_TAG=$(git describe --tags --abbrev=0 "${CANONICAL_TAG}^" 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            echo "Extracting dynamic changelog between $PREV_TAG and $CANONICAL_TAG..."
+            RAW_COMMITS=$(git log "${PREV_TAG}..HEAD" --no-merges --pretty=format:"%s" || true)
+          else
+            echo "No previous tag found. Extracting recent commits..."
+            RAW_COMMITS=$(git log -n 10 --no-merges --pretty=format:"%s" || true)
+          fi
+
+          export RAW_COMMITS
+          export DOWNLOAD_URL
+          export APK_CHECKSUM
+          export V_NAME
+
           WORKDIR=$(mktemp -d)
           git clone --depth 1 --branch main "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" "$WORKDIR"
 
-          node -e "
-            const fs = require('fs');
-            const path = '$WORKDIR/apps/web-v2/public/version.json';
-            let current = {};
-            try { current = JSON.parse(fs.readFileSync(path, 'utf8')); } catch (e) {}
-            const updated = {
-              latestVersion: '$V_NAME',
-              minimumVersion: current.minimumVersion || '1.0.0',
-              mandatory: Boolean(current.mandatory),
-              downloadUrl: '$DOWNLOAD_URL',
-              sha256: '$APK_CHECKSUM',
-              releaseNotes: [
-                'Production Release v$V_NAME',
-                'Performance improvements & security updates',
-                'Verified APK SHA-256: $APK_CHECKSUM'
-              ]
-            };
-            fs.writeFileSync(path, JSON.stringify(updated, null, 2) + '\n');
-          "
+          node -e '
+            const fs = require("fs");
+            const rawCommits = process.env.RAW_COMMITS || "";
+            const vName = process.env.V_NAME;
+            const downloadUrl = process.env.DOWNLOAD_URL;
+            const apkChecksum = process.env.APK_CHECKSUM;
+            const path = "'"$WORKDIR"'/apps/web-v2/public/version.json";
 
+            let current = {};
+            try { current = JSON.parse(fs.readFileSync(path, "utf8")); } catch (e) {}
+
+            // Parse and format commit messages nicely
+            const lines = rawCommits.split("\n").map(l => l.trim()).filter(Boolean);
+            const notes = [];
+
+            for (const line of lines) {
+              // Ignore release commits or internal merges
+              if (/^chore\(release\)|^Merge/i.test(line)) continue;
+
+              let formatted = line;
+              // Format conventional commits nicely
+              formatted = formatted.replace(/^(feat|fix|perf|refactor|docs|style|chore)(\([^)]+\))?:\s*/i, (match, type, scope) => {
+                const scopeStr = scope ? scope.replace(/[()]/g, "").toUpperCase() + ": " : "";
+                const typeMap = {
+                  feat: "✨ Feature",
+                  fix: "🐛 Fix",
+                  perf: "⚡ Performance",
+                  refactor: "♻️ Update",
+                  docs: "📝 Docs"
+                };
+                const prefix = typeMap[type.toLowerCase()] || (type.charAt(0).toUpperCase() + type.slice(1));
+                return `[${prefix}] ${scopeStr}`;
+              });
+
+              if (formatted && !notes.includes(formatted)) {
+                notes.push(formatted);
+              }
+            }
+
+            // Fallback if no specific commits were found
+            if (notes.length === 0) {
+              notes.push("Performance improvements, stability & security updates");
+            }
+
+            // Append verified APK SHA-256 for integrity check
+            if (apkChecksum) {
+              notes.push(`Verified APK SHA-256: ${apkChecksum}`);
+            }
+
+            const updated = {
+              latestVersion: vName,
+              minimumVersion: current.minimumVersion || "1.0.0",
+              mandatory: Boolean(current.mandatory),
+              downloadUrl: downloadUrl,
+              sha256: apkChecksum,
+              releaseNotes: notes
+            };
+
+            fs.writeFileSync(path, JSON.stringify(updated, null, 2) + "\n");
+          '
           echo "Descriptor updated: version=$V_NAME, tag=$CANONICAL_TAG, sha256=$APK_CHECKSUM"
 
           cd "$WORKDIR"
