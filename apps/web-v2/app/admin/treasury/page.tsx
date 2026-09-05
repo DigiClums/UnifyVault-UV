@@ -392,7 +392,7 @@ export default function AdminTreasuryPage() {
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAssetSupported) {
+    if (isAssetSupported === false) {
       await handleRegisterAsset();
       return;
     }
@@ -412,6 +412,13 @@ export default function AdminTreasuryPage() {
   const getFriendlyErrorMessage = (err: unknown): string => {
     if (!err) return '';
     console.error('[Developer Logs - Treasury Error]:', err);
+    if (typeof err === 'object' && err !== null) {
+      const e = err as { shortMessage?: string; message?: string; name?: string };
+      if (e.shortMessage?.includes('User rejected') || e.message?.includes('User rejected')) {
+        return 'Transaction signature rejected in wallet.';
+      }
+      if (e.shortMessage) return e.shortMessage;
+    }
     return 'Treasury withdrawal is currently unavailable or requires authorized Admin Role permission.';
   };
 

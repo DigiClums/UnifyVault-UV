@@ -262,7 +262,7 @@ contract UVBEProtocolOwnedCapitalStakingTest is Test {
     // Rate is immediately positive from Alice's protocol capital
     uint256 apy = distributor.getCurrentAnnualBps();
     assertGt(apy, 0, 'First stake immediately enables positive APY without external funding');
-    assertEq(apy, 9000, 'Expected 90.00% APY');
+    assertEq(apy, 9400, 'Expected 94.00% APY');
   }
 
   // 12. Dynamic APY uses actual Vault balance

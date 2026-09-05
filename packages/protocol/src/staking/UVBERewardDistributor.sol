@@ -18,7 +18,7 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
   uint256 public constant BPS_DENOMINATOR = 10_000;
   uint256 public constant override MAX_RECURRING_ANNUAL_BPS = 60_000; // 600.00% maximum annual APY ceiling
   uint256 public constant SECONDS_PER_YEAR = 31_536_000; // 365 days
-  uint256 public constant DAO_POOL_BPS = 500; // 5.00% to DAO leadership pool
+  uint256 public constant DAO_POOL_BPS = 100; // 1.00% to DAO leadership pool
   uint256 public constant NON_REFERRAL_MAX_CAP_MULTIPLIER = 2; // 2x lifetime earnings cap for stakers with 0 active directs
   uint256 public constant REFERRAL_MAX_CAP_MULTIPLIER = 3; // 3x lifetime earnings cap for stakers with >=1 active directs
   uint256 public constant DAO_CYCLE_DURATION = 30 days;
@@ -170,20 +170,23 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
     if (isRestake) return;
 
     // 3. Check total commission demand against available protocol capital in vault
-    uint256 maxPossibleDemand = (amount * 1700) / BPS_DENOMINATOR; // 12% generations + 5% DAO = 17%
+    // Max demand: 12% generations (1200 BPS) + 1% DAO (100 BPS) = 13% (1300 BPS)
+    uint256 maxPossibleDemand = (amount * 1300) / BPS_DENOMINATOR;
     uint256 availableCapital = IUVBEStakingVault(vault).getAvailableProtocolCapital();
 
     if (_totalOutstandingLiabilities + maxPossibleDemand > availableCapital) {
       emit SolvencyWarning(_totalOutstandingLiabilities + maxPossibleDemand, availableCapital);
-      // Limit accrual to available solvency
+      // Hard Solvency Guard: Never create liabilities beyond available backing capital
       if (_totalOutstandingLiabilities >= availableCapital) return;
     }
 
     // 4. Fund DAO Leadership Pool (1.00%)
     uint256 daoAmount = (amount * DAO_POOL_BPS) / BPS_DENOMINATOR;
-    _currentEpochPoolAmount += daoAmount;
-    _totalOutstandingLiabilities += daoAmount;
-    emit DaoPoolFunded(_currentEpochId, daoAmount, _currentEpochPoolAmount);
+    if (_totalOutstandingLiabilities + daoAmount <= availableCapital) {
+      _currentEpochPoolAmount += daoAmount;
+      _totalOutstandingLiabilities += daoAmount;
+      emit DaoPoolFunded(_currentEpochId, daoAmount, _currentEpochPoolAmount);
+    }
 
     // 5. Distribute 10-Generation Commissions (Gen 1 IS the 5% Direct Referral)
     address current = IUVBEReferralRegistry(registry).getReferrer(staker);
@@ -194,14 +197,25 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       uint256 commission = (amount * genBps) / BPS_DENOMINATOR;
 
       if (commission > 0 && _isQualifiedForGeneration(current, gen)) {
-        if (gen == 1) {
-          _claimableDirect[current] += commission;
-          emit DirectRewardAccrued(current, staker, commission);
-        } else {
-          _claimableGeneration[current] += commission;
-          emit GenerationRewardAccrued(current, staker, gen, commission);
+        // Enforce Global Lifetime Cap on Referrer Commissions
+        uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(current);
+        if (depositedPrincipal > 0) {
+          uint256 remainingCap = _getRemainingLifetimeCap(current, depositedPrincipal);
+          if (commission > remainingCap) {
+            commission = remainingCap;
+          }
         }
-        _totalOutstandingLiabilities += commission;
+
+        if (commission > 0 && _totalOutstandingLiabilities + commission <= availableCapital) {
+          if (gen == 1) {
+            _claimableDirect[current] += commission;
+            emit DirectRewardAccrued(current, staker, commission);
+          } else {
+            _claimableGeneration[current] += commission;
+            emit GenerationRewardAccrued(current, staker, gen, commission);
+          }
+          _totalOutstandingLiabilities += commission;
+        }
       }
 
       if (current == genesis) break;
@@ -333,6 +347,16 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
 
     // Mathematical Guarantee: sum(claims) <= poolAmount due to integer division truncation
     uint256 rewardAmount = (_daoEpochs[epochId].poolAmount * userShares) / totalShares;
+
+    // Enforce Global Lifetime Cap on DAO leadership rewards
+    uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(msg.sender);
+    if (depositedPrincipal > 0) {
+      uint256 remainingCap = _getRemainingLifetimeCap(msg.sender, depositedPrincipal);
+      if (rewardAmount > remainingCap) {
+        rewardAmount = remainingCap;
+      }
+    }
+
     if (rewardAmount > 0) {
       _claimableDao[msg.sender] += rewardAmount;
       emit DaoRewardClaimed(msg.sender, epochId, rewardAmount);
@@ -409,24 +433,9 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
         if (pending > 0 && registry != address(0)) {
           uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(user);
           if (depositedPrincipal > 0) {
-            bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(user);
-            uint256 multiplier =
-              is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
-            uint256 maxEarnings = depositedPrincipal * multiplier;
-
-            uint256 totalEarnedSoFar =
-              _claimableRecurring[user] +
-                _claimableDirect[user] +
-                _claimableGeneration[user] +
-                _claimableRank[user] +
-                _claimableDao[user] +
-                _totalClaimed[user] +
-                _totalRestaked[user];
-
-            if (totalEarnedSoFar >= maxEarnings) {
-              pending = 0;
-            } else if (totalEarnedSoFar + pending > maxEarnings) {
-              pending = maxEarnings - totalEarnedSoFar;
+            uint256 remainingCap = _getRemainingLifetimeCap(user, depositedPrincipal);
+            if (pending > remainingCap) {
+              pending = remainingCap;
             }
           }
         }
@@ -492,24 +501,9 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
               currentDeposited >= addedPrincipal ? currentDeposited - addedPrincipal : 0;
 
             if (preDeposited > 0) {
-              bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(staker);
-              uint256 multiplier =
-                is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
-              uint256 maxEarnings = preDeposited * multiplier;
-
-              uint256 totalEarnedSoFar =
-                _claimableRecurring[staker] +
-                  _claimableDirect[staker] +
-                  _claimableGeneration[staker] +
-                  _claimableRank[staker] +
-                  _claimableDao[staker] +
-                  _totalClaimed[staker] +
-                  _totalRestaked[staker];
-
-              if (totalEarnedSoFar >= maxEarnings) {
-                pending = 0;
-              } else if (totalEarnedSoFar + pending > maxEarnings) {
-                pending = maxEarnings - totalEarnedSoFar;
+              uint256 remainingCap = _getRemainingLifetimeCap(staker, preDeposited);
+              if (pending > remainingCap) {
+                pending = remainingCap;
               }
             }
           }
@@ -654,6 +648,28 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       _claimableDao[user];
   }
 
+  function _getUserEarnedToDate(address user) internal view returns (uint256) {
+    return _getTotalClaimable(user) + _totalClaimed[user] + _totalRestaked[user];
+  }
+
+  function _getRemainingLifetimeCap(
+    address user,
+    uint256 depositedPrincipal
+  ) internal view returns (uint256) {
+    if (user == address(0) || registry == address(0) || depositedPrincipal == 0) return 0;
+
+    bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(user);
+    uint256 multiplier =
+      is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
+    uint256 maxEarnings = depositedPrincipal * multiplier;
+
+    uint256 earnedSoFar = _getUserEarnedToDate(user);
+    if (earnedSoFar >= maxEarnings) {
+      return 0;
+    }
+    return maxEarnings - earnedSoFar;
+  }
+
   // --- Internal MLM Rate & Qualification Helpers ---
 
   function _getGenerationBps(uint8 gen) internal pure returns (uint256) {
@@ -727,24 +743,9 @@ contract UVBERewardDistributor is IUVBERewardDistributor, AccessControl, Reentra
       if (pending > 0 && registry != address(0)) {
         uint256 depositedPrincipal = IUVBEStakingVault(vault).getTotalDepositedPrincipal(user);
         if (depositedPrincipal > 0) {
-          bool is3xQualified = IUVBEReferralRegistry(registry).hasUnlocked3x(user);
-          uint256 multiplier =
-            is3xQualified ? REFERRAL_MAX_CAP_MULTIPLIER : NON_REFERRAL_MAX_CAP_MULTIPLIER;
-          uint256 maxEarnings = depositedPrincipal * multiplier;
-
-          uint256 totalEarnedSoFar =
-            _claimableRecurring[user] +
-              _claimableDirect[user] +
-              _claimableGeneration[user] +
-              _claimableRank[user] +
-              _claimableDao[user] +
-              _totalClaimed[user] +
-              _totalRestaked[user];
-
-          if (totalEarnedSoFar >= maxEarnings) {
-            return 0;
-          } else if (totalEarnedSoFar + pending > maxEarnings) {
-            return maxEarnings - totalEarnedSoFar;
+          uint256 remainingCap = _getRemainingLifetimeCap(user, depositedPrincipal);
+          if (pending > remainingCap) {
+            return remainingCap;
           }
         }
       }

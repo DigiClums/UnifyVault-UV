@@ -93,18 +93,18 @@ contract UVBEDaoDistributionInvariantTest is Test {
 
   function test_DaoInvariant_SumOfClaimsNeverExceedsPoolAmount() public {
     // 1. Qualify Platinum (Rank 4: net >= 1,000 personal, 5 directs, net >= 50,000 team volume) -> 1 share
-    // Gross: 1,200 personal (1,140 net), 5 directs * 12,000 gross (57,000 net team vol)
-    _qualifyLeader(platinumLeader, 1_200 * 1e18, 5, 12_000 * 1e18);
+    // Gross: 20,000 personal (19,000 net -> 57,000 3x cap), 5 directs * 12,000 gross (57,000 net team vol)
+    _qualifyLeader(platinumLeader, 20_000 * 1e18, 5, 12_000 * 1e18);
     assertEq(registry.getRank(platinumLeader), 4);
 
     // 2. Qualify Diamond (Rank 5: net >= 2,500 personal, 7 directs, net >= 150,000 team volume) -> 3 shares
-    // Gross: 3,000 personal (2,850 net), 7 directs * 25,000 gross (166,250 net team vol)
-    _qualifyLeader(diamondLeader, 3_000 * 1e18, 7, 25_000 * 1e18);
+    // Gross: 60,000 personal (57,000 net -> 171,000 3x cap), 7 directs * 25,000 gross (166,250 net team vol)
+    _qualifyLeader(diamondLeader, 60_000 * 1e18, 7, 25_000 * 1e18);
     assertEq(registry.getRank(diamondLeader), 5);
 
     // 3. Qualify Crown (Rank 6: net >= 5,000 personal, 10 directs, net >= 500,000 team volume) -> 10 shares
-    // Gross: 6,000 personal (5,700 net), 10 directs * 55,000 gross (522,500 net team vol)
-    _qualifyLeader(crownLeader, 6_000 * 1e18, 10, 55_000 * 1e18);
+    // Gross: 100_000 personal (95,000 net -> 285,000 3x cap), 10 directs * 55,000 gross (522,500 net team vol)
+    _qualifyLeader(crownLeader, 100_000 * 1e18, 10, 55_000 * 1e18);
     assertEq(registry.getRank(crownLeader), 6);
 
     // Total shares = 1 + 3 + 10 = 14 shares

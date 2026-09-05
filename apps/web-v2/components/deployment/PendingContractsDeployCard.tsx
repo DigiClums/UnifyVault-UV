@@ -26,12 +26,12 @@ import { getExplorerBaseUrl } from '../../constants';
 
 const GOV = '0x441dbf8076d0b143EC17199baE94Daa884161454' as Address;
 const UVBE_TOKEN = '0x051979deb1eb4823672e6274a55c44d7818ff523' as Address;
-const P2P_ESCROW_V2 = '0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329' as Address;
+const P2P_ESCROW_V2 = '0x400916339033b88cda38b1d8a5fb0f82e4889f38' as Address;
 const ENTRY_POINT_V07 = '0x0000000071727De22E5E9d8BAf0edAc6f37da032' as Address;
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as Address;
-const CONTROLLER = '0xe6Cd99f3DcF39BD76D91D211Dce7f4BdF801C366' as Address;
-const PORTFOLIO_MANAGER = '0x66182F56BD5E523c655f6890290aB519f528e83f' as Address;
-const ORACLE_MANAGER = '0x91B488cdE0f2Ef28141FE4ffD8531c4179B48EA7' as Address;
+const CONTROLLER = '0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c' as Address;
+const PORTFOLIO_MANAGER = '0xce97c16a1c544f1df87e46695f86c7cc61ea486a' as Address;
+const ORACLE_MANAGER = '0xdbab63fe1d8accff6620214a5c616d4151a8fec7' as Address;
 const UNISWAP_V4_POOL_MANAGER = '0x498581fF718922c3f8e6A244956aF099B2652b2b' as Address;
 
 interface DeployedState {

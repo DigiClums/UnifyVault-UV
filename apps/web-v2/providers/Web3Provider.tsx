@@ -56,12 +56,6 @@ const config = getDefaultConfig({
         retryDelay: 800,
         timeout: 10_000,
       }),
-      http('https://base.llamarpc.com', {
-        batch: true,
-        retryCount: 3,
-        retryDelay: 800,
-        timeout: 10_000,
-      }),
       http('https://base-rpc.publicnode.com', {
         batch: true,
         retryCount: 3,

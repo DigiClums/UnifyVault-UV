@@ -59,9 +59,9 @@ contract UVBEDynamicRewardSystemTest is Test {
     vm.prank(alice);
     vault.stake(1_000 * 1e18, genesis); // 950 net stake, 95 liabilities (5% Gen 1 + 5% DAO)
 
-    // Capital = 950 UVBE, Liabilities = 95 UVBE => Surplus = 855 UVBE
-    // APY = floor(855 * 10000 / 950) = 9000 BPS (90.00%)
-    assertEq(distributor.getCurrentAnnualBps(), 9000);
+    // Capital = 950 UVBE, Liabilities = 57 UVBE (5% Gen 1 = 47.5 + 1% DAO = 9.5) => Surplus = 893 UVBE
+    // APY = floor(893 * 10000 / 950) = 9400 BPS (94.00%)
+    assertEq(distributor.getCurrentAnnualBps(), 9400);
     assertEq(distributor.MAX_RECURRING_ANNUAL_BPS(), 60_000);
   }
 
