@@ -1,12 +1,11 @@
 {
-  "latestVersion": "2.5.4",
+  "latestVersion": "2.5.5",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.4/UnifyVault-v2.5.4.apk",
-  "sha256": "20cb386b458772711662dc0cb614c48e218a11935b8d6ecd89c3055700b419d0",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.5.5/UnifyVault-v2.5.5.apk",
+  "sha256": "ed8bb777a0a05e8d3869d5ad7e6d9d7e2fc9b34cf117fd798d44caf8df86cc98",
   "releaseNotes": [
-    "[⚡ Performance] optimize webview hardware acceleration, bundle tree-shaking & r8 proguard rules",
-    "[✨ Feature] P2P: add telegram order lookup and trade alert tracking",
-    "Verified APK SHA-256: 20cb386b458772711662dc0cb614c48e218a11935b8d6ecd89c3055700b419d0"
+    "[🐛 Fix] P2P: update telegram bot url to https://t.me/UVBE_bot",
+    "Verified APK SHA-256: ed8bb777a0a05e8d3869d5ad7e6d9d7e2fc9b34cf117fd798d44caf8df86cc98"
   ]
 }
