@@ -246,16 +246,23 @@ async function handleTeam(ctx: any) {
   try {
     const data = await fetchLiveUserData(linked);
 
+    const referralLink = `https://app.unifyvault.xyz/staking?ref=${data.address}`;
+
     return ctx.reply(
       `🏆 *Your Referral & Rank Performance*\n\n` +
         `👤 *Account:* \`${data.address.slice(0, 6)}...${data.address.slice(-4)}\`\n` +
         `🎖️ *Current Rank:* Level ${data.rank}\n` +
         `👥 *Active Directs:* ${data.activeDirects}\n` +
         `📈 *10-Gen Team Volume:* \`${data.teamVolume} UVBE\`\n\n` +
+        `🔗 *Your Unique Referral Link:*\n\`${referralLink}\`\n\n` +
+        `_Share your link to bind friends directly under your Generation 1 downline!_\n\n` +
         `[View Referral Registry Contract](https://basescan.org/address/${CONTRACTS.UVBEReferralRegistry})`,
       {
         parse_mode: 'Markdown',
         link_preview_options: { is_disabled: true },
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('⚡ Open Affiliate Tree on App', referralLink)],
+        ]),
       },
     );
   } catch (error: any) {

@@ -9,6 +9,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { UpdateCheckerModal } from '../components/common/UpdateCheckerModal';
 import { AppExitModal } from '../components/common/AppExitModal';
 import { NotificationRouteHandler } from '../components/common/NotificationRouteHandler';
+import { GlobalReferralCapture } from '../components/common/GlobalReferralCapture';
 import { FantasyProvider } from '../lib/fantasy/fantasyStore';
 
 const inter = Inter({
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <Web3Provider>
             <FantasyProvider>
+              <GlobalReferralCapture />
               <NotificationRouteHandler />
               <UpdateCheckerModal />
               <AppExitModal />
