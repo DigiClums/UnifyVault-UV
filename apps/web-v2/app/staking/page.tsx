@@ -113,6 +113,12 @@ export default function StakingPage() {
       } else if (tabParam === 'history' || tabParam === 'logs') {
         setActiveTab('history');
       } else if (params.get('ref')) {
+        const refParam = params.get('ref');
+        if (refParam) {
+          try {
+            localStorage.setItem('uv_cached_referrer', refParam);
+          } catch {}
+        }
         // If a referral link is opened, switch directly to Stake tab so user can immediately stake under their upline
         setActiveTab('stake');
       }

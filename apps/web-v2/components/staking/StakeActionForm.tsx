@@ -46,13 +46,21 @@ export function StakeActionForm() {
   const [referrerInput, setReferrerInput] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // Check URL query parameters for ?ref=0x...
+  // Check URL query parameters for ?ref=0x... or fallback to cached referrer in localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const refParam = urlParams.get('ref');
       if (refParam && isAddress(refParam)) {
         setReferrerInput(refParam);
+        try {
+          localStorage.setItem('uv_cached_referrer', refParam);
+        } catch {}
+      } else {
+        const cached = localStorage.getItem('uv_cached_referrer');
+        if (cached && isAddress(cached)) {
+          setReferrerInput(cached);
+        }
       }
     }
   }, []);
@@ -262,16 +270,20 @@ export function StakeActionForm() {
                   <Users className="w-3.5 h-3.5 text-slate-500" />
                   Referrer Address (Upline)
                 </span>
-                {hasGenesisReferrer && (
-                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    Bound Upline
+                {hasGenesisReferrer ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    <CheckCircle2 className="w-3 h-3" /> Bound On-Chain
                   </span>
-                )}
+                ) : referrerInput && isAddress(referrerInput) ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-600 dark:text-[#BFFF00] bg-[#BFFF00]/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    <Sparkles className="w-3 h-3" /> Verified Invite Link
+                  </span>
+                ) : null}
               </div>
 
               {hasGenesisReferrer ? (
-                <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 truncate bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-white/10">
-                  {boundReferrer}
+                <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 truncate bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-white/10 flex items-center justify-between">
+                  <span>{boundReferrer}</span>
                 </div>
               ) : (
                 <div>
@@ -280,10 +292,16 @@ export function StakeActionForm() {
                     value={referrerInput}
                     onChange={(e) => setReferrerInput(e.target.value)}
                     placeholder={`Genesis Root: ${genesisReferrer.slice(0, 8)}...${genesisReferrer.slice(-6)}`}
-                    className="w-full bg-transparent text-xs font-mono font-bold text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none border-b border-dashed border-slate-300 dark:border-white/20 pb-1"
+                    className={`w-full bg-transparent text-xs font-mono font-bold text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none border-b pb-1 ${
+                      referrerInput && isAddress(referrerInput)
+                        ? 'border-emerald-500 text-emerald-600 dark:text-[#BFFF00]'
+                        : 'border-dashed border-slate-300 dark:border-white/20'
+                    }`}
                   />
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                    Optional. Defaults to Genesis Root Referrer if empty.
+                    {referrerInput && isAddress(referrerInput)
+                      ? '✓ You are joining under this verified upline. It will be permanently bound on your first stake.'
+                      : 'Optional. Defaults to Genesis Root Referrer if empty.'}
                   </p>
                 </div>
               )}

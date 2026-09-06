@@ -250,6 +250,58 @@ export function ReferralNetworkView() {
         </div>
       </div>
 
+      {/* Direct Referrals Wallet Registry */}
+      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-3">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+          <span className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-emerald-500" />
+            Direct Referral Partners (Generation 1)
+          </span>
+          <span className="text-[10px] font-mono text-slate-500">
+            {directsList && directsList.length > 0
+              ? `${directsList.length} registered partner${directsList.length > 1 ? 's' : ''}`
+              : '0 registered partners'}
+          </span>
+        </div>
+
+        {directsList && directsList.length > 0 ? (
+          <div className="divide-y divide-slate-200 dark:divide-white/5 font-mono text-xs max-h-48 overflow-y-auto">
+            {directsList.map((directAddr: string, idx: number) => (
+              <div
+                key={directAddr}
+                className="py-2 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-white/5 px-2 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400">#{idx + 1}</span>
+                  <a
+                    href={`${explorerBase}/address/${directAddr}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold text-slate-900 dark:text-white hover:text-blue-500 flex items-center gap-1"
+                  >
+                    {directAddr.slice(0, 10)}...{directAddr.slice(-8)}
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-[#BFFF00] border border-emerald-500/30">
+                  <Check className="w-3 h-3" /> Bound
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-white/10 text-center space-y-1">
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+              No direct partners registered yet.
+            </p>
+            <p className="text-[11px] text-slate-400">
+              Share your invite link above. When partners complete their first stake, their wallet
+              addresses will appear here permanently.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Generation Commission Schedule Table (Collapsible) */}
       <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
         <button
