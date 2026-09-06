@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.6.0",
+  "latestVersion": "2.6.1",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.0/UnifyVault-v2.6.0.apk",
-  "sha256": "1468bec0ff3ed4a746fc05f2cfdf1fff2a52c71db587f28a808f92feca9c3fef",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.1/UnifyVault-v2.6.1.apk",
+  "sha256": "b1697550cfd665dbbe2fc488a68ab55f130da9141b286fcf52737b79e4600a22",
   "releaseNotes": [
-    "[🐛 Fix] ANDROID: add biometric permissions and fallback authenticators for biometricprompt",
-    "Verified APK SHA-256: 1468bec0ff3ed4a746fc05f2cfdf1fff2a52c71db587f28a808f92feca9c3fef"
+    "[✨ Feature] STAKING: add verified upline badge, referral caching & direct partners list",
+    "Verified APK SHA-256: b1697550cfd665dbbe2fc488a68ab55f130da9141b286fcf52737b79e4600a22"
   ]
 }
