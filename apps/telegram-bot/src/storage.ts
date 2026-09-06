@@ -8,17 +8,20 @@ if (!fs.existsSync(path.dirname(DATA_FILE))) {
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 }
 
-interface UserRecord {
+export interface UserRecord {
   userId: string;
   username?: string;
   firstName?: string;
   address?: string;
+  p2pAlertsEnabled?: boolean;
   joinedAt: string;
   lastActive: string;
 }
 
 interface StorageData {
   users: { [telegramUserId: string]: UserRecord };
+  lastProcessedBlock?: number;
+  processedEventKeys?: string[];
 }
 
 function loadStorage(): StorageData {
@@ -26,7 +29,6 @@ function loadStorage(): StorageData {
     if (fs.existsSync(DATA_FILE)) {
       const content = fs.readFileSync(DATA_FILE, 'utf-8');
       const data = JSON.parse(content);
-      // Migration from old schema if necessary
       if (!data.users) {
         const users: { [id: string]: UserRecord } = {};
         for (const [id, val] of Object.entries(data)) {
@@ -34,18 +36,22 @@ function loadStorage(): StorageData {
           users[id] = {
             userId: id,
             address: w.address,
+            p2pAlertsEnabled: true,
             joinedAt: w.linkedAt || new Date().toISOString(),
             lastActive: new Date().toISOString(),
           };
         }
-        return { users };
+        return { users, processedEventKeys: [] };
+      }
+      if (!Array.isArray(data.processedEventKeys)) {
+        data.processedEventKeys = [];
       }
       return data;
     }
   } catch (e) {
     console.error('Error loading storage:', e);
   }
-  return { users: {} };
+  return { users: {}, processedEventKeys: [] };
 }
 
 function saveStorage(data: StorageData) {
@@ -56,6 +62,38 @@ function saveStorage(data: StorageData) {
   }
 }
 
+export function getLastProcessedBlock(): number | undefined {
+  const data = loadStorage();
+  return data.lastProcessedBlock;
+}
+
+export function setLastProcessedBlock(blockNumber: number) {
+  const data = loadStorage();
+  data.lastProcessedBlock = blockNumber;
+  saveStorage(data);
+}
+
+export function isEventProcessed(eventKey: string): boolean {
+  const data = loadStorage();
+  const set = new Set(data.processedEventKeys || []);
+  return set.has(eventKey);
+}
+
+export function markEventProcessed(eventKey: string) {
+  const data = loadStorage();
+  if (!Array.isArray(data.processedEventKeys)) {
+    data.processedEventKeys = [];
+  }
+  if (!data.processedEventKeys.includes(eventKey)) {
+    data.processedEventKeys.push(eventKey);
+    // Keep sliding window of latest 10,000 processed event keys to prevent unbounded file growth
+    if (data.processedEventKeys.length > 10000) {
+      data.processedEventKeys = data.processedEventKeys.slice(-10000);
+    }
+  }
+  saveStorage(data);
+}
+
 export function registerUser(userId: number | string, username?: string, firstName?: string) {
   const data = loadStorage();
   const idStr = userId.toString();
@@ -64,6 +102,7 @@ export function registerUser(userId: number | string, username?: string, firstNa
       userId: idStr,
       username,
       firstName,
+      p2pAlertsEnabled: true,
       joinedAt: new Date().toISOString(),
       lastActive: new Date().toISOString(),
     };
@@ -87,6 +126,7 @@ export function linkWallet(userId: number | string, address: string) {
     data.users[idStr] = {
       userId: idStr,
       address: address.toLowerCase(),
+      p2pAlertsEnabled: true,
       joinedAt: new Date().toISOString(),
       lastActive: new Date().toISOString(),
     };
@@ -100,6 +140,28 @@ export function linkWallet(userId: number | string, address: string) {
 export function getLinkedWallet(userId: number | string): string | null {
   const data = loadStorage();
   return data.users[userId.toString()]?.address || null;
+}
+
+export function getUserByWallet(address: string): UserRecord | null {
+  const data = loadStorage();
+  const normalized = address.toLowerCase();
+  for (const user of Object.values(data.users)) {
+    if (user.address && user.address.toLowerCase() === normalized) {
+      return user;
+    }
+  }
+  return null;
+}
+
+export function setP2PAlerts(userId: number | string, enabled: boolean) {
+  const data = loadStorage();
+  const idStr = userId.toString();
+  if (data.users[idStr]) {
+    data.users[idStr].p2pAlertsEnabled = enabled;
+    saveStorage(data);
+    return true;
+  }
+  return false;
 }
 
 export function unlinkWallet(userId: number | string) {

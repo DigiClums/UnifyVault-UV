@@ -129,6 +129,14 @@ export function UpdateCheckerModal() {
 
     window.addEventListener('open-update-modal', handleManualTrigger);
 
+    // Keyboard ESC listener
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isDownloading) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener(
@@ -141,8 +149,45 @@ export function UpdateCheckerModal() {
       );
       window.removeEventListener('native-updater-downloadFailed', handleFailed as EventListener);
       window.removeEventListener('open-update-modal', handleManualTrigger);
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [isDownloading]);
+
+  // Support Android hardware back button closing the modal if open
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return;
+
+    const handleCustomClose = () => {
+      if (!isDownloading) {
+        setIsOpen(false);
+      }
+    };
+
+    // Close when custom event fires
+    window.addEventListener('close-update-modal', handleCustomClose);
+
+    // If Capacitor App plugin exists, register priority backButton listener while modal is open
+    let backHandle: any;
+    try {
+      const cap = (window as any).Capacitor;
+      if (cap?.Plugins?.App?.addListener) {
+        cap.Plugins.App.addListener('backButton', () => {
+          if (!isDownloading) {
+            setIsOpen(false);
+          }
+        }).then((h: any) => {
+          backHandle = h;
+        });
+      }
+    } catch {}
+
+    return () => {
+      window.removeEventListener('close-update-modal', handleCustomClose);
+      if (backHandle?.remove) {
+        backHandle.remove();
+      }
+    };
+  }, [isOpen, isDownloading]);
 
   const handleDirectInstall = async () => {
     // Check if running on native iOS
@@ -182,8 +227,19 @@ export function UpdateCheckerModal() {
   if (!isOpen || !latestVersion) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0f1117] border-2 border-[#BFFF00] text-white rounded-3xl p-6 max-w-sm w-full shadow-[0_0_50px_rgba(191,255,0,0.2)] font-mono space-y-5">
+    <div
+      onClick={(e) => {
+        // Backdrop click to close / go back
+        if (e.target === e.currentTarget && !isDownloading) {
+          setIsOpen(false);
+        }
+      }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#0f1117] border-2 border-[#BFFF00] text-white rounded-3xl p-6 max-w-sm w-full shadow-[0_0_50px_rgba(191,255,0,0.2)] font-mono space-y-5 cursor-default"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
@@ -217,10 +273,13 @@ export function UpdateCheckerModal() {
               </p>
             </div>
           </div>
-          {!isMandatory && !isDownloading && (
+          {!isDownloading && (
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="text-white/40 hover:text-white transition-colors p-1"
+              className="text-white/60 hover:text-white transition-colors p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer"
+              title="Close and Go Back"
+              aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -327,12 +386,13 @@ export function UpdateCheckerModal() {
             </button>
           )}
 
-          {!isMandatory && !isDownloading && !isUpToDate && (
+          {!isDownloading && !isMandatory && (
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="w-full py-2.5 text-center text-xs text-white/50 hover:text-white transition-colors font-sans"
+              className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-xs transition-colors font-sans flex items-center justify-center gap-1.5 cursor-pointer border border-white/10"
             >
-              Maybe Later
+              <span>← Back to App</span>
             </button>
           )}
         </div>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "488010083163",
+    "project_id": "blockedu",
+    "storage_bucket": "blockedu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:488010083163:android:9713b1d9c3a3870b66887e",
+        "android_client_info": {
+          "package_name": "xyz.unifyvault.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRlwdMEsvmk8xPeC2qLDJik6i0V6F8MUU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

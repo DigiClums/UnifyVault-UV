@@ -285,3 +285,85 @@ export async function fetchProtocolMetrics(): Promise<ProtocolMetrics> {
     epochPoolAmount,
   };
 }
+
+const P2P_ESCROW_ABI = parseAbi([
+  'function getTrade(uint256 tradeId) external view returns ((uint256 tradeId, address buyer, address seller, address asset, uint256 amount, uint256 fiatAmount, bytes32 fiatCurrency, uint8 state, uint256 paymentWindow, uint256 fundingTimestamp, uint256 paymentTimestamp, bytes32 paymentReference, bytes32 evidenceHash, address disputeInitiator))',
+  'function totalTrades() external view returns (uint256)',
+]);
+
+export interface EscrowTradeDetails {
+  tradeId: string;
+  buyer: `0x${string}`;
+  seller: `0x${string}`;
+  amount: string;
+  fiatAmount: string;
+  fiatCurrency: string;
+  state: number;
+  stateLabel: string;
+  paymentWindowMinutes: number;
+  fundingTimestamp: number;
+  paymentTimestamp: number;
+}
+
+const TRADE_STATES: { [key: number]: string } = {
+  0: 'Created (Unfunded) ⏳',
+  1: 'Funded (Escrow Locked) 🔒',
+  2: 'Payment Sent (Awaiting Release) 💸',
+  3: 'Completed (Crypto Released) ✅',
+  4: 'Refunded ↩️',
+  5: 'Disputed ⚠️',
+  6: 'Resolved ⚖️',
+  7: 'Cancelled ❌',
+};
+
+export async function fetchP2PTrade(tradeId: number | bigint): Promise<EscrowTradeDetails | null> {
+  try {
+    const trade = await publicClient.readContract({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_ABI,
+      functionName: 'getTrade',
+      args: [BigInt(tradeId)],
+    });
+
+    if (!trade || !trade.tradeId || trade.tradeId === 0n) {
+      return null;
+    }
+
+    let currencyStr = 'USD';
+    try {
+      const hex = trade.fiatCurrency.replace(/0+$/, '');
+      if (hex.length > 2) {
+        currencyStr = Buffer.from(hex.slice(2), 'hex').toString('utf8').trim() || 'USD';
+      }
+    } catch (e) {}
+
+    return {
+      tradeId: trade.tradeId.toString(),
+      buyer: trade.buyer,
+      seller: trade.seller,
+      amount: parseFloat(formatEther(trade.amount)).toFixed(2),
+      fiatAmount: (Number(trade.fiatAmount) / 100).toFixed(2),
+      fiatCurrency: currencyStr,
+      state: trade.state,
+      stateLabel: TRADE_STATES[trade.state] || 'Unknown',
+      paymentWindowMinutes: Math.round(Number(trade.paymentWindow) / 60),
+      fundingTimestamp: Number(trade.fundingTimestamp),
+      paymentTimestamp: Number(trade.paymentTimestamp),
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function fetchTotalTrades(): Promise<number> {
+  try {
+    const total = await publicClient.readContract({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_ABI,
+      functionName: 'totalTrades',
+    });
+    return Number(total);
+  } catch (e) {
+    return 0;
+  }
+}

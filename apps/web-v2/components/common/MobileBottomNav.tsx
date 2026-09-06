@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Wallet, PieChart, Zap, Coins, Send } from 'lucide-react';
+import { Wallet, PieChart, Zap, Coins, Send, Settings } from 'lucide-react';
 import { cn } from '../../lib/utils/cn';
 
 interface NavItem {
@@ -12,7 +12,7 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-const navTabs: NavItem[] = [
+const defaultNavTabs: NavItem[] = [
   { href: '/', label: 'Home', icon: Wallet },
   { href: '/portfolio', label: 'Vault', icon: PieChart },
   { href: '/staking', label: 'Stake', icon: Zap },
@@ -22,6 +22,32 @@ const navTabs: NavItem[] = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const native = Boolean(
+        (window as any).AndroidNativeUpdater ||
+        ((window as any).Capacitor &&
+          typeof (window as any).Capacitor.isNativePlatform === 'function' &&
+          (window as any).Capacitor.isNativePlatform()),
+      );
+      setIsNative(native);
+    }
+  }, []);
+
+  const navTabs: NavItem[] = React.useMemo(() => {
+    if (isNative) {
+      return [
+        { href: '/', label: 'Home', icon: Wallet },
+        { href: '/staking', label: 'Stake', icon: Zap },
+        { href: '/p2p', label: 'P2P', icon: Coins },
+        { href: '/transfer', label: 'Send', icon: Send },
+        { href: '/settings', label: 'Settings', icon: Settings },
+      ];
+    }
+    return defaultNavTabs;
+  }, [isNative]);
 
   const isActive = (href: string) => {
     if (!pathname) return false;

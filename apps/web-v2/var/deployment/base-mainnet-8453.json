@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 79,
+  "manifestVersion": 83,
   "chainId": 8453,
   "network": "Base Mainnet",
   "deploymentVersion": "V2",
@@ -431,5 +431,5 @@
     }
   },
   "verificationResults": [],
-  "lastUpdated": 1788595247539
+  "lastUpdated": 1788617151671
 }

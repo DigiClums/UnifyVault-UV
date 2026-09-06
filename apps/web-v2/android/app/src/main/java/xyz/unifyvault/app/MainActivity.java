@@ -15,9 +15,14 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import androidx.annotation.NonNull;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.BridgeActivity;
 import java.io.File;
+import java.util.concurrent.Executor;
 
 public class MainActivity extends BridgeActivity {
 
@@ -27,10 +32,41 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        configureEdgeToEdgeStatusBar();
         setupNativeBridge();
         requestNotificationPermission();
-        subscribeToUpdateTopic();
-        checkIntentForUpdateModal(getIntent());
+        subscribeToNotificationTopics();
+        handleNotificationIntent(getIntent());
+    }
+
+    private void configureEdgeToEdgeStatusBar() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        }
+        applyStatusBarIcons(false); // default dark theme (white icons)
+    }
+
+    public void applyStatusBarIcons(boolean isLightTheme) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+                androidx.core.view.WindowInsetsControllerCompat controller = 
+                    androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                if (controller != null) {
+                    // isLightTheme = true means light app background -> dark/black icons
+                    // isLightTheme = false means dark app background -> light/white icons
+                    controller.setAppearanceLightStatusBars(isLightTheme);
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                int flags = getWindow().getDecorView().getSystemUiVisibility();
+                if (isLightTheme) {
+                    flags |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                } else {
+                    flags &= ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                }
+                getWindow().getDecorView().setSystemUiVisibility(flags);
+            }
+        });
     }
 
     private void requestNotificationPermission() {
@@ -48,13 +84,12 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void subscribeToUpdateTopic() {
+    private void subscribeToNotificationTopics() {
         try {
             com.google.firebase.messaging.FirebaseMessaging.getInstance()
-                .subscribeToTopic("unifyvault-updates")
-                .addOnCompleteListener(task -> {
-                    // Topic subscription completed safely
-                });
+                .subscribeToTopic("unifyvault-updates");
+            com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                .subscribeToTopic("unifyvault-announcements");
         } catch (Exception ignored) {}
     }
 
@@ -62,7 +97,7 @@ public class MainActivity extends BridgeActivity {
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        checkIntentForUpdateModal(intent);
+        handleNotificationIntent(intent);
     }
 
     @Override
@@ -80,25 +115,60 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void checkIntentForUpdateModal(Intent intent) {
+    private void handleNotificationIntent(Intent intent) {
         if (intent == null || intent.getExtras() == null) return;
         String clickAction = intent.getStringExtra("click_action");
-        if ("OPEN_UPDATE_MODAL".equals(clickAction) || intent.hasExtra("version")) {
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                if (this.bridge != null && this.bridge.getWebView() != null) {
-                    this.bridge.getWebView().evaluateJavascript(
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (this.bridge != null && this.bridge.getWebView() != null) {
+                WebView webView = this.bridge.getWebView();
+
+                if ("OPEN_UPDATE_MODAL".equals(clickAction) || intent.hasExtra("version")) {
+                    webView.evaluateJavascript(
                         "window.dispatchEvent(new CustomEvent('open-update-modal'));",
                         null
                     );
+                } else if ("NAVIGATE".equals(clickAction)) {
+                    String targetUrl = intent.getStringExtra("target_url");
+                    if (targetUrl != null && !targetUrl.isEmpty()) {
+                        webView.evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('notification-navigate', { detail: { url: '" + targetUrl + "' } }));",
+                            null
+                        );
+                    }
+                } else if ("DIRECT_UPDATE".equals(clickAction)) {
+                    String downloadUrl = intent.getStringExtra("download_url");
+                    if (downloadUrl != null && !downloadUrl.isEmpty()) {
+                        NativeAppUpdater updater = new NativeAppUpdater(this, webView);
+                        updater.downloadAndInstallApk(downloadUrl, "UnifyVault-latest.apk");
+                    } else {
+                        webView.evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('open-update-modal'));",
+                            null
+                        );
+                    }
                 }
-            }, 1000);
-        }
+            }
+        }, 1000);
     }
 
     private void setupNativeBridge() {
         if (!bridgeInjected && this.bridge != null && this.bridge.getWebView() != null) {
             WebView webView = this.bridge.getWebView();
             webView.addJavascriptInterface(new NativeAppUpdater(this, webView), "AndroidNativeUpdater");
+            
+            // WebView Hardware Acceleration & Cache Optimization
+            android.webkit.WebSettings settings = webView.getSettings();
+            settings.setDomStorageEnabled(true);
+            settings.setDatabaseEnabled(true);
+            settings.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+            settings.setAllowFileAccess(false);
+            settings.setAllowContentAccess(false);
+            settings.setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH);
+            
+            // Enable Hardware Layer Acceleration
+            webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null);
+            
             bridgeInjected = true;
         }
     }
@@ -111,6 +181,145 @@ public class MainActivity extends BridgeActivity {
         public NativeAppUpdater(MainActivity activity, WebView webView) {
             this.activity = activity;
             this.webView = webView;
+        }
+
+        @JavascriptInterface
+        public void setStatusBarTheme(String theme) {
+            boolean isLight = "light".equalsIgnoreCase(theme);
+            activity.applyStatusBarIcons(isLight);
+        }
+
+        @JavascriptInterface
+        public boolean isNativeBiometricAvailable() {
+            try {
+                BiometricManager biometricManager = BiometricManager.from(activity);
+                int canAuthenticate = biometricManager.canAuthenticate(
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                );
+                return canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public void promptNativeBiometric(String title, String subtitle, String callbackId) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    Executor executor = ContextCompat.getMainExecutor(activity);
+                    BiometricPrompt biometricPrompt = new BiometricPrompt(activity, executor,
+                        new BiometricPrompt.AuthenticationCallback() {
+                            @Override
+                            public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                                super.onAuthenticationError(errorCode, errString);
+                                notifyBiometricResult(callbackId, false, errString.toString());
+                            }
+
+                            @Override
+                            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                                super.onAuthenticationSucceeded(result);
+                                notifyBiometricResult(callbackId, true, "SUCCESS");
+                            }
+
+                            @Override
+                            public void onAuthenticationFailed() {
+                                super.onAuthenticationFailed();
+                            }
+                        });
+
+                    BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle(title != null && !title.isEmpty() ? title : "Authentication Required")
+                        .setSubtitle(subtitle != null && !subtitle.isEmpty() ? subtitle : "Verify your identity to proceed")
+                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                        .build();
+
+                    biometricPrompt.authenticate(promptInfo);
+                } catch (Exception e) {
+                    notifyBiometricResult(callbackId, false, e.getMessage());
+                }
+            });
+        }
+
+        private void notifyBiometricResult(String callbackId, boolean success, String message) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (webView != null) {
+                    String cleanMsg = message != null ? message.replace("'", "\\'") : "";
+                    webView.evaluateJavascript(
+                        "window.dispatchEvent(new CustomEvent('native-biometric-response', { detail: { callbackId: '" + callbackId + "', success: " + success + ", message: '" + cleanMsg + "' } }));",
+                        null
+                    );
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openSystemNotificationSettings() {
+            try {
+                Intent intent = new Intent();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                    intent.putExtra(Settings.EXTRA_APP_PACKAGE, activity.getPackageName());
+                } else {
+                    intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.fromParts("package", activity.getPackageName(), null));
+                }
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void openBatteryOptimizationSettings() {
+            try {
+                Intent intent = new Intent();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                } else {
+                    intent.setAction(Settings.ACTION_SETTINGS);
+                }
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void clearNativeAppCache() {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    if (webView != null) {
+                        webView.clearCache(true);
+                        webView.clearHistory();
+                        webView.clearFormData();
+                    }
+                    File cacheDir = activity.getCacheDir();
+                    deleteDir(cacheDir);
+                    File downloadsDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    deleteDir(downloadsDir);
+                    
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('native-cache-cleared'));",
+                            null
+                        );
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
+
+        private boolean deleteDir(File dir) {
+            if (dir != null && dir.isDirectory()) {
+                String[] children = dir.list();
+                if (children != null) {
+                    for (String child : children) {
+                        boolean success = deleteDir(new File(dir, child));
+                        if (!success) return false;
+                    }
+                }
+                return dir.delete();
+            } else if (dir != null && dir.isFile()) {
+                return dir.delete();
+            }
+            return false;
         }
 
         @JavascriptInterface

@@ -1,8 +1,27 @@
 import 'dotenv/config';
 import { Telegraf, Markup } from 'telegraf';
-import { isAddress } from 'viem';
-import { fetchLiveUserData, fetchTxStatus, fetchProtocolMetrics, CONTRACTS } from './blockchain';
-import { getLinkedWallet, linkWallet, unlinkWallet, registerUser, getAllUsers } from './storage';
+import { isAddress, parseAbi } from 'viem';
+import {
+  fetchLiveUserData,
+  fetchTxStatus,
+  fetchProtocolMetrics,
+  fetchP2PTrade,
+  publicClient,
+  CONTRACTS,
+} from './blockchain';
+import {
+  getLinkedWallet,
+  linkWallet,
+  unlinkWallet,
+  registerUser,
+  getAllUsers,
+  getUserByWallet,
+  setP2PAlerts,
+  isEventProcessed,
+  markEventProcessed,
+  getLastProcessedBlock,
+  setLastProcessedBlock,
+} from './storage';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.ADMIN_CHAT_ID || '2079720192';
@@ -627,13 +646,26 @@ bot.command('broadcast', async (ctx) => {
 
 // P2P Escrow Info Action & Command
 async function handleP2P(ctx: any) {
+  const userId = ctx.from?.id;
+  const linked = userId ? getLinkedWallet(userId) : null;
+
+  let userStatusText = '';
+  if (linked) {
+    userStatusText = `\n👤 *Your Linked Wallet:* \`${linked.slice(0, 6)}...${linked.slice(-4)}\`\n🔔 *Trade Alerts:* Active ✅ (Instant Telegram notifications enabled)`;
+  } else {
+    userStatusText = `\n⚠️ *Alerts Disabled:* Link your wallet with \`/link 0xAddress\` to receive instant trade notifications!`;
+  }
+
   return ctx.reply(
     `🤝 *UnifyVault P2P Fiat & Crypto Escrow (Base Mainnet)*\n\n` +
       `• Decentralized P2P On/Off-Ramp on Base\n` +
       `• Instant Smart Account & Paymaster Gasless Releases\n` +
-      `• On-Chain Proof-of-Payment Verification\n` +
-      `• Contract Address: \`${CONTRACTS.P2PEscrow}\`\n\n` +
-      `Trade directly peer-to-peer with zero centralized custody:`,
+      `• Real-time Telegram Alerts for Orders & Payments\n` +
+      `• Contract Address: \`${CONTRACTS.P2PEscrow}\`\n` +
+      userStatusText +
+      `\n\nCommands:\n` +
+      `• \`/order <id>\` - Check live status of an escrow trade\n` +
+      `• \`/p2p_alerts on/off\` - Toggle Telegram trade notifications`,
     {
       parse_mode: 'Markdown',
       link_preview_options: { is_disabled: true },
@@ -656,6 +688,89 @@ bot.action('p2p_info', async (ctx) => {
 });
 bot.command('p2p', handleP2P);
 bot.command('escrow', handleP2P);
+
+// P2P Single Order Status Lookup: /order <id>
+bot.command('order', async (ctx) => {
+  const args = ctx.message.text.trim().split(/\s+/);
+  if (args.length < 2) {
+    return ctx.reply('ℹ️ Usage: `/order <tradeId>` (e.g. `/order 1`)', { parse_mode: 'Markdown' });
+  }
+
+  const tradeIdStr = args[1].trim();
+  const tradeId = parseInt(tradeIdStr, 10);
+  if (isNaN(tradeId) || tradeId < 0) {
+    return ctx.reply('❌ Invalid Trade ID. Please enter a valid numerical ID.');
+  }
+
+  const statusMsg = await ctx.reply(
+    `🔍 Fetching P2P Escrow Trade #${tradeId} from Base Mainnet...`,
+  );
+
+  try {
+    const trade = await fetchP2PTrade(tradeId);
+    if (!trade) {
+      return ctx.reply(`❌ Escrow Trade #${tradeId} not found on Base Mainnet contract.`);
+    }
+
+    const buyerShort = `${trade.buyer.slice(0, 6)}...${trade.buyer.slice(-4)}`;
+    const sellerShort = `${trade.seller.slice(0, 6)}...${trade.seller.slice(-4)}`;
+
+    return ctx.reply(
+      `🤝 *UnifyVault P2P Escrow Trade #${trade.tradeId}*\n\n` +
+        `• Status: *${trade.stateLabel}*\n` +
+        `• Crypto Amount: *${trade.amount} UVBE*\n` +
+        `• Fiat Amount: *${trade.fiatAmount} ${trade.fiatCurrency}*\n` +
+        `• Payment Window: *${trade.paymentWindowMinutes} Minutes*\n\n` +
+        `👤 *Buyer:* \`${trade.buyer}\`\n` +
+        `🏪 *Seller:* \`${trade.seller}\`\n\n` +
+        `[Open Order in P2P App](https://unifyvault.xyz/p2p)`,
+      {
+        parse_mode: 'Markdown',
+        link_preview_options: { is_disabled: true },
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('🚀 Open P2P Portal', 'https://unifyvault.xyz/p2p')],
+          [
+            Markup.button.url(
+              '🔍 BaseScan Contract',
+              `https://basescan.org/address/${CONTRACTS.P2PEscrow}`,
+            ),
+          ],
+        ]),
+      },
+    );
+  } catch (err: any) {
+    return ctx.reply(`❌ Error checking trade: ${err.message || 'RPC Error'}`);
+  }
+});
+
+// P2P Alert Notification Toggle: /p2p_alerts on/off
+bot.command('p2p_alerts', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  const args = ctx.message.text.trim().split(/\s+/);
+  if (args.length < 2) {
+    return ctx.reply('ℹ️ Usage: `/p2p_alerts on` or `/p2p_alerts off`', { parse_mode: 'Markdown' });
+  }
+
+  const choice = args[1].trim().toLowerCase();
+  if (choice === 'on' || choice === 'enable') {
+    setP2PAlerts(userId, true);
+    return ctx.reply(
+      '✅ *P2P Telegram Trade Alerts are now ENABLED!*\nYou will receive instant messages when your orders are matched, paid, or released.',
+      { parse_mode: 'Markdown' },
+    );
+  } else if (choice === 'off' || choice === 'disable') {
+    setP2PAlerts(userId, false);
+    return ctx.reply('🔕 *P2P Telegram Trade Alerts are now DISABLED.*', {
+      parse_mode: 'Markdown',
+    });
+  } else {
+    return ctx.reply('ℹ️ Please specify `on` or `off`. Example: `/p2p_alerts on`', {
+      parse_mode: 'Markdown',
+    });
+  }
+});
 
 bot.action('casino', async (ctx) => {
   await ctx.answerCbQuery();
@@ -722,6 +837,8 @@ bot.help((ctx) => {
       `/balance - View live ETH, UVBE & staked balances\n` +
       `/stake - View live staking status & APY\n` +
       `/p2p - P2P decentralized escrow info\n` +
+      `/order <id> - Inspect live status of P2P Trade #ID\n` +
+      `/p2p_alerts <on/off> - Toggle trade alerts on Telegram\n` +
       `/team - View your rank & referral volume\n` +
       `/tx <hash> - Check Base transaction confirmation\n` +
       `/wallet - Wallet settings\n` +
@@ -759,3 +876,370 @@ console.log('UnifyVault Telegram bot is running with Base Mainnet live tracking'
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+// ── Automated P2P Real-time Event Listener & Push Dispatcher ──
+const P2P_ESCROW_EVENTS_ABI = parseAbi([
+  'event TradeCreated(uint256 indexed tradeId, address indexed buyer, address indexed seller, address asset, uint256 amount)',
+  'event TradeFunded(uint256 indexed tradeId, address indexed seller, uint256 amount)',
+  'event PaymentSubmitted(uint256 indexed tradeId, address indexed buyer, bytes32 paymentReference, bytes32 evidenceHash)',
+  'event TradeReleased(uint256 indexed tradeId, address indexed buyer, address indexed seller, uint256 amount)',
+  'event DisputeRaised(uint256 indexed tradeId, address indexed initiator, bytes32 reasonHash)',
+]);
+
+function buildEventIdentity(
+  chainId: number,
+  contractAddress: string,
+  txHash: string,
+  logIndex: number,
+): string {
+  return `${chainId}:${contractAddress.toLowerCase()}:${txHash.toLowerCase()}:${logIndex}`;
+}
+
+async function processPaymentSubmittedLog(log: any): Promise<boolean> {
+  const chainId = 8453;
+  const contractAddr = CONTRACTS.P2PEscrow;
+  const txHash = log.transactionHash || '';
+  const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
+  const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
+
+  if (isEventProcessed(eventKey)) return true;
+
+  const tradeId = (log as any).args.tradeId;
+  const buyerAddr = (log as any).args.buyer;
+  const trade = await fetchP2PTrade(tradeId);
+
+  // If trade RPC details failed to resolve, do not mark as processed and fail the batch to retry
+  if (!trade) {
+    console.warn(
+      `[P2P Event] Unable to fetch trade #${tradeId} for PaymentSubmitted. Retrying later.`,
+    );
+    return false;
+  }
+
+  const sellerUser = getUserByWallet(trade.seller);
+  if (sellerUser && sellerUser.p2pAlertsEnabled !== false) {
+    try {
+      await bot.telegram.sendMessage(
+        sellerUser.userId,
+        `💰 *P2P PAYMENT RECEIVED ALERT!*\n\n` +
+          `Trade: *#${trade.tradeId}*\n` +
+          `Amount: *${trade.fiatAmount} ${trade.fiatCurrency}* (${trade.amount} UVBE)\n` +
+          `Buyer: \`${buyerAddr.slice(0, 6)}...${buyerAddr.slice(-4)}\`\n\n` +
+          `⚠️ Buyer has marked the payment as complete. Please verify the incoming bank/UPI transfer and release the crypto:\n\n` +
+          `[Open Trade #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
+        {
+          parse_mode: 'Markdown',
+          link_preview_options: { is_disabled: true },
+          ...Markup.inlineKeyboard([
+            [Markup.button.url('🚀 Open P2P & Release', 'https://unifyvault.xyz/p2p')],
+          ]),
+        },
+      );
+    } catch (err) {
+      console.error('Error dispatching PaymentSubmitted Telegram alert:', err);
+      // At-least-once delivery: continue to mark processed if message was dropped/blocked by user privacy
+    }
+  }
+  markEventProcessed(eventKey);
+  return true;
+}
+
+async function processTradeReleasedLog(log: any): Promise<boolean> {
+  const chainId = 8453;
+  const contractAddr = CONTRACTS.P2PEscrow;
+  const txHash = log.transactionHash || '';
+  const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
+  const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
+
+  if (isEventProcessed(eventKey)) return true;
+
+  const tradeId = (log as any).args.tradeId;
+  const buyerAddr = (log as any).args.buyer;
+  const trade = await fetchP2PTrade(tradeId);
+
+  if (!trade) {
+    console.warn(
+      `[P2P Event] Unable to fetch trade #${tradeId} for TradeReleased. Retrying later.`,
+    );
+    return false;
+  }
+
+  const buyerUser = getUserByWallet(buyerAddr);
+  if (buyerUser && buyerUser.p2pAlertsEnabled !== false) {
+    try {
+      await bot.telegram.sendMessage(
+        buyerUser.userId,
+        `🎉 *P2P TRADE COMPLETED!*\n\n` +
+          `Trade: *#${trade.tradeId}*\n` +
+          `Crypto Released: *${trade.amount} UVBE*\n` +
+          `Seller: \`${trade.seller.slice(0, 6)}...${trade.seller.slice(-4)}\`\n\n` +
+          `The escrow has released your assets directly to your wallet on Base Mainnet.`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.url('📊 View in Portfolio', 'https://unifyvault.xyz/portfolio')],
+          ]),
+        },
+      );
+    } catch (err) {
+      console.error('Error dispatching TradeReleased Telegram alert:', err);
+    }
+  }
+  markEventProcessed(eventKey);
+  return true;
+}
+
+async function processDisputeRaisedLog(log: any): Promise<boolean> {
+  const chainId = 8453;
+  const contractAddr = CONTRACTS.P2PEscrow;
+  const txHash = log.transactionHash || '';
+  const logIndex = log.logIndex !== undefined ? Number(log.logIndex) : 0;
+  const eventKey = buildEventIdentity(chainId, contractAddr, txHash, logIndex);
+
+  if (isEventProcessed(eventKey)) return true;
+
+  const tradeId = (log as any).args.tradeId;
+  const trade = await fetchP2PTrade(tradeId);
+
+  if (!trade) {
+    console.warn(
+      `[P2P Event] Unable to fetch trade #${tradeId} for DisputeRaised. Retrying later.`,
+    );
+    return false;
+  }
+
+  const notifyUser = async (addr: string, role: string) => {
+    const u = getUserByWallet(addr);
+    if (u && u.p2pAlertsEnabled !== false) {
+      try {
+        await bot.telegram.sendMessage(
+          u.userId,
+          `⚠️ *P2P DISPUTE INITIATED*\n\n` +
+            `Trade: *#${trade.tradeId}*\n` +
+            `Status: Escrow Locked in Dispute\n` +
+            `Please check the dispute evidence chat on UnifyVault:\n\n` +
+            `[View Dispute #${trade.tradeId}](https://unifyvault.xyz/p2p)`,
+          { parse_mode: 'Markdown' },
+        );
+      } catch (err) {
+        console.error(`Error dispatching DisputeRaised alert to ${role}:`, err);
+      }
+    }
+  };
+
+  await notifyUser(trade.buyer, 'Buyer');
+  await notifyUser(trade.seller, 'Seller');
+  markEventProcessed(eventKey);
+  return true;
+}
+
+export async function backfillHistoricalEvents(
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<boolean> {
+  if (fromBlock > toBlock) return true;
+  const CHUNK_SIZE = 2000n;
+  console.log(`[P2P Event Catchup] Scanning historical blocks ${fromBlock} -> ${toBlock}...`);
+
+  for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
+    const end = start + CHUNK_SIZE - 1n > toBlock ? toBlock : start + CHUNK_SIZE - 1n;
+    let chunkSuccess = false;
+    const maxRetries = 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const [paymentLogs, releaseLogs, disputeLogs] = await Promise.all([
+          publicClient.getContractEvents({
+            address: CONTRACTS.P2PEscrow,
+            abi: P2P_ESCROW_EVENTS_ABI,
+            eventName: 'PaymentSubmitted',
+            fromBlock: start,
+            toBlock: end,
+          }),
+          publicClient.getContractEvents({
+            address: CONTRACTS.P2PEscrow,
+            abi: P2P_ESCROW_EVENTS_ABI,
+            eventName: 'TradeReleased',
+            fromBlock: start,
+            toBlock: end,
+          }),
+          publicClient.getContractEvents({
+            address: CONTRACTS.P2PEscrow,
+            abi: P2P_ESCROW_EVENTS_ABI,
+            eventName: 'DisputeRaised',
+            fromBlock: start,
+            toBlock: end,
+          }),
+        ]);
+
+        let allLogsProcessed = true;
+        for (const log of paymentLogs) {
+          const ok = await processPaymentSubmittedLog(log);
+          if (!ok) allLogsProcessed = false;
+        }
+        for (const log of releaseLogs) {
+          const ok = await processTradeReleasedLog(log);
+          if (!ok) allLogsProcessed = false;
+        }
+        for (const log of disputeLogs) {
+          const ok = await processDisputeRaisedLog(log);
+          if (!ok) allLogsProcessed = false;
+        }
+
+        if (allLogsProcessed) {
+          setLastProcessedBlock(Number(end));
+          chunkSuccess = true;
+          break;
+        } else {
+          throw new Error('One or more events in chunk could not be fully resolved.');
+        }
+      } catch (e: any) {
+        console.error(
+          `[P2P Event Catchup] Attempt ${attempt}/${maxRetries} failed for chunk ${start}-${end}:`,
+          e.message,
+        );
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
+
+    if (!chunkSuccess) {
+      console.error(
+        `[P2P Event Catchup] Critical: Chunk ${start}-${end} failed all retries. Halting backfill to prevent cursor gap.`,
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
+let isCatchingUp = false;
+async function triggerCatchupIfBehind() {
+  if (isCatchingUp) return;
+  isCatchingUp = true;
+  try {
+    const currentBlock = await publicClient.getBlockNumber();
+    const savedBlock = getLastProcessedBlock();
+
+    if (savedBlock && BigInt(savedBlock) < currentBlock) {
+      const maxLookback = 10000n;
+      const startBlock =
+        currentBlock - BigInt(savedBlock) > maxLookback
+          ? currentBlock - maxLookback
+          : BigInt(savedBlock) + 1n;
+      await backfillHistoricalEvents(startBlock, currentBlock);
+    } else if (!savedBlock) {
+      setLastProcessedBlock(Number(currentBlock));
+    }
+  } catch (err: any) {
+    console.error('[P2P Event Watcher] Catchup cycle encountered error:', err.message);
+  } finally {
+    isCatchingUp = false;
+  }
+}
+
+async function startP2PEventListener() {
+  console.log('Starting P2P Escrow Real-time & Historical Event Watcher on Base Mainnet...');
+
+  try {
+    // 1. Initial catchup before attaching live watcher
+    await triggerCatchupIfBehind();
+
+    // 2. Attach live watchers
+    publicClient.watchContractEvent({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_EVENTS_ABI,
+      eventName: 'PaymentSubmitted',
+      onLogs: async (logs: any[]) => {
+        for (const log of logs) {
+          await processPaymentSubmittedLog(log);
+        }
+      },
+      onError: (err) => {
+        console.error('[P2P Watcher] PaymentSubmitted error/reconnect notice:', err);
+        triggerCatchupIfBehind();
+      },
+    });
+
+    publicClient.watchContractEvent({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_EVENTS_ABI,
+      eventName: 'TradeReleased',
+      onLogs: async (logs: any[]) => {
+        for (const log of logs) {
+          await processTradeReleasedLog(log);
+        }
+      },
+      onError: (err) => {
+        console.error('[P2P Watcher] TradeReleased error/reconnect notice:', err);
+        triggerCatchupIfBehind();
+      },
+    });
+
+    publicClient.watchContractEvent({
+      address: CONTRACTS.P2PEscrow,
+      abi: P2P_ESCROW_EVENTS_ABI,
+      eventName: 'DisputeRaised',
+      onLogs: async (logs: any[]) => {
+        for (const log of logs) {
+          await processDisputeRaisedLog(log);
+        }
+      },
+      onError: (err) => {
+        console.error('[P2P Watcher] DisputeRaised error/reconnect notice:', err);
+        triggerCatchupIfBehind();
+      },
+    });
+
+    // 3. Periodic catchup interval every 2 minutes to recover any edge-case reconnect gaps
+    setInterval(
+      () => {
+        triggerCatchupIfBehind();
+      },
+      2 * 60 * 1000,
+    );
+  } catch (err) {
+    console.error('Failed to initialize P2P real-time event watcher:', err);
+  }
+}
+
+startP2PEventListener();
+
+// ── Automated Protocol & Keeper Health Watchdog ──
+export async function sendAdminEmergencyAlert(title: string, message: string) {
+  if (!adminChatId) return;
+  try {
+    await bot.telegram.sendMessage(
+      adminChatId,
+      `🚨 *UNIFYVAULT SYSTEM SURVEILLANCE ALERT*\n\n` +
+        `*${title}*\n` +
+        `${message}\n\n` +
+        `Timestamp: \`${new Date().toUTCString()}\``,
+      { parse_mode: 'Markdown' },
+    );
+  } catch (err) {
+    console.error('Failed to send admin emergency alert:', err);
+  }
+}
+
+// Watchdog interval checking Base RPC and Contract Liveness every 5 minutes
+setInterval(
+  async () => {
+    try {
+      const block = await publicClient.getBlockNumber();
+      if (!block || block === 0n) {
+        await sendAdminEmergencyAlert(
+          'RPC Outage Warning',
+          'Base RPC returned an empty block height.',
+        );
+      }
+    } catch (e: any) {
+      await sendAdminEmergencyAlert(
+        'Base RPC Health Error',
+        `Failed to query Base Mainnet: ${e.message || 'Timeout'}`,
+      );
+    }
+  },
+  5 * 60 * 1000,
+);

@@ -41,16 +41,21 @@ describe('Mobile UI Navigation & /transfer Visibility Suite', () => {
   it('4. Mobile bottom navigation should render primary navigation tabs', () => {
     const content = fs.readFileSync(mobileNavPath, 'utf8');
 
-    const navTabsMatch = content.match(/const navTabs: NavItem\[\] = \[([\s\S]*?)\];/);
-    expect(navTabsMatch).not.toBeNull();
+    // Check default web navigation tabs
+    const defaultNavMatch = content.match(/const defaultNavTabs: NavItem\[\] = \[([\s\S]*?)\];/);
+    expect(defaultNavMatch).not.toBeNull();
 
-    if (navTabsMatch) {
-      const itemsBlock = navTabsMatch[1];
+    if (defaultNavMatch) {
+      const itemsBlock = defaultNavMatch[1];
       expect(itemsBlock).toContain("'/p2p'");
       expect(itemsBlock).toContain("'/staking'");
       expect(itemsBlock).toContain("'/portfolio'");
       expect(itemsBlock).toContain("'/transfer'");
     }
+
+    // Check native APK navigation tabs
+    expect(content).toContain("href: '/settings'");
+    expect(content).toContain("label: 'Settings'");
   });
 
   it('5. P2P navigation item must be labeled "P2P" in both Navbar and MobileBottomNav', () => {

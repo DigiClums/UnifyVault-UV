@@ -69,3 +69,30 @@
 }
 
 
+
+/* Ultra-Fast Rendering & Smooth Scrolling Optimizations */
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+  text-rendering: optimizeSpeed;
+}
+
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* GPU Accelerated Layer for Smooth Modal/Card Animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Offscreen List Rendering Optimizer */
+.render-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 100px;
+}

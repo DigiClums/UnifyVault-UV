@@ -102,6 +102,8 @@ function deepLogTxParams(label: string, providerName: string, method: string, pa
   }
 }
 
+const wrappedListenerMap = new WeakMap<(...args: any[]) => void, (...args: any[]) => void>();
+
 function proxyProvider(provider: ProviderProxy, providerName: string): ProviderProxy {
   if (!provider || typeof provider.request !== 'function') {
     return provider;
@@ -178,11 +180,23 @@ function proxyProvider(provider: ProviderProxy, providerName: string): ProviderP
               }
               return listener(accounts || []);
             };
+            wrappedListenerMap.set(listener, wrappedListener);
             return (target as any)[prop](event, wrappedListener);
           }
           const origMethod = (target as any)[prop];
           if (typeof origMethod === 'function') {
             return origMethod.bind(target)(event, listener);
+          }
+        };
+      }
+
+      if (prop === 'removeListener' || prop === 'off') {
+        return (event: string, listener: (...args: any[]) => void) => {
+          const fnToRemove =
+            (typeof listener === 'function' && wrappedListenerMap.get(listener)) || listener;
+          const origMethod = (target as any)[prop];
+          if (typeof origMethod === 'function') {
+            return origMethod.bind(target)(event, fnToRemove);
           }
         };
       }

@@ -138,12 +138,12 @@ export function ReferralNetworkView() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formattedTeamVol = Number(formatUnits(teamVolume, 18)).toLocaleString(undefined, {
+  const formattedTeamVol = Number(formatUnits(teamVolume ?? 0n, 18)).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const totalAffiliateEarnings = rewards.directReward + rewards.generationReward;
+  const totalAffiliateEarnings = (rewards?.directReward ?? 0n) + (rewards?.generationReward ?? 0n);
   const formattedAffiliateEarnings = Number(formatUnits(totalAffiliateEarnings, 18)).toLocaleString(
     undefined,
     { minimumFractionDigits: 2, maximumFractionDigits: 4 },
@@ -234,8 +234,10 @@ export function ReferralNetworkView() {
         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
           <div className="text-[10px] font-bold text-slate-500 uppercase">Direct Referrals</div>
           <div className="text-lg font-mono font-black text-slate-900 dark:text-white flex items-center gap-2">
-            {directsList.length}{' '}
-            <span className="text-xs font-normal text-slate-500">({activeDirectCount} Active)</span>
+            {(directsList || []).length}{' '}
+            <span className="text-xs font-normal text-slate-500">
+              ({activeDirectCount || 0} Active)
+            </span>
           </div>
         </div>
 
