@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.6.2",
+  "latestVersion": "2.6.3",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.2/UnifyVault-v2.6.2.apk",
-  "sha256": "2044b2312b27a9d30675f41b5a80984931e1e27a4c2dc8786ad6ea3e2dfd994a",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.3/UnifyVault-v2.6.3.apk",
+  "sha256": "3f33da1b48f9a6e14f113e497b51968ffafe82693e6747cec20dc93cece1d116",
   "releaseNotes": [
-    "[🐛 Fix] STAKING: refine vault yield description and update paymaster usdc target",
-    "Verified APK SHA-256: 2044b2312b27a9d30675f41b5a80984931e1e27a4c2dc8786ad6ea3e2dfd994a"
+    "[🐛 Fix] ANDROID: resolve system status bar overlap with safe-area insets",
+    "Verified APK SHA-256: 3f33da1b48f9a6e14f113e497b51968ffafe82693e6747cec20dc93cece1d116"
   ]
 }
