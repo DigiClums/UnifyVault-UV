@@ -115,10 +115,10 @@ jobs:
         run: cd packages/protocol && pnpm test:all
 
       - name: Run Forge Gas Snapshot
-        run: cd packages/protocol && forge snapshot --no-match-path "test/{fork/*,ExecuteStake50Flow.t.sol}"
+        run: cd packages/protocol && forge snapshot --no-match-path "test/{fork/*,ExecuteStake50Flow.t.sol,options/*}"
 
       - name: Generate Coverage Report
-        run: cd packages/protocol && forge coverage --no-match-path "test/{fork/*,ExecuteStake50Flow.t.sol}" || true
+        run: cd packages/protocol && forge coverage --no-match-path "test/{fork/*,ExecuteStake50Flow.t.sol,options/*}" || true
 
       - name: Upload Protocol Coverage Artifacts
         uses: actions/upload-artifact@v4

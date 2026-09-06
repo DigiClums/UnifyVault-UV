@@ -18,7 +18,7 @@
     "test:11": "./scripts/safe-forge-test.sh --match-path \"test/staking/*.t.sol\"",
     "test:fork:live": "test -n \"$BASE_SEPOLIA_RPC_URL\" && forge test --match-path \"test/{fork/*.t.sol,ExecuteStake50Flow.t.sol}\" || echo \"Skipping live Base Sepolia RPC tests (BASE_SEPOLIA_RPC_URL not set)\"",
     "test:all": "pnpm test:1 && pnpm test:2 && pnpm test:3 && pnpm test:4 && pnpm test:5 && pnpm test:6 && pnpm test:7 && pnpm test:8 && pnpm test:9 && pnpm test:10 && pnpm test:11",
-    "snapshot": "forge snapshot --no-match-path \"test/{fork/*,ExecuteStake50Flow.t.sol}\"",
+    "snapshot": "forge snapshot --no-match-path \"test/{fork/*,ExecuteStake50Flow.t.sol,options/*}\"",
     "clean": "forge clean",
     "lint": "solhint 'src/**/*.sol'"
   },
