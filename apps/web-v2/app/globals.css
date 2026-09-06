@@ -15,6 +15,10 @@
     --glass-gradient: linear-gradient(135deg, #ffffff 0%, #f5f4ed 100%);
     --card-glow: radial-gradient(circle at 50% 0%, rgba(190, 255, 0, 0.14), transparent 70%);
     --shadow-glass: 4px 4px 0 rgba(0, 0, 0, 0.9);
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
 
   .dark {
@@ -32,10 +36,27 @@
   }
 }
 
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .top-safe {
+    top: env(safe-area-inset-top, 0px);
+  }
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-[#BFFF00] selection:text-black transition-colors duration-200;
-    padding-top: env(safe-area-inset-top, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
   }

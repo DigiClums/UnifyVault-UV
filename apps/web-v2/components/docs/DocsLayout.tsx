@@ -16,13 +16,13 @@ export function DocsLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 max-w-7xl w-full mx-auto flex">
         {/* Desktop Sticky Sidebar */}
-        <div className="hidden md:block w-64 lg:w-72 shrink-0 border-r border-white/10 overflow-y-auto sticky top-16 h-[calc(100vh-4rem)]">
+        <div className="hidden md:block w-64 lg:w-72 shrink-0 border-r border-white/10 overflow-y-auto sticky top-[calc(4rem+env(safe-area-inset-top,0px))] h-[calc(100vh-4rem-env(safe-area-inset-top,0px))]">
           <DocsSidebar />
         </div>
 
         {/* Mobile Slideout Drawer */}
         {isSidebarOpen && (
-          <div className="md:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-md pt-16">
+          <div className="md:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-md pt-[calc(4rem+env(safe-area-inset-top,0px))]">
             <div className="w-4/5 max-w-sm h-full bg-slate-950 border-r border-white/10 p-4 overflow-y-auto">
               <DocsSidebar onItemClick={() => setIsSidebarOpen(false)} />
             </div>

@@ -51,8 +51,10 @@ export function AppShell({ children, shellMode: initialShellMode }: AppShellProp
   if (shellMode === 'admin') {
     return (
       <>
-        <GlobalAlertBanner />
-        <AdminHeader />
+        <div className="sticky top-0 z-50 bg-background pt-[env(safe-area-inset-top,0px)]">
+          <GlobalAlertBanner />
+          <AdminHeader />
+        </div>
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 lg:py-8">
           {children}
         </main>
@@ -63,8 +65,10 @@ export function AppShell({ children, shellMode: initialShellMode }: AppShellProp
   if (shellMode === 'landing') {
     return (
       <>
-        <GlobalAlertBanner />
-        <LandingHeader />
+        <div className="sticky top-0 z-50 bg-black pt-[env(safe-area-inset-top,0px)]">
+          <GlobalAlertBanner />
+          <LandingHeader />
+        </div>
         <main className="flex-1">{children}</main>
         <LandingFooter />
       </>
@@ -75,9 +79,11 @@ export function AppShell({ children, shellMode: initialShellMode }: AppShellProp
   return (
     <MaintenanceGuard>
       <UpdateCheckerModal />
-      <GlobalAlertBanner />
-      <LivePriceTicker />
-      <Navbar />
+      <div className="sticky top-0 z-50 bg-background pt-[env(safe-area-inset-top,0px)]">
+        <GlobalAlertBanner />
+        <LivePriceTicker />
+        <Navbar />
+      </div>
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 lg:py-8">
         {children}
       </main>
