@@ -96,7 +96,6 @@ contract UVBTCETHTokenInvariantTest is Test {
   UVBTCETHToken public token;
   UVBTCETHTokenHandler public handler;
   address[] public targetContracts;
-  address[] public targetSenders;
 
   function setUp() public {
     token = new UVBTCETHToken();
@@ -104,13 +103,12 @@ contract UVBTCETHTokenInvariantTest is Test {
 
     token.grantRole(token.CONTROLLER_ROLE(), handler.controller());
     token.grantRole(token.GUARDIAN_ROLE(), handler.guardian());
+    token.grantRole(token.GOVERNANCE_ROLE(), handler.owner());
 
-    // Revoke controller role on token from test contract to prevent fuzzer calling mint directly
+    // Revoke controller role on token from test contract to isolate minting to handler
     token.revokeRole(token.CONTROLLER_ROLE(), address(this));
 
     targetContracts.push(address(handler));
-    targetSenders.push(address(0x9999));
-    targetSenders.push(address(0x8888));
   }
 
   // Invariant 1: Total supply matches sum of all balances

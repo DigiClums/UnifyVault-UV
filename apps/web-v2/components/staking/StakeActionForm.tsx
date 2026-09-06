@@ -28,6 +28,30 @@ import {
 } from '../../hooks/useStaking';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 
+function extractAddressFromInput(val: string): string {
+  if (!val) return '';
+  const trimmed = val.trim();
+  if (isAddress(trimmed)) return trimmed;
+
+  // Check if it's a URL (e.g. https://app.unifyvault.xyz/staking?ref=0x... or ?ref=0x...)
+  try {
+    const urlStr = trimmed.startsWith('http')
+      ? trimmed
+      : `https://dummy.com/${trimmed.startsWith('?') ? '' : '?'}${trimmed}`;
+    const url = new URL(urlStr);
+    const ref = url.searchParams.get('ref');
+    if (ref && isAddress(ref)) return ref;
+  } catch {}
+
+  // Regex match any 0x[a-fA-F0-9]{40} address in the string
+  const match = trimmed.match(/0x[a-fA-F0-9]{40}/i);
+  if (match && isAddress(match[0])) {
+    return match[0];
+  }
+
+  return trimmed;
+}
+
 export function StakeActionForm() {
   const { isConnected } = useAccount();
   const {
@@ -51,10 +75,11 @@ export function StakeActionForm() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const refParam = urlParams.get('ref');
-      if (refParam && isAddress(refParam)) {
-        setReferrerInput(refParam);
+      const extracted = refParam ? extractAddressFromInput(refParam) : '';
+      if (extracted && isAddress(extracted)) {
+        setReferrerInput(extracted);
         try {
-          localStorage.setItem('uv_cached_referrer', refParam);
+          localStorage.setItem('uv_cached_referrer', extracted);
         } catch {}
       } else {
         const cached = localStorage.getItem('uv_cached_referrer');
@@ -98,9 +123,11 @@ export function StakeActionForm() {
   const needsApproval = parsedAmount > uvbeAllowance;
 
   const isValidReferrer = useMemo(() => {
-    if (!referrerInput) return true; // Will fallback to genesis
-    return isAddress(referrerInput);
-  }, [referrerInput]);
+    if (hasGenesisReferrer) return true;
+    return Boolean(referrerInput) && isAddress(referrerInput);
+  }, [hasGenesisReferrer, referrerInput]);
+
+  const isReferrerMissing = !hasGenesisReferrer && !isValidReferrer;
 
   const canStake =
     isConnected &&
@@ -290,24 +317,39 @@ export function StakeActionForm() {
                   <input
                     type="text"
                     value={referrerInput}
-                    onChange={(e) => setReferrerInput(e.target.value)}
-                    placeholder={`Genesis Root: ${genesisReferrer.slice(0, 8)}...${genesisReferrer.slice(-6)}`}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const extracted = extractAddressFromInput(val);
+                      setReferrerInput(extracted);
+                    }}
+                    placeholder="Enter referrer wallet (0x...) or paste referral link"
                     className={`w-full bg-transparent text-xs font-mono font-bold text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none border-b pb-1 ${
                       referrerInput && isAddress(referrerInput)
                         ? 'border-emerald-500 text-emerald-600 dark:text-[#BFFF00]'
-                        : 'border-dashed border-slate-300 dark:border-white/20'
+                        : referrerInput && !isAddress(referrerInput)
+                          ? 'border-rose-500 text-rose-500'
+                          : 'border-dashed border-amber-500 dark:border-amber-400'
                     }`}
                   />
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                     {referrerInput && isAddress(referrerInput)
-                      ? '✓ You are joining under this verified upline. It will be permanently bound on your first stake.'
-                      : 'Optional. Defaults to Genesis Root Referrer if empty.'}
+                      ? '✓ Verified upline wallet. It will be permanently registered on your first stake.'
+                      : referrerInput && !isAddress(referrerInput)
+                        ? '✗ Invalid Ethereum address format.'
+                        : "Required: Please input your referrer's wallet address to proceed with staking."}
                   </p>
                 </div>
               )}
             </div>
 
             {/* Validation Warnings */}
+            {isReferrerMissing && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Referrer wallet address is required to stake.</span>
+              </div>
+            )}
+
             {isBelowMin && (
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0" />

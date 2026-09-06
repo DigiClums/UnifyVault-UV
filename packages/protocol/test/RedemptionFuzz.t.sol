@@ -140,12 +140,12 @@ contract RedemptionFuzzTest is Test {
   }
 
   function testFuzzPartialRedemption(uint256 depositAmount, uint256 redeemFraction) public {
-    vm.assume(depositAmount >= 1 ether && depositAmount < 1000000000 * 10 ** 18);
-    vm.assume(redeemFraction > 0 && redeemFraction <= 100);
+    depositAmount = bound(depositAmount, 1 ether, 1000000000 * 10 ** 18);
+    redeemFraction = bound(redeemFraction, 1, 100);
 
     uint256 sharesMinted = _deposit(user, depositAmount);
     uint256 redeemShares = (sharesMinted * redeemFraction) / 100;
-    vm.assume(redeemShares > 0);
+    if (redeemShares == 0) redeemShares = 1;
 
     uint256 sharesBefore = token.balanceOf(user);
     uint256 supplyBefore = token.totalSupply();
