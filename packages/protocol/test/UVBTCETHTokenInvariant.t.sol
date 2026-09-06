@@ -105,8 +105,8 @@ contract UVBTCETHTokenInvariantTest is Test {
     token.grantRole(token.GUARDIAN_ROLE(), handler.guardian());
     token.grantRole(token.GOVERNANCE_ROLE(), handler.owner());
 
-    // Revoke controller role on token from test contract to isolate minting to handler
     token.revokeRole(token.CONTROLLER_ROLE(), address(this));
+    token.revokeRole(token.CONTROLLER_ROLE(), handler.controller());
 
     targetContracts.push(address(handler));
   }
