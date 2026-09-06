@@ -101,6 +101,17 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().evaluateJavascript(
+                "if (window.dispatchEvent) { window.dispatchEvent(new CustomEvent('os-theme-change')); }",
+                null
+            );
+        }
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         setupNativeBridge();
