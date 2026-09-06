@@ -3,11 +3,9 @@
   "minimumVersion": "1.0.0",
   "mandatory": true,
   "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.6/UnifyVault-v2.6.6.apk",
-  "sha256": "16eb30b143be0d078a71b8439afaed973d26195a74c586e14ed5432968fcf932",
+  "sha256": "ed5c6febb2d4fb86ca3f27112e453384ea875875a92a3def49356ced0768356f",
   "releaseNotes": [
-    "[✨ Feature] STAKING: enforce mandatory referrer and auto-parse referral link input",
-    "[🐛 Fix] WEB-V2: set referral route dynamic mode to force-static for export",
-    "[✨ Feature] REFERRAL: support instant pre-stake direct partners display and backend registry",
-    "Verified APK SHA-256: 16eb30b143be0d078a71b8439afaed973d26195a74c586e14ed5432968fcf932"
+    "[🐛 Fix] STAKING: block approval button without valid referrer for unbound stakers",
+    "Verified APK SHA-256: ed5c6febb2d4fb86ca3f27112e453384ea875875a92a3def49356ced0768356f"
   ]
 }
