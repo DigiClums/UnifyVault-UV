@@ -393,14 +393,20 @@ export function StakeActionForm() {
               <button
                 type="button"
                 onClick={handleApprove}
-                disabled={isExceedingBalance || txManager.progressState.state.includes('PENDING')}
+                disabled={
+                  !isValidReferrer ||
+                  isExceedingBalance ||
+                  txManager.progressState.state.includes('PENDING')
+                }
                 className="w-full py-3.5 rounded-xl bg-black text-[#BFFF00] dark:bg-[#BFFF00] dark:text-black font-black text-sm uppercase tracking-wider border-2 border-black shadow-[4px_4px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
                 Step 1: Approve {stakeAmountStr} UVBE
               </button>
               <p className="text-[10px] text-center text-slate-500">
-                1-time approval required before staking into vault.
+                {!isValidReferrer
+                  ? 'Please provide a valid referrer address above to enable approval and staking.'
+                  : '1-time approval required before staking into vault.'}
               </p>
             </div>
           ) : (
