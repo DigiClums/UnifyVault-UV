@@ -741,8 +741,8 @@ export interface KnownTargetDefinition {
 
 export const KNOWN_SPONSORSHIP_TARGETS: KnownTargetDefinition[] = [
   {
-    name: 'USDC (Base Sepolia)',
-    address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    name: 'USDC (Base Mainnet)',
+    address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     category: 'Token',
     knownSelectors: [
       {

@@ -221,8 +221,8 @@ export function PermanentStakePositionCard() {
       <div className="p-3 rounded-xl bg-[#BFFF00]/10 border border-[#BFFF00]/30 text-xs flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-emerald-600 dark:text-[#BFFF00] shrink-0" />
         <div className="text-slate-700 dark:text-slate-300">
-          Permanent vault capital generates dynamic APY, affiliate rewards, and 5% DAO shares. 0%
-          fee restaking.
+          Permanent vault capital generates dynamic APY, 10-tier affiliate rewards, and DAO
+          leadership pool distributions with 0% fee compound restaking.
         </div>
       </div>
     </div>
