@@ -193,10 +193,16 @@ public class MainActivity extends BridgeActivity {
         public boolean isNativeBiometricAvailable() {
             try {
                 BiometricManager biometricManager = BiometricManager.from(activity);
-                int canAuthenticate = biometricManager.canAuthenticate(
+                int canAuthStrong = biometricManager.canAuthenticate(
                     BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
                 );
-                return canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS;
+                if (canAuthStrong == BiometricManager.BIOMETRIC_SUCCESS) {
+                    return true;
+                }
+                int canAuthWeak = biometricManager.canAuthenticate(
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                );
+                return canAuthWeak == BiometricManager.BIOMETRIC_SUCCESS;
             } catch (Exception e) {
                 return false;
             }
@@ -227,15 +233,23 @@ public class MainActivity extends BridgeActivity {
                             }
                         });
 
-                    BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                    BiometricPrompt.PromptInfo.Builder builder = new BiometricPrompt.PromptInfo.Builder()
                         .setTitle(title != null && !title.isEmpty() ? title : "Authentication Required")
-                        .setSubtitle(subtitle != null && !subtitle.isEmpty() ? subtitle : "Verify your identity to proceed")
-                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL)
-                        .build();
+                        .setSubtitle(subtitle != null && !subtitle.isEmpty() ? subtitle : "Verify your identity to proceed");
 
-                    biometricPrompt.authenticate(promptInfo);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        builder.setAllowedAuthenticators(
+                            BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                        );
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        builder.setDeviceCredentialAllowed(true);
+                    } else {
+                        builder.setNegativeButtonText("Cancel");
+                    }
+
+                    biometricPrompt.authenticate(builder.build());
                 } catch (Exception e) {
-                    notifyBiometricResult(callbackId, false, e.getMessage());
+                    notifyBiometricResult(callbackId, false, e != null ? e.getMessage() : "Authentication error");
                 }
             });
         }
