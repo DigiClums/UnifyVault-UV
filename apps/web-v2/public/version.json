@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.6.1",
+  "latestVersion": "2.6.2",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.1/UnifyVault-v2.6.1.apk",
-  "sha256": "b1697550cfd665dbbe2fc488a68ab55f130da9141b286fcf52737b79e4600a22",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.2/UnifyVault-v2.6.2.apk",
+  "sha256": "2044b2312b27a9d30675f41b5a80984931e1e27a4c2dc8786ad6ea3e2dfd994a",
   "releaseNotes": [
-    "[✨ Feature] STAKING: add verified upline badge, referral caching & direct partners list",
-    "Verified APK SHA-256: b1697550cfd665dbbe2fc488a68ab55f130da9141b286fcf52737b79e4600a22"
+    "[🐛 Fix] STAKING: refine vault yield description and update paymaster usdc target",
+    "Verified APK SHA-256: 2044b2312b27a9d30675f41b5a80984931e1e27a4c2dc8786ad6ea3e2dfd994a"
   ]
 }
