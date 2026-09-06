@@ -1,11 +1,12 @@
 {
-  "latestVersion": "2.6.4",
+  "latestVersion": "2.6.5",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.4/UnifyVault-v2.6.4.apk",
-  "sha256": "d95b0d309211661de2220f7dab00e730df0d461a5ebe3970b367bd1496f53d9d",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.5/UnifyVault-v2.6.5.apk",
+  "sha256": "8b5ff59a8802e15d6ac4b9bae1a2e132e1f78845ba0b7336eb738bca7f172f56",
   "releaseNotes": [
-    "[🐛 Fix] REFERRAL: add global referral parameter capture and telegram referral sharing",
-    "Verified APK SHA-256: d95b0d309211661de2220f7dab00e730df0d461a5ebe3970b367bd1496f53d9d"
+    "[🐛 Fix] WEB-V2: set referral route dynamic mode to force-static for export",
+    "[✨ Feature] REFERRAL: support instant pre-stake direct partners display and backend registry",
+    "Verified APK SHA-256: 8b5ff59a8802e15d6ac4b9bae1a2e132e1f78845ba0b7336eb738bca7f172f56"
   ]
 }
