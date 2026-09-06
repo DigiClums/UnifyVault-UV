@@ -3,9 +3,9 @@
   "minimumVersion": "1.0.0",
   "mandatory": true,
   "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.7/UnifyVault-v2.6.7.apk",
-  "sha256": "313f8f0de0d91bb616596ae6d76ce49bddf785a50222315498d804f1d5b80438",
+  "sha256": "7ef7ab03247a614dff6f5402e7fd239933db9c0e51932e3638b0608c5f3cbed1",
   "releaseNotes": [
-    "[🐛 Fix] STAKING: block approval button without valid referrer for unbound stakers",
-    "Verified APK SHA-256: 313f8f0de0d91bb616596ae6d76ce49bddf785a50222315498d804f1d5b80438"
+    "[📝 Docs] align staking, referral mechanics, rank requirements and contract addresses with live codebase",
+    "Verified APK SHA-256: 7ef7ab03247a614dff6f5402e7fd239933db9c0e51932e3638b0608c5f3cbed1"
   ]
 }
