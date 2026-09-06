@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.6.7",
+  "latestVersion": "2.6.8",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.7/UnifyVault-v2.6.7.apk",
-  "sha256": "7ef7ab03247a614dff6f5402e7fd239933db9c0e51932e3638b0608c5f3cbed1",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.8/UnifyVault-v2.6.8.apk",
+  "sha256": "49355f5a14e22de053e43b4f4cf9e701bc2377eaa76fa3415f3dc8b736b66627",
   "releaseNotes": [
-    "[📝 Docs] align staking, referral mechanics, rank requirements and contract addresses with live codebase",
-    "Verified APK SHA-256: 7ef7ab03247a614dff6f5402e7fd239933db9c0e51932e3638b0608c5f3cbed1"
+    "[🐛 Fix] THEME: dynamic system theme mode and status-bar synchronization",
+    "Verified APK SHA-256: 49355f5a14e22de053e43b4f4cf9e701bc2377eaa76fa3415f3dc8b736b66627"
   ]
 }
