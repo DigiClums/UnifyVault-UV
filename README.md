@@ -124,11 +124,20 @@ flowchart TD
 ### 3. Perpetual Dynamic Staking & 10-Tier MLM
 
 - **Perpetual Staked Position**: 50 UVBE minimum stake (47.5 UVBE net principal after 5% treasury allocation).
+- **Mandatory Referrer Enforcement**: All first-time stakers must register under a verified upline or referral link (e.g. `?ref=0x...`).
 - **Dynamic APY Formula**:
   $$\text{Dynamic APY (BPS)} = \frac{\text{Surplus Capacity} \times 10{,}000}{\text{Total Permanent Staked}}$$
   _(Enforced 600.00% annual APY safety ceiling)._
 - **10-Generation Overrides**: Gen 1 (5.00%), Gen 2 (2.00%), Gen 3 (1.50%), Gen 4 (1.00%), Gen 5 (0.75%), Gen 6 & 7 (0.50%), Gen 8, 9 & 10 (0.25%).
-- **6 Leadership Ranks**: Bronze, Silver, Gold, Platinum (+1 DAO share), Diamond (+3 DAO shares), Crown Ambassador (+10 DAO shares).
+- **6 Leadership Ranks**:
+  - **Bronze**: $\ge 50$ UVBE stake, $\ge 2$ active directs, 1,000 team volume (+25 UVBE bonus).
+  - **Silver**: $\ge 250$ UVBE stake, $\ge 3$ active directs, 5,000 team volume (+100 UVBE bonus).
+  - **Gold**: $\ge 500$ UVBE stake, $\ge 4$ active directs, 20,000 team volume (+500 UVBE bonus).
+  - **Platinum**: $\ge 1,000$ UVBE stake, $\ge 5$ active directs, 50,000 team volume (+1,500 UVBE bonus, +1 DAO share).
+  - **Diamond**: $\ge 2,500$ UVBE stake, $\ge 7$ active directs, 150,000 team volume (+5,000 UVBE bonus, +3 DAO shares).
+  - **Crown Ambassador**: $\ge 5,000$ UVBE stake, $\ge 10$ active directs, 500,000 team volume (+20,000 UVBE bonus, +10 DAO shares).
+- **2x / 3x Lifetime Cap**: 200% base return cap, expanding permanently to 300% upon enrolling $\ge 1$ active direct member.
+- **Sync Rate (Checkpoint)**: Public permissionless sync action to refresh real-time dynamic APY and index accrual.
 - **1.00% DAO Leadership Pool**: Weekly revenue distributions to qualified rank leaders.
 
 ### 4. Dynamic Cost-Basis & FIFO Accounting

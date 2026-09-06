@@ -240,24 +240,31 @@ Inherits OpenZeppelin `TimelockController` to enforce a 48-hour delay on governa
 
 ---
 
-## 14. Canonical Deployed Addresses (Base Sepolia - Chain ID 84532)
+## 14. Canonical Deployed Addresses (Base Mainnet - Chain ID 8453)
 
-| Contract Module             | Canonical Address                            |
-| :-------------------------- | :------------------------------------------- |
-| **ProtocolDirectory**       | `0xD2715141a0F5998B707BaA963990bFC2E94cF145` |
-| **Treasury**                | `0x66182F56BD5E523c655f6890290aB519f528e83f` |
-| **FeeManager**              | `0x0721465B01b586B7AAdF957A4a884acE46CfbEc9` |
-| **CustodyVault**            | `0x27B5C6DEA90678B78856b0B10DBA37A789fDe97e` |
-| **OracleManager**           | `0x5B6067982C6ccE2DC760EB4731c1b40136776D4A` |
-| **ChainlinkOracleProvider** | `0x4F7f99653d9d7aCD462429ffFc0C4B6C8Cf4354a` |
-| **LiquidityManager**        | `0xa938aaCeA64bE8f41c90960aFF232dA4Df7Fc329` |
-| **UVBEV2 (UVBEToken)**      | `0xA3Db7c3DeE9A50D966A06e19b5DF4FCDee615BdE` |
-| **UnifyVaultController**    | `0x07f3D3432B64DBF67c5b061AF2bC8Aef70221Cea` |
-| **StrategyManager**         | `0x14058459198a2CfFc8cE89C364334a80Da82D6a3` |
-| **PortfolioManager**        | `0x1C65B1667c8cC03138b8e57cDd40b0Bf28a4cDc4` |
-| **SwapAdapter**             | `0xCb1a434c5ebe2F2F8672Ca507Ee819C6888ae634` |
-| **CostBasisManagerV2**      | `0xF71706A2Fd8692e3C739855B2A33C0E679b4c382` |
-| **PerformanceManager**      | `0x133fD024EA635694A223e66B936c2afAB4F2DB78` |
-| **P2PEscrowV2**             | `0xbAc9C1b440adf74688abBD5be950ABd2766E5B7b` |
-| **Marketplace**             | `0xe908377f96F313a6b7771570ff6Fb414D38F451A` |
-| **TimelockController**      | `0x9094145Cd2AEA2f309eDf14237444a07edF98d02` |
+| Contract Module                | Canonical Address                            | Explorer Link                                                                                    |
+| :----------------------------- | :------------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| **ProtocolDirectory**          | `0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5` | [View on BaseScan](https://basescan.org/address/0xcc954ec28ff8e69875ae8a7398cf54da98ce26e5#code) |
+| **UnifyVaultController**       | `0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c` | [View on BaseScan](https://basescan.org/address/0xd6d39b581b808c3b14e4ccbd9fdfcccd37afe23c#code) |
+| **UVBE Index Coin (`UVBEV2`)** | `0x051979deb1eb4823672e6274a55c44d7818ff523` | [View on BaseScan](https://basescan.org/address/0x051979deb1eb4823672e6274a55c44d7818ff523#code) |
+| **CustodyVault**               | `0xcf3dc2cd20fb7c3c99138038092eed60385bfa9c` | [View on BaseScan](https://basescan.org/address/0xcf3dc2cd20fb7c3c99138038092eed60385bfa9c#code) |
+| **Treasury**                   | `0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9` | [View on BaseScan](https://basescan.org/address/0x3d358110bf4dc51530e8c4ff66c50b1f34629ec9#code) |
+| **FeeManager**                 | `0x76c8a1ab608403cd974ec7598b01ec88b44320d3` | [View on BaseScan](https://basescan.org/address/0x76c8a1ab608403cd974ec7598b01ec88b44320d3#code) |
+| **PortfolioManager**           | `0xce97c16a1c544f1df87e46695f86c7cc61ea486a` | [View on BaseScan](https://basescan.org/address/0xce97c16a1c544f1df87e46695f86c7cc61ea486a#code) |
+| **StrategyManager**            | `0x8c196a631531ac3a9754016db1d7b873ebbdb6e9` | [View on BaseScan](https://basescan.org/address/0x8c196a631531ac3a9754016db1d7b873ebbdb6e9#code) |
+| **SwapAdapter**                | `0x9560361d964ebfeea402e75ad3b74fad4d8057be` | [View on BaseScan](https://basescan.org/address/0x9560361d964ebfeea402e75ad3b74fad4d8057be#code) |
+| **OracleManager**              | `0xdbab63fe1d8accff6620214a5c616d4151a8fec7` | [View on BaseScan](https://basescan.org/address/0xdbab63fe1d8accff6620214a5c616d4151a8fec7#code) |
+| **ChainlinkOracleProvider**    | `0x39af66781d16ec8a72d2b1a4a1b7697a577626a2` | [View on BaseScan](https://basescan.org/address/0x39af66781d16ec8a72d2b1a4a1b7697a577626a2#code) |
+| **CostBasisManagerV2**         | `0x3fcf09b4e1545926c1031d22a302a39e552b3469` | [View on BaseScan](https://basescan.org/address/0x3fcf09b4e1545926c1031d22a302a39e552b3469#code) |
+| **UVBEStakingVault**           | `0x625a7697e9fdde7c6a783593ca371ed6c73e61e0` | [View on BaseScan](https://basescan.org/address/0x625a7697e9fdde7c6a783593ca371ed6c73e61e0#code) |
+| **UVBEReferralRegistry**       | `0x5d486ba39418bb63d03a27dbc77ccc88bb2bf4cc` | [View on BaseScan](https://basescan.org/address/0x5d486ba39418bb63d03a27dbc77ccc88bb2bf4cc#code) |
+| **UVBERewardDistributor**      | `0xb8c565e7da406261baa4af922771bcca5bfc166a` | [View on BaseScan](https://basescan.org/address/0xb8c565e7da406261baa4af922771bcca5bfc166a#code) |
+| **P2PEscrowV2**                | `0x400916339033b88cda38b1d8a5fb0f82e4889f38` | [View on BaseScan](https://basescan.org/address/0x400916339033b88cda38b1d8a5fb0f82e4889f38#code) |
+| **P2PReputation**              | `0x7a4093316955baa5bcb8189c4522d9db31f42d41` | [View on BaseScan](https://basescan.org/address/0x7a4093316955baa5bcb8189c4522d9db31f42d41#code) |
+| **PerformanceManager**         | `0x3e13aae6c9befaaec11b2247e2af678ce871f338` | [View on BaseScan](https://basescan.org/address/0x3e13aae6c9befaaec11b2247e2af678ce871f338#code) |
+| **Marketplace**                | `0x6e3be632747e161a0b017cb35243d39eb90d0d8a` | [View on BaseScan](https://basescan.org/address/0x6e3be632747e161a0b017cb35243d39eb90d0d8a#code) |
+| **StabilizerVault**            | `0xc268709ebb4d3f0f473c6c5767f60e540d330c11` | [View on BaseScan](https://basescan.org/address/0xc268709ebb4d3f0f473c6c5767f60e540d330c11#code) |
+| **LiquidityManager**           | `0x6a52c50d9be9eab8bf8987f77d8714aecd9e0919` | [View on BaseScan](https://basescan.org/address/0x6a52c50d9be9eab8bf8987f77d8714aecd9e0919#code) |
+| **Paymaster (ERC-4337)**       | `0xb5b7719f28368b35cd807a2f885843c9d1fdd0e9` | [View on BaseScan](https://basescan.org/address/0xb5b7719f28368b35cd807a2f885843c9d1fdd0e9#code) |
+| **GasTreasury**                | `0x166477b1eb662dd553287d32af958436cad20c17` | [View on BaseScan](https://basescan.org/address/0x166477b1eb662dd553287d32af958436cad20c17#code) |
+| **TimelockController**         | `0x610c5f66d99993d444561d270fba172db1f7cff1` | [View on BaseScan](https://basescan.org/address/0x610c5f66d99993d444561d270fba172db1f7cff1#code) |

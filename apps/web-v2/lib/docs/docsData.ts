@@ -259,16 +259,45 @@ Earn continuous commissions across your entire downline based on your active dir
 
 ### 🏆 Leadership Ranks & Milestone Bonuses
 
-As your team volume and active direct network grow, you unlock on-chain rank promotions with one-time milestone payouts and DAO leadership pool shares:
+As your personal stake, team volume, and active direct network grow, you unlock on-chain rank promotions with one-time milestone payouts and DAO leadership pool shares:
 
-| Rank | Directs | Team Volume | Milestone Bonus | DAO Shares |
-| :--- | :--- | :--- | :--- | :--- |
-| **Bronze** | 2 Directs | 1,000 UVBE | **+25 UVBE** | 0 |
-| **Silver** | 3 Directs | 5,000 UVBE | **+100 UVBE** | 0 |
-| **Gold** | 4 Directs | 20,000 UVBE | **+500 UVBE** | 0 |
-| **Platinum** | 5 Directs | 50,000 UVBE | **+1,500 UVBE** | 1 Share |
-| **Diamond** | 7 Directs | 150,000 UVBE | **+5,000 UVBE** | 3 Shares |
-| **Crown Ambassador** | 10 Directs | 500,000 UVBE | **+20,000 UVBE** | 10 Shares |
+| Rank | Personal Stake | Active Directs | Team Volume | Milestone Bonus | DAO Shares |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Bronze** | ≥ 50 UVBE | ≥ 2 Directs | 1,000 UVBE | **+25 UVBE** | 0 |
+| **Silver** | ≥ 250 UVBE | ≥ 3 Directs | 5,000 UVBE | **+100 UVBE** | 0 |
+| **Gold** | ≥ 500 UVBE | ≥ 4 Directs | 20,000 UVBE | **+500 UVBE** | 0 |
+| **Platinum** | ≥ 1,000 UVBE | ≥ 5 Directs | 50,000 UVBE | **+1,500 UVBE** | 1 Share |
+| **Diamond** | ≥ 2,500 UVBE | ≥ 7 Directs | 150,000 UVBE | **+5,000 UVBE** | 3 Shares |
+| **Crown Ambassador** | ≥ 5,000 UVBE | ≥ 10 Directs | 500,000 UVBE | **+20,000 UVBE** | 10 Shares |
+
+---
+
+### 🛡️ Mandatory Referrer Binding Rule
+
+1. **First-Time Stakers**:
+   - To maintain network integrity, every new staker must provide a valid registered referrer wallet address or referral link (e.g., \`https://app.unifyvault.xyz/staking?ref=0x...\`).
+   - The UI automatically extracts the wallet address from pasted invite links.
+2. **Permanent On-Chain Registration**:
+   - Once your first stake is completed, your upline is bound permanently to your address in the \`UVBEReferralRegistry\` smart contract.
+3. **Active Direct Qualification**:
+   - A direct downline partner is counted as "Active Direct" when their net principal stake is $\ge 47.5\text{ UVBE}$ (50 gross stake minus 5% fee).
+
+---
+
+### 🔒 2x / 3x Lifetime Cap Protection
+
+To safeguard vault solvency and prevent hyper-inflation:
+- **Base Cap (2x)**: Maximum total lifetime rewards (recurring + affiliate commissions + rank bonuses + DAO distributions) are capped at **200% (2x)** of your total deposited principal.
+- **Unlocked 3x Lifetime Cap**: Once you sponsor at least **1 Active Direct Member** (who stakes $\ge 50\text{ UVBE}$), your lifetime earnings cap permanently unlocks to **300% (3x)**!
+
+---
+
+### 🔄 Sync Rate (Checkpoint Action)
+
+The **Sync Rate** button on the Staking Overview triggers the smart contract's public \`checkpoint()\` function:
+- **Real-Time Index Accrual**: Synchronizes the global reward accumulator with the current block timestamp so pending rewards reflect the latest second.
+- **Dynamic APY Recalculation**: Recalibrates live APY against current vault surplus reserves and outstanding liabilities.
+- **Permissionless**: Anyone (both users and admins) can call Sync Rate at any time.
 
 ---
 
@@ -282,7 +311,7 @@ As your team volume and active direct network grow, you unlock on-chain rank pro
 ### 🔄 Claiming vs Restaking
 
 - **Claim Rewards**: Withdraw your earned rewards straight to your wallet anytime with 1 click.
-- **Compound / Restake**: Re-invest your pending rewards directly back into your permanent stake position to amplify your daily yield without touching wallet balances!
+- **Compound / Restake**: Re-invest your pending rewards directly back into your permanent stake position with **0% fee** to amplify your daily yield without touching wallet balances!
         `,
       },
       {
