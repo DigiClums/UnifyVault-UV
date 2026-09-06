@@ -1,11 +1,11 @@
 {
-  "latestVersion": "2.6.3",
+  "latestVersion": "2.6.4",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.3/UnifyVault-v2.6.3.apk",
-  "sha256": "3f33da1b48f9a6e14f113e497b51968ffafe82693e6747cec20dc93cece1d116",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.4/UnifyVault-v2.6.4.apk",
+  "sha256": "d95b0d309211661de2220f7dab00e730df0d461a5ebe3970b367bd1496f53d9d",
   "releaseNotes": [
-    "[🐛 Fix] ANDROID: resolve system status bar overlap with safe-area insets",
-    "Verified APK SHA-256: 3f33da1b48f9a6e14f113e497b51968ffafe82693e6747cec20dc93cece1d116"
+    "[🐛 Fix] REFERRAL: add global referral parameter capture and telegram referral sharing",
+    "Verified APK SHA-256: d95b0d309211661de2220f7dab00e730df0d461a5ebe3970b367bd1496f53d9d"
   ]
 }
