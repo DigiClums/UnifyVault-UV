@@ -96,10 +96,10 @@ contract UVBTCETHTokenInvariantTest is Test {
   UVBTCETHToken public token;
   UVBTCETHTokenHandler public handler;
   address[] public targetContracts;
+  address[] public targetSenders;
 
   function setUp() public {
-    address tokenAddr = deployCode('UVBTCETHToken');
-    token = UVBTCETHToken(tokenAddr);
+    token = new UVBTCETHToken();
     handler = new UVBTCETHTokenHandler(token, address(this));
 
     token.grantRole(token.CONTROLLER_ROLE(), handler.controller());
@@ -109,6 +109,8 @@ contract UVBTCETHTokenInvariantTest is Test {
     token.revokeRole(token.CONTROLLER_ROLE(), address(this));
 
     targetContracts.push(address(handler));
+    targetSenders.push(address(0x9999));
+    targetSenders.push(address(0x8888));
   }
 
   // Invariant 1: Total supply matches sum of all balances
