@@ -98,7 +98,8 @@ contract UVBTCETHTokenInvariantTest is Test {
   address[] public targetContracts;
 
   function setUp() public {
-    token = new UVBTCETHToken();
+    address tokenAddr = deployCode('UVBTCETHToken');
+    token = UVBTCETHToken(tokenAddr);
     handler = new UVBTCETHTokenHandler(token, address(this));
 
     token.grantRole(token.CONTROLLER_ROLE(), handler.controller());
