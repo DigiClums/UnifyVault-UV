@@ -15,7 +15,7 @@ import {
   Lock,
   CheckCircle2,
 } from 'lucide-react';
-import { formatUnits } from 'viem';
+import { formatUnits, isAddress } from 'viem';
 import { useStaking, MIN_ACTIVE_STAKE } from '../../hooks/useStaking';
 import { APP_DOMAIN, getExplorerBaseUrl } from '../../constants';
 
@@ -117,7 +117,36 @@ export function ReferralNetworkView() {
 
   const [copied, setCopied] = useState<boolean>(false);
   const [isScheduleExpanded, setIsScheduleExpanded] = useState<boolean>(false);
+  const [offchainDirects, setOffchainDirects] = useState<string[]>([]);
   const explorerBase = getExplorerBaseUrl(chain?.id);
+
+  // Fetch pending / pre-staked referral partners from backend registry
+  React.useEffect(() => {
+    if (!userAddress || !isAddress(userAddress)) {
+      setOffchainDirects([]);
+      return;
+    }
+
+    fetch(`/api/referral?address=${userAddress}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.directs)) {
+          setOffchainDirects(data.directs);
+        }
+      })
+      .catch(() => {});
+  }, [userAddress]);
+
+  // Merge on-chain directs with pre-staked invited directs seamlessly
+  const allDirects = useMemo(() => {
+    const list = [...(directsList || [])];
+    for (const off of offchainDirects) {
+      if (!list.some((a) => a.toLowerCase() === off.toLowerCase())) {
+        list.push(off as `0x${string}`);
+      }
+    }
+    return list;
+  }, [directsList, offchainDirects]);
 
   const referralUrl = useMemo(() => {
     if (!userAddress) return '';
@@ -234,7 +263,7 @@ export function ReferralNetworkView() {
         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 space-y-1">
           <div className="text-[10px] font-bold text-slate-500 uppercase">Direct Referrals</div>
           <div className="text-lg font-mono font-black text-slate-900 dark:text-white flex items-center gap-2">
-            {(directsList || []).length}{' '}
+            {(allDirects || []).length}{' '}
             <span className="text-xs font-normal text-slate-500">
               ({activeDirectCount || 0} Active)
             </span>
@@ -258,36 +287,48 @@ export function ReferralNetworkView() {
             Direct Referral Partners (Generation 1)
           </span>
           <span className="text-[10px] font-mono text-slate-500">
-            {directsList && directsList.length > 0
-              ? `${directsList.length} registered partner${directsList.length > 1 ? 's' : ''}`
+            {allDirects && allDirects.length > 0
+              ? `${allDirects.length} registered partner${allDirects.length > 1 ? 's' : ''}`
               : '0 registered partners'}
           </span>
         </div>
 
-        {directsList && directsList.length > 0 ? (
+        {allDirects && allDirects.length > 0 ? (
           <div className="divide-y divide-slate-200 dark:divide-white/5 font-mono text-xs max-h-48 overflow-y-auto">
-            {directsList.map((directAddr: string, idx: number) => (
-              <div
-                key={directAddr}
-                className="py-2 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-white/5 px-2 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-400">#{idx + 1}</span>
-                  <a
-                    href={`${explorerBase}/address/${directAddr}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-bold text-slate-900 dark:text-white hover:text-blue-500 flex items-center gap-1"
+            {allDirects.map((directAddr: string, idx: number) => {
+              const isOnchain = (directsList || []).some(
+                (a) => a.toLowerCase() === directAddr.toLowerCase(),
+              );
+
+              return (
+                <div
+                  key={directAddr}
+                  className="py-2 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-white/5 px-2 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400">#{idx + 1}</span>
+                    <a
+                      href={`${explorerBase}/address/${directAddr}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-slate-900 dark:text-white hover:text-blue-500 flex items-center gap-1"
+                    >
+                      {directAddr.slice(0, 10)}...{directAddr.slice(-8)}
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${
+                      isOnchain
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-[#BFFF00] border-emerald-500/30'
+                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
+                    }`}
                   >
-                    {directAddr.slice(0, 10)}...{directAddr.slice(-8)}
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
-                  </a>
+                    <Check className="w-3 h-3" /> {isOnchain ? 'Bound On-Chain' : 'Registered Link'}
+                  </span>
                 </div>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-[#BFFF00] border border-emerald-500/30">
-                  <Check className="w-3 h-3" /> Bound
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-white/10 text-center space-y-1">
@@ -295,8 +336,8 @@ export function ReferralNetworkView() {
               No direct partners registered yet.
             </p>
             <p className="text-[11px] text-slate-400">
-              Share your invite link above. When partners complete their first stake, their wallet
-              addresses will appear here permanently.
+              Share your invite link above. When partners open your link or complete their stake,
+              their wallet addresses will appear here permanently.
             </p>
           </div>
         )}

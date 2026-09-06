@@ -151,6 +151,34 @@ export default function AdminStakingPage() {
     (userLookupData?.[5]?.result as Address) ??
     ('0x0000000000000000000000000000000000000000' as Address);
 
+  const [inspectedOffchainDirects, setInspectedOffchainDirects] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!targetWallet || !isAddress(targetWallet)) {
+      setInspectedOffchainDirects([]);
+      return;
+    }
+
+    fetch(`/api/referral?address=${targetWallet}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.directs)) {
+          setInspectedOffchainDirects(data.directs);
+        }
+      })
+      .catch(() => {});
+  }, [targetWallet]);
+
+  const allInspectedDirects = useMemo(() => {
+    const list = [...inspectedDirectsList];
+    for (const off of inspectedOffchainDirects) {
+      if (!list.some((a) => a.toLowerCase() === off.toLowerCase())) {
+        list.push(off as Address);
+      }
+    }
+    return list;
+  }, [inspectedDirectsList, inspectedOffchainDirects]);
+
   const handleSearchWallet = (e: React.FormEvent) => {
     e.preventDefault();
     const clean = lookupInput.trim();
@@ -1321,14 +1349,14 @@ export default function AdminStakingPage() {
                 </div>
 
                 {/* Direct Referrals List */}
-                {inspectedDirectsList.length > 0 && (
+                {allInspectedDirects.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-slate-800">
                     <span className="text-xs font-bold text-white flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-cyan-400" />
-                      Direct Downlines ({inspectedDirectsList.length}):
+                      Direct Downlines ({allInspectedDirects.length}):
                     </span>
                     <div className="flex flex-wrap gap-2">
-                      {inspectedDirectsList.map((direct, idx) => (
+                      {allInspectedDirects.map((direct, idx) => (
                         <button
                           key={idx}
                           type="button"
