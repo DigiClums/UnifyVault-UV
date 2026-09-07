@@ -11,6 +11,7 @@ import {
   getPaymentIntentByTradeId,
   generateUpiUri,
 } from '../paymentIntentStore';
+import { saveTradePaymentBinding } from '../tradeBindingStore';
 import { POST as paymentIntentPOST } from '../../../app/api/p2p/payment-intent/route';
 import {
   POST as sellerProfilePOST,
@@ -70,36 +71,37 @@ const testStorageDir = path.join(
 );
 process.env.P2P_INTENT_ROOT = path.join(testStorageDir, 'intents');
 process.env.P2P_PROFILE_ROOT = path.join(testStorageDir, 'profiles');
+process.env.P2P_BINDING_ROOT = path.join(testStorageDir, 'bindings');
 
 describe('Seller UPI ID in P2P SELL UVBE Create Limit Order & Settlement Flow', () => {
   beforeEach(() => {
     const root = getPaymentIntentStorageRoot();
-    const intentFile = path.resolve(root, `intent-trade-${testTradeId}.json`);
-    const profileFile = path.resolve(root, `seller-profile-${mockSeller.toLowerCase()}.json`);
-
-    if (fs.existsSync(intentFile))
+    const bindingRoot = path.join(testStorageDir, 'bindings');
+    if (fs.existsSync(root)) {
       try {
-        fs.unlinkSync(intentFile);
+        fs.rmSync(root, { recursive: true, force: true });
       } catch {}
-    if (fs.existsSync(profileFile))
+    }
+    if (fs.existsSync(bindingRoot)) {
       try {
-        fs.unlinkSync(profileFile);
+        fs.rmSync(bindingRoot, { recursive: true, force: true });
       } catch {}
+    }
   });
 
   afterEach(() => {
     const root = getPaymentIntentStorageRoot();
-    const intentFile = path.resolve(root, `intent-trade-${testTradeId}.json`);
-    const profileFile = path.resolve(root, `seller-profile-${mockSeller.toLowerCase()}.json`);
-
-    if (fs.existsSync(intentFile))
+    const bindingRoot = path.join(testStorageDir, 'bindings');
+    if (fs.existsSync(root)) {
       try {
-        fs.unlinkSync(intentFile);
+        fs.rmSync(root, { recursive: true, force: true });
       } catch {}
-    if (fs.existsSync(profileFile))
+    }
+    if (fs.existsSync(bindingRoot)) {
       try {
-        fs.unlinkSync(profileFile);
+        fs.rmSync(bindingRoot, { recursive: true, force: true });
       } catch {}
+    }
   });
 
   // 1. SELL requires UPI validation
@@ -247,12 +249,27 @@ describe('Seller UPI ID in P2P SELL UVBE Create Limit Order & Settlement Flow', 
     });
   });
 
-  // 6. Matched trade exposes seller UPI
+  // 6. Matched trade exposes seller UPI via authoritative binding
   describe('6. Matched Trade Exposes Seller UPI', () => {
-    it('initializes Payment Intent and URI with seller UPI saved on order creation', async () => {
-      // 1. Seller creates order and UPI is persisted
+    it('initializes Payment Intent and URI with seller UPI bound on trade creation', async () => {
+      // 1. Seller creates order and binds UPI for trade
       const registeredSellerUpi = 'fastpayout.alice@okaxis';
       await saveSellerPaymentProfile(mockSeller, registeredSellerUpi);
+      await saveTradePaymentBinding({
+        tradeId: testTradeId,
+        chainId: 84532,
+        escrowAddress: '0x1034c56beeeea68d4bfd6ccdf567a57f12e847c9',
+        marketplaceOrderId: 100,
+        takeOrderTxHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        sellerAddress: mockSeller,
+        buyerAddress: mockBuyer,
+        paymentRail: 'UPI',
+        paymentDestination: registeredSellerUpi,
+        sellerSignature: '0x1234',
+        signatureTimestamp: Date.now(),
+        bindingHash: '0xabcd' as `0x${string}`,
+        createdAt: new Date().toISOString(),
+      });
 
       // 2. Buyer gets matched trade and requests payment intent
       const timestamp = Date.now();

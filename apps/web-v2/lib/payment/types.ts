@@ -53,3 +53,40 @@ export interface PaymentIntentResponse {
   upiUri?: string;
   error?: string;
 }
+
+/**
+ * Immutable per-trade seller payment binding data model (Phase 1 Foundation)
+ */
+export interface TradePaymentBinding {
+  readonly tradeId: number;
+  readonly chainId: number;
+  readonly escrowAddress: `0x${string}`;
+  readonly marketplaceOrderId: number;
+  readonly takeOrderTxHash: `0x${string}`;
+  readonly sellerAddress: `0x${string}`;
+  readonly buyerAddress: `0x${string}`;
+  readonly paymentRail: 'UPI' | 'BANK_TRANSFER';
+  readonly paymentDestination: string; // Private seller payment destination (AES-256-GCM encrypted at rest)
+  readonly sellerSignature: `0x${string}`;
+  readonly signatureTimestamp: number;
+  readonly bindingHash: `0x${string}`;
+  readonly createdAt: string;
+}
+
+export interface CreateTradePaymentBindingInput {
+  tradeId: number;
+  marketplaceOrderId: number;
+  takeOrderTxHash: `0x${string}`;
+  paymentRail?: 'UPI' | 'BANK_TRANSFER';
+  paymentDestination: string;
+  signature: `0x${string}`;
+  signatureTimestamp: number;
+  chainId?: number;
+}
+
+export interface TradePaymentBindingResponse {
+  success: boolean;
+  binding?: TradePaymentBinding;
+  isIdempotent?: boolean;
+  error?: string;
+}

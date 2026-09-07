@@ -82,10 +82,15 @@ import {
   getPaymentIntentStorageRoot,
   saveSellerPaymentProfile,
 } from '../../payment/paymentIntentStore';
+import {
+  saveTradePaymentBinding,
+  getTradeBindingStorageRoot,
+} from '../../payment/tradeBindingStore';
 import { getVerificationStorageRoot } from '../verificationStore';
 
 const testDir = path.join('/tmp', 'test-phase751-fresh-' + Math.random().toString(36).slice(2));
 process.env.P2P_INTENT_ROOT = path.join(testDir, 'intents');
+process.env.P2P_BINDING_ROOT = path.join(testDir, 'bindings');
 process.env.P2P_VERIFICATION_ROOT = path.join(testDir, 'verifications');
 
 describe('Phase 7.5.1 — Fresh Browser E2E Payment Journey Test Suite', () => {
@@ -99,9 +104,10 @@ describe('Phase 7.5.1 — Fresh Browser E2E Payment Journey Test Suite', () => {
     callStats.fundTradeCalls = 0;
 
     const iRoot = getPaymentIntentStorageRoot();
+    const bRoot = getTradeBindingStorageRoot();
     const vRoot = getVerificationStorageRoot();
 
-    [iRoot, vRoot].forEach((root) => {
+    [iRoot, bRoot, vRoot].forEach((root) => {
       if (fs.existsSync(root))
         try {
           fs.rmSync(root, { recursive: true });
@@ -110,6 +116,23 @@ describe('Phase 7.5.1 — Fresh Browser E2E Payment Journey Test Suite', () => {
 
     // Save seller VPA profile mapped to seller address
     await saveSellerPaymentProfile(mockSeller, 'seller_vpa_201@upi');
+
+    // Seed authoritative trade payment binding (Phase 2/3 Architecture)
+    await saveTradePaymentBinding({
+      tradeId: freshTradeId,
+      chainId: 8453,
+      escrowAddress: '0x400916339033b88cda38b1d8a5fb0f82e4889f38',
+      marketplaceOrderId: 201,
+      takeOrderTxHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      sellerAddress: mockSeller,
+      buyerAddress: mockBuyer,
+      paymentRail: 'UPI',
+      paymentDestination: 'seller_vpa_201@upi',
+      sellerSignature: '0x123456',
+      signatureTimestamp: Date.now(),
+      bindingHash: '0xabcdef',
+      createdAt: new Date().toISOString(),
+    });
   });
 
   it('Step 1 & 2 & 3: Fresh trade spawned in CREATED (1) state, unfunded', async () => {

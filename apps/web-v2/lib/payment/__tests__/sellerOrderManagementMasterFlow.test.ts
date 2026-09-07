@@ -14,6 +14,7 @@ import {
   generateUpiUri,
   generateTradeReference,
 } from '../paymentIntentStore';
+import { saveTradePaymentBinding } from '../tradeBindingStore';
 import { POST as paymentIntentPOST } from '../../../app/api/p2p/payment-intent/route';
 import {
   POST as sellerProfilePOST,
@@ -173,22 +174,35 @@ const testStorageDir = path.join(
 );
 process.env.P2P_INTENT_ROOT = path.join(testStorageDir, 'intents');
 process.env.P2P_PROFILE_ROOT = path.join(testStorageDir, 'profiles');
+process.env.P2P_BINDING_ROOT = path.join(testStorageDir, 'bindings');
 
 describe('Master P2P SELL Order Management & Settlement Invariant Test Suite', () => {
   beforeEach(() => {
     const root = getPaymentIntentStorageRoot();
+    const bindingRoot = path.join(testStorageDir, 'bindings');
     if (fs.existsSync(root)) {
       try {
         fs.rmSync(root, { recursive: true, force: true });
+      } catch {}
+    }
+    if (fs.existsSync(bindingRoot)) {
+      try {
+        fs.rmSync(bindingRoot, { recursive: true, force: true });
       } catch {}
     }
   });
 
   afterEach(() => {
     const root = getPaymentIntentStorageRoot();
+    const bindingRoot = path.join(testStorageDir, 'bindings');
     if (fs.existsSync(root)) {
       try {
         fs.rmSync(root, { recursive: true, force: true });
+      } catch {}
+    }
+    if (fs.existsSync(bindingRoot)) {
+      try {
+        fs.rmSync(bindingRoot, { recursive: true, force: true });
       } catch {}
     }
   });
@@ -251,6 +265,21 @@ describe('Master P2P SELL Order Management & Settlement Invariant Test Suite', (
 
     it('7. matched trade receives UPI snapshot: creates immutable PaymentIntent with seller UPI', async () => {
       await saveSellerPaymentProfile(mockSeller, 'initial.seller@upi');
+      await saveTradePaymentBinding({
+        tradeId: tradeId1,
+        chainId: 84532,
+        escrowAddress: '0x1034c56beeeea68d4bfd6ccdf567a57f12e847c9',
+        marketplaceOrderId: 101,
+        takeOrderTxHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        sellerAddress: mockSeller,
+        buyerAddress: mockBuyer,
+        paymentRail: 'UPI',
+        paymentDestination: 'initial.seller@upi',
+        sellerSignature: '0x1234',
+        signatureTimestamp: Date.now(),
+        bindingHash: '0xabcd' as `0x${string}`,
+        createdAt: new Date().toISOString(),
+      });
 
       const ts = Date.now();
       const message = constructAuthMessage('payment-intent', tradeId1, ts);
@@ -471,7 +500,21 @@ describe('Master P2P SELL Order Management & Settlement Invariant Test Suite', (
 
     it('18. UPI edit affects future fills only', async () => {
       // Step 1: Trade 1 generated with old UPI
-      await saveSellerPaymentProfile(mockSeller, 'old@upi');
+      await saveTradePaymentBinding({
+        tradeId: tradeId1,
+        chainId: 84532,
+        escrowAddress: '0x1034c56beeeea68d4bfd6ccdf567a57f12e847c9',
+        marketplaceOrderId: 101,
+        takeOrderTxHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        sellerAddress: mockSeller,
+        buyerAddress: mockBuyer,
+        paymentRail: 'UPI',
+        paymentDestination: 'old@upi',
+        sellerSignature: '0x1234',
+        signatureTimestamp: Date.now(),
+        bindingHash: '0xabcd' as `0x${string}`,
+        createdAt: new Date().toISOString(),
+      });
       const intent1: PaymentIntent = {
         id: `intent-${tradeId1}`,
         tradeId: tradeId1,
@@ -487,8 +530,22 @@ describe('Master P2P SELL Order Management & Settlement Invariant Test Suite', (
       };
       await savePaymentIntent(intent1);
 
-      // Step 2: Seller edits UPI to new@upi
-      await saveSellerPaymentProfile(mockSeller, 'new@upi');
+      // Step 2: Seller edits UPI and binds new UPI for Trade 2
+      await saveTradePaymentBinding({
+        tradeId: tradeId2,
+        chainId: 84532,
+        escrowAddress: '0x1034c56beeeea68d4bfd6ccdf567a57f12e847c9',
+        marketplaceOrderId: 101,
+        takeOrderTxHash: '0x2222222222222222222222222222222222222222222222222222222222222222',
+        sellerAddress: mockSeller,
+        buyerAddress: mockBuyer,
+        paymentRail: 'UPI',
+        paymentDestination: 'new@upi',
+        sellerSignature: '0x5678',
+        signatureTimestamp: Date.now(),
+        bindingHash: '0xef01' as `0x${string}`,
+        createdAt: new Date().toISOString(),
+      });
 
       // Step 3: Trade 2 matched in the future
       const ts = Date.now();

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import {
   X,
@@ -13,10 +13,38 @@ import {
   Check,
   CreditCard,
   ShieldCheck,
+  KeyRound,
+  CheckCircle2,
 } from 'lucide-react';
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
-import { useMarketplaceActions, isSaneTradeId } from '../../hooks/useMarketplace';
+import {
+  useMarketplaceActions,
+  isSaneTradeId,
+  getMarketplaceAddress,
+} from '../../hooks/useMarketplace';
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
+import { validateUpiId } from '../../lib/p2p/upiValidation';
+import { constructTradePaymentBindingMessage } from '../../lib/payment/walletAuth';
+import {
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
+  getDefaultChainId,
+} from '../../constants';
+
+function getDeployedEscrowAddress(chainId: number): `0x${string}` {
+  if (chainId === 84532) {
+    return (
+      (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA as `0x${string}`) ||
+      (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS as `0x${string}`) ||
+      DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow
+    );
+  }
+  return (
+    (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET as `0x${string}`) ||
+    (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS as `0x${string}`) ||
+    DEPLOYED_CONTRACTS_MAINNET.P2PEscrow
+  );
+}
 
 interface TakeOrderModalProps {
   order: OrderDetails | null;
@@ -26,83 +54,112 @@ interface TakeOrderModalProps {
 }
 
 export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeOrderModalProps) {
-  const { address: userAddress } = useAccount();
+  const { address: userAddress, chain } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const { takeOrder, isSubmitting, txManager } = useMarketplaceActions();
 
   const [tradeAmountStr, setTradeAmountStr] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // When taking a SELL order (taker is BUYER), this holds maker's UPI
   const [sellerUpi, setSellerUpi] = useState<string | null>(null);
   const [isLoadingSellerUpi, setIsLoadingSellerUpi] = useState<boolean>(false);
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
 
-  const isBuy = order ? order.side === OrderSide.BUY : false;
+  // When taking a BUY order (taker is SELLER), taker inputs & confirms their receiving UPI
+  const [takerSellerUpi, setTakerSellerUpi] = useState<string>('');
+  const [isTakerUpiConfirmed, setIsTakerUpiConfirmed] = useState<boolean>(false);
+  const [isBindingPending, setIsBindingPending] = useState<boolean>(false);
+  const [bindingStatusText, setBindingStatusText] = useState<string>('');
+
+  const isBuy = order ? order.side === OrderSide.BUY : false; // Maker wants to BUY UVBE -> Taker is SELLER
   const isMaker =
     userAddress && order ? userAddress.toLowerCase() === order.maker.toLowerCase() : false;
-  const isBuyMode = !isBuy; // Taker is BUYER (buying UVBE from Seller maker)
+  const isBuyMode = !isBuy; // Taker is BUYER (taking a SELL order)
 
-  // Fetch seller UPI from existing seller payment-profile / payment-intent flow
+  // 1. Fetch maker UPI when taker is BUYER (taking SELL order)
+  // 2. Or pre-fill taker's own profile UPI when taker is SELLER (taking BUY order)
   useEffect(() => {
-    if (!isOpen || !order || isBuy) {
+    if (!isOpen || !order) {
       setSellerUpi(null);
-      setIsLoadingSellerUpi(false);
-      return;
-    }
-
-    // 1. Use immutable snapshot from order/intent if available
-    const snapshotUpi =
-      (order as any).sellerUpiId || (order as any).sellerPaymentIdentifier || (order as any).upiId;
-    if (snapshotUpi && typeof snapshotUpi === 'string' && snapshotUpi.trim().length > 0) {
-      setSellerUpi(snapshotUpi.trim());
-      setIsLoadingSellerUpi(false);
-      return;
-    }
-
-    // 2. Query seller's payment profile (never buyer's address)
-    const sellerAddress = order.maker;
-    if (!sellerAddress) {
-      setSellerUpi(null);
+      setTakerSellerUpi('');
+      setIsTakerUpiConfirmed(false);
       setIsLoadingSellerUpi(false);
       return;
     }
 
     let isMounted = true;
-    setIsLoadingSellerUpi(true);
 
-    fetch(`/api/p2p/seller-profile?userAddress=${sellerAddress}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error('Seller payment profile not found');
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        const upi = data?.profile?.upiVpa || data?.profile?.upiId;
-        if (upi && typeof upi === 'string' && upi.trim().length > 0) {
-          setSellerUpi(upi.trim());
-        } else {
-          setSellerUpi(null);
-        }
-      })
-      .catch(() => {
-        if (!isMounted) return;
+    if (isBuyMode) {
+      // Taker is BUYER -> Fetch maker's (seller's) UPI
+      const snapshotUpi =
+        (order as any).sellerUpiId ||
+        (order as any).sellerPaymentIdentifier ||
+        (order as any).upiId;
+      if (snapshotUpi && typeof snapshotUpi === 'string' && snapshotUpi.trim().length > 0) {
+        setSellerUpi(snapshotUpi.trim());
+        setIsLoadingSellerUpi(false);
+        return;
+      }
+
+      const sellerAddress = order.maker;
+      if (!sellerAddress) {
         setSellerUpi(null);
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoadingSellerUpi(false);
-        }
-      });
+        setIsLoadingSellerUpi(false);
+        return;
+      }
+
+      setIsLoadingSellerUpi(true);
+      fetch(`/api/p2p/seller-profile?userAddress=${sellerAddress}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Seller payment profile not found');
+          return res.json();
+        })
+        .then((data) => {
+          if (!isMounted) return;
+          const upi = data?.profile?.upiVpa || data?.profile?.upiId;
+          if (upi && typeof upi === 'string' && upi.trim().length > 0) {
+            setSellerUpi(upi.trim());
+          } else {
+            setSellerUpi(null);
+          }
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setSellerUpi(null);
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingSellerUpi(false);
+        });
+    } else {
+      // Taker is SELLER -> Pre-fill from current user's profile if available as a convenience
+      if (userAddress) {
+        fetch(`/api/p2p/seller-profile?userAddress=${userAddress}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (!isMounted) return;
+            const upi = data?.profile?.upiVpa || data?.profile?.upiId;
+            if (upi && typeof upi === 'string' && upi.trim().length > 0) {
+              setTakerSellerUpi(upi.trim());
+            }
+          })
+          .catch(() => {});
+      }
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [isOpen, order, isBuy]);
+  }, [isOpen, order, isBuyMode, userAddress]);
 
   const handleClose = () => {
     setTradeAmountStr('');
     setError(null);
     setSellerUpi(null);
+    setTakerSellerUpi('');
+    setIsTakerUpiConfirmed(false);
+    setIsBindingPending(false);
+    setBindingStatusText('');
     setCopiedUpi(false);
     onClose();
   };
@@ -135,12 +192,18 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
   const inputAmountNum = parseFloat(tradeAmountStr) || 0;
   const fiatTotal = inputAmountNum * unitPrice;
 
+  const takerUpiCheck = !isBuyMode
+    ? validateUpiId(takerSellerUpi)
+    : { isValid: true, trimmedUpi: '' };
+
   const isSubmitDisabled =
     isSubmitting ||
+    isBindingPending ||
     !tradeAmountStr ||
     inputAmountNum <= 0 ||
     isMaker ||
-    (isBuyMode && (isLoadingSellerUpi || !sellerUpi));
+    (isBuyMode && (isLoadingSellerUpi || !sellerUpi)) ||
+    (!isBuyMode && (!takerUpiCheck.isValid || !isTakerUpiConfirmed));
 
   const handleConfirmTake = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +220,17 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     if (isBuyMode && !sellerUpi) {
       setError('Seller payment details unavailable. Cannot proceed with payment confirmation.');
       return;
+    }
+
+    if (!isBuyMode) {
+      if (!takerUpiCheck.isValid) {
+        setError(takerUpiCheck.error || 'Please provide a valid receiving UPI ID.');
+        return;
+      }
+      if (!isTakerUpiConfirmed) {
+        setError('Please confirm that you will receive payment at the specified UPI ID.');
+        return;
+      }
     }
 
     if (inputAmountNum <= 0 || isNaN(inputAmountNum)) {
@@ -179,24 +253,86 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
       return;
     }
 
+    const currentChainId = chain?.id || getDefaultChainId();
+    const escrowAddress = getDeployedEscrowAddress(currentChainId);
+    const normalizedUpi = takerUpiCheck.trimmedUpi;
+
     try {
       setError(null);
-      const matchAmountBigInt = parseUnits(tradeAmountStr.trim(), decimals);
+      let sellerSignature: `0x${string}` | null = null;
+      const signatureTimestamp: number = Date.now();
 
-      // Execute single atomic on-chain takeOrder transaction (guarantees no orphan counter-orders)
+      // Step 1: Pre-trade cryptographic payment binding signature (When taking a BUY order)
+      if (!isBuyMode) {
+        setBindingStatusText('Requesting payment authorization signature...');
+        const bindingMessage = constructTradePaymentBindingMessage({
+          chainId: currentChainId,
+          escrowAddress,
+          marketplaceOrderId: order.orderId,
+          sellerAddress: userAddress,
+          paymentRail: 'UPI',
+          paymentDestination: normalizedUpi,
+          timestamp: signatureTimestamp,
+        });
+
+        try {
+          sellerSignature = await signMessageAsync({ message: bindingMessage });
+        } catch (signErr: any) {
+          throw new Error(signErr?.message || 'Payment authorization signature was rejected.');
+        }
+      }
+
+      // Step 2: Execute single atomic on-chain takeOrder transaction
+      const matchAmountBigInt = parseUnits(tradeAmountStr.trim(), decimals);
       const result = await takeOrder({
         orderId: order.orderId,
         takeAmount: matchAmountBigInt,
       });
 
-      if (result.escrowTradeId && isSaneTradeId(result.escrowTradeId)) {
-        onMatchSuccess(result.escrowTradeId);
-      } else {
+      if (!result.escrowTradeId || !isSaneTradeId(result.escrowTradeId)) {
         handleClose();
+        return;
       }
+
+      const spawnedTradeId = result.escrowTradeId;
+
+      // Step 3: Create immutable TradePaymentBinding on server
+      if (!isBuyMode && sellerSignature) {
+        setIsBindingPending(true);
+        setBindingStatusText('Committing immutable trade payment binding...');
+
+        const bindRes = await fetch('/api/p2p/trade-binding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tradeId: spawnedTradeId,
+            marketplaceOrderId: order.orderId,
+            takeOrderTxHash: result.txHash,
+            paymentRail: 'UPI',
+            paymentDestination: normalizedUpi,
+            signature: sellerSignature,
+            signatureTimestamp,
+            chainId: currentChainId,
+          }),
+        });
+
+        if (!bindRes.ok) {
+          const bindData = await bindRes.json().catch(() => ({}));
+          console.error('Failed to create trade payment binding:', bindData);
+          throw new Error(
+            bindData.error ||
+              `Trade #${spawnedTradeId} created on-chain, but failed to record payment binding. Please contact support.`,
+          );
+        }
+      }
+
+      onMatchSuccess(spawnedTradeId);
     } catch (err: any) {
       console.error('Take order error:', err);
       setError(err?.message || 'Transaction failed or was rejected by user.');
+    } finally {
+      setIsBindingPending(false);
+      setBindingStatusText('');
     }
   };
 
@@ -271,6 +407,14 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
           </div>
         )}
 
+        {/* Status Text Banner */}
+        {bindingStatusText && (
+          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs flex items-center gap-2 font-sans">
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            <span>{bindingStatusText}</span>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleConfirmTake} className="space-y-4 font-sans">
           <div className="space-y-1.5">
@@ -309,7 +453,60 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
             </p>
           </div>
 
-          {/* Order Matching Notice (BUY mode - taking a SELL order) */}
+          {/* SELLER MODE (Taking BUY Order): Receiving UPI Destination & Pre-Trade Signing */}
+          {!isBuyMode && (
+            <div className="p-4 rounded-xl bg-accent/20 border-2 border-black/10 dark:border-white/10 space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2">
+                <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
+                  <CreditCard className="w-3.5 h-3.5 text-[#BFFF00]" />
+                  <span>YOUR RECEIVING UPI DESTINATION</span>
+                </div>
+                <span className="text-[10px] text-[#5f8f00] dark:text-[#BFFF00] font-sans font-bold flex items-center gap-1">
+                  <KeyRound className="w-3 h-3" /> Signed & Bound
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground">
+                  UPI VPA (where buyer must pay ₹
+                  {fiatTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}):
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. yourname@okhdfcbank"
+                  value={takerSellerUpi}
+                  onChange={(e) => {
+                    setTakerSellerUpi(e.target.value);
+                    setIsTakerUpiConfirmed(false);
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-black dark:border-white/20 bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  required
+                />
+                {!takerUpiCheck.isValid && takerSellerUpi.length > 0 && (
+                  <p className="text-[10px] text-destructive font-sans">{takerUpiCheck.error}</p>
+                )}
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isTakerUpiConfirmed}
+                    disabled={!takerUpiCheck.isValid}
+                    onChange={(e) => setIsTakerUpiConfirmed(e.target.checked)}
+                    className="mt-0.5 rounded border-black dark:border-white/20 text-[#BFFF00] focus:ring-[#BFFF00]"
+                  />
+                  <span className="text-[11px] text-foreground leading-tight">
+                    I confirm that <strong>{takerUpiCheck.trimmedUpi || 'this UPI ID'}</strong> is
+                    my valid payment destination. I will cryptographically sign this authorization
+                    before escrow creation.
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* BUY MODE (Taking SELL Order): Display Maker's UPI Info */}
           {isBuyMode && (
             <div className="p-3.5 sm:p-4 rounded-xl bg-accent/20 border-2 border-black/10 dark:border-white/10 space-y-2.5 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2">
@@ -328,13 +525,19 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
                   <span>Funds Protected by Escrow</span>
                 </p>
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  Accepting this order matches you with the seller. You will only transfer fiat to the seller’s UPI once the seller deposits <strong className="text-foreground">{tradeAmountStr || '0'} UVBE</strong> into the smart contract escrow.
+                  Accepting this order matches you with the seller. You will only transfer fiat to
+                  the seller’s UPI once the seller deposits{' '}
+                  <strong className="text-foreground">{tradeAmountStr || '0'} UVBE</strong> into the
+                  smart contract escrow.
                 </p>
               </div>
 
               <div className="flex items-center justify-between px-1 text-xs pt-1">
                 <span className="text-muted-foreground">Total Payable Upon Deposit:</span>
-                <span data-testid="seller-payment-amount" className="font-black text-foreground text-sm">
+                <span
+                  data-testid="seller-payment-amount"
+                  className="font-black text-foreground text-sm"
+                >
                   ₹{fiatTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR
                 </span>
               </div>
@@ -363,14 +566,14 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
               disabled={isSubmitDisabled}
               className="px-6 py-2.5 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all disabled:opacity-50 min-h-[44px] flex items-center gap-2 font-sans"
             >
-              {isSubmitting ? (
+              {isSubmitting || isBindingPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Matching On-Chain...</span>
+                  <span>{isBindingPending ? 'Binding Payment...' : 'Matching On-Chain...'}</span>
                 </>
               ) : (
                 <>
-                  <span>{isBuy ? 'SELL UVBE NOW' : 'BUY UVBE NOW'}</span>
+                  <span>{isBuy ? 'SIGN & SELL UVBE' : 'BUY UVBE NOW'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

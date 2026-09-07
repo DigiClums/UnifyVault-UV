@@ -304,7 +304,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     fetchIntent();
   }, [trade.tradeId, trade.state, userAddress]);
 
-  // Fetch Seller UPI and Payment Profile / Snapshot fallback
+  // Authoritative Seller UPI derived exclusively from Payment Intent / Trade Payment Binding
   useEffect(() => {
     if (
       paymentIntent?.sellerPaymentIdentifier &&
@@ -315,43 +315,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       return;
     }
 
-    if (!trade?.seller) {
-      setSellerUpi(null);
-      setIsLoadingSellerUpi(false);
-      return;
-    }
-
-    let isMounted = true;
-    setIsLoadingSellerUpi(true);
-
-    fetch(`/api/p2p/seller-profile?userAddress=${trade.seller}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Seller payment profile not found');
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        const upi = data?.profile?.upiVpa || data?.profile?.upiId;
-        if (upi && typeof upi === 'string' && upi.trim().length > 0) {
-          setSellerUpi(upi.trim());
-        } else {
-          setSellerUpi(null);
-        }
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setSellerUpi(null);
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoadingSellerUpi(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [trade?.seller, paymentIntent?.sellerPaymentIdentifier]);
+    // Do not read mutable generic seller-profile for active trade
+    setSellerUpi(null);
+    setIsLoadingSellerUpi(isFetchingIntent);
+  }, [paymentIntent?.sellerPaymentIdentifier, isFetchingIntent]);
 
   const handleCopyUpi = async () => {
     if (!sellerUpi) return;
@@ -496,6 +463,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           expectedAmount: expectedFiat,
           expectedCurrency: trade.fiatCurrency || 'INR',
           expectedUtr: userUtr.trim(),
+          expectedPayeeVpa: paymentIntent?.sellerPaymentIdentifier || sellerUpi || undefined,
         },
       });
 
@@ -599,7 +567,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       }
 
       // Automatically purge payment receipt screenshot from storage once trade is completed
-      if (trade.evidenceHash && trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+      if (
+        trade.evidenceHash &&
+        trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ) {
         fetch(`/api/p2p/evidence?hash=${trade.evidenceHash}`, { method: 'DELETE' }).catch((e) =>
           console.warn('Non-fatal: Failed purging evidence screenshot on trade completion:', e),
         );
@@ -627,7 +598,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       }
 
       // Automatically purge payment receipt screenshot from storage on refund
-      if (trade.evidenceHash && trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+      if (
+        trade.evidenceHash &&
+        trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ) {
         fetch(`/api/p2p/evidence?hash=${trade.evidenceHash}`, { method: 'DELETE' }).catch((e) =>
           console.warn('Non-fatal: Failed purging evidence screenshot on refund:', e),
         );
@@ -670,7 +644,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       await resolveDispute(trade.tradeId, outcome);
 
       // Automatically purge payment receipt screenshot from storage once dispute is settled
-      if (trade.evidenceHash && trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+      if (
+        trade.evidenceHash &&
+        trade.evidenceHash !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ) {
         fetch(`/api/p2p/evidence?hash=${trade.evidenceHash}`, { method: 'DELETE' }).catch((e) =>
           console.warn('Non-fatal: Failed purging evidence screenshot on dispute resolution:', e),
         );
@@ -995,7 +972,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
             <span>WAITING FOR SELLER TO DEPOSIT CRYPTO IN ESCROW</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed font-sans">
-            Order matched! The seller must deposit <strong className="text-foreground">{formatUnits(trade.amount, 18)} UVBE</strong> into the verified on-chain escrow contract first.
+            Order matched! The seller must deposit{' '}
+            <strong className="text-foreground">{formatUnits(trade.amount, 18)} UVBE</strong> into
+            the verified on-chain escrow contract first.
           </p>
           <div className="p-3 rounded-xl bg-background/80 border border-amber-500/20 text-xs font-sans space-y-2">
             <div className="flex items-center justify-between">
@@ -1008,7 +987,10 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              The seller has been notified to lock <strong>{formatUnits(trade.amount, 18)} UVBE</strong> into smart contract escrow. Seller UPI ID and payment instructions will <strong>only unlock once funds are securely in escrow</strong>.
+              The seller has been notified to lock{' '}
+              <strong>{formatUnits(trade.amount, 18)} UVBE</strong> into smart contract escrow.
+              Seller UPI ID and payment instructions will{' '}
+              <strong>only unlock once funds are securely in escrow</strong>.
             </p>
             <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-600 dark:text-amber-400 space-y-1">
               <p className="font-bold flex items-center gap-1">
@@ -1016,7 +998,8 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                 <span>Seller Inactive or Offline?</span>
               </p>
               <p>
-                If the seller does not fund within 15 minutes, you can safely cancel this order without any penalty and pick an active online seller.
+                If the seller does not fund within 15 minutes, you can safely cancel this order
+                without any penalty and pick an active online seller.
               </p>
             </div>
           </div>
@@ -1030,8 +1013,12 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       )}
 
       {/* DIRECT MANUAL FIAT / UPI PAYMENT DETAILS CARD (Unlocked ONLY when FUNDED or PAYMENT_SUBMITTED for Buyer) */}
-      {((isBuyer && (trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED)) ||
-        (!isBuyer && (trade.state === TradeState.CREATED || trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED))) && (
+      {((isBuyer &&
+        (trade.state === TradeState.FUNDED || trade.state === TradeState.PAYMENT_SUBMITTED)) ||
+        (!isBuyer &&
+          (trade.state === TradeState.CREATED ||
+            trade.state === TradeState.FUNDED ||
+            trade.state === TradeState.PAYMENT_SUBMITTED))) && (
         <div className="p-4 rounded-xl border-2 border-black dark:border-white/10 bg-accent/20 space-y-3 font-mono text-xs">
           <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
@@ -1039,7 +1026,9 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
               <span>DIRECT FIAT / UPI PAYMENT INSTRUCTIONS</span>
             </div>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#BFFF00] text-black">
-              {trade.state === TradeState.FUNDED ? 'Escrow Funded — Ready to Pay' : 'Manual Transfer'}
+              {trade.state === TradeState.FUNDED
+                ? 'Escrow Funded — Ready to Pay'
+                : 'Manual Transfer'}
             </span>
           </div>
 

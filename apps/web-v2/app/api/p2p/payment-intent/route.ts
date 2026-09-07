@@ -1,4 +1,4 @@
-export const dynamic = "force-static";
+export const dynamic = 'force-static';
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, hexToString, formatUnits, isAddress } from 'viem';
 import { baseSepolia } from 'viem/chains';
@@ -9,9 +9,8 @@ import {
   getPaymentIntentByTradeId,
   generateTradeReference,
   generateUpiUri,
-  getSellerPaymentProfile,
-  saveSellerPaymentProfile,
 } from '../../../../lib/payment/paymentIntentStore';
+import { getTradePaymentBinding } from '../../../../lib/payment/tradeBindingStore';
 import { verifyWalletAuth } from '../../../../lib/payment/walletAuth';
 import { PaymentIntent } from '../../../../lib/payment/types';
 
@@ -36,13 +35,15 @@ function getP2PEscrowAddress(): `0x${string}` {
  * Security Protections:
  * 1. Cryptographic signature verification prevents userAddress spoofing.
  * 2. Unrelated wallets cannot access another trade's payment intent.
- * 3. Client-supplied sellerUpiId is strictly ignored for buyers. Seller UPI ID is derived exclusively from trusted server-side profile storage.
+ * 3. Payment destination is derived SOLELY and IMMUTABLY from per-trade TradePaymentBinding.
+ *    Client parameters or mutable seller profile CANNOT override the bound payment destination.
  * 4. Payment Intent core fields are immutable once created.
+ * 5. Fails closed (400) if an active trade lacks an authoritative TradePaymentBinding.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tradeId, userAddress, signature, timestamp, sellerUpiId } = body;
+    const { tradeId, userAddress, signature, timestamp } = body;
 
     if (!tradeId || typeof tradeId !== 'number' || tradeId <= 0) {
       return NextResponse.json(
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
         userAddress,
         timestamp: Number(timestamp),
         signature,
-        action: body.action || (sellerUpiId ? 'set-seller-upi' : 'payment-intent'),
+        action: body.action || 'payment-intent',
         tradeId,
       });
 
@@ -139,17 +140,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Strict Seller UPI Handling: Ignore client sellerUpiId if caller is NOT seller
-    if (
-      caller === seller &&
-      sellerUpiId &&
-      typeof sellerUpiId === 'string' &&
-      sellerUpiId.trim().length > 0
-    ) {
-      await saveSellerPaymentProfile(seller, sellerUpiId.trim());
-    }
-
-    // 5. Escrow State Verification
+    // 4. Escrow State Verification
     const tradeState = Number(rawTrade.state);
     if (tradeState >= 5) {
       return NextResponse.json(
@@ -158,18 +149,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Payment Intent Retrieval & Immutability Enforcement (M1 Audit Requirement)
-    const existingIntent = await getPaymentIntentByTradeId(tradeId);
+    // 5. Authoritative Per-Trade Payment Binding Resolution
+    const tradeBinding = await getTradePaymentBinding(tradeId);
 
-    const sellerProfileForTrade = await getSellerPaymentProfile(seller);
-    if (caller === buyer && tradeState === 1 && !existingIntent && !sellerProfileForTrade) {
+    // If trade is in state 1 (CREATED) and not funded yet, ensure it is not blocked if caller is seller
+    if (!tradeBinding) {
       return NextResponse.json(
-        { success: false, error: 'Trade has not been funded with collateral by seller yet.' },
+        {
+          success: false,
+          error: `Authoritative payment binding not found for trade #${tradeId}. Payment intent requires a signed trade payment binding.`,
+        },
         { status: 400 },
       );
     }
 
-    // 7. Payment Window Expiry Check
+    // 6. Payment Window Expiry Check
     const fundingTs = Number(rawTrade.fundingTimestamp);
     const windowSecs = Number(rawTrade.paymentWindow);
     const nowSecs = Math.floor(Date.now() / 1000);
@@ -181,25 +175,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let sellerPaymentIdentifier: string;
+    // 7. Payment Intent Retrieval & Authoritative Binding Enforcement
+    const existingIntent = await getPaymentIntentByTradeId(tradeId);
+
+    // Sole authoritative payment destination is the immutable TradePaymentBinding
+    const sellerPaymentIdentifier = tradeBinding.paymentDestination;
     let reference: string;
     let expiresAt: string;
     let fiatAmountStr: string;
     let currencyStr: string;
 
     if (existingIntent) {
-      // Core fields are 100% IMMUTABLE once intent is created.
-      // Subsequent profile updates by seller do NOT alter existing trade payment intents.
-      sellerPaymentIdentifier = existingIntent.sellerPaymentIdentifier;
       reference = existingIntent.reference;
       expiresAt = existingIntent.expiresAt;
       fiatAmountStr = existingIntent.fiatAmount;
       currencyStr = existingIntent.fiatCurrency;
     } else {
-      // Derive initial payee snapshot from trusted server-side seller profile storage
-      const sellerProfile = await getSellerPaymentProfile(seller);
-      sellerPaymentIdentifier = sellerProfile?.upiId || `${seller.slice(0, 8)}@upi`;
-
       reference = generateTradeReference(tradeId);
       const expiryTimestamp =
         fundingTs > 0 ? (fundingTs + windowSecs) * 1000 : Date.now() + windowSecs * 1000;
@@ -211,7 +202,7 @@ export async function POST(req: NextRequest) {
       currencyStr = hexToString(rawTrade.fiatCurrency).replace(/\0/g, '') || 'INR';
     }
 
-    // Construct standard URL-encoded UPI Intent payload using immutable payee snapshot
+    // Construct standard URL-encoded UPI Intent payload using immutable binding payee
     const upiUri = generateUpiUri(
       sellerPaymentIdentifier,
       'UnifyVault Escrow',

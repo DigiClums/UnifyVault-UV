@@ -54,16 +54,22 @@ vi.mock('viem', async (importOriginal) => {
 
 import { POST } from '../../../app/api/p2p/payment-intent/route';
 import { saveSellerPaymentProfile, getPaymentIntentStorageRoot } from '../paymentIntentStore';
+import { saveTradePaymentBinding, getTradeBindingStorageRoot } from '../tradeBindingStore';
 import { constructAuthMessage } from '../walletAuth';
 
 const testDir = path.join('/tmp', 'test-intent-m1-' + Math.random().toString(36).slice(2));
 process.env.P2P_INTENT_ROOT = path.join(testDir, 'intents');
+process.env.P2P_BINDING_ROOT = path.join(testDir, 'bindings');
+process.env.PAYMENT_DATA_ENCRYPTION_KEY = 'secret_key_minimum_16_characters_long_for_aes';
 
-describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', () => {
+describe('Phase 2 — PaymentIntent Authoritative TradePaymentBinding Consumption Suite', () => {
   beforeEach(async () => {
     const root = getPaymentIntentStorageRoot();
+    const bindingRoot = getTradeBindingStorageRoot();
     const f15 = path.resolve(root, `intent-trade-${mockTradeId}.json`);
     const f16 = path.resolve(root, `intent-trade-${newTradeId}.json`);
+    const b15 = path.resolve(bindingRoot, `binding-trade-${mockTradeId}.json`);
+    const b16 = path.resolve(bindingRoot, `binding-trade-${newTradeId}.json`);
     const fProfile = path.resolve(root, `seller-profile-${mockSeller.toLowerCase()}.json`);
 
     if (fs.existsSync(f15))
@@ -74,17 +80,39 @@ describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', (
       try {
         fs.unlinkSync(f16);
       } catch {}
+    if (fs.existsSync(b15))
+      try {
+        fs.unlinkSync(b15);
+      } catch {}
+    if (fs.existsSync(b16))
+      try {
+        fs.unlinkSync(b16);
+      } catch {}
     if (fs.existsSync(fProfile))
       try {
         fs.unlinkSync(fProfile);
       } catch {}
 
-    // Initialize Seller VPA 1 in profile
-    await saveSellerPaymentProfile(mockSeller, 'original_seller_vpa@upi');
+    // Seed authoritative trade payment binding for Trade #15
+    await saveTradePaymentBinding({
+      tradeId: mockTradeId,
+      chainId: 84532,
+      escrowAddress: '0x1034c56beeeea68d4bfd6ccdf567a57f12e847c9',
+      marketplaceOrderId: 10,
+      takeOrderTxHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      sellerAddress: mockSeller,
+      buyerAddress: mockBuyer,
+      paymentRail: 'UPI',
+      paymentDestination: 'bound_seller_vpa@upi',
+      sellerSignature: '0x1234',
+      signatureTimestamp: Date.now(),
+      bindingHash: '0xabcd' as `0x${string}`,
+      createdAt: new Date().toISOString(),
+    });
   });
 
-  // 1. Initial Creation snapshots seller VPA at that exact moment
-  it('1. Initial PaymentIntent creation snapshots seller VPA from profile', async () => {
+  // 1. Initial Creation derives payment destination directly from TradePaymentBinding
+  it('1. Initial PaymentIntent creation resolves payment destination from TradePaymentBinding', async () => {
     const timestamp = Date.now();
     const message = constructAuthMessage('payment-intent', mockTradeId, timestamp);
     const signature = await buyerAccount.signMessage({ message });
@@ -104,13 +132,13 @@ describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', (
 
     const data = await res.json();
     expect(data.success).toBe(true);
-    expect(data.paymentIntent.sellerPaymentIdentifier).toBe('original_seller_vpa@upi');
-    expect(data.upiUri).toContain('pa=original_seller_vpa%40upi');
+    expect(data.paymentIntent.sellerPaymentIdentifier).toBe('bound_seller_vpa@upi');
+    expect(data.upiUri).toContain('pa=bound_seller_vpa%40upi');
   });
 
-  // 2. Seller Profile Update does NOT alter existing trade PaymentIntent (Snapshot Immutability)
-  it('2. Subsequent seller profile update does NOT alter existing PaymentIntent snapshot', async () => {
-    // Step A: Create initial PaymentIntent for Trade #15 with VPA 1
+  // 2. Seller Profile Update does NOT alter existing trade PaymentIntent
+  it('2. Subsequent seller profile update does NOT alter existing trade payment destination', async () => {
+    // Step A: Create initial PaymentIntent for Trade #15 with bound VPA
     const ts1 = Date.now();
     const msg1 = constructAuthMessage('payment-intent', mockTradeId, ts1);
     const sig1 = await buyerAccount.signMessage({ message: msg1 });
@@ -129,10 +157,10 @@ describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', (
     const data1 = await res1.json();
     const originalRef = data1.paymentIntent.reference;
     const originalExpires = data1.paymentIntent.expiresAt;
-    expect(data1.paymentIntent.sellerPaymentIdentifier).toBe('original_seller_vpa@upi');
+    expect(data1.paymentIntent.sellerPaymentIdentifier).toBe('bound_seller_vpa@upi');
 
-    // Step B: Seller updates profile to VPA 2
-    await saveSellerPaymentProfile(mockSeller, 'new_updated_seller_vpa@upi');
+    // Step B: Seller updates generic profile to an attacker/malicious VPA
+    await saveSellerPaymentProfile(mockSeller, 'attacker_modified_profile_vpa@upi');
 
     // Step C: Re-query / POST for the SAME Trade #15
     const ts2 = Date.now() + 1000;
@@ -154,15 +182,15 @@ describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', (
 
     const data2 = await res2.json();
     expect(data2.success).toBe(true);
-    // M1 Invariant Check: Must preserve ORIGINAL payee snapshot
-    expect(data2.paymentIntent.sellerPaymentIdentifier).toBe('original_seller_vpa@upi');
+    // Strict Invariant Check: Must preserve AUTHORITATIVE bound payee
+    expect(data2.paymentIntent.sellerPaymentIdentifier).toBe('bound_seller_vpa@upi');
     expect(data2.paymentIntent.reference).toBe(originalRef);
     expect(data2.paymentIntent.expiresAt).toBe(originalExpires);
-    expect(data2.upiUri).toContain('pa=original_seller_vpa%40upi');
+    expect(data2.upiUri).toContain('pa=bound_seller_vpa%40upi');
   });
 
   // 3. Buyer-supplied VPA in request body is strictly ignored
-  it('3. Client/buyer-supplied sellerUpiId is strictly ignored', async () => {
+  it('3. Client/buyer-supplied sellerUpiId in request body is strictly ignored', async () => {
     const timestamp = Date.now();
     const action = 'payment-intent';
     const message = constructAuthMessage(action, mockTradeId, timestamp);
@@ -186,16 +214,29 @@ describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', (
     const data = await res.json();
     expect(data.success).toBe(true);
     // Must NOT use buyer-supplied VPA
-    expect(data.paymentIntent.sellerPaymentIdentifier).toBe('original_seller_vpa@upi');
+    expect(data.paymentIntent.sellerPaymentIdentifier).toBe('bound_seller_vpa@upi');
     expect(data.paymentIntent.sellerPaymentIdentifier).not.toBe('attacker_phishing_vpa@upi');
   });
 
-  // 4. New trade created AFTER profile update uses the new profile snapshot
-  it('4. New trade created after seller profile update uses newly updated snapshot', async () => {
-    // Seller updates profile to VPA 2
-    await saveSellerPaymentProfile(mockSeller, 'new_updated_seller_vpa@upi');
+  // 4. Trade isolation: Trade 15 and Trade 16 resolve distinct authoritative bindings
+  it('4. Distinct trades resolve their respective distinct trade payment bindings', async () => {
+    // Seed authoritative binding for Trade #16 with distinct VPA
+    await saveTradePaymentBinding({
+      tradeId: newTradeId,
+      chainId: 84532,
+      escrowAddress: '0x1034c56beeeea68d4bfd6ccdf567a57f12e847c9',
+      marketplaceOrderId: 20,
+      takeOrderTxHash: '0x9999999990abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      sellerAddress: mockSeller,
+      buyerAddress: mockBuyer,
+      paymentRail: 'UPI',
+      paymentDestination: 'trade16_distinct_vpa@upi',
+      sellerSignature: '0x5678',
+      signatureTimestamp: Date.now(),
+      bindingHash: '0xef01' as `0x${string}`,
+      createdAt: new Date().toISOString(),
+    });
 
-    // Create PaymentIntent for NEW Trade #16
     const timestamp = Date.now();
     const message = constructAuthMessage('payment-intent', newTradeId, timestamp);
     const signature = await buyerAccount.signMessage({ message });
@@ -215,51 +256,33 @@ describe('Phase 7.2.6 — M1 PaymentIntent Payee Snapshot Immutability Suite', (
 
     const data = await res.json();
     expect(data.success).toBe(true);
-    // New trade receives the current active profile snapshot
-    expect(data.paymentIntent.sellerPaymentIdentifier).toBe('new_updated_seller_vpa@upi');
+    expect(data.paymentIntent.sellerPaymentIdentifier).toBe('trade16_distinct_vpa@upi');
+    expect(data.upiUri).toContain('pa=trade16_distinct_vpa%40upi');
   });
 
-  // 5. Core Invariants (reference, expiresAt, fiatAmount, fiatCurrency) remain immutable
-  it('5. All core fields (reference, expiresAt, fiatAmount, fiatCurrency) are immutable', async () => {
-    const ts1 = Date.now();
-    const msg1 = constructAuthMessage('payment-intent', mockTradeId, ts1);
-    const sig1 = await buyerAccount.signMessage({ message: msg1 });
+  // 5. Active trade without a binding fails closed (400)
+  it('5. Active trade without an authoritative binding fails closed', async () => {
+    const unboundTradeId = 16;
+    // Do not seed binding for Trade 16 in this test
+    const timestamp = Date.now();
+    const message = constructAuthMessage('payment-intent', unboundTradeId, timestamp);
+    const signature = await buyerAccount.signMessage({ message });
 
-    const req1 = new NextRequest('http://localhost:3000/api/p2p/payment-intent', {
+    const req = new NextRequest('http://localhost:3000/api/p2p/payment-intent', {
       method: 'POST',
       body: JSON.stringify({
-        tradeId: mockTradeId,
+        tradeId: unboundTradeId,
         userAddress: mockBuyer,
-        signature: sig1,
-        timestamp: ts1,
+        signature,
+        timestamp,
       }),
     });
 
-    const res1 = await POST(req1);
-    const data1 = await res1.json();
+    const res = await POST(req);
+    expect(res.status).toBe(400);
 
-    const ts2 = Date.now() + 5000;
-    const msg2 = constructAuthMessage('payment-intent', mockTradeId, ts2);
-    const sig2 = await sellerAccount.signMessage({ message: msg2 });
-
-    const req2 = new NextRequest('http://localhost:3000/api/p2p/payment-intent', {
-      method: 'POST',
-      body: JSON.stringify({
-        tradeId: mockTradeId,
-        userAddress: mockSeller,
-        signature: sig2,
-        timestamp: ts2,
-      }),
-    });
-
-    const res2 = await POST(req2);
-    const data2 = await res2.json();
-
-    expect(data2.paymentIntent.id).toBe(data1.paymentIntent.id);
-    expect(data2.paymentIntent.reference).toBe(data1.paymentIntent.reference);
-    expect(data2.paymentIntent.expiresAt).toBe(data1.paymentIntent.expiresAt);
-    expect(data2.paymentIntent.fiatAmount).toBe(data1.paymentIntent.fiatAmount);
-    expect(data2.paymentIntent.fiatCurrency).toBe(data1.paymentIntent.fiatCurrency);
-    expect(data2.paymentIntent.createdAt).toBe(data1.paymentIntent.createdAt);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.error).toContain('Authoritative payment binding not found');
   });
 });

@@ -104,11 +104,16 @@ import {
   getPaymentIntentStorageRoot,
   saveSellerPaymentProfile,
 } from '../../payment/paymentIntentStore';
+import {
+  saveTradePaymentBinding,
+  getTradeBindingStorageRoot,
+} from '../../payment/tradeBindingStore';
 import { getDisputeStorageRoot, saveDisputeRecord } from '../../dispute/disputeChatStore';
 import { getVerificationStorageRoot } from '../verificationStore';
 
 const testDir = path.join('/tmp', 'test-phase74-e2e-' + Math.random().toString(36).slice(2));
 process.env.P2P_INTENT_ROOT = path.join(testDir, 'intents');
+process.env.P2P_BINDING_ROOT = path.join(testDir, 'bindings');
 process.env.P2P_VERIFICATION_ROOT = path.join(testDir, 'verifications');
 process.env.P2P_DISPUTE_ROOT = path.join(testDir, 'disputes');
 process.env.P2P_ADMIN_ADDRESS = mockAdmin;
@@ -118,10 +123,11 @@ describe('Phase 7.4 — Controlled P2P End-to-End Regression Suite', () => {
     process.env.P2P_ADMIN_ADDRESS = mockAdmin;
 
     const iRoot = getPaymentIntentStorageRoot();
+    const bRoot = getTradeBindingStorageRoot();
     const vRoot = getVerificationStorageRoot();
     const dRoot = getDisputeStorageRoot();
 
-    [iRoot, vRoot, dRoot].forEach((root) => {
+    [iRoot, bRoot, vRoot, dRoot].forEach((root) => {
       if (fs.existsSync(root))
         try {
           fs.rmSync(root, { recursive: true });
@@ -130,6 +136,23 @@ describe('Phase 7.4 — Controlled P2P End-to-End Regression Suite', () => {
 
     // Save seller profile mapped to seller address
     await saveSellerPaymentProfile(mockSeller, 'seller_vpa_101@upi');
+
+    // Seed authoritative trade payment binding (Phase 2/3 Architecture)
+    await saveTradePaymentBinding({
+      tradeId: freshTradeId,
+      chainId: 8453,
+      escrowAddress: '0x400916339033b88cda38b1d8a5fb0f82e4889f38',
+      marketplaceOrderId: 101,
+      takeOrderTxHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      sellerAddress: mockSeller,
+      buyerAddress: mockBuyer,
+      paymentRail: 'UPI',
+      paymentDestination: 'seller_vpa_101@upi',
+      sellerSignature: '0x123456',
+      signatureTimestamp: Date.now(),
+      bindingHash: '0xabcdef',
+      createdAt: new Date().toISOString(),
+    });
   });
 
   // 1. PaymentIntent Payee Snapshot & Immutability Check
