@@ -1083,9 +1083,13 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
                   </button>
                 </div>
               ) : (
-                <span className="font-mono text-muted-foreground italic text-xs block mt-1">
-                  {trade.seller.slice(0, 8)}...{trade.seller.slice(-6)} (UPI not registered)
-                </span>
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-sans space-y-1 mt-1">
+                  <span className="font-bold block">Payment binding pending</span>
+                  <span className="text-[11px] block text-muted-foreground">
+                    Payment details are not available yet. Do not send fiat payment until seller
+                    payment details are available.
+                  </span>
+                </div>
               )}
             </div>
 
