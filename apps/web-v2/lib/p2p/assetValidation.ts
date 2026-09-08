@@ -120,3 +120,20 @@ export function validateP2PAsset(asset: string, chainId?: number): ValidateAsset
     assetInfo: matchedAsset,
   };
 }
+
+/**
+ * Ensures API paths always resolve to live production backend on Android APK (Capacitor localhost)
+ */
+export function resolveP2PApiUrl(relativePath: string): string {
+  if (typeof window === 'undefined') return relativePath;
+  const isNative = Boolean(
+    (window as any).AndroidNativeUpdater ||
+    ((window as any).Capacitor &&
+      typeof (window as any).Capacitor.isNativePlatform === 'function' &&
+      (window as any).Capacitor.isNativePlatform()),
+  );
+  if (isNative && relativePath.startsWith('/api/')) {
+    return `https://app.unifyvault.xyz${relativePath}`;
+  }
+  return relativePath;
+}

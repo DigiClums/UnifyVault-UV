@@ -26,7 +26,7 @@ import {
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 import { validateUpiId } from '../../lib/p2p/upiValidation';
 import { constructTradePaymentBindingMessage } from '../../lib/payment/walletAuth';
-import { getCanonicalUVBEAddress } from '../../lib/p2p/assetValidation';
+import { getCanonicalUVBEAddress, resolveP2PApiUrl } from '../../lib/p2p/assetValidation';
 import { ERC20_ABI } from '../../lib/contracts';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
@@ -128,7 +128,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
       }
 
       setIsLoadingSellerUpi(true);
-      fetch(`/api/p2p/seller-profile?userAddress=${sellerAddress}`)
+      fetch(resolveP2PApiUrl(`/api/p2p/seller-profile?userAddress=${sellerAddress}`))
         .then((res) => {
           if (!res.ok) throw new Error('Seller payment profile not found');
           return res.json();
@@ -152,7 +152,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     } else {
       // Taker is SELLER -> Pre-fill from current user's profile if available as a convenience
       if (userAddress) {
-        fetch(`/api/p2p/seller-profile?userAddress=${userAddress}`)
+        fetch(resolveP2PApiUrl(`/api/p2p/seller-profile?userAddress=${userAddress}`))
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
             if (!isMounted) return;
@@ -358,7 +358,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         setIsBindingPending(true);
         setBindingStatusText('Committing immutable trade payment binding...');
 
-        const bindRes = await fetch('/api/p2p/trade-binding', {
+        const bindRes = await fetch(resolveP2PApiUrl('/api/p2p/trade-binding'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -27,6 +27,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { validateUpiId } from '../../lib/p2p/upiValidation';
+import { resolveP2PApiUrl } from '../../lib/p2p/assetValidation';
 import { constructTradePaymentBindingMessage } from '../../lib/payment/walletAuth';
 import { TrustBadge } from './TrustBadge';
 import { RateTradeModal } from './RateTradeModal';
@@ -290,7 +291,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     async function fetchIntent() {
       try {
         setIsFetchingIntent(true);
-        const res = await fetch('/api/p2p/payment-intent', {
+        const res = await fetch(resolveP2PApiUrl('/api/p2p/payment-intent'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -353,7 +354,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     if (!userAddress) return;
     try {
       setIsClaimingIntent(true);
-      const res = await fetch('/api/p2p/payment-claim', {
+      const res = await fetch(resolveP2PApiUrl('/api/p2p/payment-claim'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tradeId: trade.tradeId, userAddress, utr: utrValue }),
@@ -440,7 +441,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
       }
 
       // Step 2: Post to authoritative /api/p2p/trade-binding route
-      const bindRes = await fetch('/api/p2p/trade-binding', {
+      const bindRes = await fetch(resolveP2PApiUrl('/api/p2p/trade-binding'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -465,7 +466,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
 
       // Fetch payment intent to get updated server intent & UPI URI
       try {
-        const intentRes = await fetch('/api/p2p/payment-intent', {
+        const intentRes = await fetch(resolveP2PApiUrl('/api/p2p/payment-intent'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tradeId: trade.tradeId, userAddress }),
@@ -498,7 +499,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     try {
       setIsConfirmingPayment(true);
       setUserError(null);
-      const res = await fetch('/api/p2p/payment-confirm', {
+      const res = await fetch(resolveP2PApiUrl('/api/p2p/payment-confirm'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -529,7 +530,7 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     try {
       setIsOpeningDispute(true);
       setUserError(null);
-      const res = await fetch('/api/p2p/payment-dispute', {
+      const res = await fetch(resolveP2PApiUrl('/api/p2p/payment-dispute'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

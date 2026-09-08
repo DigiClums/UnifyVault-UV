@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import { exec } from 'child_process';
 import { Telegraf, Markup } from 'telegraf';
 import { isAddress, parseAbi } from 'viem';
 import {
@@ -74,6 +77,7 @@ function getAdminMainMenu() {
       Markup.button.callback('📢 Broadcast Update', 'admin_broadcast_prompt'),
       Markup.button.callback('👥 Total Registered', 'admin_users_count'),
     ],
+    [Markup.button.callback('🛠️ App Maintenance Mode', 'admin_maintenance_menu')],
     [
       Markup.button.callback('📊 My Staking Position', 'staking'),
       Markup.button.callback('👛 My Wallet', 'wallet'),
@@ -600,6 +604,256 @@ bot.action('admin_users_count', async (ctx) => {
         [Markup.button.callback('📢 Broadcast to All', 'admin_broadcast_prompt')],
         [Markup.button.callback('⬅️ Back to Admin Menu', 'admin_menu')],
       ]),
+    },
+  );
+});
+
+const VERSION_FILE_PATH = path.resolve(process.cwd(), '../web-v2/public/version.json');
+
+function getMaintenanceConfig() {
+  try {
+    if (fs.existsSync(VERSION_FILE_PATH)) {
+      const data = JSON.parse(fs.readFileSync(VERSION_FILE_PATH, 'utf8'));
+      return data.maintenance || { enabled: false };
+    }
+  } catch {}
+  return { enabled: false };
+}
+
+function updateMaintenanceConfig(newMaintenance: any) {
+  try {
+    if (fs.existsSync(VERSION_FILE_PATH)) {
+      const fullConfig = JSON.parse(fs.readFileSync(VERSION_FILE_PATH, 'utf8'));
+      fullConfig.maintenance = {
+        ...fullConfig.maintenance,
+        ...newMaintenance,
+      };
+      fs.writeFileSync(VERSION_FILE_PATH, JSON.stringify(fullConfig, null, 2) + '\n', 'utf8');
+
+      // Asynchronously push to GitHub and trigger instant sync
+      exec(
+        `git add "${VERSION_FILE_PATH}" && git commit -m "chore(maintenance): update maintenance mode via Telegram bot" && git push origin main`,
+        { cwd: path.resolve(process.cwd(), '../..') },
+        (err) => {
+          if (err) console.error('Git push from bot failed:', err);
+        },
+      );
+      return true;
+    }
+  } catch (err) {
+    console.error('Failed updating version.json from bot:', err);
+  }
+  return false;
+}
+
+function getMaintenanceMenuMarkup(cfg: any) {
+  const isGlobal = Boolean(cfg.enabled);
+  const isP2P = Boolean(cfg.modules?.p2p?.enabled);
+  const isStaking = Boolean(cfg.modules?.staking?.enabled);
+
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback(
+        isGlobal ? '🔴 Global Lock: [ ON ]' : '🟢 Global Lock: [ OFF ]',
+        'toggle_maint_global',
+      ),
+    ],
+    [
+      Markup.button.callback(
+        isP2P ? '🔴 P2P Module: [ ON ]' : '🟢 P2P Module: [ OFF ]',
+        'toggle_maint_p2p',
+      ),
+      Markup.button.callback(
+        isStaking ? '🔴 Staking: [ ON ]' : '🟢 Staking: [ OFF ]',
+        'toggle_maint_staking',
+      ),
+    ],
+    [
+      Markup.button.callback('🔄 Refresh Status', 'admin_maintenance_menu'),
+      Markup.button.callback('⬅️ Admin Menu', 'admin_menu'),
+    ],
+  ]);
+}
+
+bot.action('admin_maintenance_menu', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) return ctx.reply('⛔ Unauthorized.');
+
+  const cfg = getMaintenanceConfig();
+  return ctx.reply(
+    `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
+      `Control the lock gates for Web & Mobile APK in real-time:\n\n` +
+      `• *Global App Lock:* ${cfg.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
+      `• *P2P Escrow Module:* ${cfg.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
+      `• *Staking Module:* ${cfg.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
+      `_Tap any button below to instantly toggle ON / OFF:_`,
+    {
+      parse_mode: 'Markdown',
+      ...getMaintenanceMenuMarkup(cfg),
+    },
+  );
+});
+
+bot.action('toggle_maint_global', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const newStatus = !current.enabled;
+  updateMaintenanceConfig({ enabled: newStatus });
+  await ctx.answerCbQuery(`Global Maintenance: ${newStatus ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
+        `• *Global App Lock:* ${updated.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
+        `• *P2P Escrow Module:* ${updated.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
+        `• *Staking Module:* ${updated.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
+        `✅ *Saved & Synced to Web + Mobile APK!*`,
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+bot.action('toggle_maint_p2p', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const currentP2P = Boolean(current.modules?.p2p?.enabled);
+  const newP2P = !currentP2P;
+
+  updateMaintenanceConfig({
+    modules: {
+      ...(current.modules || {}),
+      p2p: {
+        ...(current.modules?.p2p || {}),
+        enabled: newP2P,
+        title: 'P2P Escrow Maintenance',
+        message:
+          'P2P Escrow & Marketplace is temporarily paused for sync. Escrow deposits remain safe.',
+        estimatedEndTime: 'Coming back shortly',
+      },
+    },
+  });
+
+  await ctx.answerCbQuery(`P2P Maintenance: ${newP2P ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
+        `• *Global App Lock:* ${updated.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
+        `• *P2P Escrow Module:* ${updated.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
+        `• *Staking Module:* ${updated.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
+        `✅ *Saved & Synced to Web + Mobile APK!*`,
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+bot.action('toggle_maint_staking', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const currentStaking = Boolean(current.modules?.staking?.enabled);
+  const newStaking = !currentStaking;
+
+  updateMaintenanceConfig({
+    modules: {
+      ...(current.modules || {}),
+      staking: {
+        ...(current.modules?.staking || {}),
+        enabled: newStaking,
+        title: 'Staking Vault Maintenance',
+        message:
+          'Staking Vault & Reward Distribution are undergoing contract maintenance. Accrued rewards remain intact.',
+        estimatedEndTime: 'Coming back shortly',
+      },
+    },
+  });
+
+  await ctx.answerCbQuery(`Staking Maintenance: ${newStaking ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
+        `• *Global App Lock:* ${updated.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
+        `• *P2P Escrow Module:* ${updated.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
+        `• *Staking Module:* ${updated.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
+        `✅ *Saved & Synced to Web + Mobile APK!*`,
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+// Admin Command: /maintenance or /maint
+bot.command(['maintenance', 'maint'], async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    return ctx.reply('⛔ Access Denied. Only the Administrator can manage maintenance mode.');
+  }
+
+  const args = ctx.message.text.trim().split(/\s+/);
+  if (args.length >= 2) {
+    const action = args[1].toLowerCase();
+    if (action === 'off' || action === 'disable' || action === 'false') {
+      updateMaintenanceConfig({
+        enabled: false,
+        modules: {
+          staking: { enabled: false },
+          p2p: { enabled: false },
+          deposit: { enabled: false },
+          redeem: { enabled: false },
+          options: { enabled: false },
+        },
+      });
+      return ctx.reply(
+        '🟢 *ALL Maintenance Modes have been TURNED OFF!*\n\nWeb & Mobile APK are now 100% UNLOCKED and active.',
+        { parse_mode: 'Markdown' },
+      );
+    } else if (action === 'on' || action === 'enable' || action === 'true') {
+      updateMaintenanceConfig({ enabled: true });
+      return ctx.reply(
+        '🔴 *GLOBAL Maintenance Mode has been TURNED ON!*\n\nEntire Web & Mobile APK are now locked behind the maintenance screen.',
+        { parse_mode: 'Markdown' },
+      );
+    }
+  }
+
+  const cfg = getMaintenanceConfig();
+  return ctx.reply(
+    `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
+      `• *Global App Lock:* ${cfg.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
+      `• *P2P Escrow Module:* ${cfg.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
+      `• *Staking Module:* ${cfg.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
+      `Quick Commands:\n` +
+      `• \`/maintenance on\` - Turn ON Global Lock\n` +
+      `• \`/maintenance off\` - Turn OFF ALL Locks\n\n` +
+      `_Or use interactive buttons below:_`,
+    {
+      parse_mode: 'Markdown',
+      ...getMaintenanceMenuMarkup(cfg),
     },
   );
 });

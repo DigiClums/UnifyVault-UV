@@ -1,17 +1,14 @@
 {
-  "latestVersion": "2.7.0",
+  "latestVersion": "2.7.1",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.0/UnifyVault-v2.7.0.apk",
-  "sha256": "cd759b4707ea4838f146d21fe0d97b1f3d542f982247996bdad10ac2617e620c",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.1/UnifyVault-v2.7.1.apk",
+  "sha256": "",
   "releaseNotes": [
+    "[🐛 Fix] P2P: auto-bind production domain for all mobile APK API requests",
+    "[🐛 Fix] MAINTENANCE: multi-pattern route matching for native Android WebView (P2P/Staking/Vault)",
     "[🐛 Fix] MAINTENANCE: resilient JSON parsing and live production endpoint fallback for APK",
-    "[🐛 Fix] UPDATER: safely handle text and HTML responses in in-app update checker",
-    "[🐛 Fix] P2P: pass chainId and allow payment intent retrieval on expired trade state",
-    "[🐛 Fix] P2P: allow seamless payment intent retrieval for verified on-chain trade participants",
-    "[🐛 Fix] P2P: enforce seller wallet balance limit and cap MAX amount in TakeOrderModal",
-    "[✨ Feature] P2P: implement immutable trade payment binding lifecycle (Phase 1 - 3)",
-    "Verified APK SHA-256: cd759b4707ea4838f146d21fe0d97b1f3d542f982247996bdad10ac2617e620c"
+    "[🐛 Fix] UPDATER: safely handle text and HTML responses in in-app update checker"
   ],
   "maintenance": {
     "enabled": false,
@@ -28,7 +25,7 @@
         "estimatedEndTime": "Coming back shortly"
       },
       "p2p": {
-        "enabled": false,
+        "enabled": true,
         "title": "P2P Escrow Maintenance",
         "message": "P2P Escrow & Marketplace is temporarily paused for database and contract sync. Escrow deposits remain safe.",
         "estimatedEndTime": "Coming back shortly"

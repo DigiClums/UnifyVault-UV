@@ -144,11 +144,24 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       estimatedEndTime: maintenance.estimatedEndTime,
       moduleName: 'Global Protocol',
     };
-  } else if (maintenance.modules && pathname) {
-    // 2. Check Module-specific maintenance
-    const cleanPath = pathname.toLowerCase();
+  } else if (maintenance.modules) {
+    // 2. Check Module-specific maintenance (handles both Next.js pathname & Capacitor static .html files / hashes)
+    const rawPath =
+      (pathname || '') +
+      ' ' +
+      (typeof window !== 'undefined'
+        ? `${window.location.pathname} ${window.location.hash} ${window.location.href}`
+        : '');
+    const cleanPath = rawPath.toLowerCase();
 
-    if (cleanPath.startsWith('/staking') && maintenance.modules.staking?.enabled) {
+    const isStaking = cleanPath.includes('/staking') || cleanPath.includes('staking');
+    const isP2P = cleanPath.includes('/p2p') || cleanPath.includes('p2p');
+    const isDeposit = cleanPath.includes('/deposit') || cleanPath.includes('deposit');
+    const isRedeem = cleanPath.includes('/redeem') || cleanPath.includes('redeem');
+    const isOptions = cleanPath.includes('/options') || cleanPath.includes('options');
+    const isFantasy = cleanPath.includes('/fantasy') || cleanPath.includes('fantasy');
+
+    if (isStaking && maintenance.modules.staking?.enabled) {
       const cfg = maintenance.modules.staking;
       activeMaintenance = {
         isMaintenance: true,
@@ -159,7 +172,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         estimatedEndTime: cfg.estimatedEndTime,
         moduleName: 'UVBE Staking',
       };
-    } else if (cleanPath.startsWith('/p2p') && maintenance.modules.p2p?.enabled) {
+    } else if (isP2P && maintenance.modules.p2p?.enabled) {
       const cfg = maintenance.modules.p2p;
       activeMaintenance = {
         isMaintenance: true,
