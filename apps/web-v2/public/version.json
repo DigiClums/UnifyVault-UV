@@ -9,5 +9,15 @@
     "[Chore] MAINTENANCE: set maintenance mode to OFF for test verification",
     "[Chore] MAINTENANCE: update maintenance mode via Telegram bot",
     "Verified APK SHA-256: 8b34625a3ae01ff0407c40ab382d4ffbfdfe6f584f174749c8f520754ffc2de2"
-  ]
+  ],
+  "maintenance": {
+    "modules": {
+      "p2p": {
+        "enabled": true,
+        "title": "P2P Escrow Maintenance",
+        "message": "P2P Escrow & Marketplace is temporarily paused for sync. Escrow deposits remain safe.",
+        "estimatedEndTime": "Coming back shortly"
+      }
+    }
+  }
 }
