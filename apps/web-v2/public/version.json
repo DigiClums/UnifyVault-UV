@@ -1,14 +1,11 @@
 {
-  "latestVersion": "2.7.2",
+  "latestVersion": "2.7.3",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.2/UnifyVault-v2.7.2.apk",
-  "sha256": "75840577af64e98130e5e647ab8fa084d7b922cf32141c996ff5217da22d2809",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.3/UnifyVault-v2.7.3.apk",
+  "sha256": "bf9a04700662b7c064c0d1b0de357b2b13b75a059bbef518065883026babbf98",
   "releaseNotes": [
-    "[✨ Feature] SECURITY: add global biometric app lock and WebAuthn passkey management",
-    "[Chore] MAINTENANCE: update maintenance mode via Telegram bot",
-    "[Chore] ignore runtime user wallets json",
-    "[✨ Feature] BOT: add admin inline commands and full module maintenance toggles",
-    "Verified APK SHA-256: 75840577af64e98130e5e647ab8fa084d7b922cf32141c996ff5217da22d2809"
+    "[✨ Feature] SECURITY: support android native biometric passkey registration bridge",
+    "Verified APK SHA-256: bf9a04700662b7c064c0d1b0de357b2b13b75a059bbef518065883026babbf98"
   ]
 }
