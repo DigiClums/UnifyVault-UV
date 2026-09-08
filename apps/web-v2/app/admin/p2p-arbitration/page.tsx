@@ -29,7 +29,6 @@ import {
 } from '../../../constants';
 import { useProtocolDirectory } from '../../../hooks/useProtocolDirectory';
 import { StatCard } from '../../../components/ui/StatCard';
-import { StatusBadge } from '../../../components/ui/StatusBadge';
 import {
   EvidenceInvestigationConsole,
   type VerificationConclusion,
@@ -52,20 +51,22 @@ import {
   Settings,
   Scale,
   Copy,
-  Check,
   DollarSign,
   FileText,
   Layers,
+  ChevronLeft,
+  ChevronRight,
+  User,
 } from 'lucide-react';
 
 const STATE_LABELS: Record<TradeState, string> = {
   [TradeState.NONE]: 'None / Uninitialized',
-  [TradeState.CREATED]: 'Created (Pending Funding)',
-  [TradeState.FUNDED]: 'Funded (Awaiting Payment)',
+  [TradeState.CREATED]: 'Pending Funding',
+  [TradeState.FUNDED]: 'Awaiting Payment',
   [TradeState.PAYMENT_SUBMITTED]: 'Payment Claimed',
   [TradeState.DISPUTED]: 'Active Dispute',
-  [TradeState.RELEASED]: 'Released (Completed)',
-  [TradeState.REFUNDED]: 'Refunded',
+  [TradeState.RELEASED]: 'Released (Success)',
+  [TradeState.REFUNDED]: 'Refunded (Closed)',
   [TradeState.CANCELLED]: 'Cancelled',
 };
 
@@ -74,11 +75,15 @@ const STATE_BADGE_CLASSES: Record<TradeState, string> = {
   [TradeState.CREATED]: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   [TradeState.FUNDED]: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   [TradeState.PAYMENT_SUBMITTED]: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  [TradeState.DISPUTED]: 'bg-rose-500/15 text-rose-300 border-rose-500/30 animate-pulse',
+  [TradeState.DISPUTED]: 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse',
   [TradeState.RELEASED]: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   [TradeState.REFUNDED]: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
   [TradeState.CANCELLED]: 'bg-slate-800 text-slate-400 border-slate-700',
 };
+
+const PAGE_SIZE = 25;
+const MULTICALL_CHUNK_SIZE = 50;
+const MAX_DISPUTE_SCAN_TRADES = 1000;
 
 export default function AdminP2PArbitrationPage() {
   const { address: connectedAddress, chain } = useAccount();
@@ -91,7 +96,10 @@ export default function AdminP2PArbitrationPage() {
   const escrowAddress = (p2pEscrow || DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow) as `0x${string}`;
   const reputationAddress = DEPLOYED_CONTRACTS_SEPOLIA.P2PReputation as `0x${string}`;
 
-  // Tab & Search State
+  // Tab & View States
+  const [viewSection, setViewSection] = useState<'disputes' | 'all-trades' | 'protocol-settings'>(
+    'disputes',
+  );
   const [filterTab, setFilterTab] = useState<'disputed' | 'all' | 'resolved'>('disputed');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTradeId, setSelectedTradeId] = useState<bigint | null>(null);
@@ -99,6 +107,15 @@ export default function AdminP2PArbitrationPage() {
   const [isLoadingTrades, setIsLoadingTrades] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalCountOnChain, setTotalCountOnChain] = useState<number>(0);
+  const [disputePageCursorMap, setDisputePageCursorMap] = useState<Record<number, number>>({
+    1: 0,
+  });
+  const [hasMoreDisputes, setHasMoreDisputes] = useState<boolean>(false);
+  const [scanBoundReached, setScanBoundReached] = useState<boolean>(false);
 
   // Configuration State
   const [newFeeInput, setNewFeeInput] = useState<string>('25');
@@ -186,7 +203,6 @@ export default function AdminP2PArbitrationPage() {
   const isArbitrator = Boolean(roleData?.[0]?.result);
   const isGovernance = Boolean(roleData?.[1]?.result);
   const isGuardian = Boolean(roleData?.[2]?.result);
-
   const isAuthorizedArbitrator = isArbitrator || isGovernance;
 
   // --- Escrow Global Parameters ---
@@ -306,63 +322,197 @@ export default function AdminP2PArbitrationPage() {
       }
     | undefined;
 
-  // --- Fetch On-Chain Trades List ---
-  const fetchTrades = useCallback(async () => {
-    if (!escrowAddress || !publicClient) return;
-    setIsRefreshing(true);
-    try {
-      const count = (await publicClient.readContract({
-        address: escrowAddress,
-        abi: P2P_ESCROW_ABI,
-        functionName: 'totalTrades',
-      })) as bigint;
+  // --- Fetch On-Chain Trades List with Phase 1.1 Hardened Active Dispute Scanning ---
+  const fetchTrades = useCallback(
+    async (customCursorMap?: Record<number, number>) => {
+      if (!escrowAddress || !publicClient) return;
+      setIsRefreshing(true);
+      setScanBoundReached(false);
+      try {
+        const count = (await publicClient.readContract({
+          address: escrowAddress,
+          abi: P2P_ESCROW_ABI,
+          functionName: 'totalTrades',
+        })) as bigint;
 
-      const total = Number(count);
-      if (total === 0) {
-        setTradesList([]);
-        setIsLoadingTrades(false);
-        setIsRefreshing(false);
-        return;
-      }
+        const total = Number(count);
+        setTotalCountOnChain(total);
 
-      // Read trades in batches of up to 100
-      const tradeIds = Array.from({ length: Math.min(total, 100) }, (_, i) => BigInt(total - i));
+        if (total === 0) {
+          setTradesList([]);
+          setHasMoreDisputes(false);
+          setIsLoadingTrades(false);
+          setIsRefreshing(false);
+          return;
+        }
 
-      const tradeResults = await Promise.all(
-        tradeIds.map(async (id) => {
-          try {
-            const trade = (await publicClient.readContract({
+        const activeCursorMap = customCursorMap || disputePageCursorMap;
+
+        if (filterTab === 'disputed') {
+          // MODE A: Active Dispute Bounded Multicall Scanner
+          // Collect up to (PAGE_SIZE + 1) DISPUTED trades to determine page slice and hasMore flag
+          const startScanId =
+            activeCursorMap[currentPage] && activeCursorMap[currentPage] > 0
+              ? activeCursorMap[currentPage]
+              : total;
+
+          const collectedDisputes: EscrowTrade[] = [];
+          let currentScanId = startScanId;
+          let scannedCount = 0;
+          let nextCursor = 0;
+
+          while (
+            currentScanId >= 1 &&
+            collectedDisputes.length < PAGE_SIZE + 1 &&
+            scannedCount < MAX_DISPUTE_SCAN_TRADES
+          ) {
+            const chunkSize = Math.min(MULTICALL_CHUNK_SIZE, currentScanId);
+            const chunkIds: bigint[] = [];
+            for (let i = 0; i < chunkSize; i++) {
+              chunkIds.push(BigInt(currentScanId - i));
+            }
+
+            const multicallContracts = chunkIds.map((id) => ({
               address: escrowAddress,
               abi: P2P_ESCROW_ABI,
-              functionName: 'getTrade',
-              args: [id],
-            })) as EscrowTrade;
-            return trade;
-          } catch {
-            return null;
+              functionName: 'getTrade' as const,
+              args: [id] as const,
+            }));
+
+            const results = await publicClient.multicall({
+              contracts: multicallContracts,
+              allowFailure: true,
+            });
+
+            for (let i = 0; i < results.length; i++) {
+              const res = results[i];
+              const checkedId = Number(chunkIds[i]);
+              if (res.status === 'success' && res.result) {
+                const trade = res.result as EscrowTrade;
+                if (trade.state === TradeState.DISPUTED) {
+                  if (collectedDisputes.length < PAGE_SIZE) {
+                    collectedDisputes.push(trade);
+                  } else if (collectedDisputes.length === PAGE_SIZE) {
+                    // Found 26th dispute -> record next page start cursor
+                    nextCursor = checkedId;
+                    collectedDisputes.push(trade);
+                    break;
+                  }
+                }
+              }
+            }
+
+            scannedCount += chunkSize;
+            currentScanId -= chunkSize;
           }
-        }),
-      );
 
-      const validTrades = tradeResults.filter((t): t is EscrowTrade => t !== null);
-      setTradesList(validTrades);
+          const pageDisputes = collectedDisputes.slice(0, PAGE_SIZE);
+          const hasNext = collectedDisputes.length > PAGE_SIZE;
+          setHasMoreDisputes(hasNext);
+          if (hasNext && nextCursor > 0) {
+            setDisputePageCursorMap((prev) => ({
+              ...prev,
+              [currentPage + 1]: nextCursor,
+            }));
+          }
 
-      // Auto-select first disputed trade if none selected
-      if (!selectedTradeId && validTrades.length > 0) {
-        const firstDisputed = validTrades.find((t) => t.state === TradeState.DISPUTED);
-        setSelectedTradeId(firstDisputed ? firstDisputed.tradeId : validTrades[0].tradeId);
+          if (
+            scannedCount >= MAX_DISPUTE_SCAN_TRADES &&
+            currentScanId >= 1 &&
+            pageDisputes.length < PAGE_SIZE
+          ) {
+            setScanBoundReached(true);
+          }
+
+          setTradesList(pageDisputes);
+
+          // Auto-select first active dispute if none selected or if previously selected trade is not in view
+          setSelectedTradeId((prevSelected) => {
+            if (!prevSelected && pageDisputes.length > 0) {
+              return pageDisputes[0].tradeId;
+            }
+            return prevSelected;
+          });
+        } else {
+          // MODE B & C: Raw Newest-First Bounded Multicall for All / Resolved
+          const offset = (currentPage - 1) * PAGE_SIZE;
+          const startId = total - offset;
+          const endId = Math.max(1, startId - PAGE_SIZE + 1);
+
+          if (startId < 1) {
+            setTradesList([]);
+            setHasMoreDisputes(false);
+            setIsLoadingTrades(false);
+            setIsRefreshing(false);
+            return;
+          }
+
+          const tradeIds: bigint[] = [];
+          for (let id = startId; id >= endId; id--) {
+            tradeIds.push(BigInt(id));
+          }
+
+          const multicallContracts = tradeIds.map((id) => ({
+            address: escrowAddress,
+            abi: P2P_ESCROW_ABI,
+            functionName: 'getTrade' as const,
+            args: [id] as const,
+          }));
+
+          const results = await publicClient.multicall({
+            contracts: multicallContracts,
+            allowFailure: true,
+          });
+
+          const validTrades: EscrowTrade[] = [];
+          for (const res of results) {
+            if (res.status === 'success' && res.result) {
+              validTrades.push(res.result as EscrowTrade);
+            }
+          }
+
+          setTradesList(validTrades);
+
+          setSelectedTradeId((prevSelected) => {
+            if (!prevSelected && validTrades.length > 0) {
+              const firstDisputed = validTrades.find((t) => t.state === TradeState.DISPUTED);
+              return firstDisputed ? firstDisputed.tradeId : validTrades[0].tradeId;
+            }
+            return prevSelected;
+          });
+        }
+      } catch (err) {
+        console.error('[Developer Logs - Fetch Trades Error]:', err);
+      } finally {
+        setIsLoadingTrades(false);
+        setIsRefreshing(false);
       }
-    } catch (err) {
-      console.error('[Developer Logs - Fetch Trades Error]:', err);
-    } finally {
-      setIsLoadingTrades(false);
-      setIsRefreshing(false);
-    }
-  }, [escrowAddress, publicClient, selectedTradeId]);
+    },
+    [escrowAddress, publicClient, filterTab, currentPage, disputePageCursorMap],
+  );
 
   useEffect(() => {
     fetchTrades();
   }, [fetchTrades]);
+
+  // Reset pagination state when switching filter tabs
+  const handleTabChange = (newTab: 'disputed' | 'all' | 'resolved') => {
+    setFilterTab(newTab);
+    setCurrentPage(1);
+    setDisputePageCursorMap({ 1: 0 });
+    setHasMoreDisputes(false);
+    setScanBoundReached(false);
+  };
+
+  // Full manual refresh handler that resets cursors and refetches from latest on-chain head
+  const handleManualSync = () => {
+    setCurrentPage(1);
+    const resetCursor = { 1: 0 };
+    setDisputePageCursorMap(resetCursor);
+    setHasMoreDisputes(false);
+    setScanBoundReached(false);
+    fetchTrades(resetCursor);
+  };
 
   // --- Contract Write & Transaction Lifecycle ---
   const {
@@ -381,10 +531,10 @@ export default function AdminP2PArbitrationPage() {
       refetchEscrowMeta();
       refetchRoles();
       refetchSelectedTrade();
-      fetchTrades();
+      handleManualSync();
       setResolutionModalOutcome(null);
     }
-  }, [isTxSuccess, refetchEscrowMeta, refetchRoles, refetchSelectedTrade, fetchTrades]);
+  }, [isTxSuccess, refetchEscrowMeta, refetchRoles, refetchSelectedTrade]);
 
   // Execute Dispute Resolution with Safety Gate & Pre-Check
   const handleResolveDispute = async (outcome: DisputeOutcome) => {
@@ -399,7 +549,7 @@ export default function AdminP2PArbitrationPage() {
 
     if (verificationConclusion === 'INSUFFICIENT_EVIDENCE') {
       alert(
-        'Safety Gate Blocked: Cannot execute ruling while verification conclusion is INSUFFICIENT EVIDENCE.',
+        'Safety Gate Blocked: Cannot execute ruling while verification conclusion is INSUFFICIENT EVIDENCE. Please review evidence and update the conclusion.',
       );
       return;
     }
@@ -434,7 +584,7 @@ export default function AdminP2PArbitrationPage() {
           `This dispute has already been resolved or changed state (Current: ${STATE_LABELS[latestTrade.state]}). Refreshing queue...`,
         );
         refetchSelectedTrade();
-        fetchTrades();
+        handleManualSync();
         setResolutionModalOutcome(null);
         return;
       }
@@ -544,6 +694,11 @@ export default function AdminP2PArbitrationPage() {
   };
 
   const disputedCount = tradesList.filter((t) => t.state === TradeState.DISPUTED).length;
+  const resolvedCount = tradesList.filter(
+    (t) => t.state === TradeState.RELEASED || t.state === TradeState.REFUNDED,
+  ).length;
+
+  const totalPagesAll = Math.max(1, Math.ceil(totalCountOnChain / PAGE_SIZE));
 
   const filteredTrades = useMemo(() => {
     return tradesList.filter((trade) => {
@@ -556,7 +711,7 @@ export default function AdminP2PArbitrationPage() {
       )
         return false;
 
-      // Search query
+      // Search query (Page-local search)
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
@@ -569,135 +724,146 @@ export default function AdminP2PArbitrationPage() {
   }, [tradesList, filterTab, searchQuery]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
+      {/* 1. Page Header & Live Status */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border-subtle/60">
         <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              P2P Arbitration & Dispute Console
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                <Gavel className="w-6 h-6" />
+              </span>
+              P2P Arbitration Center
             </h1>
-            <StatusBadge
-              status={isEscrowPaused ? 'Paused' : 'Active'}
-              label={isEscrowPaused ? 'ESCROW PAUSED' : 'ESCROW ACTIVE'}
-            />
+            <span
+              className={`text-[11px] font-bold font-mono px-2.5 py-1 rounded-full border ${
+                isEscrowPaused
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              }`}
+            >
+              {isEscrowPaused ? '● ESCROW PAUSED' : '● ESCROW LIVE'}
+            </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            On-chain dispute resolution, evidence audit, and non-custodial arbitration for
-            P2PEscrowV2 ({escrowAddress.slice(0, 6)}...{escrowAddress.slice(-4)}).
+          <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+            Non-custodial on-chain dispute settlement & fraud investigation for
+            <a
+              href={`${explorerBaseUrl}/address/${escrowAddress}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-purple-400 hover:text-purple-300 font-mono underline inline-flex items-center gap-1"
+            >
+              <span>
+                {escrowAddress.slice(0, 6)}...{escrowAddress.slice(-4)}
+              </span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3">
           <button
-            onClick={fetchTrades}
+            onClick={handleManualSync}
             disabled={isRefreshing}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-all disabled:opacity-50"
+            className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-border-subtle text-xs font-semibold text-slate-200 transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-purple-400' : ''}`}
+              className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-purple-400' : 'text-slate-400'}`}
             />
-            <span>{isRefreshing ? 'Syncing...' : 'Sync Trades'}</span>
+            <span>{isRefreshing ? 'Syncing...' : 'Sync Queue'}</span>
           </button>
         </div>
       </div>
 
-      {/* Authority Status Banner */}
+      {/* 2. Authority & Role Banner */}
       <div
-        className={`p-4 rounded-2xl border backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        className={`p-4 rounded-2xl border backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-lg ${
           isAuthorizedArbitrator
-            ? 'bg-purple-950/20 border-purple-800/40 text-purple-300'
-            : 'bg-amber-950/25 border-amber-500/30 text-amber-300'
+            ? 'bg-gradient-to-r from-purple-950/30 via-purple-900/10 to-slate-900/40 border-purple-800/40 text-purple-200'
+            : 'bg-gradient-to-r from-amber-950/30 via-amber-900/10 to-slate-900/40 border-amber-500/30 text-amber-200'
         }`}
       >
-        <div className="flex items-start sm:items-center space-x-3">
+        <div className="flex items-center space-x-3.5">
           <div
-            className={`p-2 rounded-xl shrink-0 ${
+            className={`p-2.5 rounded-xl shrink-0 ${
               isAuthorizedArbitrator
-                ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400'
-                : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-glow-purple'
+                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
             }`}
           >
             {isAuthorizedArbitrator ? (
-              <Gavel className="w-5 h-5" />
+              <Scale className="w-5 h-5" />
             ) : (
               <ShieldAlert className="w-5 h-5" />
             )}
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-sm text-white">Connected Authority Status:</span>
+              <span className="font-bold text-sm text-white">Your Permission Level:</span>
               <span
-                className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+                className={`text-xs font-mono font-extrabold px-2.5 py-0.5 rounded-md border ${
                   isAuthorizedArbitrator
-                    ? 'bg-purple-500/20 text-purple-300'
-                    : 'bg-amber-500/20 text-amber-300'
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                 }`}
               >
-                {isArbitrator
-                  ? 'ARBITRATOR_ROLE'
-                  : isGovernance
-                    ? 'GOVERNANCE_ROLE'
-                    : 'READ-ONLY OBSERVER'}
+                {isArbitrator ? 'ARBITRATOR' : isGovernance ? 'GOVERNANCE' : 'READ-ONLY OBSERVER'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               {isAuthorizedArbitrator
-                ? 'Connected wallet is authorized on-chain to execute binding dispute resolutions.'
-                : 'Connected wallet lacks ARBITRATOR_ROLE. Resolution actions are disabled.'}
+                ? 'Authorized to execute binding on-chain financial releases and seller refunds.'
+                : 'Arbitration execution is locked. Connect an authorized Arbitrator or Governance wallet.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs font-mono">
-          <span className="text-slate-400">Escrow Contract:</span>
-          <a
-            href={`${explorerBaseUrl}/address/${escrowAddress}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-purple-400 hover:text-purple-300 underline inline-flex items-center space-x-1"
-          >
-            <span>
-              {escrowAddress.slice(0, 6)}...{escrowAddress.slice(-4)}
-            </span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-slate-400 font-mono">Connected:</span>
+          <span className="font-mono text-purple-300 bg-purple-950/40 px-2 py-1 rounded border border-purple-800/40">
+            {connectedAddress
+              ? `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`
+              : 'Disconnected'}
+          </span>
         </div>
       </div>
 
       {/* Escrow Paused Alert Banner */}
       {isEscrowPaused && (
-        <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-start space-x-3">
+        <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 flex items-start space-x-3.5 shadow-lg">
           <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold">P2PEscrowV2 Protocol is Currently PAUSED</span>
-            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-              New trade creation, funding, payment submissions, and voluntary releases are suspended
-              on-chain. Arbitration resolution remains operational if authorized by
-              Governance/Arbitrator.
+          <div className="space-y-0.5">
+            <span className="font-bold text-sm text-white">
+              P2PEscrow Protocol is Currently PAUSED
+            </span>
+            <p className="text-xs text-rose-300/90 leading-relaxed">
+              New trade creation and payments are suspended globally. Arbitrators can still resolve
+              pending disputes.
             </p>
           </div>
         </div>
       )}
 
-      {/* Metrics Row */}
+      {/* 3. Top Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Active Disputes"
-          value={disputedCount.toString()}
-          subtitle="Pending Arbitrator ruling"
+          title="Active Disputes (Current View)"
+          value={
+            filterTab === 'disputed' ? filteredTrades.length.toString() : disputedCount.toString()
+          }
+          subtitle="Awaiting Arbitrator decision"
           icon={Gavel}
-          glowColor={disputedCount > 0 ? 'purple' : 'blue'}
+          glowColor={filteredTrades.length > 0 ? 'purple' : 'blue'}
         />
         <StatCard
           title="Total Lifetime Trades"
           value={totalTradesCount.toString()}
-          subtitle="Created in P2PEscrowV2"
+          subtitle="Indexed on-chain"
           icon={Layers}
           glowColor="blue"
         />
         <StatCard
-          title="Escrow Protocol Fee"
+          title="Protocol Take Fee"
           value={`${Number(currentFeeBps) / 100}%`}
           subtitle={`${currentFeeBps.toString()} BPS on settlement`}
           icon={DollarSign}
@@ -706,590 +872,787 @@ export default function AdminP2PArbitrationPage() {
         <StatCard
           title="Protocol Treasury"
           value={`${currentTreasury.slice(0, 6)}...${currentTreasury.slice(-4)}`}
-          subtitle="Fee recipient contract"
+          subtitle="Settlement fee recipient"
           icon={ShieldCheck}
           glowColor="purple"
         />
       </div>
 
-      {/* Main Grid: Dispute Dashboard (Left) & Trade Inspector (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Dispute Queue & Search (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="p-4 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-3 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white tracking-tight flex items-center space-x-2">
-                <Scale className="w-4 h-4 text-purple-400" />
-                <span>Arbitration Queue</span>
-              </h2>
-              <span className="text-[11px] font-mono text-slate-400">
-                {filteredTrades.length} Trade{filteredTrades.length === 1 ? '' : 's'}
-              </span>
+      {/* 4. Top Navigation Switcher */}
+      <div className="flex items-center space-x-2 border-b border-border-subtle/60 pb-3">
+        <button
+          onClick={() => {
+            setViewSection('disputes');
+            handleTabChange('disputed');
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            viewSection === 'disputes'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-slate-900/60 text-slate-400 hover:text-white border border-border-subtle'
+          }`}
+        >
+          <Gavel className="w-3.5 h-3.5" />
+          <span>Active Disputes</span>
+        </button>
+        <button
+          onClick={() => {
+            setViewSection('all-trades');
+            handleTabChange('all');
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            viewSection === 'all-trades'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-slate-900/60 text-slate-400 hover:text-white border border-border-subtle'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>All Escrow Trades</span>
+        </button>
+        <button
+          onClick={() => setViewSection('protocol-settings')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            viewSection === 'protocol-settings'
+              ? 'bg-purple-600 text-white shadow-glow'
+              : 'bg-slate-900/60 text-slate-400 hover:text-white border border-border-subtle'
+          }`}
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span>Protocol Configuration</span>
+        </button>
+      </div>
+
+      {/* 5. Main Content Area */}
+      {viewSection === 'protocol-settings' ? (
+        /* Protocol Configuration Standalone View */
+        <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-6 shadow-xl max-w-3xl">
+          <div className="flex items-center space-x-3 border-b border-border-subtle/40 pb-4">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+              <Settings className="w-5 h-5" />
             </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center p-1 bg-slate-900/80 rounded-xl border border-border-subtle text-xs">
-              <button
-                onClick={() => setFilterTab('disputed')}
-                className={`flex-1 py-1.5 rounded-lg font-bold transition-all ${
-                  filterTab === 'disputed'
-                    ? 'bg-purple-600 text-white shadow-glow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Disputed ({disputedCount})
-              </button>
-              <button
-                onClick={() => setFilterTab('all')}
-                className={`flex-1 py-1.5 rounded-lg font-bold transition-all ${
-                  filterTab === 'all'
-                    ? 'bg-purple-600 text-white shadow-glow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                All Trades ({tradesList.length})
-              </button>
-              <button
-                onClick={() => setFilterTab('resolved')}
-                className={`flex-1 py-1.5 rounded-lg font-bold transition-all ${
-                  filterTab === 'resolved'
-                    ? 'bg-purple-600 text-white shadow-glow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Resolved
-              </button>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search trade ID, wallet, reference..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-950/80 border border-border-subtle text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
-            </div>
-
-            {/* Trade List Scroll Area */}
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-              {isLoadingTrades ? (
-                <div className="py-12 text-center text-slate-400 space-y-2">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-purple-400" />
-                  <p className="text-xs">Loading escrow trades from Base...</p>
-                </div>
-              ) : filteredTrades.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 space-y-2">
-                  <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500/40" />
-                  <p className="text-xs font-semibold text-slate-300">No matching trades</p>
-                  <p className="text-[11px] text-slate-500">
-                    {filterTab === 'disputed'
-                      ? 'No active disputes requiring arbitration.'
-                      : 'No trades matching current search filter.'}
-                  </p>
-                </div>
-              ) : (
-                filteredTrades.map((trade) => {
-                  const isSelected = selectedTradeId === trade.tradeId;
-                  const isDisputed = trade.state === TradeState.DISPUTED;
-                  const currencyStr = decodeCurrency(trade.fiatCurrency);
-
-                  return (
-                    <div
-                      key={trade.tradeId.toString()}
-                      onClick={() => setSelectedTradeId(trade.tradeId)}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                        isSelected
-                          ? 'bg-purple-950/30 border-purple-500/80 shadow-glow-purple'
-                          : isDisputed
-                            ? 'bg-rose-950/20 border-rose-500/30 hover:border-rose-500/60'
-                            : 'bg-slate-900/60 border-border-subtle hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-mono font-bold text-white text-xs">
-                            Trade #{trade.tradeId.toString()}
-                          </span>
-                          <span
-                            className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded border ${
-                              STATE_BADGE_CLASSES[trade.state] || 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {STATE_LABELS[trade.state]}
-                          </span>
-                        </div>
-                        <span className="font-mono font-bold text-xs text-white">
-                          {formatAssetDisplay(trade.amount, trade.asset)}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">Buyer:</span>
-                          <span className="text-slate-300">
-                            {trade.buyer.slice(0, 6)}...{trade.buyer.slice(-4)}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-slate-500 block text-[10px]">Fiat Settlement:</span>
-                          <span className="text-slate-200 font-bold">
-                            {trade.fiatAmount > 0n
-                              ? `${trade.fiatAmount.toString()} ${currencyStr}`
-                              : 'Off-chain'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Deep Trade Inspector & Arbitration Actions (7 Cols) */}
-        <div className="lg:col-span-7 space-y-5">
-          {isLoadingSelectedTrade ? (
-            <div className="p-12 rounded-2xl bg-surface/80 border border-border-subtle text-center space-y-3">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-400" />
-              <p className="text-sm font-semibold text-white">Reading trade from P2PEscrowV2...</p>
-            </div>
-          ) : !selectedTrade ? (
-            <div className="p-12 rounded-2xl bg-surface/80 border border-border-subtle text-center space-y-3 text-slate-400">
-              <Gavel className="w-10 h-10 mx-auto text-slate-600" />
-              <h3 className="text-base font-bold text-white">Select a Trade to Inspect</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Choose a trade from the queue on the left to inspect on-chain state, verified
-                payment reference, and execute binding arbitration rulings.
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                P2PEscrowV2 Protocol Configuration
+              </h3>
+              <p className="text-xs text-slate-400">
+                Manage global parameters, fee rates, and emergency controls (Requires GOVERNANCE /
+                GUARDIAN roles).
               </p>
             </div>
-          ) : (
-            <>
-              {/* Trade Inspector Header Card */}
-              <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl shadow-xl space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-subtle/40">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-lg font-extrabold text-white font-mono">
-                          Trade #{selectedTrade.tradeId.toString()}
-                        </h3>
-                        <span
-                          className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded border ${
-                            STATE_BADGE_CLASSES[selectedTrade.state]
-                          }`}
-                        >
-                          {STATE_LABELS[selectedTrade.state]}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Escrow Asset:{' '}
-                        <span className="font-mono text-purple-300 font-bold">
-                          {getAssetSymbol(selectedTrade.asset)}
-                        </span>{' '}
-                        ({selectedTrade.asset})
-                      </p>
-                    </div>
-                  </div>
+          </div>
 
-                  <div className="text-right font-mono">
-                    <span className="text-xs text-slate-400 block">Escrow Amount</span>
-                    <span className="text-xl font-extrabold text-white">
-                      {formatAssetDisplay(selectedTrade.amount, selectedTrade.asset)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Compact Trade Overview Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                  {/* Buyer */}
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
-                    <div className="flex justify-between items-center text-slate-400 text-[10px]">
-                      <span>Buyer</span>
-                      <button
-                        onClick={() => copyToClipboard(selectedTrade.buyer, 'buyer')}
-                        className="text-purple-400 hover:text-purple-300 flex items-center gap-0.5"
-                      >
-                        {copiedKey === 'buyer' ? (
-                          <Check className="w-2.5 h-2.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-2.5 h-2.5" />
-                        )}
-                      </button>
-                    </div>
-                    <div
-                      className="text-slate-200 font-bold truncate text-[11px] mt-0.5"
-                      title={selectedTrade.buyer}
-                    >
-                      {selectedTrade.buyer.slice(0, 6)}...{selectedTrade.buyer.slice(-4)}
-                    </div>
-                  </div>
-
-                  {/* Seller */}
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
-                    <div className="flex justify-between items-center text-slate-400 text-[10px]">
-                      <span>Seller</span>
-                      <button
-                        onClick={() => copyToClipboard(selectedTrade.seller, 'seller')}
-                        className="text-purple-400 hover:text-purple-300 flex items-center gap-0.5"
-                      >
-                        {copiedKey === 'seller' ? (
-                          <Check className="w-2.5 h-2.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-2.5 h-2.5" />
-                        )}
-                      </button>
-                    </div>
-                    <div
-                      className="text-slate-200 font-bold truncate text-[11px] mt-0.5"
-                      title={selectedTrade.seller}
-                    >
-                      {selectedTrade.seller.slice(0, 6)}...{selectedTrade.seller.slice(-4)}
-                    </div>
-                  </div>
-
-                  {/* Fiat Settlement */}
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
-                    <span className="text-slate-400 block text-[10px]">Fiat Settlement</span>
-                    <span className="text-emerald-400 font-bold text-[11px] block mt-0.5">
-                      {selectedTrade.fiatAmount > 0n
-                        ? `${selectedTrade.fiatAmount.toString()} ${decodeCurrency(selectedTrade.fiatCurrency)}`
-                        : 'Off-Chain'}
-                    </span>
-                  </div>
-
-                  {/* Dispute Initiator */}
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-border-subtle">
-                    <span className="text-slate-400 block text-[10px]">Dispute Raised By</span>
-                    <span className="text-amber-300 font-bold text-[11px] truncate block mt-0.5">
-                      {selectedTrade.disputeInitiator ===
-                      '0x0000000000000000000000000000000000000000'
-                        ? 'None'
-                        : selectedTrade.disputeInitiator.toLowerCase() ===
-                            selectedTrade.buyer.toLowerCase()
-                          ? 'Buyer'
-                          : 'Seller'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Hashes Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="text-slate-400">Payment Reference (UTR)</span>
-                      <span
-                        className={`font-bold px-1 rounded ${isReferenceUsed ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'}`}
-                      >
-                        {isReferenceUsed ? 'REPLAY PROTECTED' : 'UNRECORDED'}
-                      </span>
-                    </div>
-                    <div
-                      className="text-purple-300 text-[11px] truncate"
-                      title={selectedTrade.paymentReference}
-                    >
-                      {selectedTrade.paymentReference}
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="text-slate-400">Evidence Commitment (Hash)</span>
-                      <span
-                        className={`font-bold px-1 rounded ${isEvidenceUsed ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'}`}
-                      >
-                        {isEvidenceUsed ? '✓ COMMITTED ON-CHAIN' : 'UNRECORDED'}
-                      </span>
-                    </div>
-                    <div
-                      className="text-purple-300 text-[11px] truncate"
-                      title={selectedTrade.evidenceHash}
-                    >
-                      {selectedTrade.evidenceHash}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Evidence Investigation Console */}
-                <EvidenceInvestigationConsole
-                  selectedTrade={selectedTrade}
-                  isEvidenceHashUsed={isEvidenceUsed}
-                  isReferenceUsed={isReferenceUsed}
-                  onConclusionChange={setVerificationConclusion}
-                  investigationNotes={investigationNotes}
-                  onNotesChange={setInvestigationNotes}
-                  onSaveAuditNote={handleSaveAuditNote}
-                  isSavingAudit={isSavingAudit}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Fee Config */}
+            <form
+              onSubmit={handleSetFee}
+              className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-3"
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-200">Protocol Fee Rate</span>
+                <span className="font-mono text-emerald-400 font-bold">
+                  {Number(currentFeeBps) / 100}% ({currentFeeBps.toString()} BPS)
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  placeholder="25"
+                  value={newFeeInput}
+                  onChange={(e) => setNewFeeInput(e.target.value)}
+                  disabled={!isGovernance}
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
                 />
+                <button
+                  type="submit"
+                  disabled={isWritePending || isTxWaiting || !isGovernance}
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-white disabled:opacity-50 transition-all text-xs"
+                >
+                  Set Fee
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Requires GOVERNANCE_ROLE (Max Cap: 500 BPS = 5.00%)
+              </p>
+            </form>
 
-                {/* --- Section C: Arbitration Ruling Actions --- */}
-                <div className="pt-4 border-t border-border-subtle/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Gavel className="w-5 h-5 text-purple-400" />
-                      <h4 className="text-base font-bold text-white tracking-tight">
-                        Arbitration Ruling & Execution
-                      </h4>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      BINDING RESOLUTION
-                    </span>
+            {/* Treasury Address */}
+            <form
+              onSubmit={handleSetTreasury}
+              className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-3"
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-200">Fee Treasury Address</span>
+                <span
+                  className="font-mono text-purple-300 font-bold truncate max-w-[120px]"
+                  title={currentTreasury}
+                >
+                  {currentTreasury.slice(0, 6)}...{currentTreasury.slice(-4)}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={newTreasuryInput}
+                  onChange={(e) => setNewTreasuryInput(e.target.value)}
+                  disabled={!isGovernance}
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 text-xs"
+                />
+                <button
+                  type="submit"
+                  disabled={isWritePending || isTxWaiting || !isGovernance}
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-white disabled:opacity-50 transition-all text-xs"
+                >
+                  Set Treasury
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">Requires GOVERNANCE_ROLE</p>
+            </form>
+          </div>
+
+          {/* Emergency Pause / Unpause Action */}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="font-bold text-white text-xs block">Emergency Pause Controller</span>
+              <span className="text-[11px] text-slate-400">
+                {isEscrowPaused
+                  ? 'Protocol is PAUSED. Click unpause to resume normal P2P trading.'
+                  : 'Pause suspends all new trades and payments across P2PEscrowV2.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleTogglePause}
+              disabled={
+                isWritePending || isTxWaiting || (isEscrowPaused ? !isGovernance : !isGuardian)
+              }
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all disabled:opacity-50 shrink-0 ${
+                isEscrowPaused
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-glow'
+                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-glow'
+              }`}
+            >
+              {isEscrowPaused ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              <span>{isEscrowPaused ? 'Unpause Protocol' : 'Emergency Pause'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Standard 2-Column Split Console */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Trade Queue & Search (5 Cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="p-4 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-3.5 shadow-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-white tracking-tight flex items-center space-x-2">
+                  <Scale className="w-4 h-4 text-purple-400" />
+                  <span>
+                    {filterTab === 'disputed'
+                      ? 'Active Dispute Queue'
+                      : filterTab === 'resolved'
+                        ? 'Resolved Disputes'
+                        : 'Trade Registry'}
+                  </span>
+                </h2>
+                <span className="text-[11px] font-mono font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">
+                  {filterTab === 'disputed'
+                    ? `Showing ${filteredTrades.length} Active Dispute${filteredTrades.length === 1 ? '' : 's'}`
+                    : totalCountOnChain > 0
+                      ? `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, totalCountOnChain)} of ${totalCountOnChain}`
+                      : '0 Listed'}
+                </span>
+              </div>
+
+              {/* Filter Tabs if in All Trades view */}
+              {viewSection === 'all-trades' && (
+                <div className="flex items-center p-1 bg-slate-900/80 rounded-xl border border-border-subtle text-xs">
+                  <button
+                    onClick={() => handleTabChange('all')}
+                    className={`flex-1 py-1.5 rounded-lg font-bold transition-all ${
+                      filterTab === 'all'
+                        ? 'bg-purple-600 text-white shadow-glow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('disputed')}
+                    className={`flex-1 py-1.5 rounded-lg font-bold transition-all ${
+                      filterTab === 'disputed'
+                        ? 'bg-purple-600 text-white shadow-glow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Disputed
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('resolved')}
+                    className={`flex-1 py-1.5 rounded-lg font-bold transition-all ${
+                      filterTab === 'resolved'
+                        ? 'bg-purple-600 text-white shadow-glow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Resolved
+                  </button>
+                </div>
+              )}
+
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search current page by Trade ID, wallet, UTR..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-border-subtle text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 shadow-inner"
+                />
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+              </div>
+
+              {scanBoundReached && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] flex items-center space-x-2">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Scan limit reached (1,000 historical trades scanned).</span>
+                </div>
+              )}
+
+              {/* Trade List Scroll Container */}
+              <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
+                {isLoadingTrades ? (
+                  <div className="py-16 text-center text-slate-400 space-y-3">
+                    <Loader2 className="w-7 h-7 animate-spin mx-auto text-purple-400" />
+                    <p className="text-xs">Scanning on-chain dispute records...</p>
                   </div>
+                ) : filteredTrades.length === 0 ? (
+                  <div className="py-16 text-center text-slate-500 space-y-2">
+                    <CheckCircle2 className="w-9 h-9 mx-auto text-emerald-500/40" />
+                    <p className="text-xs font-bold text-slate-300">No active disputes found</p>
+                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                      {filterTab === 'disputed'
+                        ? 'No actionable disputes requiring arbitration.'
+                        : 'No trades match current filters on this page.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredTrades.map((trade) => {
+                    const isSelected = selectedTradeId === trade.tradeId;
+                    const isDisputed = trade.state === TradeState.DISPUTED;
+                    const currencyStr = decodeCurrency(trade.fiatCurrency);
 
-                  {selectedTrade.state !== TradeState.DISPUTED ? (
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle text-slate-400 text-xs flex items-center space-x-2">
-                      <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>
-                        Trade #{selectedTrade.tradeId.toString()} is currently in state{' '}
-                        <strong>{STATE_LABELS[selectedTrade.state]}</strong>. Only active{' '}
-                        <strong>DISPUTED</strong> trades can be arbitrated.
-                      </span>
-                    </div>
-                  ) : !isAuthorizedArbitrator ? (
-                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center space-x-2">
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>
-                        Connected wallet is not authorized as Arbitrator/Governance. Dispute
-                        resolution buttons are locked.
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {verificationConclusion === 'INSUFFICIENT_EVIDENCE' ? (
-                        <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-300 text-xs flex items-start space-x-3">
-                          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <span className="font-bold block">
-                              INSUFFICIENT EVIDENCE — RULING LOCKED
+                    return (
+                      <div
+                        key={trade.tradeId.toString()}
+                        onClick={() => setSelectedTradeId(trade.tradeId)}
+                        className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2.5 ${
+                          isSelected
+                            ? 'bg-purple-950/40 border-purple-500/80 shadow-glow-purple ring-1 ring-purple-500/50'
+                            : isDisputed
+                              ? 'bg-rose-950/20 border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-950/30'
+                              : 'bg-slate-900/60 border-border-subtle hover:border-slate-700 hover:bg-slate-900/80'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-white text-xs">
+                              Trade #{trade.tradeId.toString()}
                             </span>
-                            <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                              Financial settlements are locked. You must complete the investigation
-                              above and select an explicit conclusion (
-                              <strong>PAYMENT VERIFIED</strong> or{' '}
-                              <strong>PAYMENT NOT VERIFIED</strong>) before executing a binding
-                              financial ruling.
-                            </p>
+                            <span
+                              className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded border ${
+                                STATE_BADGE_CLASSES[trade.state] || 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              {STATE_LABELS[trade.state]}
+                            </span>
+                          </div>
+                          <span className="font-mono font-extrabold text-xs text-purple-300">
+                            {formatAssetDisplay(trade.amount, trade.asset)}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800/60">
+                          <div>
+                            <span className="text-slate-500 block text-[10px]">
+                              Buyer / Seller:
+                            </span>
+                            <span className="text-slate-300 text-[10px]">
+                              {trade.buyer.slice(0, 5)}... / {trade.seller.slice(0, 5)}...
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-slate-500 block text-[10px]">
+                              Fiat Settlement:
+                            </span>
+                            <span className="text-emerald-400 font-bold text-[11px]">
+                              {trade.fiatAmount > 0n
+                                ? `${trade.fiatAmount.toString()} ${currencyStr}`
+                                : 'Off-chain'}
+                            </span>
                           </div>
                         </div>
-                      ) : null}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* 1. Release to Buyer */}
-                        <button
-                          type="button"
-                          onClick={() => setResolutionModalOutcome(DisputeOutcome.RELEASE_TO_BUYER)}
-                          disabled={
-                            isWritePending ||
-                            isTxWaiting ||
-                            verificationConclusion !== 'PAYMENT_VERIFIED'
-                          }
-                          className={`p-4 rounded-xl font-bold text-white text-xs shadow-glow flex items-center justify-center space-x-2 transition-all ${
-                            verificationConclusion === 'PAYMENT_VERIFIED' &&
-                            !isWritePending &&
-                            !isTxWaiting
-                              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 cursor-pointer active:scale-[0.99]'
-                              : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50'
-                          }`}
-                        >
-                          <UserCheck className="w-4 h-4 shrink-0" />
-                          <span>RELEASE TO BUYER (PAYMENT VERIFIED)</span>
-                        </button>
-
-                        {/* 2. Refund to Seller */}
-                        <button
-                          type="button"
-                          onClick={() => setResolutionModalOutcome(DisputeOutcome.REFUND_TO_SELLER)}
-                          disabled={
-                            isWritePending ||
-                            isTxWaiting ||
-                            verificationConclusion !== 'PAYMENT_NOT_VERIFIED'
-                          }
-                          className={`p-4 rounded-xl font-bold text-white text-xs shadow-glow flex items-center justify-center space-x-2 transition-all ${
-                            verificationConclusion === 'PAYMENT_NOT_VERIFIED' &&
-                            !isWritePending &&
-                            !isTxWaiting
-                              ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 cursor-pointer active:scale-[0.99]'
-                              : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50'
-                          }`}
-                        >
-                          <Ban className="w-4 h-4 shrink-0" />
-                          <span>REFUND TO SELLER (PAYMENT NOT VERIFIED)</span>
-                        </button>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })
+                )}
+              </div>
 
-                  {/* Section D: Transaction Lifecycle Display */}
-                  {isTxWaiting && txHash && (
-                    <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
-                        <span>Arbitration transaction broadcasted. Confirming on Base...</span>
-                      </div>
-                      <a
-                        href={`${explorerBaseUrl}/tx/${txHash}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
+              {/* Pagination Controls */}
+              {filterTab === 'disputed'
+                ? /* Mode A: Active Dispute Dynamic Cursor Controls */
+                  (currentPage > 1 || hasMoreDisputes) && (
+                    <div className="pt-3 border-t border-border-subtle/50 flex items-center justify-between text-xs">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || isLoadingTrades}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-border-subtle text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-900 transition-all font-semibold"
                       >
-                        <span>Basescan</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Previous</span>
+                      </button>
+
+                      <span className="font-mono text-[11px] text-slate-400">
+                        Dispute Page <strong className="text-white">{currentPage}</strong>
+                        {hasMoreDisputes && <span className="text-purple-400 ml-1">· More</span>}
+                      </span>
+
+                      <button
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        disabled={!hasMoreDisputes || isLoadingTrades}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-border-subtle text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-900 transition-all font-semibold"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )
+                : /* Mode B & C: Raw Trades Pagination */
+                  totalCountOnChain > PAGE_SIZE && (
+                    <div className="pt-3 border-t border-border-subtle/50 flex items-center justify-between text-xs">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || isLoadingTrades}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-border-subtle text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-900 transition-all font-semibold"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Previous</span>
+                      </button>
+
+                      <span className="font-mono text-[11px] text-slate-400">
+                        Page <strong className="text-white">{currentPage}</strong> of{' '}
+                        <strong className="text-white">{totalPagesAll}</strong>
+                      </span>
+
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPagesAll, p + 1))}
+                        disabled={currentPage >= totalPagesAll || isLoadingTrades}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-border-subtle text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-900 transition-all font-semibold"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   )}
+            </div>
+          </div>
 
-                  {isTxSuccess && (
-                    <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
-                        <span>Dispute ruling successfully executed on Base!</span>
+          {/* Right Column: Deep Trade Inspector & Arbitration Actions (7 Cols) */}
+          <div className="lg:col-span-7 space-y-5">
+            {isLoadingSelectedTrade ? (
+              <div className="p-16 rounded-2xl bg-surface/80 border border-border-subtle text-center space-y-3">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-400" />
+                <p className="text-sm font-bold text-white">
+                  Fetching trade telemetry from P2PEscrowV2...
+                </p>
+              </div>
+            ) : !selectedTrade ? (
+              <div className="p-16 rounded-2xl bg-surface/80 border border-border-subtle text-center space-y-3 text-slate-400">
+                <Gavel className="w-12 h-12 mx-auto text-slate-600" />
+                <h3 className="text-base font-bold text-white">Select a Trade to Inspect</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  Choose a trade from the queue to view party profiles, payment proofs, UTR replay
+                  protection, and execute on-chain rulings.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* 1. Main Inspection Card */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl shadow-xl space-y-5">
+                  {/* Inspector Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border-subtle/50">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                        <FileText className="w-5 h-5" />
                       </div>
-                      {txHash && (
+                      <div>
+                        <div className="flex items-center space-x-2.5">
+                          <h3 className="text-xl font-black text-white font-mono">
+                            Trade #{selectedTrade.tradeId.toString()}
+                          </h3>
+                          <span
+                            className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded border ${
+                              STATE_BADGE_CLASSES[selectedTrade.state]
+                            }`}
+                          >
+                            {STATE_LABELS[selectedTrade.state]}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                          Asset:{' '}
+                          <span className="text-purple-300 font-bold">
+                            {getAssetSymbol(selectedTrade.asset)}
+                          </span>{' '}
+                          ({selectedTrade.asset.slice(0, 6)}...{selectedTrade.asset.slice(-4)})
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-left sm:text-right font-mono bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                        Locked Escrow Value
+                      </span>
+                      <span className="text-lg sm:text-xl font-black text-white">
+                        {formatAssetDisplay(selectedTrade.amount, selectedTrade.asset)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Party Dossiers (Buyer vs Seller) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {/* Buyer Dossier */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-200">
+                          <User className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Buyer Profile</span>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(selectedTrade.buyer, 'buyer')}
+                          className="text-purple-400 hover:text-purple-300 flex items-center gap-1 text-[11px] font-mono"
+                        >
+                          {copiedKey === 'buyer' ? (
+                            <span className="text-emerald-400 font-bold">Copied!</span>
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                      <div
+                        className="font-mono text-xs text-white truncate"
+                        title={selectedTrade.buyer}
+                      >
+                        {selectedTrade.buyer}
+                      </div>
+                      {buyerProfile && (
+                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-800/80 text-[11px] font-mono text-slate-400">
+                          <div>
+                            <span className="text-slate-500 block text-[10px]">Buyer Trades:</span>
+                            <span className="text-slate-200 font-bold">
+                              {buyerProfile.totalTradesAsBuyer}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 block text-[10px]">
+                              Reputation Score:
+                            </span>
+                            <span className="text-purple-300 font-bold">
+                              {buyerProfile.buyerStats.ratingsCount > 0
+                                ? `${(Number(buyerProfile.buyerStats.scoreSum) / buyerProfile.buyerStats.ratingsCount).toFixed(1)}/5.0`
+                                : 'No ratings'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Seller Dossier */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/60 border border-border-subtle space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-200">
+                          <User className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Seller Profile</span>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(selectedTrade.seller, 'seller')}
+                          className="text-purple-400 hover:text-purple-300 flex items-center gap-1 text-[11px] font-mono"
+                        >
+                          {copiedKey === 'seller' ? (
+                            <span className="text-emerald-400 font-bold">Copied!</span>
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                      <div
+                        className="font-mono text-xs text-white truncate"
+                        title={selectedTrade.seller}
+                      >
+                        {selectedTrade.seller}
+                      </div>
+                      {sellerProfile && (
+                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-800/80 text-[11px] font-mono text-slate-400">
+                          <div>
+                            <span className="text-slate-500 block text-[10px]">Seller Trades:</span>
+                            <span className="text-slate-200 font-bold">
+                              {sellerProfile.totalTradesAsSeller}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 block text-[10px]">
+                              Reputation Score:
+                            </span>
+                            <span className="text-purple-300 font-bold">
+                              {sellerProfile.sellerStats.ratingsCount > 0
+                                ? `${(Number(sellerProfile.sellerStats.scoreSum) / sellerProfile.sellerStats.ratingsCount).toFixed(1)}/5.0`
+                                : 'No ratings'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fiat Amount & Dispute Origin */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex justify-between items-center">
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Fiat Target Value</span>
+                        <span className="text-emerald-400 font-extrabold text-sm mt-0.5 block">
+                          {selectedTrade.fiatAmount > 0n
+                            ? `${selectedTrade.fiatAmount.toString()} ${decodeCurrency(selectedTrade.fiatCurrency)}`
+                            : 'Off-Chain Agreement'}
+                        </span>
+                      </div>
+                      <DollarSign className="w-5 h-5 text-emerald-500/40" />
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex justify-between items-center">
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Dispute Initiator</span>
+                        <span className="text-amber-300 font-extrabold text-sm mt-0.5 block">
+                          {selectedTrade.disputeInitiator ===
+                          '0x0000000000000000000000000000000000000000'
+                            ? 'None'
+                            : selectedTrade.disputeInitiator.toLowerCase() ===
+                                selectedTrade.buyer.toLowerCase()
+                              ? 'Buyer'
+                              : 'Seller'}
+                        </span>
+                      </div>
+                      <AlertCircle className="w-5 h-5 text-amber-500/40" />
+                    </div>
+                  </div>
+
+                  {/* Cryptographic Hashes & Replay Protection */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-slate-400 font-sans">Payment Reference (UTR)</span>
+                        <span
+                          className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                            isReferenceUsed
+                              ? 'text-emerald-400 bg-emerald-500/10'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {isReferenceUsed ? '✓ REPLAY PROTECTED' : 'UNRECORDED'}
+                        </span>
+                      </div>
+                      <div
+                        className="text-purple-300 text-[11px] truncate font-bold"
+                        title={selectedTrade.paymentReference}
+                      >
+                        {selectedTrade.paymentReference || 'No reference'}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-slate-400 font-sans">Evidence Commitment Hash</span>
+                        <span
+                          className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                            isEvidenceUsed ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'
+                          }`}
+                        >
+                          {isEvidenceUsed ? '✓ ON-CHAIN HASH' : 'UNRECORDED'}
+                        </span>
+                      </div>
+                      <div
+                        className="text-purple-300 text-[11px] truncate font-bold"
+                        title={selectedTrade.evidenceHash}
+                      >
+                        {selectedTrade.evidenceHash || 'No evidence hash'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Evidence Investigation Console Component */}
+                  <EvidenceInvestigationConsole
+                    selectedTrade={selectedTrade}
+                    isEvidenceHashUsed={isEvidenceUsed}
+                    isReferenceUsed={isReferenceUsed}
+                    onConclusionChange={setVerificationConclusion}
+                    investigationNotes={investigationNotes}
+                    onNotesChange={setInvestigationNotes}
+                    onSaveAuditNote={handleSaveAuditNote}
+                    isSavingAudit={isSavingAudit}
+                  />
+
+                  {/* 3. Arbitration Action Execution Box */}
+                  <div className="pt-5 border-t border-border-subtle/50 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Gavel className="w-5 h-5 text-purple-400" />
+                        <h4 className="text-base font-bold text-white tracking-tight">
+                          Arbitration Ruling & Execution
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                        FINAL ON-CHAIN SETTLEMENT
+                      </span>
+                    </div>
+
+                    {selectedTrade.state !== TradeState.DISPUTED ? (
+                      <div className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle text-slate-400 text-xs flex items-center space-x-3">
+                        <AlertCircle className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span>
+                          Trade #{selectedTrade.tradeId.toString()} is currently in status{' '}
+                          <strong className="text-white">
+                            {STATE_LABELS[selectedTrade.state]}
+                          </strong>
+                          . Only trades in <strong className="text-rose-400">DISPUTED</strong> state
+                          require arbitration.
+                        </span>
+                      </div>
+                    ) : !isAuthorizedArbitrator ? (
+                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center space-x-3">
+                        <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+                        <span>
+                          Connected wallet is not authorized as Arbitrator. Settlement actions are
+                          disabled.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3.5">
+                        {verificationConclusion === 'INSUFFICIENT_EVIDENCE' && (
+                          <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-300 text-xs flex items-start space-x-3">
+                            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <span className="font-bold block">
+                                RULING GATE: INSUFFICIENT EVIDENCE
+                              </span>
+                              <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                                Financial actions are locked until you review the proof above and
+                                select an explicit outcome (<strong>Verified</strong> or{' '}
+                                <strong>Not Verified</strong>).
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                          {/* 1. Release to Buyer */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setResolutionModalOutcome(DisputeOutcome.RELEASE_TO_BUYER)
+                            }
+                            disabled={
+                              isWritePending ||
+                              isTxWaiting ||
+                              verificationConclusion !== 'PAYMENT_VERIFIED'
+                            }
+                            className={`p-4 rounded-xl font-bold text-white text-xs shadow-glow flex items-center justify-center space-x-2 transition-all ${
+                              verificationConclusion === 'PAYMENT_VERIFIED' &&
+                              !isWritePending &&
+                              !isTxWaiting
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 cursor-pointer active:scale-[0.99]'
+                                : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50'
+                            }`}
+                          >
+                            <UserCheck className="w-4 h-4 shrink-0" />
+                            <span>RELEASE TO BUYER (PAYMENT VERIFIED)</span>
+                          </button>
+
+                          {/* 2. Refund to Seller */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setResolutionModalOutcome(DisputeOutcome.REFUND_TO_SELLER)
+                            }
+                            disabled={
+                              isWritePending ||
+                              isTxWaiting ||
+                              verificationConclusion !== 'PAYMENT_NOT_VERIFIED'
+                            }
+                            className={`p-4 rounded-xl font-bold text-white text-xs shadow-glow flex items-center justify-center space-x-2 transition-all ${
+                              verificationConclusion === 'PAYMENT_NOT_VERIFIED' &&
+                              !isWritePending &&
+                              !isTxWaiting
+                                ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 cursor-pointer active:scale-[0.99]'
+                                : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50'
+                            }`}
+                          >
+                            <Ban className="w-4 h-4 shrink-0" />
+                            <span>REFUND TO SELLER (PAYMENT NOT VERIFIED)</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transaction Lifecycle Status Display */}
+                    {isTxWaiting && txHash && (
+                      <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-between text-xs">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                          <span>Arbitration transaction broadcasted. Confirming on Base...</span>
+                        </div>
                         <a
                           href={`${explorerBaseUrl}/tx/${txHash}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                          className="inline-flex items-center space-x-1 underline font-mono text-blue-300 hover:text-blue-200"
                         >
                           <span>Basescan</span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {writeError && (
-                    <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                      <span>{getFriendlyErrorMessage(writeError)}</span>
-                    </div>
-                  )}
+                    {isTxSuccess && (
+                      <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs font-semibold shadow-lg">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                          <span>Dispute ruling successfully executed on-chain!</span>
+                        </div>
+                        {txHash && (
+                          <a
+                            href={`${explorerBaseUrl}/tx/${txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center space-x-1 underline font-mono text-emerald-300 hover:text-emerald-200"
+                          >
+                            <span>Basescan</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {writeError && (
+                      <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center space-x-2 text-xs font-semibold">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                        <span>{getFriendlyErrorMessage(writeError)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </>
-          )}
-
-          {/* Section E: Escrow Protocol Configuration Panel */}
-          <div className="p-6 rounded-2xl bg-surface/80 border border-border-subtle/80 backdrop-blur-xl space-y-4 shadow-xl">
-            <div className="flex items-center space-x-2 border-b border-border-subtle/40 pb-3">
-              <Settings className="w-5 h-5 text-purple-400" />
-              <h3 className="text-base font-bold text-white tracking-tight">
-                P2PEscrowV2 Protocol Configuration
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              {/* Fee Config */}
-              <form
-                onSubmit={handleSetFee}
-                className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-3"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-200">Protocol Fee Rate</span>
-                  <span className="font-mono text-emerald-400 font-bold">
-                    Current: {Number(currentFeeBps) / 100}% ({currentFeeBps.toString()} BPS)
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="500"
-                    placeholder="25"
-                    value={newFeeInput}
-                    onChange={(e) => setNewFeeInput(e.target.value)}
-                    disabled={!isGovernance}
-                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isWritePending || isTxWaiting || !isGovernance}
-                    className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-white disabled:opacity-50 transition-all"
-                  >
-                    Set Fee
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-500">
-                  Requires GOVERNANCE_ROLE (Max Cap: 500 BPS = 5.00%)
-                </p>
-              </form>
-
-              {/* Treasury Address */}
-              <form
-                onSubmit={handleSetTreasury}
-                className="p-4 rounded-xl bg-slate-900/60 border border-border-subtle space-y-3"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-200">Fee Treasury Address</span>
-                  <span
-                    className="font-mono text-purple-300 font-bold truncate max-w-[120px]"
-                    title={currentTreasury}
-                  >
-                    {currentTreasury.slice(0, 6)}...{currentTreasury.slice(-4)}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    placeholder="0x..."
-                    value={newTreasuryInput}
-                    onChange={(e) => setNewTreasuryInput(e.target.value)}
-                    disabled={!isGovernance}
-                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-border-subtle text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isWritePending || isTxWaiting || !isGovernance}
-                    className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-white disabled:opacity-50 transition-all"
-                  >
-                    Set Treasury
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-500">Requires GOVERNANCE_ROLE</p>
-              </form>
-            </div>
-
-            {/* Emergency Pause / Unpause Action */}
-            <div className="pt-2 flex items-center justify-between p-4 rounded-xl bg-slate-900/40 border border-border-subtle">
-              <div>
-                <span className="font-bold text-white text-xs block">
-                  Emergency Pause Controller
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  {isEscrowPaused
-                    ? 'Protocol is PAUSED. Click unpause to resume normal P2P trading.'
-                    : 'Pause suspends all new trades and payments across P2PEscrowV2.'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleTogglePause}
-                disabled={
-                  isWritePending || isTxWaiting || (isEscrowPaused ? !isGovernance : !isGuardian)
-                }
-                className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all disabled:opacity-50 ${
-                  isEscrowPaused
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-glow'
-                    : 'bg-rose-600 hover:bg-rose-500 text-white shadow-glow'
-                }`}
-              >
-                {isEscrowPaused ? (
-                  <Unlock className="w-3.5 h-3.5" />
-                ) : (
-                  <Lock className="w-3.5 h-3.5" />
-                )}
-                <span>{isEscrowPaused ? 'Unpause Protocol' : 'Emergency Pause'}</span>
-              </button>
-            </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Confirmation Modal for Arbitrator Ruling */}
       {resolutionModalOutcome !== null && selectedTrade && (
@@ -1307,7 +1670,7 @@ export default function AdminP2PArbitrationPage() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">Confirm Dispute Ruling</h3>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400 font-mono">
                   Trade #{selectedTrade.tradeId.toString()}
                 </span>
               </div>
