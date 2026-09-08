@@ -48,16 +48,28 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
   const checkMaintenance = async () => {
     try {
       setIsChecking(true);
-      // 1. Try local instant API first
-      let res: Response | null = null;
-      try {
-        res = await fetch(`/api/maintenance?t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: { Accept: 'application/json' },
-        });
-      } catch {}
+      const isNative =
+        typeof window !== 'undefined' &&
+        Boolean(
+          (window as any).AndroidNativeUpdater ||
+          ((window as any).Capacitor &&
+            typeof (window as any).Capacitor.isNativePlatform === 'function' &&
+            (window as any).Capacitor.isNativePlatform()),
+        );
 
-      // 2. Try live production server (crucial for native APKs running on localhost scheme)
+      let res: Response | null = null;
+
+      // 1. On Web Browser: Check local instant API first
+      if (!isNative) {
+        try {
+          res = await fetch(`/api/maintenance?t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+          });
+        } catch {}
+      }
+
+      // 2. On Native Mobile APK (or Web fallback): Fetch from live production server API
       if (!res || !res.ok) {
         try {
           res = await fetch(`${LIVE_API_URL}?t=${Date.now()}`, {

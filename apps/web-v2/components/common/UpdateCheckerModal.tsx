@@ -62,9 +62,15 @@ export function UpdateCheckerModal() {
           headers: { Accept: 'application/json' },
         });
         if (!res.ok) return;
-        const data = await res.json();
+        const text = await res.text();
+        let data: any = null;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          return;
+        }
 
-        if (data.latestVersion) {
+        if (data && data.latestVersion) {
           setLatestVersion(data.latestVersion);
           setReleaseNotes(data.releaseNotes || ['Performance improvements & security updates']);
           setIsMandatory(Boolean(data.mandatory));
