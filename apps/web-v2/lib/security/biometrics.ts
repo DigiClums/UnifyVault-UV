@@ -71,13 +71,45 @@ function base64ToBuffer(base64: string): ArrayBuffer {
 }
 
 /**
- * Creates and registers a new Passkey credential on this device.
+ * Creates and registers a new Passkey / Biometric credential on this device.
  */
 export async function registerPasskey(
   accountAddress: string = '0x0000000000000000000000000000000000000000',
   customName?: string,
 ): Promise<RegisteredPasskey | null> {
-  if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+  if (typeof window === 'undefined') return null;
+
+  // 1. Android Native APK Environment (WebView does not implement browser WebAuthn API directly)
+  const nativeUpdater = (window as any).AndroidNativeUpdater;
+  if (nativeUpdater && typeof nativeUpdater.isNativeBiometricAvailable === 'function') {
+    const isAvailable = nativeUpdater.isNativeBiometricAvailable();
+    if (!isAvailable) {
+      throw new Error('Biometrics / Fingerprint hardware is not setup on this Android device.');
+    }
+
+    // Verify biometric ownership via Android Native BiometricPrompt
+    const verified = await promptBiometricAuth('Register device biometric passkey');
+    if (!verified) {
+      throw new Error('Biometric verification cancelled or failed.');
+    }
+
+    const passkeyId = 'apk_bio_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const passkeyName =
+      customName?.trim() ||
+      `Android Device (${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
+
+    const newPasskey: RegisteredPasskey = {
+      id: passkeyId,
+      name: passkeyName,
+      createdAt: Date.now(),
+    };
+
+    savePasskey(newPasskey);
+    return newPasskey;
+  }
+
+  // 2. Standard Web Browser Environment (Chrome, Safari, Brave WebAuthn API)
+  if (!window.PublicKeyCredential) {
     throw new Error('WebAuthn Passkeys are not supported on this browser or platform.');
   }
 

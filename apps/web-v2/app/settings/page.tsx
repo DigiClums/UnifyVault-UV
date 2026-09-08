@@ -525,7 +525,11 @@ export default function UserSettingsPage() {
               ) : (
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
                   No passkeys registered on this device yet. Add a passkey to enable instant
-                  biometric login via WebAuthn, Windows Hello, TouchID, or Android Key.
+                  biometric unlock via{' '}
+                  {isNativeApk
+                    ? 'Android Fingerprint / Face Biometrics'
+                    : 'WebAuthn, Windows Hello, TouchID, or Passkeys'}
+                  .
                 </p>
               )}
 
