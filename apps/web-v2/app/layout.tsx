@@ -8,6 +8,7 @@ import { Web3Provider } from '../providers/Web3Provider';
 import { AppShell } from '../components/layout/AppShell';
 import { UpdateCheckerModal } from '../components/common/UpdateCheckerModal';
 import { AppExitModal } from '../components/common/AppExitModal';
+import { BiometricLockModal } from '../components/common/BiometricLockModal';
 import { NotificationRouteHandler } from '../components/common/NotificationRouteHandler';
 import { GlobalReferralCapture } from '../components/common/GlobalReferralCapture';
 import { FantasyProvider } from '../lib/fantasy/fantasyStore';
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <NotificationRouteHandler />
               <UpdateCheckerModal />
               <AppExitModal />
+              <BiometricLockModal />
               <AppShell>{children}</AppShell>
             </FantasyProvider>
           </Web3Provider>

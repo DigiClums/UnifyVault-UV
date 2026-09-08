@@ -24,10 +24,20 @@ import {
   RefreshCw,
   Clock,
   Radio,
+  Key,
+  Plus,
+  AlertTriangle,
 } from 'lucide-react';
 import { triggerHapticNotification, playAlertChime } from '../../lib/utils/haptics';
 import { CURRENT_APP_VERSION } from '../../components/common/UpdateCheckerModal';
-import { isBiometricAvailable, promptBiometricAuth } from '../../lib/security/biometrics';
+import {
+  isBiometricAvailable,
+  promptBiometricAuth,
+  registerPasskey,
+  getSavedPasskeys,
+  removePasskey,
+  type RegisteredPasskey,
+} from '../../lib/security/biometrics';
 
 export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -44,6 +54,11 @@ export default function UserSettingsPage() {
   const [autoLockTimer, setAutoLockTimer] = useState<'immediate' | '5min' | '15min' | 'never'>(
     '5min',
   );
+  const [passkeys, setPasskeys] = useState<RegisteredPasskey[]>([]);
+  const [newPasskeyName, setNewPasskeyName] = useState('');
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeySuccess, setPasskeySuccess] = useState<string | null>(null);
 
   // 3. Audio & Tactile Feedback
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -84,6 +99,9 @@ export default function UserSettingsPage() {
 
       const savedRpc = localStorage.getItem('uv_custom_rpc');
       if (savedRpc) setCustomRpcUrl(savedRpc);
+
+      const savedPasskeysList = getSavedPasskeys();
+      setPasskeys(savedPasskeysList);
 
       isBiometricAvailable().then((res) => setBiometricsAvailable(res));
       checkRpcHealth();
@@ -177,6 +195,38 @@ export default function UserSettingsPage() {
   const handleAutoLockChange = (timer: 'immediate' | '5min' | '15min' | 'never') => {
     setAutoLockTimer(timer);
     localStorage.setItem('uv_auto_lock_timer', timer);
+    if (hapticsEnabled) triggerHapticNotification('light');
+  };
+
+  const handleRegisterPasskey = async () => {
+    setIsRegisteringPasskey(true);
+    setPasskeyError(null);
+    setPasskeySuccess(null);
+
+    try {
+      const newKey = await registerPasskey(
+        '0x0000000000000000000000000000000000000000',
+        newPasskeyName || undefined,
+      );
+
+      if (newKey) {
+        const updated = getSavedPasskeys();
+        setPasskeys(updated);
+        setNewPasskeyName('');
+        setPasskeySuccess(`Passkey "${newKey.name}" registered successfully!`);
+        if (hapticsEnabled) triggerHapticNotification('success');
+      }
+    } catch (err: any) {
+      setPasskeyError(err?.message || 'Passkey creation failed or cancelled.');
+      if (hapticsEnabled) triggerHapticNotification('error');
+    } finally {
+      setIsRegisteringPasskey(false);
+    }
+  };
+
+  const handleRemovePasskey = (passkeyId: string) => {
+    const updated = removePasskey(passkeyId);
+    setPasskeys(updated);
     if (hapticsEnabled) triggerHapticNotification('light');
   };
 
@@ -413,6 +463,99 @@ export default function UserSettingsPage() {
                     {time === 'immediate' ? 'Now' : time === 'never' ? 'Off' : time}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Passkey Management Section */}
+            <div className="p-4 rounded-xl bg-background border border-border-subtle space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-[#5f8f00] dark:text-[#BFFF00]" />
+                  <span className="text-xs font-bold text-foreground">Registered Passkeys</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent text-foreground font-bold">
+                  {passkeys.length} Active
+                </span>
+              </div>
+
+              {passkeySuccess && (
+                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>{passkeySuccess}</span>
+                </div>
+              )}
+
+              {passkeyError && (
+                <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{passkeyError}</span>
+                </div>
+              )}
+
+              {/* Passkey List */}
+              {passkeys.length > 0 ? (
+                <div className="space-y-2">
+                  {passkeys.map((pk) => (
+                    <div
+                      key={pk.id}
+                      className="p-2.5 rounded-lg bg-card border border-border-subtle flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Key className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-foreground block truncate">
+                            {pk.name}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-mono block">
+                            Added {new Date(pk.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePasskey(pk.id)}
+                        className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-colors shrink-0 cursor-pointer"
+                        title="Delete Passkey"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  No passkeys registered on this device yet. Add a passkey to enable instant
+                  biometric login via WebAuthn, Windows Hello, TouchID, or Android Key.
+                </p>
+              )}
+
+              {/* Add Passkey Form */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  placeholder="Passkey Name (e.g. My Phone)"
+                  value={newPasskeyName}
+                  onChange={(e) => setNewPasskeyName(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl border border-border-subtle bg-card text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#BFFF00]"
+                />
+                <button
+                  type="button"
+                  onClick={handleRegisterPasskey}
+                  disabled={isRegisteringPasskey}
+                  className="px-3.5 py-2 rounded-xl bg-[#BFFF00] hover:bg-[#a6de00] text-black font-black text-xs border-2 border-black shadow-[2px_2px_0_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isRegisteringPasskey ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Passkey</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

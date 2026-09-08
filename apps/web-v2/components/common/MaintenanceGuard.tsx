@@ -284,13 +284,13 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center justify-center gap-3 pt-2 text-xs text-neutral-400">
             <a
-              href={maintenance.telegramUrl || 'https://t.me/UnifyVault'}
+              href={maintenance.telegramUrl || 'https://t.me/UVBE_bot'}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 hover:text-white transition-colors bg-white/5 px-3 py-2 rounded-xl border border-white/5"
             >
               <Send className="w-3.5 h-3.5 text-sky-400" />
-              <span>Telegram Updates</span>
+              <span>Telegram Updates (@UVBE_bot)</span>
               <ExternalLink className="w-3 h-3 text-neutral-500" />
             </a>
           </div>

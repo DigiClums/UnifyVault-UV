@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: MaintenanceSettings = {
     'We are currently performing essential infrastructure maintenance and contract optimization. All vault assets and staking balances are 100% secure.',
   estimatedEndTime: 'Coming back shortly',
   allowAdminBypass: true,
-  telegramUrl: 'https://t.me/UnifyVault',
+  telegramUrl: 'https://t.me/UVBE_bot',
   modules: {
     staking: {
       enabled: false,
