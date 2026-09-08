@@ -78,12 +78,17 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       }
 
       if (res && res.ok) {
-        const data = await res.json();
-        if (data.maintenance) {
-          setMaintenance(data.maintenance);
-        } else if (typeof data.enabled === 'boolean') {
-          setMaintenance(data);
-        } else {
+        try {
+          const text = await res.text();
+          const data = JSON.parse(text);
+          if (data.maintenance) {
+            setMaintenance(data.maintenance);
+          } else if (typeof data.enabled === 'boolean') {
+            setMaintenance(data);
+          } else {
+            setMaintenance({ enabled: false });
+          }
+        } catch {
           setMaintenance({ enabled: false });
         }
       }
