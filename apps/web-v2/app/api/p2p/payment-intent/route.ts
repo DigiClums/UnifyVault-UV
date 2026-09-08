@@ -179,17 +179,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Payment Window Expiry Check
+    // 6. Payment Window Expiry Status Check (Set status to EXPIRED if expired, but do not block retrieval)
     const fundingTs = Number(rawTrade.fundingTimestamp);
     const windowSecs = Number(rawTrade.paymentWindow);
     const nowSecs = Math.floor(Date.now() / 1000);
-
-    if (fundingTs > 0 && nowSecs > fundingTs + windowSecs && tradeState === 2) {
-      return NextResponse.json(
-        { success: false, error: 'Payment window for this trade has expired.' },
-        { status: 400 },
-      );
-    }
+    const isWindowExpired = fundingTs > 0 && nowSecs > fundingTs + windowSecs;
 
     // 7. Payment Intent Retrieval & Authoritative Binding Enforcement
     const existingIntent = await getPaymentIntentByTradeId(tradeId);
@@ -227,7 +221,12 @@ export async function POST(req: NextRequest) {
       reference,
     );
 
-    const intentStatus = tradeState === 3 ? 'PAYMENT_CLAIMED' : 'QR_READY';
+    const intentStatus =
+      tradeState === 3
+        ? 'PAYMENT_CLAIMED'
+        : isWindowExpired && tradeState === 2
+          ? 'EXPIRED'
+          : 'QR_READY';
 
     const intent: PaymentIntent = {
       id: existingIntent?.id || `intent-${tradeId}-${Date.now()}`,

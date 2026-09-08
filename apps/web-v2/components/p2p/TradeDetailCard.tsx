@@ -293,7 +293,11 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
         const res = await fetch('/api/p2p/payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tradeId: trade.tradeId, userAddress }),
+          body: JSON.stringify({
+            tradeId: trade.tradeId,
+            userAddress,
+            chainId,
+          }),
         });
         const data = await res.json();
         if (data.success && data.paymentIntent) {
