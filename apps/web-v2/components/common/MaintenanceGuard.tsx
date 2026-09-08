@@ -77,7 +77,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      if (res.ok) {
+      if (res && res.ok) {
         const data = await res.json();
         if (data.maintenance) {
           setMaintenance(data.maintenance);
