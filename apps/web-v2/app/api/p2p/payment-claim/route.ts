@@ -1,26 +1,44 @@
-export const dynamic = "force-static";
+export const dynamic = 'force-static';
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, isAddress } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { P2P_ESCROW_ABI } from '../../../../lib/contracts/escrow';
-import { DEPLOYED_CONTRACTS_SEPOLIA, getRpcUrl } from '../../../../constants';
+import {
+  DEPLOYED_CONTRACTS_MAINNET,
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  getDefaultChainId,
+  getRpcUrl,
+} from '../../../../constants';
 import {
   getPaymentIntentByTradeId,
   savePaymentIntent,
 } from '../../../../lib/payment/paymentIntentStore';
 import { verifyWalletAuth } from '../../../../lib/payment/walletAuth';
 
-function getPublicRpcClient() {
+function getPublicRpcClient(chainId: number) {
+  const rpc = getRpcUrl(chainId);
+  const chain = chainId === baseSepolia.id ? baseSepolia : base;
   return createPublicClient({
-    chain: baseSepolia,
-    transport: http(getRpcUrl(baseSepolia.id)),
+    chain,
+    transport: http(rpc, {
+      timeout: 15000,
+      retryCount: 2,
+    }),
   });
 }
 
-function getP2PEscrowAddress(): `0x${string}` {
+function getP2PEscrowAddress(chainId: number): `0x${string}` {
+  if (chainId === baseSepolia.id) {
+    return (
+      (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA as `0x${string}`) ||
+      (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS as `0x${string}`) ||
+      DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow
+    );
+  }
   return (
+    (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET as `0x${string}`) ||
     (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS as `0x${string}`) ||
-    DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow
+    DEPLOYED_CONTRACTS_MAINNET.P2PEscrow
   );
 }
 
@@ -92,9 +110,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const reqChainId = body.chainId;
+    const targetChainId = reqChainId || getDefaultChainId();
+    if (targetChainId !== base.id && targetChainId !== baseSepolia.id) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported network (Chain ID: ${targetChainId}).` },
+        { status: 400 },
+      );
+    }
+
     // 2. On-Chain Trade State Verification
-    const publicClient = getPublicRpcClient();
-    const escrowAddress = getP2PEscrowAddress();
+    const publicClient = getPublicRpcClient(targetChainId);
+    const escrowAddress = getP2PEscrowAddress(targetChainId);
 
     let rawTrade: {
       buyer: string;
