@@ -1,23 +1,14 @@
 {
-  "latestVersion": "2.7.1",
+  "latestVersion": "2.7.2",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.1/UnifyVault-v2.7.1.apk",
-  "sha256": "8b34625a3ae01ff0407c40ab382d4ffbfdfe6f584f174749c8f520754ffc2de2",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.2/UnifyVault-v2.7.2.apk",
+  "sha256": "75840577af64e98130e5e647ab8fa084d7b922cf32141c996ff5217da22d2809",
   "releaseNotes": [
-    "[🐛 Fix] P2P: bind production API domain and multi-pattern route matching for native APK",
-    "[Chore] MAINTENANCE: set maintenance mode to OFF for test verification",
+    "[✨ Feature] SECURITY: add global biometric app lock and WebAuthn passkey management",
     "[Chore] MAINTENANCE: update maintenance mode via Telegram bot",
-    "Verified APK SHA-256: 8b34625a3ae01ff0407c40ab382d4ffbfdfe6f584f174749c8f520754ffc2de2"
-  ],
-  "maintenance": {
-    "modules": {
-      "p2p": {
-        "enabled": true,
-        "title": "P2P Escrow Maintenance",
-        "message": "P2P Escrow & Marketplace is temporarily paused for sync. Escrow deposits remain safe.",
-        "estimatedEndTime": "Coming back shortly"
-      }
-    }
-  }
+    "[Chore] ignore runtime user wallets json",
+    "[✨ Feature] BOT: add admin inline commands and full module maintenance toggles",
+    "Verified APK SHA-256: 75840577af64e98130e5e647ab8fa084d7b922cf32141c996ff5217da22d2809"
+  ]
 }
