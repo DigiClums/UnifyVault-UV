@@ -1,11 +1,19 @@
 {
-  "latestVersion": "2.6.8",
+  "latestVersion": "2.6.9",
   "minimumVersion": "1.0.0",
   "mandatory": true,
-  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.8/UnifyVault-v2.6.8.apk",
-  "sha256": "49355f5a14e22de053e43b4f4cf9e701bc2377eaa76fa3415f3dc8b736b66627",
+  "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.6.9/UnifyVault-v2.6.9.apk",
+  "sha256": "95b588c9ef80daef34bf0f731f7158a2cae9f21cbeae4179f6a189446b1f3ccb",
   "releaseNotes": [
-    "[🐛 Fix] THEME: dynamic system theme mode and status-bar synchronization",
-    "Verified APK SHA-256: 49355f5a14e22de053e43b4f4cf9e701bc2377eaa76fa3415f3dc8b736b66627"
+    "[🐛 Fix] P2P: pass chainId and allow payment intent retrieval on expired trade state",
+    "[🐛 Fix] P2P: allow seamless payment intent retrieval for verified on-chain trade participants",
+    "[🐛 Fix] P2P: enforce seller wallet balance limit and cap MAX amount in TakeOrderModal",
+    "[🐛 Fix] P2P: align payment-intent and payment-claim chain resolution with base mainnet",
+    "[✨ Feature] P2P: add trade payment binding recovery",
+    "[✨ Feature] P2P: scale arbitration queue pagination",
+    "[🐛 Fix] P2P: replace unbound seller wallet fallback with pending notice in trade detail",
+    "[✨ Feature] P2P: implement immutable trade payment binding lifecycle (Phase 1 - 3)",
+    "[🐛 Fix] PROTOCOL/TEST: isolate controller role in UVBTCETHTokenInvariantTest",
+    "Verified APK SHA-256: 95b588c9ef80daef34bf0f731f7158a2cae9f21cbeae4179f6a189446b1f3ccb"
   ]
 }
