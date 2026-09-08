@@ -51,14 +51,35 @@ export function isTakeOrderSubmitDisabled(params: {
   isBuyMode: boolean;
   isLoadingSellerUpi: boolean;
   sellerUpi: string | null;
+  takerUpiValid?: boolean;
+  isTakerUpiConfirmed?: boolean;
+  userBalanceNum?: number;
+  minCrypto?: number;
 }): boolean {
   if (params.isSubmitting) return true;
   if (!params.tradeAmountStr || params.inputAmountNum <= 0) return true;
   if (params.isMaker) return true;
   if (params.isBuyMode) {
     if (params.isLoadingSellerUpi || !params.sellerUpi) return true;
+  } else {
+    if (params.takerUpiValid === false) return true;
+    if (params.isTakerUpiConfirmed === false) return true;
+    if (params.userBalanceNum !== undefined) {
+      if (params.userBalanceNum <= 0) return true;
+      if (params.minCrypto && params.userBalanceNum < params.minCrypto) return true;
+      if (params.inputAmountNum > params.userBalanceNum) return true;
+    }
   }
   return false;
+}
+
+export function computeSellerMaxFill(
+  remainingCrypto: number,
+  maxCrypto: number,
+  userBalanceNum: number,
+): number {
+  const orderAvailableCap = maxCrypto > 0 ? Math.min(remainingCrypto, maxCrypto) : remainingCrypto;
+  return Math.min(orderAvailableCap, Math.max(0, userBalanceNum));
 }
 
 export function resolveSellerUpiForModal(params: {
@@ -524,6 +545,101 @@ describe('TakeOrderModal — Seller UPI Payment Display & Invariants', () => {
 
       const body = await res.json();
       expect(body.success).toBe(false);
+    });
+  });
+
+  // 10. Seller Wallet Balance Enforcement & Max Capping
+  describe('10. Seller Wallet Balance Enforcement & Max Capping', () => {
+    it('caps MAX button fill to seller wallet balance when seller has less than order amount', () => {
+      // Order asks for 105 UVBE, but seller only has 10.40295 UVBE
+      const remainingOrderCrypto = 105;
+      const maxLimit = 105;
+      const sellerWalletBalance = 10.40295;
+
+      const maxFill = computeSellerMaxFill(remainingOrderCrypto, maxLimit, sellerWalletBalance);
+      expect(maxFill).toBe(10.40295);
+    });
+
+    it('caps MAX button fill to order remaining amount when seller has more than order amount', () => {
+      // Order asks for 50 UVBE, seller has 100 UVBE
+      const remainingOrderCrypto = 50;
+      const maxLimit = 50;
+      const sellerWalletBalance = 100;
+
+      const maxFill = computeSellerMaxFill(remainingOrderCrypto, maxLimit, sellerWalletBalance);
+      expect(maxFill).toBe(50);
+    });
+
+    it('disables submit when taker seller has 0 UVBE balance', () => {
+      const isDisabled = isTakeOrderSubmitDisabled({
+        isSubmitting: false,
+        tradeAmountStr: '10',
+        inputAmountNum: 10,
+        isMaker: false,
+        isBuyMode: false,
+        isLoadingSellerUpi: false,
+        sellerUpi: null,
+        takerUpiValid: true,
+        isTakerUpiConfirmed: true,
+        userBalanceNum: 0,
+        minCrypto: 1,
+      });
+
+      expect(isDisabled).toBe(true);
+    });
+
+    it('disables submit when taker seller balance is below minimum limit', () => {
+      const isDisabled = isTakeOrderSubmitDisabled({
+        isSubmitting: false,
+        tradeAmountStr: '5',
+        inputAmountNum: 5,
+        isMaker: false,
+        isBuyMode: false,
+        isLoadingSellerUpi: false,
+        sellerUpi: null,
+        takerUpiValid: true,
+        isTakerUpiConfirmed: true,
+        userBalanceNum: 0.5,
+        minCrypto: 1, // min is 1 UVBE, seller only has 0.5
+      });
+
+      expect(isDisabled).toBe(true);
+    });
+
+    it('disables submit when trade amount exceeds seller wallet balance', () => {
+      const isDisabled = isTakeOrderSubmitDisabled({
+        isSubmitting: false,
+        tradeAmountStr: '15',
+        inputAmountNum: 15,
+        isMaker: false,
+        isBuyMode: false,
+        isLoadingSellerUpi: false,
+        sellerUpi: null,
+        takerUpiValid: true,
+        isTakerUpiConfirmed: true,
+        userBalanceNum: 10.4, // seller only has 10.4, trying to enter 15
+        minCrypto: 1,
+      });
+
+      expect(isDisabled).toBe(true);
+    });
+
+    it('enables submit when trade amount is within seller wallet balance and order limits', () => {
+      const isDisabled = isTakeOrderSubmitDisabled({
+        isSubmitting: false,
+        tradeAmountStr: '10',
+        inputAmountNum: 10,
+        isMaker: false,
+        isBuyMode: false,
+        isLoadingSellerUpi: false,
+        sellerUpi: null,
+        takerUpiValid: true,
+        isTakerUpiConfirmed: true,
+        userBalanceNum: 10.4,
+        minCrypto: 1,
+      });
+
+      expect(isDisabled).toBe(false);
     });
   });
 });

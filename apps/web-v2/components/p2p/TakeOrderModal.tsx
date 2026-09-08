@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount, useSignMessage, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import {
   X,
@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   KeyRound,
   CheckCircle2,
+  Wallet,
 } from 'lucide-react';
 import { OrderDetails, OrderSide } from '../../lib/contracts/marketplace';
 import {
@@ -25,6 +26,8 @@ import {
 import { TransactionStatusModal } from '../common/TransactionStatusModal';
 import { validateUpiId } from '../../lib/p2p/upiValidation';
 import { constructTradePaymentBindingMessage } from '../../lib/payment/walletAuth';
+import { getCanonicalUVBEAddress } from '../../lib/p2p/assetValidation';
+import { ERC20_ABI } from '../../lib/contracts';
 import {
   DEPLOYED_CONTRACTS_SEPOLIA,
   DEPLOYED_CONTRACTS_MAINNET,
@@ -76,6 +79,21 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
   const isMaker =
     userAddress && order ? userAddress.toLowerCase() === order.maker.toLowerCase() : false;
   const isBuyMode = !isBuy; // Taker is BUYER (taking a SELL order)
+
+  const activeChainId = chain?.id || getDefaultChainId();
+  const assetAddress = order?.asset || getCanonicalUVBEAddress(activeChainId);
+
+  // Read connected user's token balance (needed when taker is SELLER)
+  const { data: rawUserBalance, isLoading: isUserBalanceLoading } = useReadContract({
+    address: assetAddress,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: userAddress ? [userAddress] : undefined,
+    query: {
+      enabled: isOpen && !!userAddress && !isBuyMode,
+      staleTime: 10_000,
+    },
+  });
 
   // 1. Fetch maker UPI when taker is BUYER (taking SELL order)
   // 2. Or pre-fill taker's own profile UPI when taker is SELLER (taking BUY order)
@@ -189,12 +207,29 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
   const maxCrypto = parseFloat(formatUnits(order.maxLimit, decimals));
   const unitPrice = Number(order.price);
 
+  // When taker is SELLER (taking a BUY order), their wallet balance is the hard cap
+  const userBalanceNum =
+    rawUserBalance !== undefined && rawUserBalance !== null
+      ? parseFloat(formatUnits(rawUserBalance, decimals))
+      : 0;
+
+  // Maximum crypto taker is allowed to fill
+  const orderAvailableCap = maxCrypto > 0 ? Math.min(remainingCrypto, maxCrypto) : remainingCrypto;
+  const effectiveMaxCrypto = !isBuyMode
+    ? Math.min(orderAvailableCap, userBalanceNum)
+    : orderAvailableCap;
+
   const inputAmountNum = parseFloat(tradeAmountStr) || 0;
   const fiatTotal = inputAmountNum * unitPrice;
 
   const takerUpiCheck = !isBuyMode
     ? validateUpiId(takerSellerUpi)
     : { isValid: true, trimmedUpi: '' };
+
+  const isSellerBalanceInsufficient =
+    !isBuyMode &&
+    ((!isUserBalanceLoading && userBalanceNum <= 0) ||
+      (!isUserBalanceLoading && minCrypto > 0 && userBalanceNum < minCrypto));
 
   const isSubmitDisabled =
     isSubmitting ||
@@ -203,7 +238,11 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     inputAmountNum <= 0 ||
     isMaker ||
     (isBuyMode && (isLoadingSellerUpi || !sellerUpi)) ||
-    (!isBuyMode && (!takerUpiCheck.isValid || !isTakerUpiConfirmed));
+    (!isBuyMode &&
+      (!takerUpiCheck.isValid ||
+        !isTakerUpiConfirmed ||
+        isSellerBalanceInsufficient ||
+        inputAmountNum > userBalanceNum));
 
   const handleConfirmTake = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,6 +270,24 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         setError('Please confirm that you will receive payment at the specified UPI ID.');
         return;
       }
+      if (!isUserBalanceLoading && userBalanceNum <= 0) {
+        setError(
+          `Insufficient UVBE balance in your wallet (Balance: 0 UVBE). You cannot sell UVBE without owning tokens.`,
+        );
+        return;
+      }
+      if (!isUserBalanceLoading && minCrypto > 0 && userBalanceNum < minCrypto) {
+        setError(
+          `Your wallet balance (${userBalanceNum.toFixed(4)} UVBE) is below the order minimum limit of ${minCrypto} UVBE.`,
+        );
+        return;
+      }
+      if (!isUserBalanceLoading && inputAmountNum > userBalanceNum) {
+        setError(
+          `Trade amount (${inputAmountNum} UVBE) exceeds your available wallet balance (${userBalanceNum.toFixed(4)} UVBE).`,
+        );
+        return;
+      }
     }
 
     if (inputAmountNum <= 0 || isNaN(inputAmountNum)) {
@@ -239,7 +296,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     }
 
     if (inputAmountNum > remainingCrypto) {
-      setError(`Trade amount cannot exceed available balance of ${remainingCrypto} UVBE.`);
+      setError(`Trade amount cannot exceed available order amount of ${remainingCrypto} UVBE.`);
       return;
     }
 
@@ -336,6 +393,17 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
     }
   };
 
+  const handleMaxClick = () => {
+    if (!isBuyMode) {
+      // Taker is SELLER -> Cap to min(available_in_order, wallet_balance)
+      const maxFill = Math.min(orderAvailableCap, Math.max(0, userBalanceNum));
+      setTradeAmountStr(maxFill > 0 ? maxFill.toString() : '0');
+    } else {
+      // Taker is BUYER -> Fill maximum allowable in order
+      setTradeAmountStr(orderAvailableCap.toString());
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-background border-2 border-black dark:border-white/10 rounded-2xl shadow-[8px_8px_0_#000] p-6 space-y-4 font-mono max-h-[90vh] overflow-y-auto">
@@ -387,7 +455,7 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
           </div>
 
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Available UVBE:</span>
+            <span className="text-muted-foreground">Available in Order:</span>
             <span className="font-bold text-foreground">{remainingCrypto} UVBE</span>
           </div>
 
@@ -397,6 +465,19 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
               {minCrypto} - {maxCrypto} UVBE
             </span>
           </div>
+
+          {!isBuyMode && (
+            <div className="flex justify-between border-t border-black/10 dark:border-white/10 pt-2 mt-1">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Wallet className="w-3.5 h-3.5 text-[#BFFF00]" /> Your UVBE Balance:
+              </span>
+              <span
+                className={`font-bold ${userBalanceNum <= 0 ? 'text-destructive' : 'text-[#5f8f00] dark:text-[#BFFF00]'}`}
+              >
+                {isUserBalanceLoading ? 'Loading...' : `${userBalanceNum.toFixed(4)} UVBE`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Error Banner */}
@@ -406,6 +487,23 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
             <span>{error}</span>
           </div>
         )}
+
+        {/* Insufficient Seller Balance Warning */}
+        {!isBuyMode &&
+          !isUserBalanceLoading &&
+          (userBalanceNum <= 0 || (minCrypto > 0 && userBalanceNum < minCrypto)) && (
+            <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2 font-sans">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold">Insufficient UVBE Balance in Wallet</p>
+                <p className="text-[11px] leading-relaxed">
+                  {userBalanceNum <= 0
+                    ? 'Your connected wallet has 0 UVBE. You need UVBE to fulfill this buy order and deposit into escrow.'
+                    : `Your wallet balance (${userBalanceNum.toFixed(4)} UVBE) is less than the minimum required order limit (${minCrypto} UVBE).`}
+                </p>
+              </div>
+            </div>
+          )}
 
         {/* Status Text Banner */}
         {bindingStatusText && (
@@ -418,16 +516,27 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
         {/* Form */}
         <form onSubmit={handleConfirmTake} className="space-y-4 font-sans">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Trade Amount (UVBE)
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Trade Amount (UVBE)
+              </label>
+              {!isBuyMode && (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  Wallet Max: {userBalanceNum.toFixed(4)} UVBE
+                </span>
+              )}
+            </div>
             <div className="relative">
               <input
                 id="trade-amount-input"
                 type="number"
                 inputMode="decimal"
                 step="any"
-                placeholder={`Enter amount (Max ${remainingCrypto})`}
+                placeholder={
+                  !isBuyMode
+                    ? `Enter amount (Max ${effectiveMaxCrypto.toFixed(4)})`
+                    : `Enter amount (Max ${remainingCrypto})`
+                }
                 value={tradeAmountStr}
                 onChange={(e) => setTradeAmountStr(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
@@ -435,12 +544,18 @@ export function TakeOrderModal({ order, isOpen, onClose, onMatchSuccess }: TakeO
               />
               <button
                 type="button"
-                onClick={() => setTradeAmountStr(remainingCrypto.toString())}
+                onClick={handleMaxClick}
                 className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded bg-[#BFFF00] text-black font-black text-[10px] border border-black shadow-[1px_1px_0_#000] min-h-[32px] flex items-center justify-center cursor-pointer"
               >
                 MAX
               </button>
             </div>
+            {!isBuyMode && userBalanceNum > 0 && userBalanceNum < remainingCrypto && (
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">
+                Note: Order requests {remainingCrypto} UVBE, but you can fill up to your wallet
+                balance of {userBalanceNum.toFixed(4)} UVBE.
+              </p>
+            )}
           </div>
 
           {/* Calculated Fiat Total */}
