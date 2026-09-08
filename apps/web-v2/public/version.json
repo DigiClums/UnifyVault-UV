@@ -3,51 +3,11 @@
   "minimumVersion": "1.0.0",
   "mandatory": true,
   "downloadUrl": "https://github.com/DigiClums/UnifyVault-UV/releases/download/v2.7.1/UnifyVault-v2.7.1.apk",
-  "sha256": "",
+  "sha256": "8b34625a3ae01ff0407c40ab382d4ffbfdfe6f584f174749c8f520754ffc2de2",
   "releaseNotes": [
-    "[🐛 Fix] P2P: auto-bind production domain for all mobile APK API requests",
-    "[🐛 Fix] MAINTENANCE: multi-pattern route matching for native Android WebView (P2P/Staking/Vault)",
-    "[🐛 Fix] MAINTENANCE: resilient JSON parsing and live production endpoint fallback for APK",
-    "[🐛 Fix] UPDATER: safely handle text and HTML responses in in-app update checker"
-  ],
-  "maintenance": {
-    "enabled": false,
-    "title": "Protocol System Upgrade",
-    "message": "We are currently performing essential infrastructure maintenance and contract optimization. All vault assets and staking balances are 100% secure.",
-    "estimatedEndTime": "Coming back shortly",
-    "allowAdminBypass": true,
-    "telegramUrl": "https://t.me/UnifyVault",
-    "modules": {
-      "staking": {
-        "enabled": false,
-        "title": "Staking Vault Maintenance",
-        "message": "Staking Vault & Reward Distribution are undergoing contract maintenance. Accrued rewards remain intact.",
-        "estimatedEndTime": "Coming back shortly"
-      },
-      "p2p": {
-        "enabled": true,
-        "title": "P2P Escrow Maintenance",
-        "message": "P2P Escrow & Marketplace is temporarily paused for database and contract sync. Escrow deposits remain safe.",
-        "estimatedEndTime": "Coming back shortly"
-      },
-      "deposit": {
-        "enabled": false,
-        "title": "Deposits Paused",
-        "message": "Vault deposits are temporarily paused for routine maintenance.",
-        "estimatedEndTime": "Coming back shortly"
-      },
-      "redeem": {
-        "enabled": false,
-        "title": "Redemptions Paused",
-        "message": "Vault redemptions are temporarily paused for liquidity rebalancing.",
-        "estimatedEndTime": "Coming back shortly"
-      },
-      "options": {
-        "enabled": false,
-        "title": "Options Trading Maintenance",
-        "message": "Options protocol and settlement engine are undergoing maintenance.",
-        "estimatedEndTime": "Coming back shortly"
-      }
-    }
-  }
+    "[🐛 Fix] P2P: bind production API domain and multi-pattern route matching for native APK",
+    "[Chore] MAINTENANCE: set maintenance mode to OFF for test verification",
+    "[Chore] MAINTENANCE: update maintenance mode via Telegram bot",
+    "Verified APK SHA-256: 8b34625a3ae01ff0407c40ab382d4ffbfdfe6f584f174749c8f520754ffc2de2"
+  ]
 }
