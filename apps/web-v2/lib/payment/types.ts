@@ -75,8 +75,8 @@ export interface TradePaymentBinding {
 
 export interface CreateTradePaymentBindingInput {
   tradeId: number;
-  marketplaceOrderId: number;
-  takeOrderTxHash: `0x${string}`;
+  marketplaceOrderId?: number;
+  takeOrderTxHash?: `0x${string}`;
   paymentRail?: 'UPI' | 'BANK_TRANSFER';
   paymentDestination: string;
   signature: `0x${string}`;

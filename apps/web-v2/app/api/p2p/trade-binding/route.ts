@@ -104,27 +104,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (
-      !marketplaceOrderId ||
-      typeof marketplaceOrderId !== 'number' ||
-      marketplaceOrderId <= 0 ||
-      !Number.isInteger(marketplaceOrderId)
-    ) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or missing marketplaceOrderId parameter.' },
-        { status: 400 },
-      );
-    }
+    const isStandardTakeOrderFlow = Boolean(takeOrderTxHash);
 
-    if (
-      !takeOrderTxHash ||
-      typeof takeOrderTxHash !== 'string' ||
-      !/^0x[a-fA-F0-9]{64}$/.test(takeOrderTxHash)
-    ) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or missing takeOrderTxHash format.' },
-        { status: 400 },
-      );
+    if (isStandardTakeOrderFlow) {
+      if (
+        !marketplaceOrderId ||
+        typeof marketplaceOrderId !== 'number' ||
+        marketplaceOrderId <= 0 ||
+        !Number.isInteger(marketplaceOrderId)
+      ) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid or missing marketplaceOrderId parameter.' },
+          { status: 400 },
+        );
+      }
+
+      if (typeof takeOrderTxHash !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(takeOrderTxHash)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid or missing takeOrderTxHash format.' },
+          { status: 400 },
+        );
+      }
     }
 
     if (!paymentDestination || typeof paymentDestination !== 'string') {
@@ -204,89 +204,110 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const authoritativeSeller = rawTrade.seller as `0x${string}`;
-    const authoritativeBuyer = rawTrade.buyer as `0x${string}`;
-
-    // 5. On-Chain Transaction Receipt & Correlation Check
-    let receipt: any = null;
-    try {
-      receipt = await publicClient.getTransactionReceipt({
-        hash: takeOrderTxHash as Hex,
-      });
-    } catch {
-      return NextResponse.json(
-        { success: false, error: `Transaction ${takeOrderTxHash} receipt not found on chain.` },
-        { status: 400 },
-      );
-    }
-
-    if (!receipt || receipt.status !== 'success') {
-      return NextResponse.json(
-        { success: false, error: `Transaction ${takeOrderTxHash} failed or reverted on chain.` },
-        { status: 400 },
-      );
-    }
-
-    // Verify event logs in receipt correlate to escrowTradeId
-    let isTxCorrelated = false;
-    const escrowTradeLinkedTopic0 = encodeEventTopics({
-      abi: MARKETPLACE_ABI,
-      eventName: 'EscrowTradeLinked',
-    })[0]?.toLowerCase();
-
-    for (const log of receipt.logs || []) {
-      const topic0 = log.topics?.[0]?.toLowerCase();
-      if (topic0 === escrowTradeLinkedTopic0) {
-        try {
-          const decoded = decodeEventLog({
-            abi: MARKETPLACE_ABI,
-            data: log.data,
-            topics: log.topics,
-          });
-          if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
-            const rawEventTradeId =
-              (decoded.args as any).tradeId ?? (decoded.args as any).escrowTradeId;
-            const rawEventBuyOrderId = (decoded.args as any).buyOrderId;
-            const rawEventSeller = (decoded.args as any).seller;
-
-            const matchesTradeId =
-              rawEventTradeId !== undefined && Number(rawEventTradeId) === tradeId;
-            const matchesOrderId =
-              rawEventBuyOrderId !== undefined &&
-              (Number(rawEventBuyOrderId) === marketplaceOrderId ||
-                Number(rawEventBuyOrderId) === 0);
-            const matchesSeller =
-              !rawEventSeller || rawEventSeller.toLowerCase() === authoritativeSeller.toLowerCase();
-
-            if (matchesTradeId && matchesOrderId && matchesSeller) {
-              isTxCorrelated = true;
-              break;
-            }
-          }
-        } catch {
-          // Fallback parsing from topics: topics[1]=matchId, topics[2]=tradeId
-          if (log.topics && log.topics.length >= 3 && log.topics[2]) {
-            try {
-              const topicTradeId = Number(BigInt(log.topics[2]));
-              if (topicTradeId === tradeId) {
-                isTxCorrelated = true;
-                break;
-              }
-            } catch {}
-          }
-        }
-      }
-    }
-
-    if (!isTxCorrelated) {
+    // State Eligibility Check: Only CREATED (1) and FUNDED (2) are eligible for payment binding creation/recovery
+    const tradeState = Number(rawTrade.state);
+    if (tradeState !== 1 && tradeState !== 2) {
       return NextResponse.json(
         {
           success: false,
-          error: `Transaction ${takeOrderTxHash} does not correlate to trade #${tradeId} and order #${marketplaceOrderId}.`,
+          error: `Trade #${tradeId} is in state ${tradeState} and cannot accept payment details. Only CREATED or FUNDED trades are eligible.`,
         },
         { status: 400 },
       );
     }
+
+    const authoritativeSeller = rawTrade.seller as `0x${string}`;
+    const authoritativeBuyer = rawTrade.buyer as `0x${string}`;
+
+    // 5. On-Chain Correlation Check (For standard marketplace takeOrder flow)
+    if (isStandardTakeOrderFlow) {
+      let receipt: any = null;
+      try {
+        receipt = await publicClient.getTransactionReceipt({
+          hash: takeOrderTxHash as Hex,
+        });
+      } catch {
+        return NextResponse.json(
+          { success: false, error: `Transaction ${takeOrderTxHash} receipt not found on chain.` },
+          { status: 400 },
+        );
+      }
+
+      if (!receipt || receipt.status !== 'success') {
+        return NextResponse.json(
+          { success: false, error: `Transaction ${takeOrderTxHash} failed or reverted on chain.` },
+          { status: 400 },
+        );
+      }
+
+      // Verify event logs in receipt correlate to escrowTradeId
+      let isTxCorrelated = false;
+      const escrowTradeLinkedTopic0 = encodeEventTopics({
+        abi: MARKETPLACE_ABI,
+        eventName: 'EscrowTradeLinked',
+      })[0]?.toLowerCase();
+
+      for (const log of receipt.logs || []) {
+        const topic0 = log.topics?.[0]?.toLowerCase();
+        if (topic0 === escrowTradeLinkedTopic0) {
+          try {
+            const decoded = decodeEventLog({
+              abi: MARKETPLACE_ABI,
+              data: log.data,
+              topics: log.topics,
+            });
+            if (decoded.eventName === 'EscrowTradeLinked' && decoded.args) {
+              const rawEventTradeId =
+                (decoded.args as any).tradeId ?? (decoded.args as any).escrowTradeId;
+              const rawEventBuyOrderId = (decoded.args as any).buyOrderId;
+              const rawEventSeller = (decoded.args as any).seller;
+
+              const matchesTradeId =
+                rawEventTradeId !== undefined && Number(rawEventTradeId) === tradeId;
+              const matchesOrderId =
+                rawEventBuyOrderId !== undefined &&
+                (Number(rawEventBuyOrderId) === (marketplaceOrderId ?? 0) ||
+                  Number(rawEventBuyOrderId) === 0);
+              const matchesSeller =
+                !rawEventSeller ||
+                rawEventSeller.toLowerCase() === authoritativeSeller.toLowerCase();
+
+              if (matchesTradeId && matchesOrderId && matchesSeller) {
+                isTxCorrelated = true;
+                break;
+              }
+            }
+          } catch {
+            // Fallback parsing from topics: topics[1]=matchId, topics[2]=tradeId
+            if (log.topics && log.topics.length >= 3 && log.topics[2]) {
+              try {
+                const topicTradeId = Number(BigInt(log.topics[2]));
+                if (topicTradeId === tradeId) {
+                  isTxCorrelated = true;
+                  break;
+                }
+              } catch {}
+            }
+          }
+        }
+      }
+
+      if (!isTxCorrelated) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Transaction ${takeOrderTxHash} does not correlate to trade #${tradeId} and order #${marketplaceOrderId}.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const effectiveOrderId =
+      marketplaceOrderId && marketplaceOrderId > 0 ? marketplaceOrderId : tradeId;
+    const effectiveTxHash: `0x${string}` =
+      (takeOrderTxHash as `0x${string}`) ||
+      '0x0000000000000000000000000000000000000000000000000000000000000000';
 
     // 6. Cryptographic Seller Signature Verification
     const authCheck = await verifyTradePaymentBindingAuth(
@@ -296,7 +317,7 @@ export async function POST(req: NextRequest) {
         signatureTimestamp,
         chainId: targetChainId,
         escrowAddress,
-        marketplaceOrderId,
+        marketplaceOrderId: effectiveOrderId,
         paymentRail,
         paymentDestination: normalizedDestination,
       },
@@ -318,8 +339,8 @@ export async function POST(req: NextRequest) {
       tradeId,
       chainId: targetChainId,
       escrowAddress,
-      marketplaceOrderId,
-      takeOrderTxHash,
+      marketplaceOrderId: effectiveOrderId,
+      takeOrderTxHash: effectiveTxHash,
       sellerAddress: authoritativeSeller,
       buyerAddress: authoritativeBuyer,
       paymentRail: 'UPI',
@@ -331,8 +352,8 @@ export async function POST(req: NextRequest) {
       tradeId,
       chainId: targetChainId,
       escrowAddress,
-      marketplaceOrderId,
-      takeOrderTxHash: takeOrderTxHash as `0x${string}`,
+      marketplaceOrderId: effectiveOrderId,
+      takeOrderTxHash: effectiveTxHash,
       sellerAddress: authoritativeSeller,
       buyerAddress: authoritativeBuyer,
       paymentRail: 'UPI',

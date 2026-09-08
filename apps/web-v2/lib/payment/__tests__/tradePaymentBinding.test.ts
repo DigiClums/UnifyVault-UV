@@ -70,7 +70,19 @@ vi.mock('viem', async (importOriginal) => {
       readContract: async ({ address, functionName, args }: any) => {
         if (functionName === 'getTrade') {
           const tid = Number(args[0]);
-          if (tid === testTradeId || tid === 502 || tid === 503) {
+          if (tid >= 501 && tid <= 515) {
+            let state = 1; // Default CREATED
+            if (tid === 504) state = 2; // FUNDED
+            if (tid === 505) state = 3; // PAYMENT_SUBMITTED
+            if (tid === 506) state = 4; // DISPUTED
+            if (tid === 507) state = 5; // RELEASED
+            if (tid === 508) state = 6; // REFUNDED
+            if (tid === 509) state = 7; // CANCELLED
+            if (tid === 510) state = 2; // FUNDED for recovery
+            if (tid === 511) state = 1; // CREATED for recovery
+            if (tid === 512) state = 2; // FUNDED for Trade #10 vs #11
+            if (tid === 513) state = 2; // FUNDED for Trade #10 vs #11
+
             return {
               tradeId: BigInt(tid),
               buyer: mockBuyer,
@@ -79,10 +91,10 @@ vi.mock('viem', async (importOriginal) => {
               amount: 10000000000000000000n,
               fiatAmount: 500000n,
               fiatCurrency: '0x494e520000000000000000000000000000000000000000000000000000000000',
-              state: 1, // CREATED
+              state,
               paymentWindow: 1800n,
-              fundingTimestamp: 0n,
-              paymentTimestamp: 0n,
+              fundingTimestamp: state >= 2 ? BigInt(Math.floor(Date.now() / 1000) - 100) : 0n,
+              paymentTimestamp: state >= 3 ? BigInt(Math.floor(Date.now() / 1000) - 50) : 0n,
               paymentReference: '0x00',
               evidenceHash: '0x00',
               disputeInitiator: '0x0000000000000000000000000000000000000000',
@@ -1081,6 +1093,673 @@ describe('Phase 1 — Immutable P2P Trade Payment Binding Foundation Suite', () 
       expect(result.isReleaseAllowed).toBe(false);
       expect(result.isClaimAllowed).toBe(false);
       expect(result.discrepancies.some((d) => d.includes('Payee VPA mismatch'))).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // CATEGORY 8: PHASE 1 — TRADE PAYMENT BINDING RECOVERY & LIFECYCLE AUDIT
+  // =========================================================================
+  describe('8. Trade Payment Binding Recovery & Lifecycle Invariants', () => {
+    // 8.1 Seller can recover missing binding for FUNDED trade
+    it('8.1 Seller can recover missing payment binding on a FUNDED trade without takeOrderTxHash', async () => {
+      const recoveryTradeId = 504; // State 2: FUNDED
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'recovered.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'recovered.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.binding.tradeId).toBe(recoveryTradeId);
+      expect(body.binding.paymentDestination).toBe('recovered.seller@okaxis');
+      expect(body.binding.sellerAddress.toLowerCase()).toBe(mockSeller.toLowerCase());
+    });
+
+    // 8.2 Buyer cannot recover seller binding
+    it('8.2 Buyer cannot recover or set seller payment binding', async () => {
+      const recoveryTradeId = 504;
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'buyer.stolen@okaxis',
+        timestamp,
+      });
+
+      // Buyer signs trying to forge seller binding
+      const buyerSignature = await buyerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'buyer.stolen@okaxis',
+          signature: buyerSignature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Authentication failed');
+    });
+
+    // 8.3 Random wallet cannot recover binding
+    it('8.3 Random unrelated wallet cannot recover or set seller payment binding', async () => {
+      const recoveryTradeId = 504;
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'attacker@okaxis',
+        timestamp,
+      });
+
+      const attackerSignature = await attackerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'attacker@okaxis',
+          signature: attackerSignature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('Authentication failed');
+    });
+
+    // 8.4 CREATED state allows binding
+    it('8.4 CREATED trade state (1) allows seller payment binding recovery', async () => {
+      const recoveryTradeId = 511; // State 1: CREATED
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'created.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'created.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.binding.paymentDestination).toBe('created.seller@okaxis');
+    });
+
+    // 8.5 FUNDED state allows binding
+    it('8.5 FUNDED trade state (2) allows seller payment binding recovery', async () => {
+      const recoveryTradeId = 510; // State 2: FUNDED
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'funded.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'funded.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.binding.paymentDestination).toBe('funded.seller@okaxis');
+    });
+
+    // 8.6 PAYMENT_SUBMITTED rejects
+    it('8.6 PAYMENT_SUBMITTED trade state (3) rejects payment binding creation/recovery', async () => {
+      const invalidTradeId = 505; // State 3
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: invalidTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'blocked.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: invalidTradeId,
+          marketplaceOrderId: invalidTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'blocked.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('cannot accept payment details');
+    });
+
+    // 8.7 DISPUTED rejects
+    it('8.7 DISPUTED trade state (4) rejects payment binding creation/recovery', async () => {
+      const invalidTradeId = 506; // State 4
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: invalidTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'blocked.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: invalidTradeId,
+          marketplaceOrderId: invalidTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'blocked.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('cannot accept payment details');
+    });
+
+    // 8.8 RELEASED rejects
+    it('8.8 RELEASED trade state (5) rejects payment binding creation/recovery', async () => {
+      const invalidTradeId = 507; // State 5
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: invalidTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'blocked.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: invalidTradeId,
+          marketplaceOrderId: invalidTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'blocked.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('cannot accept payment details');
+    });
+
+    // 8.9 REFUNDED rejects
+    it('8.9 REFUNDED trade state (6) rejects payment binding creation/recovery', async () => {
+      const invalidTradeId = 508; // State 6
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: invalidTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'blocked.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: invalidTradeId,
+          marketplaceOrderId: invalidTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'blocked.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('cannot accept payment details');
+    });
+
+    // 8.10 CANCELLED rejects
+    it('8.10 CANCELLED trade state (7) rejects payment binding creation/recovery', async () => {
+      const invalidTradeId = 509; // State 7
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: invalidTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'blocked.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: invalidTradeId,
+          marketplaceOrderId: invalidTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'blocked.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('cannot accept payment details');
+    });
+
+    // 8.11 Same binding is idempotent
+    it('8.11 Submitting the identical payment binding again returns 200 with isIdempotent: true', async () => {
+      const recoveryTradeId = 510;
+      const timestamp = Date.now();
+      const message = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'idempotent.seller@okaxis',
+        timestamp,
+      });
+
+      const signature = await sellerAccount.signMessage({ message });
+
+      // First submit
+      const req1 = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'idempotent.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res1 = await tradeBindingPOST(req1);
+      expect(res1.status).toBe(201);
+
+      // Second identical submit
+      const req2 = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'idempotent.seller@okaxis',
+          signature,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res2 = await tradeBindingPOST(req2);
+      expect(res2.status).toBe(200);
+      const body2 = await res2.json();
+      expect(body2.success).toBe(true);
+      expect(body2.isIdempotent).toBe(true);
+    });
+
+    // 8.12 Different UPI cannot overwrite
+    it('8.12 Attempting to overwrite an existing trade binding with a different UPI returns HTTP 409 Conflict', async () => {
+      const recoveryTradeId = 510;
+      const timestamp = Date.now();
+
+      // First binding
+      const msg1 = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'original.seller@okaxis',
+        timestamp,
+      });
+      const sig1 = await sellerAccount.signMessage({ message: msg1 });
+
+      const req1 = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'original.seller@okaxis',
+          signature: sig1,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+      await tradeBindingPOST(req1);
+
+      // Second binding attempt with new UPI
+      const msg2 = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: recoveryTradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'different.seller@paytm',
+        timestamp,
+      });
+      const sig2 = await sellerAccount.signMessage({ message: msg2 });
+
+      const req2 = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: recoveryTradeId,
+          marketplaceOrderId: recoveryTradeId,
+          paymentRail: 'UPI',
+          paymentDestination: 'different.seller@paytm',
+          signature: sig2,
+          signatureTimestamp: timestamp,
+          chainId: mockChainId,
+        }),
+      });
+
+      const res2 = await tradeBindingPOST(req2);
+      expect(res2.status).toBe(409);
+      const body2 = await res2.json();
+      expect(body2.success).toBe(false);
+      expect(body2.error).toContain('already bound');
+    });
+
+    // 8.13 Trade #12 cannot affect Trade #13
+    it('8.13 Partial fills safety: Trade #512 binding is isolated and does not affect Trade #513', async () => {
+      const ts = Date.now();
+
+      // Bind Trade #512
+      const msg512 = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: 512,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'trade512.payee@okaxis',
+        timestamp: ts,
+      });
+      const sig512 = await sellerAccount.signMessage({ message: msg512 });
+
+      await tradeBindingPOST(
+        new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tradeId: 512,
+            marketplaceOrderId: 512,
+            paymentRail: 'UPI',
+            paymentDestination: 'trade512.payee@okaxis',
+            signature: sig512,
+            signatureTimestamp: ts,
+            chainId: mockChainId,
+          }),
+        }),
+      );
+
+      // Verify Trade #513 has no binding yet
+      const binding513 = await getTradePaymentBinding(513);
+      expect(binding513).toBeNull();
+
+      // Bind Trade #513 independently
+      const msg513 = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: 513,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'trade513.payee@okaxis',
+        timestamp: ts,
+      });
+      const sig513 = await sellerAccount.signMessage({ message: msg513 });
+
+      await tradeBindingPOST(
+        new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tradeId: 513,
+            marketplaceOrderId: 513,
+            paymentRail: 'UPI',
+            paymentDestination: 'trade513.payee@okaxis',
+            signature: sig513,
+            signatureTimestamp: ts,
+            chainId: mockChainId,
+          }),
+        }),
+      );
+
+      const resolved512 = await getTradePaymentBinding(512);
+      const resolved513 = await getTradePaymentBinding(513);
+
+      expect(resolved512?.paymentDestination).toBe('trade512.payee@okaxis');
+      expect(resolved513?.paymentDestination).toBe('trade513.payee@okaxis');
+    });
+
+    // 8.14 PaymentIntent fails before binding & 8.15 succeeds after binding (with QR code)
+    it('8.14 & 8.15 & 8.16 & 8.17: PaymentIntent fails closed before binding, succeeds and reveals UPI + QR URI after binding', async () => {
+      const tradeId = 510; // FUNDED
+      const ts = Date.now();
+
+      // 1. Query PaymentIntent BEFORE binding => Fails closed with 400
+      const authMsg = constructAuthMessage('payment-intent', tradeId, ts);
+      const authSig = await buyerAccount.signMessage({ message: authMsg });
+
+      const preReq = new NextRequest('http://localhost:3000/api/p2p/payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId,
+          userAddress: mockBuyer,
+          signature: authSig,
+          timestamp: ts,
+        }),
+      });
+
+      const preRes = await paymentIntentPOST(preReq);
+      expect(preRes.status).toBe(400);
+      const preBody = await preRes.json();
+      expect(preBody.success).toBe(false);
+      expect(preBody.error).toContain('Authoritative payment binding not found');
+
+      // 2. Seller performs recovery binding
+      const bindMsg = constructTradePaymentBindingMessage({
+        chainId: mockChainId,
+        escrowAddress: mockEscrow,
+        marketplaceOrderId: tradeId,
+        sellerAddress: mockSeller,
+        paymentRail: 'UPI',
+        paymentDestination: 'recovery.complete@okaxis',
+        timestamp: ts,
+      });
+      const bindSig = await sellerAccount.signMessage({ message: bindMsg });
+
+      await tradeBindingPOST(
+        new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tradeId,
+            marketplaceOrderId: tradeId,
+            paymentRail: 'UPI',
+            paymentDestination: 'recovery.complete@okaxis',
+            signature: bindSig,
+            signatureTimestamp: ts,
+            chainId: mockChainId,
+          }),
+        }),
+      );
+
+      // 3. Query PaymentIntent AFTER binding => Succeeds with authoritative UPI & valid UPI URI for QR
+      const postReq = new NextRequest('http://localhost:3000/api/p2p/payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId,
+          userAddress: mockBuyer,
+          signature: authSig,
+          timestamp: ts,
+        }),
+      });
+
+      const postRes = await paymentIntentPOST(postReq);
+      expect(postRes.status).toBe(200);
+      const postBody = await postRes.json();
+      expect(postBody.success).toBe(true);
+      expect(postBody.paymentIntent.sellerPaymentIdentifier).toBe('recovery.complete@okaxis');
+      expect(postBody.paymentIntent.status).toBe('QR_READY');
+      expect(postBody.upiUri).toContain('upi://pay');
+      expect(postBody.upiUri).toContain('pa=recovery.complete%40okaxis');
+    });
+
+    // 8.18 Wrong chain ID rejected
+    it('8.18 Rejects recovery payment binding with unsupported chain ID', async () => {
+      const ts = Date.now();
+      const req = new NextRequest('http://localhost:3000/api/p2p/trade-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tradeId: 501,
+          paymentDestination: 'seller@okaxis',
+          signature: '0x1234',
+          signatureTimestamp: ts,
+          chainId: 1, // Ethereum Mainnet (Unsupported)
+        }),
+      });
+
+      const res = await tradeBindingPOST(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain('Unsupported network');
     });
   });
 });

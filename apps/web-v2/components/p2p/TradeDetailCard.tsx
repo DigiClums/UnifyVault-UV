@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount, usePublicClient, useReadContract } from 'wagmi';
+import { useAccount, usePublicClient, useReadContract, useSignMessage } from 'wagmi';
 import { formatUnits, hexToString, type Address } from 'viem';
 import {
   ShieldCheck,
@@ -24,7 +24,10 @@ import {
   CreditCard,
   Check,
   Star,
+  KeyRound,
 } from 'lucide-react';
+import { validateUpiId } from '../../lib/p2p/upiValidation';
+import { constructTradePaymentBindingMessage } from '../../lib/payment/walletAuth';
 import { TrustBadge } from './TrustBadge';
 import { RateTradeModal } from './RateTradeModal';
 import { PaymentCountdown } from './PaymentCountdown';
@@ -46,7 +49,12 @@ import {
 } from '../../lib/smartAccount/p2p';
 import { P2P_ESCROW_ABI } from '../../lib/contracts/escrow';
 import { useProtocolDirectory } from '../../hooks/useProtocolDirectory';
-import { getChainTokens, getDefaultChainId, DEPLOYED_CONTRACTS_SEPOLIA } from '../../constants';
+import {
+  getChainTokens,
+  getDefaultChainId,
+  DEPLOYED_CONTRACTS_SEPOLIA,
+  DEPLOYED_CONTRACTS_MAINNET,
+} from '../../constants';
 import dynamic from 'next/dynamic';
 
 const DisputeChatWorkspace = dynamic(
@@ -357,29 +365,127 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
     }
   };
 
-  const handleSaveSellerUpi = async (e: React.FormEvent) => {
+  const { signMessageAsync } = useSignMessage();
+  const [isBindingUpi, setIsBindingUpi] = useState<boolean>(false);
+  const [bindUpiError, setBindUpiError] = useState<string | null>(null);
+  const [bindUpiSuccess, setBindUpiSuccess] = useState<boolean>(false);
+
+  const getTargetEscrowAddress = (targetChainId: number): `0x${string}` => {
+    if (targetChainId === 84532) {
+      return (
+        (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_SEPOLIA as `0x${string}`) ||
+        (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS as `0x${string}`) ||
+        DEPLOYED_CONTRACTS_SEPOLIA.P2PEscrow
+      );
+    }
+    return (
+      (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS_MAINNET as `0x${string}`) ||
+      (process.env.NEXT_PUBLIC_P2P_ESCROW_ADDRESS as `0x${string}`) ||
+      DEPLOYED_CONTRACTS_MAINNET.P2PEscrow
+    );
+  };
+
+  const handleBindSellerUpi = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userAddress || !sellerUpiInput.trim()) return;
+    if (!userAddress) {
+      setBindUpiError('Please connect your wallet first.');
+      return;
+    }
+
+    if (!isSeller) {
+      setBindUpiError('Only the trade seller can bind receiving payment details.');
+      return;
+    }
+
+    if (trade.state !== TradeState.CREATED && trade.state !== TradeState.FUNDED) {
+      setBindUpiError('Payment details can only be set when trade is CREATED or FUNDED.');
+      return;
+    }
+
+    const upiCheck = validateUpiId(sellerUpiInput);
+    if (!upiCheck.isValid) {
+      setBindUpiError(upiCheck.error || 'Please enter a valid UPI ID (e.g. name@bank).');
+      return;
+    }
+
+    const normalizedUpi = upiCheck.trimmedUpi;
+    const targetChainId = chainId;
+    const escrowAddr = getTargetEscrowAddress(targetChainId);
+    const signatureTimestamp = Date.now();
+
     try {
-      setIsFetchingIntent(true);
-      const res = await fetch('/api/p2p/payment-intent', {
+      setIsBindingUpi(true);
+      setBindUpiError(null);
+
+      // Step 1: Seller cryptographically signs canonical domain-separated message
+      const bindingMessage = constructTradePaymentBindingMessage({
+        chainId: targetChainId,
+        escrowAddress: escrowAddr,
+        marketplaceOrderId: trade.tradeId,
+        sellerAddress: userAddress,
+        paymentRail: 'UPI',
+        paymentDestination: normalizedUpi,
+        timestamp: signatureTimestamp,
+      });
+
+      let sellerSignature: `0x${string}`;
+      try {
+        sellerSignature = await signMessageAsync({ message: bindingMessage });
+      } catch (signErr: any) {
+        throw new Error(signErr?.message || 'Signature request was rejected.');
+      }
+
+      // Step 2: Post to authoritative /api/p2p/trade-binding route
+      const bindRes = await fetch('/api/p2p/trade-binding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tradeId: trade.tradeId,
-          userAddress,
-          sellerUpiId: sellerUpiInput.trim(),
+          marketplaceOrderId: trade.tradeId,
+          paymentRail: 'UPI',
+          paymentDestination: normalizedUpi,
+          signature: sellerSignature,
+          signatureTimestamp,
+          chainId: targetChainId,
         }),
       });
-      const data = await res.json();
-      if (data.success && data.paymentIntent) {
-        setPaymentIntent(data.paymentIntent);
-        setUpiUri(data.upiUri || '');
+
+      const bindData = await bindRes.json().catch(() => ({}));
+      if (!bindRes.ok || !bindData.success) {
+        throw new Error(bindData.error || 'Failed to record trade payment binding.');
       }
-    } catch (err) {
-      console.error('Failed saving seller UPI ID:', err);
+
+      // Step 3: Success state & refetch payment intent
+      setBindUpiSuccess(true);
+      setSellerUpi(normalizedUpi);
+
+      // Fetch payment intent to get updated server intent & UPI URI
+      try {
+        const intentRes = await fetch('/api/p2p/payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tradeId: trade.tradeId, userAddress }),
+        });
+        const intentData = await intentRes.json();
+        if (intentData.success && intentData.paymentIntent) {
+          setPaymentIntent(intentData.paymentIntent);
+          setUpiUri(intentData.upiUri || '');
+          if (intentData.paymentIntent.sellerPaymentIdentifier) {
+            setSellerUpi(intentData.paymentIntent.sellerPaymentIdentifier);
+          }
+        }
+      } catch (intentErr) {
+        console.warn('Payment intent refresh error after binding:', intentErr);
+      }
+
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err: any) {
+      console.error('Trade payment binding recovery error:', err);
+      setBindUpiError(err?.message || 'Failed to bind receiving UPI ID.');
     } finally {
-      setIsFetchingIntent(false);
+      setIsBindingUpi(false);
     }
   };
 
@@ -1134,6 +1240,85 @@ export function TradeDetailCard({ trade, onRefresh }: TradeDetailCardProps) {
           </p>
         </div>
       )}
+
+      {/* SELLER RECOVERY ACTION: Set Receiving UPI / Payment Details (Rendered when binding is missing and state is CREATED or FUNDED) */}
+      {isSeller &&
+        !sellerUpi &&
+        !isLoadingSellerUpi &&
+        (trade.state === TradeState.CREATED || trade.state === TradeState.FUNDED) && (
+          <div className="p-4 rounded-xl border-2 border-amber-500/40 bg-amber-500/10 space-y-3 font-mono">
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+              <div className="flex items-center gap-2 font-black text-sm text-amber-600 dark:text-amber-400">
+                <KeyRound className="w-4 h-4 text-amber-500" />
+                <span>Receiving Payment Details Required</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                Seller Action Required
+              </span>
+            </div>
+
+            <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+              Add your UPI ID so the buyer can pay you. Your payment details will be
+              cryptographically signed, encrypted, and bound to this trade.
+            </p>
+
+            <form onSubmit={handleBindSellerUpi} className="space-y-3 pt-1">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 font-sans">
+                  Seller Receiving UPI ID
+                </label>
+                <input
+                  data-testid="input-seller-recovery-upi"
+                  type="text"
+                  placeholder="e.g. yourname@okaxis, yourname@oksbi"
+                  value={sellerUpiInput}
+                  onChange={(e) => {
+                    setSellerUpiInput(e.target.value);
+                    if (bindUpiError) setBindUpiError(null);
+                  }}
+                  disabled={isBindingUpi}
+                  className="w-full px-3.5 py-3 rounded-xl border-2 border-black dark:border-white/20 bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#BFFF00] min-h-[44px]"
+                  required
+                />
+              </div>
+
+              {bindUpiError && (
+                <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-sans flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{bindUpiError}</span>
+                </div>
+              )}
+
+              {bindUpiSuccess && (
+                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-sans flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>UPI ID Bound Successfully! Details refreshed.</span>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-1">
+                <button
+                  data-testid="sign-and-bind-upi-btn"
+                  type="submit"
+                  disabled={isBindingUpi || !sellerUpiInput.trim()}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#BFFF00] text-black font-black text-xs border-2 border-black shadow-[3px_3px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50"
+                >
+                  {isBindingUpi ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Signing & Binding UPI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+                      <span>Sign & Bind UPI Details</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
       {/* SMART PAYMENT QR (If Payment Intent is available and funded) */}
       {isBuyer && trade.state === TradeState.FUNDED && paymentIntent && upiUri && (
