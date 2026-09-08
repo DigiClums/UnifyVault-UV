@@ -28,7 +28,7 @@
         "estimatedEndTime": "Coming back shortly"
       },
       "p2p": {
-        "enabled": true,
+        "enabled": false,
         "title": "P2P Escrow Maintenance",
         "message": "P2P Escrow & Marketplace is temporarily paused for database and contract sync. Escrow deposits remain safe.",
         "estimatedEndTime": "Coming back shortly"
