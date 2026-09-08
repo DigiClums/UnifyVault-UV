@@ -183,7 +183,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         estimatedEndTime: cfg.estimatedEndTime,
         moduleName: 'P2P Marketplace & Escrow',
       };
-    } else if (cleanPath.startsWith('/deposit') && maintenance.modules.deposit?.enabled) {
+    } else if (isDeposit && maintenance.modules.deposit?.enabled) {
       const cfg = maintenance.modules.deposit;
       activeMaintenance = {
         isMaintenance: true,
@@ -194,7 +194,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         estimatedEndTime: cfg.estimatedEndTime,
         moduleName: 'Vault Deposits',
       };
-    } else if (cleanPath.startsWith('/redeem') && maintenance.modules.redeem?.enabled) {
+    } else if (isRedeem && maintenance.modules.redeem?.enabled) {
       const cfg = maintenance.modules.redeem;
       activeMaintenance = {
         isMaintenance: true,
@@ -204,7 +204,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         estimatedEndTime: cfg.estimatedEndTime,
         moduleName: 'Vault Redemptions',
       };
-    } else if (cleanPath.startsWith('/options') && maintenance.modules.options?.enabled) {
+    } else if (isOptions && maintenance.modules.options?.enabled) {
       const cfg = maintenance.modules.options;
       activeMaintenance = {
         isMaintenance: true,
@@ -214,7 +214,7 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         estimatedEndTime: cfg.estimatedEndTime,
         moduleName: 'Options Protocol',
       };
-    } else if (cleanPath.startsWith('/fantasy') && maintenance.modules.fantasy?.enabled) {
+    } else if (isFantasy && maintenance.modules.fantasy?.enabled) {
       const cfg = maintenance.modules.fantasy;
       activeMaintenance = {
         isMaintenance: true,

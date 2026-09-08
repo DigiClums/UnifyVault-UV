@@ -650,6 +650,10 @@ function getMaintenanceMenuMarkup(cfg: any) {
   const isGlobal = Boolean(cfg.enabled);
   const isP2P = Boolean(cfg.modules?.p2p?.enabled);
   const isStaking = Boolean(cfg.modules?.staking?.enabled);
+  const isDeposit = Boolean(cfg.modules?.deposit?.enabled);
+  const isRedeem = Boolean(cfg.modules?.redeem?.enabled);
+  const isOptions = Boolean(cfg.modules?.options?.enabled);
+  const isFantasy = Boolean(cfg.modules?.fantasy?.enabled);
 
   return Markup.inlineKeyboard([
     [
@@ -659,13 +663,30 @@ function getMaintenanceMenuMarkup(cfg: any) {
       ),
     ],
     [
-      Markup.button.callback(
-        isP2P ? '🔴 P2P Module: [ ON ]' : '🟢 P2P Module: [ OFF ]',
-        'toggle_maint_p2p',
-      ),
+      Markup.button.callback(isP2P ? '🔴 P2P: [ ON ]' : '🟢 P2P: [ OFF ]', 'toggle_maint_p2p'),
       Markup.button.callback(
         isStaking ? '🔴 Staking: [ ON ]' : '🟢 Staking: [ OFF ]',
         'toggle_maint_staking',
+      ),
+    ],
+    [
+      Markup.button.callback(
+        isDeposit ? '🔴 Deposit: [ ON ]' : '🟢 Deposit: [ OFF ]',
+        'toggle_maint_deposit',
+      ),
+      Markup.button.callback(
+        isRedeem ? '🔴 Redeem: [ ON ]' : '🟢 Redeem: [ OFF ]',
+        'toggle_maint_redeem',
+      ),
+    ],
+    [
+      Markup.button.callback(
+        isOptions ? '🔴 Options: [ ON ]' : '🟢 Options: [ OFF ]',
+        'toggle_maint_options',
+      ),
+      Markup.button.callback(
+        isFantasy ? '🔴 Fantasy: [ ON ]' : '🟢 Fantasy: [ OFF ]',
+        'toggle_maint_fantasy',
       ),
     ],
     [
@@ -675,24 +696,32 @@ function getMaintenanceMenuMarkup(cfg: any) {
   ]);
 }
 
+function renderMaintenanceStatusText(cfg: any, extraNote?: string) {
+  return (
+    `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
+    `Control the lock gates for Web & Mobile APK in real-time:\n\n` +
+    `• *Global App Lock:* ${cfg.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
+    `• *P2P Escrow:* ${cfg.modules?.p2p?.enabled ? '🔴 Locked' : '🟢 Active'}\n` +
+    `• *Staking Module:* ${cfg.modules?.staking?.enabled ? '🔴 Locked' : '🟢 Active'}\n` +
+    `• *Vault Deposit:* ${cfg.modules?.deposit?.enabled ? '🔴 Locked' : '🟢 Active'}\n` +
+    `• *Vault Redeem:* ${cfg.modules?.redeem?.enabled ? '🔴 Locked' : '🟢 Active'}\n` +
+    `• *Options Trading:* ${cfg.modules?.options?.enabled ? '🔴 Locked' : '🟢 Active'}\n` +
+    `• *Fantasy Arena:* ${cfg.modules?.fantasy?.enabled ? '🔴 Locked' : '🟢 Active'}\n\n` +
+    (extraNote ? `${extraNote}\n\n` : '') +
+    `_Tap any button below to instantly toggle ON / OFF:_`
+  );
+}
+
 bot.action('admin_maintenance_menu', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = ctx.from?.id;
   if (!isUserAdmin(userId)) return ctx.reply('⛔ Unauthorized.');
 
   const cfg = getMaintenanceConfig();
-  return ctx.reply(
-    `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
-      `Control the lock gates for Web & Mobile APK in real-time:\n\n` +
-      `• *Global App Lock:* ${cfg.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
-      `• *P2P Escrow Module:* ${cfg.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
-      `• *Staking Module:* ${cfg.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
-      `_Tap any button below to instantly toggle ON / OFF:_`,
-    {
-      parse_mode: 'Markdown',
-      ...getMaintenanceMenuMarkup(cfg),
-    },
-  );
+  return ctx.reply(renderMaintenanceStatusText(cfg), {
+    parse_mode: 'Markdown',
+    ...getMaintenanceMenuMarkup(cfg),
+  });
 });
 
 bot.action('toggle_maint_global', async (ctx) => {
@@ -710,11 +739,7 @@ bot.action('toggle_maint_global', async (ctx) => {
   const updated = getMaintenanceConfig();
   try {
     await ctx.editMessageText(
-      `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
-        `• *Global App Lock:* ${updated.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
-        `• *P2P Escrow Module:* ${updated.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
-        `• *Staking Module:* ${updated.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
-        `✅ *Saved & Synced to Web + Mobile APK!*`,
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
       {
         parse_mode: 'Markdown',
         ...getMaintenanceMenuMarkup(updated),
@@ -731,8 +756,7 @@ bot.action('toggle_maint_p2p', async (ctx) => {
   }
 
   const current = getMaintenanceConfig();
-  const currentP2P = Boolean(current.modules?.p2p?.enabled);
-  const newP2P = !currentP2P;
+  const newP2P = !Boolean(current.modules?.p2p?.enabled);
 
   updateMaintenanceConfig({
     modules: {
@@ -752,11 +776,7 @@ bot.action('toggle_maint_p2p', async (ctx) => {
   const updated = getMaintenanceConfig();
   try {
     await ctx.editMessageText(
-      `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
-        `• *Global App Lock:* ${updated.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
-        `• *P2P Escrow Module:* ${updated.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
-        `• *Staking Module:* ${updated.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
-        `✅ *Saved & Synced to Web + Mobile APK!*`,
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
       {
         parse_mode: 'Markdown',
         ...getMaintenanceMenuMarkup(updated),
@@ -773,8 +793,7 @@ bot.action('toggle_maint_staking', async (ctx) => {
   }
 
   const current = getMaintenanceConfig();
-  const currentStaking = Boolean(current.modules?.staking?.enabled);
-  const newStaking = !currentStaking;
+  const newStaking = !Boolean(current.modules?.staking?.enabled);
 
   updateMaintenanceConfig({
     modules: {
@@ -794,11 +813,152 @@ bot.action('toggle_maint_staking', async (ctx) => {
   const updated = getMaintenanceConfig();
   try {
     await ctx.editMessageText(
-      `🛠️ *UnifyVault Live Maintenance Control Center*\n\n` +
-        `• *Global App Lock:* ${updated.enabled ? '🔴 ACTIVE (App Locked)' : '🟢 OFF (App Open)'}\n` +
-        `• *P2P Escrow Module:* ${updated.modules?.p2p?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n` +
-        `• *Staking Module:* ${updated.modules?.staking?.enabled ? '🔴 Under Maintenance' : '🟢 Active'}\n\n` +
-        `✅ *Saved & Synced to Web + Mobile APK!*`,
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+bot.action('toggle_maint_deposit', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const newDeposit = !Boolean(current.modules?.deposit?.enabled);
+
+  updateMaintenanceConfig({
+    modules: {
+      ...(current.modules || {}),
+      deposit: {
+        ...(current.modules?.deposit || {}),
+        enabled: newDeposit,
+        title: 'Vault Deposits Paused',
+        message:
+          'Deposits into the Multi-Asset Custody Vault are temporarily paused for maintenance.',
+        estimatedEndTime: 'Coming back shortly',
+      },
+    },
+  });
+
+  await ctx.answerCbQuery(`Deposit Maintenance: ${newDeposit ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+bot.action('toggle_maint_redeem', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const newRedeem = !Boolean(current.modules?.redeem?.enabled);
+
+  updateMaintenanceConfig({
+    modules: {
+      ...(current.modules || {}),
+      redeem: {
+        ...(current.modules?.redeem || {}),
+        enabled: newRedeem,
+        title: 'Vault Redemptions Paused',
+        message: 'Vault redemptions are temporarily paused for scheduled maintenance.',
+        estimatedEndTime: 'Coming back shortly',
+      },
+    },
+  });
+
+  await ctx.answerCbQuery(`Redeem Maintenance: ${newRedeem ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+bot.action('toggle_maint_options', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const newOptions = !Boolean(current.modules?.options?.enabled);
+
+  updateMaintenanceConfig({
+    modules: {
+      ...(current.modules || {}),
+      options: {
+        ...(current.modules?.options || {}),
+        enabled: newOptions,
+        title: 'Options Trading Maintenance',
+        message: 'Options trading engine and automated settlement are undergoing upgrades.',
+        estimatedEndTime: 'Coming back shortly',
+      },
+    },
+  });
+
+  await ctx.answerCbQuery(`Options Maintenance: ${newOptions ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
+      {
+        parse_mode: 'Markdown',
+        ...getMaintenanceMenuMarkup(updated),
+      },
+    );
+  } catch {}
+});
+
+bot.action('toggle_maint_fantasy', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!isUserAdmin(userId)) {
+    await ctx.answerCbQuery('⛔ Unauthorized', { show_alert: true });
+    return;
+  }
+
+  const current = getMaintenanceConfig();
+  const newFantasy = !Boolean(current.modules?.fantasy?.enabled);
+
+  updateMaintenanceConfig({
+    modules: {
+      ...(current.modules || {}),
+      fantasy: {
+        ...(current.modules?.fantasy || {}),
+        enabled: newFantasy,
+        title: 'Fantasy Sports Maintenance',
+        message: 'Fantasy Sports contests and team lineups are currently updating.',
+        estimatedEndTime: 'Coming back shortly',
+      },
+    },
+  });
+
+  await ctx.answerCbQuery(`Fantasy Maintenance: ${newFantasy ? 'ENABLED 🔴' : 'DISABLED 🟢'}`);
+  const updated = getMaintenanceConfig();
+  try {
+    await ctx.editMessageText(
+      renderMaintenanceStatusText(updated, '✅ *Saved & Synced to Web + Mobile APK!*'),
       {
         parse_mode: 'Markdown',
         ...getMaintenanceMenuMarkup(updated),
@@ -1131,7 +1291,56 @@ bot.catch((err) => {
   console.error('Telegram bot error:', err);
 });
 
-bot.launch();
+async function setupBotCommands() {
+  try {
+    // 1. Default user commands
+    await bot.telegram.setMyCommands([
+      { command: 'start', description: 'Open UnifyVault main menu & quick actions' },
+      { command: 'stake', description: 'View live dynamic staking APY & rewards' },
+      { command: 'balance', description: 'Check your real-time UVBE & ETH balances' },
+      { command: 'link', description: 'Link your Base EVM wallet address' },
+      { command: 'wallet', description: 'View connected wallet & holdings' },
+      { command: 'team', description: 'Check your affiliate rank & direct referrals' },
+      { command: 'p2p', description: 'Access P2P Escrow, orders & active trades' },
+      { command: 'order', description: 'Inspect a specific P2P Trade by ID (/order <id>)' },
+      { command: 'casino', description: 'Explore Casino games and provably fair stats' },
+      { command: 'tx', description: 'Verify on-chain transaction status on Base' },
+      { command: 'ecosystem', description: 'Official smart contract addresses on Base' },
+      { command: 'support', description: 'Documentation & community support links' },
+    ]);
+
+    // 2. Admin-scoped commands (only visible to Admin in Telegram menu)
+    if (adminChatId) {
+      await bot.telegram.setMyCommands(
+        [
+          { command: 'admin', description: '🛡️ Open Admin Command Center & Invariant Checks' },
+          { command: 'maintenance', description: '🛠️ Toggle Maintenance Gates (Web & Mobile APK)' },
+          { command: 'broadcast', description: '📢 Send Official Announcement to All Users' },
+          { command: 'inspect', description: '🔍 Audit Staker Rank, Directs & Team Volume' },
+          { command: 'start', description: 'Open UnifyVault main menu & quick actions' },
+          { command: 'stake', description: 'View live dynamic staking APY & rewards' },
+          { command: 'balance', description: 'Check your real-time UVBE & ETH balances' },
+          { command: 'p2p', description: 'Access P2P Escrow, orders & active trades' },
+          { command: 'tx', description: 'Verify on-chain transaction status on Base' },
+          { command: 'ecosystem', description: 'Official smart contract addresses on Base' },
+        ],
+        {
+          scope: {
+            type: 'chat',
+            chat_id: Number(adminChatId),
+          },
+        },
+      );
+    }
+    console.log('Telegram bot command menus configured successfully.');
+  } catch (err: any) {
+    console.error('Failed to set Telegram bot commands:', err.message);
+  }
+}
+
+bot.launch().then(() => {
+  setupBotCommands();
+});
 
 console.log('UnifyVault Telegram bot is running with Base Mainnet live tracking');
 
