@@ -73,3 +73,4 @@ apps/web-v2/public/*.apk
 *.jks
 *.keystore
 local.properties
+apps/telegram-bot/data/user_wallets.json
