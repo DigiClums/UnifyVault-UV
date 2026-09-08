@@ -36,6 +36,7 @@ export interface MaintenanceConfig {
   };
 }
 
+const LIVE_API_URL = 'https://app.unifyvault.xyz/api/maintenance';
 const GITHUB_BACKUP_URL =
   'https://raw.githubusercontent.com/DigiClums/UnifyVault-UV/main/apps/web-v2/public/version.json';
 
@@ -48,17 +49,32 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
     try {
       setIsChecking(true);
       // 1. Try local instant API first
-      let res = await fetch(`/api/maintenance?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { Accept: 'application/json' },
-      });
-
-      // 2. Fallback to GitHub raw if local endpoint not reachable
-      if (!res.ok) {
-        res = await fetch(`${GITHUB_BACKUP_URL}?t=${Date.now()}`, {
+      let res: Response | null = null;
+      try {
+        res = await fetch(`/api/maintenance?t=${Date.now()}`, {
           cache: 'no-store',
           headers: { Accept: 'application/json' },
         });
+      } catch {}
+
+      // 2. Try live production server (crucial for native APKs running on localhost scheme)
+      if (!res || !res.ok) {
+        try {
+          res = await fetch(`${LIVE_API_URL}?t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+          });
+        } catch {}
+      }
+
+      // 3. Fallback to GitHub raw if server endpoint not reachable
+      if (!res || !res.ok) {
+        try {
+          res = await fetch(`${GITHUB_BACKUP_URL}?t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+          });
+        } catch {}
       }
 
       if (res.ok) {

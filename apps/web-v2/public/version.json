@@ -15,5 +15,45 @@
     "[✨ Feature] P2P: implement immutable trade payment binding lifecycle (Phase 1 - 3)",
     "[🐛 Fix] PROTOCOL/TEST: isolate controller role in UVBTCETHTokenInvariantTest",
     "Verified APK SHA-256: 95b588c9ef80daef34bf0f731f7158a2cae9f21cbeae4179f6a189446b1f3ccb"
-  ]
+  ],
+  "maintenance": {
+    "enabled": false,
+    "title": "Protocol System Upgrade",
+    "message": "We are currently performing essential infrastructure maintenance and contract optimization. All vault assets and staking balances are 100% secure.",
+    "estimatedEndTime": "Coming back shortly",
+    "allowAdminBypass": true,
+    "telegramUrl": "https://t.me/UnifyVault",
+    "modules": {
+      "staking": {
+        "enabled": false,
+        "title": "Staking Vault Maintenance",
+        "message": "Staking Vault & Reward Distribution are undergoing contract maintenance. Accrued rewards remain intact.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "p2p": {
+        "enabled": true,
+        "title": "P2P Escrow Maintenance",
+        "message": "P2P Escrow & Marketplace is temporarily paused for database and contract sync. Escrow deposits remain safe.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "deposit": {
+        "enabled": false,
+        "title": "Deposits Paused",
+        "message": "Vault deposits are temporarily paused for routine maintenance.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "redeem": {
+        "enabled": false,
+        "title": "Redemptions Paused",
+        "message": "Vault redemptions are temporarily paused for liquidity rebalancing.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "options": {
+        "enabled": false,
+        "title": "Options Trading Maintenance",
+        "message": "Options protocol and settlement engine are undergoing maintenance.",
+        "estimatedEndTime": "Coming back shortly"
+      }
+    }
+  }
 }
