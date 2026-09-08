@@ -14,7 +14,7 @@
     "Verified APK SHA-256: cd759b4707ea4838f146d21fe0d97b1f3d542f982247996bdad10ac2617e620c"
   ],
   "maintenance": {
-    "enabled": true,
+    "enabled": false,
     "title": "Protocol System Upgrade",
     "message": "We are currently performing essential infrastructure maintenance and contract optimization. All vault assets and staking balances are 100% secure.",
     "estimatedEndTime": "Coming back shortly",
