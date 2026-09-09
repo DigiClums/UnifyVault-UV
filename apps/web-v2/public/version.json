@@ -6,6 +6,52 @@
   "sha256": "bf9a04700662b7c064c0d1b0de357b2b13b75a059bbef518065883026babbf98",
   "releaseNotes": [
     "[✨ Feature] SECURITY: support android native biometric passkey registration bridge",
+    "[✨ Feature] SECURITY: add global biometric app lock and WebAuthn passkey management",
+    "[✨ Feature] BOT: add admin inline commands and full module maintenance toggles",
     "Verified APK SHA-256: bf9a04700662b7c064c0d1b0de357b2b13b75a059bbef518065883026babbf98"
-  ]
+  ],
+  "maintenance": {
+    "enabled": false,
+    "title": "Protocol System Upgrade",
+    "message": "We are currently performing essential infrastructure maintenance and contract optimization. All vault assets and staking balances are 100% secure.",
+    "estimatedEndTime": "Coming back shortly",
+    "modules": {
+      "staking": {
+        "enabled": false,
+        "title": "Staking Vault Maintenance",
+        "message": "Staking Vault & Reward Distribution are undergoing scheduled maintenance. Accrued rewards and principals remain intact.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "p2p": {
+        "enabled": false,
+        "title": "P2P Escrow Maintenance",
+        "message": "P2P Escrow & Marketplace is temporarily paused for sync. Escrow deposits remain safe.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "deposit": {
+        "enabled": false,
+        "title": "Deposits Paused",
+        "message": "Vault deposits are temporarily paused for routine maintenance.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "redeem": {
+        "enabled": false,
+        "title": "Redemptions Paused",
+        "message": "Vault redemptions are temporarily paused for liquidity rebalancing.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "options": {
+        "enabled": false,
+        "title": "Options Trading Maintenance",
+        "message": "Options protocol and settlement engine are undergoing maintenance.",
+        "estimatedEndTime": "Coming back shortly"
+      },
+      "fantasy": {
+        "enabled": false,
+        "title": "Fantasy Sports Maintenance",
+        "message": "Fantasy Sports contests and team lineups are currently updating.",
+        "estimatedEndTime": "Coming back shortly"
+      }
+    }
+  }
 }
