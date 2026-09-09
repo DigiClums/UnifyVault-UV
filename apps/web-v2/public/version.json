@@ -47,7 +47,7 @@
         "estimatedEndTime": "Coming back shortly"
       },
       "fantasy": {
-        "enabled": false,
+        "enabled": true,
         "title": "Fantasy Sports Maintenance",
         "message": "Fantasy Sports contests and team lineups are currently updating.",
         "estimatedEndTime": "Coming back shortly"
