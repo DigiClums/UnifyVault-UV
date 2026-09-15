@@ -41,7 +41,7 @@
         "estimatedEndTime": "Coming back shortly"
       },
       "options": {
-        "enabled": true,
+        "enabled": false,
         "title": "Options Trading Maintenance",
         "message": "Options trading engine and automated settlement are undergoing upgrades.",
         "estimatedEndTime": "Coming back shortly"
