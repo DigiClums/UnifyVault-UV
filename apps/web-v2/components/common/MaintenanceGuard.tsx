@@ -31,7 +31,6 @@ export interface MaintenanceConfig {
     deposit?: ModuleMaintenanceConfig;
     redeem?: ModuleMaintenanceConfig;
     transfer?: ModuleMaintenanceConfig;
-    fantasy?: ModuleMaintenanceConfig;
   };
 }
 
@@ -157,7 +156,6 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
     const isP2P = cleanPath.includes('/p2p') || cleanPath.includes('p2p');
     const isDeposit = cleanPath.includes('/deposit') || cleanPath.includes('deposit');
     const isRedeem = cleanPath.includes('/redeem') || cleanPath.includes('redeem');
-    const isFantasy = cleanPath.includes('/fantasy') || cleanPath.includes('fantasy');
 
     if (isStaking && maintenance.modules.staking?.enabled) {
       const cfg = maintenance.modules.staking;
@@ -201,15 +199,6 @@ export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
           cfg.message || 'Vault redemptions are temporarily paused for scheduled maintenance.',
         estimatedEndTime: cfg.estimatedEndTime,
         moduleName: 'Vault Redemptions',
-      };
-    } else if (isFantasy && maintenance.modules.fantasy?.enabled) {
-      const cfg = maintenance.modules.fantasy;
-      activeMaintenance = {
-        isMaintenance: true,
-        title: cfg.title || 'Fantasy Sports Maintenance',
-        message: cfg.message || 'Fantasy Sports contests and team lineups are currently updating.',
-        estimatedEndTime: cfg.estimatedEndTime,
-        moduleName: 'Fantasy Arena',
       };
     }
   }

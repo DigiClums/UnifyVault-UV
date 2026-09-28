@@ -11,7 +11,6 @@ import { AppExitModal } from '../components/common/AppExitModal';
 import { BiometricLockModal } from '../components/common/BiometricLockModal';
 import { NotificationRouteHandler } from '../components/common/NotificationRouteHandler';
 import { GlobalReferralCapture } from '../components/common/GlobalReferralCapture';
-import { FantasyProvider } from '../lib/fantasy/fantasyStore';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -77,14 +76,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
           <Web3Provider>
-            <FantasyProvider>
-              <GlobalReferralCapture />
-              <NotificationRouteHandler />
-              <UpdateCheckerModal />
-              <AppExitModal />
-              <BiometricLockModal />
-              <AppShell>{children}</AppShell>
-            </FantasyProvider>
+            <GlobalReferralCapture />
+            <NotificationRouteHandler />
+            <UpdateCheckerModal />
+            <AppExitModal />
+            <BiometricLockModal />
+            <AppShell>{children}</AppShell>
           </Web3Provider>
         </ThemeProvider>
       </body>
