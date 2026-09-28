@@ -36,7 +36,6 @@ export interface MaintenanceSettings {
     p2p: ModuleConfig;
     deposit: ModuleConfig;
     redeem: ModuleConfig;
-    options: ModuleConfig;
   };
 }
 
@@ -73,12 +72,6 @@ const DEFAULT_SETTINGS: MaintenanceSettings = {
       enabled: false,
       title: 'Redemptions Paused',
       message: 'Vault redemptions are temporarily paused for liquidity rebalancing.',
-      estimatedEndTime: 'Coming back shortly',
-    },
-    options: {
-      enabled: false,
-      title: 'Options Trading Maintenance',
-      message: 'Options protocol and settlement engine are undergoing maintenance.',
       estimatedEndTime: 'Coming back shortly',
     },
   },
