@@ -1,0 +1,380 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ProjectStage {
+  DISCOVERED
+  EARLY
+  WATCH
+  TESTNET
+  MAINNET
+  VERIFIED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+enum OutcomeStatus {
+  PENDING
+  ACTIVE
+  ABANDONED
+  TESTNET
+  MAINNET
+  TOKEN_LAUNCHED
+  INCENTIVE_CONFIRMED
+  TRACKER_LISTED
+  NO_LONGER_ACTIVE
+}
+
+enum ExternalDiscoveryType {
+  AIRDROP_TRACKER
+  CRYPTO_NEWS
+  PROJECT_DIRECTORY
+  MAJOR_SOCIAL_ACCOUNT
+  OFFICIAL_ANNOUNCEMENT
+  OTHER
+}
+
+enum FirstMeaningfulSignalType {
+  GITHUB_COMMIT_ACTIVITY
+  SMART_CONTRACT_CODE
+  TESTNET_REFERENCE
+  CONTRACT_DEPLOYMENT
+  X_BUILDING_SIGNAL
+  X_TESTNET_SIGNAL
+}
+
+enum VerificationType {
+  NONE
+  CODE_VERIFIED
+  CONTRACT_VERIFIED
+  IDENTITY_VERIFIED
+  TRACKER_VERIFIED
+}
+
+enum EntityType {
+  PROJECT
+  PROTOCOL
+  INFRASTRUCTURE
+  DEVELOPER_TOOL
+  RESEARCH
+  PERSON
+  KOL
+  ORGANIZATION
+  ECOSYSTEM
+  UNKNOWN
+}
+
+enum RejectionReason {
+  TUTORIAL
+  HOMEWORK
+  FORK
+  DORMANT
+  DUPLICATE
+  NON_WEB3
+  NO_MEANINGFUL_ACTIVITY
+  OTHER
+}
+
+enum SignalType {
+  GITHUB_REPOSITORY_CREATED
+  GITHUB_COMMIT_ACTIVITY
+  GITHUB_RELEASE
+  GITHUB_CONTRIBUTOR_ACTIVITY
+  GITHUB_SMART_CONTRACT_CODE
+  TESTNET_REFERENCE
+  DEVNET_REFERENCE
+  OFFICIAL_WEBSITE
+  OFFICIAL_DOCUMENTATION
+  CONTRACT_DEPLOYMENT
+  ONCHAIN_ACTIVITY
+  ONCHAIN_CONTRACT_DEPLOYED
+  COMMUNITY_ACTIVITY
+  X_PROJECT_MENTION
+  X_BUILDING_SIGNAL
+  X_TESTNET_SIGNAL
+  X_DEVNET_SIGNAL
+  X_FOUNDER_SIGNAL
+  X_WAITLIST_SIGNAL
+  X_POINTS_SIGNAL
+  X_ALPHA_SIGNAL
+  X_FOUNDER_POST
+  X_PROJECT_LAUNCH
+  X_TESTNET_ANNOUNCEMENT
+  X_BUILDING_UPDATE
+  FUNDING_EVENT
+  POINTS_PROGRAM
+  QUEST_PROGRAM
+  TOKEN_ANNOUNCEMENT
+  AIRDROP_ANNOUNCEMENT
+}
+
+model Project {
+  id                        String                     @id @default(uuid())
+  name                      String
+  slug                      String                     @unique
+  description               String?                    @db.Text
+  entityType                EntityType                 @default(PROJECT)
+  investigationEvidence     Json?
+  websiteUrl                String?
+  githubUrl                 String?                    @unique
+  docsUrl                   String?
+  xUrl                      String?
+  discordUrl                String?
+  stage                     ProjectStage               @default(DISCOVERED)
+  status                    VerificationStatus         @default(UNVERIFIED)
+  verificationType          VerificationType           @default(NONE)
+  rejectionReason           RejectionReason?
+  firstDetectedAt           DateTime                   @default(now()) // Radar's first scan timestamp
+  firstRadarScanAt          DateTime                   @default(now())
+  githubCreatedAt           DateTime?                  // Real GitHub genesis timestamp
+  firstXSignalAt            DateTime?                  // First observed founder / project tweet
+  firstSignalAt             DateTime?                  // Oldest observed public signal timestamp
+  firstSignalSource         String?                    // e.g. 'X', 'GitHub', 'Blockchain', 'X + GitHub'
+  firstMeaningfulSignalAt   DateTime?
+  firstMeaningfulSignalType FirstMeaningfulSignalType?
+  detectionLagDays          Float?                     // Detection lag: (firstRadarScanAt - githubCreatedAt)
+  externalDiscoveryDate     DateTime?                  // Date when project gets listed on major trackers
+  actualLeadTimeDays        Float?                     // (externalDiscoveryDate - firstRadarScanAt)
+  earlynessScore            Int                        @default(50) // 0-100 based on age
+  baselineEarlynessScore    Int?                       // T0 Immutable Baseline earlyness (18 Sep)
+  baselineSignalStrength    Float?                     // T0 Immutable Baseline signal strength (18 Sep)
+  baselineDetectionLagDays  Float?                     // T0 Immutable Baseline detection lag (18 Sep)
+  baselineStage             ProjectStage?              // T0 Immutable Baseline stage (18 Sep)
+  isTutorialOrFork          Boolean                    @default(false)
+  whyDetected               String[]                   @default([])
+  whyNotDetected            String[]                   @default([])
+  lastCheckedAt             DateTime                   @default(now())
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+
+  // Relational data
+  signals              ProjectSignal[]
+  githubRepository     GitHubRepository?
+  contracts            Contract[]
+  scores               ScoreSnapshot[]
+  researchReports      ResearchReport[]
+  timelineEvents       ProjectTimelineEvent[]
+  outcomes             ProjectOutcome[]
+  externalDiscoveries  ExternalDiscoveryEvent[]
+  snapshots            ProjectSnapshot[]
+
+  @@index([slug])
+  @@index([stage])
+  @@index([status])
+  @@index([firstDetectedAt])
+}
+
+model ProjectOutcome {
+  id          String        @id @default(uuid())
+  projectId   String
+  status      OutcomeStatus @default(PENDING)
+  observedAt  DateTime      @default(now())
+  source      String
+  sourceUrl   String?
+  evidence    String        @db.Text
+  notes       String?       @db.Text
+  createdAt   DateTime      @default(now())
+
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([observedAt])
+}
+
+model ExternalDiscoveryEvent {
+  id            String                @id @default(uuid())
+  projectId     String
+  source        String
+  sourceUrl     String?
+  discoveryType ExternalDiscoveryType @default(OTHER)
+  discoveredAt  DateTime              @default(now())
+  evidence      String                @db.Text
+  createdAt     DateTime              @default(now())
+
+  project       Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([discoveredAt])
+  @@index([discoveryType])
+}
+
+model ProjectSnapshot {
+  id                String       @id @default(uuid())
+  projectId         String
+  snapshotDate      DateTime     @default(now())
+  stage             ProjectStage @default(DISCOVERED)
+  earlinessScore    Int          @default(50)
+  signalStrength    Float        @default(0)
+  githubStars       Int          @default(0)
+  githubForks       Int          @default(0)
+  contributors      Int          @default(0)
+  recentCommits     Int          @default(0)
+  onchainActivity   Float        @default(0)
+  communityActivity Float        @default(0)
+  createdAt         DateTime     @default(now())
+
+  project           Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([snapshotDate])
+}
+
+model ProjectSignal {
+  id          String     @id @default(uuid())
+  projectId   String
+  type        SignalType
+  source      String
+  sourceUrl   String?
+  title       String
+  evidence    String     @db.Text
+  confidence  Float      @default(0.8) // 0.0 to 1.0
+  detectedAt  DateTime   @default(now())
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([type])
+  @@index([detectedAt])
+}
+
+model GitHubRepository {
+  id                String    @id @default(uuid())
+  projectId         String    @unique
+  repositoryUrl     String
+  owner             String
+  repository        String
+  createdAtGithub   DateTime?
+  stars             Int       @default(0)
+  forks             Int       @default(0)
+  contributors      Int       @default(0)
+  recentCommits     Int       @default(0)
+  lastCommitAt      DateTime?
+  language          String?
+  topics            String[]  @default([])
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Contract {
+  id           String    @id @default(uuid())
+  projectId    String
+  chain        String    // e.g. 'base', 'ethereum', 'polygon', 'arbitrum', 'sepolia'
+  address      String
+  contractType String?   // e.g. 'ERC20', 'Vault', 'Bridge', 'Rollup', 'Router'
+  firstSeenAt  DateTime  @default(now())
+  explorerUrl  String?
+  verified     Boolean   @default(false)
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([chain, address])
+  @@index([projectId])
+}
+
+model ScoreSnapshot {
+  id               String   @id @default(uuid())
+  projectId        String
+  developmentScore Float    @default(0) // 0 - 25
+  onchainScore     Float    @default(0) // 0 - 25
+  communityScore   Float    @default(0) // 0 - 15
+  fundingScore     Float    @default(0) // 0 - 15
+  productScore     Float    @default(0) // 0 - 10
+  incentiveScore   Float    @default(0) // 0 - 10
+  totalScore       Float    @default(0) // 0 - 100
+  earlynessScore   Int      @default(50) // 0 - 100
+  explanations     Json?    // Detailed rationale for each component
+  calculatedAt     DateTime @default(now())
+
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([calculatedAt])
+  @@index([totalScore])
+}
+
+model ResearchReport {
+  id                       String   @id @default(uuid())
+  projectId                String
+  summary                  String   @db.Text
+  confirmedFacts           String[] @default([])
+  unconfirmedClaims        String[] @default([])
+  risks                    String[] @default([])
+  detectedSignals          String[] @default([])
+  suggestedResearchActions String[] @default([])
+  generatedAt              DateTime @default(now())
+
+  project                  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([generatedAt])
+}
+
+model ProjectTimelineEvent {
+  id          String   @id @default(uuid())
+  projectId   String
+  eventType   String
+  title       String
+  description String   @db.Text
+  sourceUrl   String?
+  eventDate   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([eventDate])
+}
+
+model XIntegration {
+  id                      String    @id @default(uuid())
+  userId                  String    @default("system")
+  xUserId                 String    @unique
+  xUsername               String
+  xName                   String?
+  encryptedAccessToken    String    @db.Text
+  encryptedRefreshToken   String?   @db.Text
+  tokenExpiresAt          DateTime?
+  scopes                  String[]  @default([])
+  status                  String    @default("CONNECTED") // CONNECTED, DISCONNECTED, EXPIRED
+  lastSuccessfulApiCallAt DateTime?
+  lastErrorAt             DateTime?
+  lastErrorMessage        String?   @db.Text
+  metadata                Json?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([xUsername])
+  @@index([status])
+}
+
+model XOAuthSession {
+  id           String   @id @default(uuid())
+  state        String   @unique
+  codeVerifier String   @db.Text
+  redirectUri  String
+  userId       String   @default("system")
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([state])
+  @@index([expiresAt])
+}
