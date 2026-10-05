@@ -21,7 +21,7 @@ import {
   GOVERNANCE_ROLE_HASH,
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
-} from '../contracts/escrow';
+} from '../contracts/governance';
 
 describe('Staking, Solvency & DAO Leadership Admin Test Suite', () => {
   const AUTHORIZED_GOVERNANCE = '0xd905920c91853039060246Ed5724AA72B91a96DA';

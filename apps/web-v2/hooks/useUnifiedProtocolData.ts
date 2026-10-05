@@ -17,7 +17,6 @@ import { HistoricalNavPoint, ProtocolMetrics, UserPortfolio } from '../types';
 import { transformProtocolMetrics, transformUserPortfolio } from '../lib/portfolioTransforms';
 import { aggregatePortfolioAddresses } from '../lib/portfolioMath';
 import { formatShares } from '../lib/math';
-import { useP2PTrades } from './useP2PEscrow';
 
 export interface UnifiedProtocolData extends ProtocolMetrics, UserPortfolio {
   historicalNAV: HistoricalNavPoint[];
@@ -59,7 +58,6 @@ function deriveFeedStatus(
 export function useUnifiedProtocolData(): UnifiedProtocolData {
   const { address: userAddress, chain } = useAccount();
   const { smartAccountAddress } = useSmartAccount();
-  const { trades: p2pTradesList } = useP2PTrades();
   const tokens = getChainTokens(chain?.id);
   const activeUser = userAddress || ZERO_ADDRESS;
   const { vault, oracle, token, costBasisManager, strategyManager, portfolioManager } =
@@ -239,7 +237,6 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
       userSharesRaw: unifiedSharesRaw,
       userUsdcRaw: eoaUsdcRaw,
       contractInvestedAssetsRaw: unifiedCostBasisRaw,
-      p2pTrades: p2pTradesList,
     };
   }, [
     userAddress,
@@ -248,7 +245,6 @@ export function useUnifiedProtocolData(): UnifiedProtocolData {
     eoaCostBasisRaw,
     smartAccountCostBasisRaw,
     eoaUsdcRaw,
-    p2pTradesList,
   ]);
 
   const targetWeightsResult = data?.[10]?.result as

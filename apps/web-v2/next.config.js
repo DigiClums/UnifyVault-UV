@@ -25,7 +25,6 @@ const nextConfig = {
     ],
   },
   ...(isExport ? { output: 'export', distDir: 'out', images: { unoptimized: true } } : {}),
-  serverExternalPackages: ['tesseract.js', 'pdf-parse'],
   transpilePackages: ['@rainbow-me/rainbowkit'],
   webpack: (config, { webpack, isServer }) => {
     config.plugins.push(

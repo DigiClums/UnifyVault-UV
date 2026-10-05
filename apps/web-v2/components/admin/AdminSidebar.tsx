@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Server,
   ChevronDown,
-  Gavel,
   Coins,
   Fuel,
   Droplets,
@@ -35,7 +34,6 @@ export function AdminSidebar() {
       title: 'OPERATIONS',
       items: [
         { href: '/admin/staking', label: 'Staking & Solvency', icon: Coins },
-        { href: '/admin/p2p-arbitration', label: 'P2P Arbitration', icon: Gavel },
         { href: '/radar', label: 'Early Radar', icon: Radar },
         { href: '/admin/custody', label: 'Custody Vault', icon: ShieldCheck },
         { href: '/admin/treasury', label: 'Treasury & Revenue', icon: Vault },

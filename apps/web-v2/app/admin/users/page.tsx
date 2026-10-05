@@ -6,17 +6,16 @@ import { UserLookupBar } from '../../../components/accounting/UserLookupBar';
 import { UserOverviewCard } from '../../../components/accounting/UserOverviewCard';
 import { CostBasisSection } from '../../../components/accounting/CostBasisSection';
 import { PerformanceSection } from '../../../components/accounting/PerformanceSection';
-import { EscrowStatusCard } from '../../../components/accounting/EscrowStatusCard';
 import { AccountingMigrationSection } from '../../../components/accounting/AccountingMigrationSection';
 import { AccountingEventHistory } from '../../../components/accounting/AccountingEventHistory';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import { Users, Wallet, Activity, ShieldAlert, RefreshCw, History, Layers } from 'lucide-react';
+import { Users, Wallet, Activity, RefreshCw, History, Layers } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const [inspectedAddress, setInspectedAddress] = useState<string>('');
   const [currentTab, setCurrentTab] = useState<
-    'overview' | 'costbasis' | 'performance' | 'escrow' | 'migration' | 'activity'
+    'overview' | 'costbasis' | 'performance' | 'migration' | 'activity'
   >('overview');
 
   const state = useUserAccounting(inspectedAddress);
@@ -24,17 +23,17 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border-subtle/50">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2.5">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              User Accounting & Performance Console
+          <div className="flex items-center space-x-3">
+            <h1 className="text-2xl font-black tracking-tight text-foreground font-sans">
+              User Cost Basis & Portfolio Forensic Explorer
             </h1>
-            <StatusBadge status="Admin" label="ACCOUNTING ENGINE" />
+            <StatusBadge status="active" label="Authoritative V2" />
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Real-time on-chain cost basis inspection, realized/unrealized PnL audits, and historical
-            accounting migration.
+          <p className="text-xs text-muted-foreground mt-1">
+            Real-time multi-asset cost basis, realized/unrealized P&L, and portfolio attribution
+            console.
           </p>
         </div>
 
@@ -42,10 +41,10 @@ export default function AdminUsersPage() {
           type="button"
           onClick={() => state.refetch()}
           disabled={state.isLoading}
-          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-card hover:bg-muted border border-border-subtle text-foreground text-xs font-semibold self-start sm:self-auto transition-colors disabled:opacity-50 min-h-[38px]"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl border border-border-subtle bg-card hover:bg-card/80 text-foreground font-bold text-xs transition-all shadow-subtle min-h-[40px]"
         >
           <RefreshCw
-            className={`w-3.5 h-3.5 ${state.isLoading ? 'animate-spin text-purple-400' : ''}`}
+            className={`w-4 h-4 ${state.isLoading ? 'animate-spin text-purple-400' : ''}`}
           />
           <span>Refresh On-Chain State</span>
         </button>
@@ -103,19 +102,6 @@ export default function AdminUsersPage() {
 
             <button
               type="button"
-              onClick={() => setCurrentTab('escrow')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
-                currentTab === 'escrow'
-                  ? 'bg-purple-600 text-white shadow-glow'
-                  : 'bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border-subtle'
-              }`}
-            >
-              <ShieldAlert className="w-4 h-4" />
-              <span>Escrow Context</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setCurrentTab('migration')}
               className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] shrink-0 ${
                 currentTab === 'migration'
@@ -153,8 +139,6 @@ export default function AdminUsersPage() {
           {currentTab === 'costbasis' && <CostBasisSection state={state} />}
 
           {currentTab === 'performance' && <PerformanceSection state={state} />}
-
-          {currentTab === 'escrow' && <EscrowStatusCard state={state} onRefresh={state.refetch} />}
 
           {currentTab === 'migration' && (
             <AccountingMigrationSection state={state} onRefresh={state.refetch} />

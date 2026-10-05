@@ -24,7 +24,7 @@ import {
   GUARDIAN_ROLE_HASH,
   DEFAULT_ADMIN_ROLE_HASH,
   SPONSOR_DISPATCHER_ROLE_HASH,
-} from '../../../lib/contracts/escrow';
+} from '../../../lib/contracts/governance';
 import { getDeployedContracts, getExplorerBaseUrl, getDefaultChainId } from '../../../constants';
 import { StatCard } from '../../../components/ui/StatCard';
 import { StatusBadge } from '../../../components/ui/StatusBadge';

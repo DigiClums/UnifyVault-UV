@@ -9,7 +9,6 @@ import {
   getProtocolDirectoryAddress,
   getDefaultChainId,
 } from '../../constants';
-import { getMarketplaceAddress } from '../../hooks/useMarketplace';
 import { ENTRYPOINT_ADDRESS_V07, APPROVED_MAINNET_TARGETS } from '../smartAccount/constants';
 import { getPaymasterAddress } from '../smartAccount/config';
 import { KNOWN_TOKENS } from '../explorer/eventRegistry';
@@ -21,13 +20,11 @@ import {
   COST_BASIS_MANAGER_ABI,
   PERFORMANCE_MANAGER_ABI,
   ORACLE_MANAGER_ABI,
-  P2P_ESCROW_ABI,
   PROTOCOL_DIRECTORY_ABI,
   FEE_MANAGER_ABI,
   STRATEGY_MANAGER_ABI,
   ERC20_ABI,
 } from '../contracts';
-import { MARKETPLACE_ABI } from '../contracts/marketplace';
 
 // Canonical Base Mainnet V2 Contract Matrix
 export const CANONICAL_BASE_MAINNET_V2 = {
@@ -172,9 +169,6 @@ describe('Frontend Contract Alignment — Canonical Base Mainnet V2 Production S
 
     it('matches the canonical Marketplace address', () => {
       expect(DEPLOYED_CONTRACTS_MAINNET.Marketplace.toLowerCase()).toBe(
-        CANONICAL_BASE_MAINNET_V2.Marketplace.toLowerCase(),
-      );
-      expect(getMarketplaceAddress(base.id).toLowerCase()).toBe(
         CANONICAL_BASE_MAINNET_V2.Marketplace.toLowerCase(),
       );
     });
@@ -343,36 +337,6 @@ describe('Frontend Contract Alignment — Canonical Base Mainnet V2 Production S
       expect(fnNames).toContain('swapSlippageBps');
       expect(fnNames).toContain('emergencyPause');
       expect(fnNames).toContain('resume');
-    });
-
-    it('verifies P2PEscrowV2 ABI contains lifecycle methods', () => {
-      const fnNames = P2P_ESCROW_ABI.filter((x: any) => x.type === 'function').map(
-        (x: any) => x.name,
-      );
-      expect(fnNames).toContain('createTrade');
-      expect(fnNames).toContain('fundTrade');
-      expect(fnNames).toContain('submitPayment');
-      expect(fnNames).toContain('confirmAndRelease');
-      expect(fnNames).toContain('refund');
-      expect(fnNames).toContain('cancelUnfundedTrade');
-      expect(fnNames).toContain('raiseDispute');
-      expect(fnNames).toContain('resolveDispute');
-      expect(fnNames).toContain('getTrade');
-      expect(fnNames).toContain('totalTrades');
-      expect(fnNames).toContain('feeBps');
-    });
-
-    it('verifies Marketplace ABI contains order matching and execution methods', () => {
-      const abiString = JSON.stringify(MARKETPLACE_ABI);
-      expect(abiString).toContain('createBuyOrder');
-      expect(abiString).toContain('createSellOrder');
-      expect(abiString).toContain('cancelOrder');
-      expect(abiString).toContain('matchOrders');
-      expect(abiString).toContain('takeOrder');
-      expect(abiString).toContain('getOrder');
-      expect(abiString).toContain('getOrderCount');
-      expect(abiString).toContain('p2pEscrow');
-      expect(abiString).toContain('uvbeToken');
     });
 
     it('verifies PerformanceManager ABI contains portfolio performance metrics', () => {

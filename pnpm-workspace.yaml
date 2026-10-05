@@ -2,6 +2,17 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+allowBuilds:
+  '@nestjs/core': set this to true or false
+  '@prisma/client': set this to true or false
+  '@prisma/engines': set this to true or false
+  bufferutil: set this to true or false
+  esbuild: set this to true or false
+  keccak: set this to true or false
+  prisma: set this to true or false
+  tesseract.js: set this to true or false
+  utf-8-validate: set this to true or false
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@prisma/client'
